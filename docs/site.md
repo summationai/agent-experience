@@ -28,6 +28,7 @@ You do not touch the site. Add the page to `docs/`, link it from the ordered lis
 - **links**: every `href` and `src` in the output resolves; external links point only at the repository and npm.
 - **demos**: the ladder demo plays both paths and reports the expected `status` sequence; choosing a unit in the rendered search binds its id into the ladder; search and the theme toggle work from the keyboard.
 - **screenshots**: the landing page at four widths in light and dark, compared with the baselines committed under `site/test/__screenshots__/`. Regenerate them with `node site/test/run.mjs --update-screenshots` and look at them.
+- **llms**: `llms.txt` starts with a title and summary, every link in it resolves in the repository and in the published copy, and `llms-full.txt` carries every docs and spec page.
 - **lighthouse**: performance, accessibility, best practices, and SEO at 95 or above on the landing page and one docs page, served over a local port for the run.
 
 CI builds the site and fails if `site/dist/` differs from the committed output. The Open Graph image is rendered by a browser and excluded from that byte comparison.

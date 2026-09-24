@@ -317,6 +317,8 @@ await test("demos", async () => {
     await page.keyboard.press("/");
     if (!(await page.isVisible("#search-dialog"))) throw new Error("search dialog did not open");
     await page.fill(".search-input", "handoff");
+    // The search index loads on intent (hover, focus, or open), so results can trail the keystroke.
+    await page.locator(".search-results a").first().waitFor({ state: "attached", timeout: 10_000 });
     const count = await page.locator(".search-results a").count();
     if (count === 0) throw new Error("search returned nothing for 'handoff'");
     await page.keyboard.press("Escape");
