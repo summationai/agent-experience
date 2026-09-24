@@ -67,6 +67,8 @@ import {
 } from "./results";
 import { AGENT_DIRECTIVE_PATTERNS } from "./lint";
 import { MemoryTokenStore, TokenSigner, hashJson, loadToken, mintToken } from "./tokens";
+import { evaluateRequestPolicy, resolveRequestPolicy } from "./request-policy";
+import type { RequestPolicyConfig, ResolvedRequestPolicy } from "./request-policy";
 import type { TokenRecord, TokenStore } from "./tokens";
 import { isZodSchema, toJsonSchema, zodIssuesToValidationIssues } from "./zod-json-schema";
 import { WIRE } from "./vocabulary";
@@ -157,6 +159,12 @@ export interface AXEConfig {
   /** Reject mutating calls without `idempotencyKey`. Default true. */
   requireIdempotencyKey?: boolean;
   cors?: CorsConfig;
+  /**
+   * Content-type and origin rules for POSTs, applied before any body is read (spec [P-TRANS-1] to
+   * [P-TRANS-4]). Default: JSON required on state-changing endpoints, and a POST carrying a
+   * `Cookie` header must come from the origin of `baseUrl` or a trusted origin.
+   */
+  requestPolicy?: RequestPolicyConfig;
   /** Resolve the tenant for a request on multi-tenant platforms. Return `null` for unknown hosts. */
   tenant?: (request: Request) => MaybePromise<TenantInfo | null | undefined>;
   /** Serve a platform index at `/.well-known/axe-index.json`. */
@@ -235,6 +243,7 @@ export class AXE {
   private readonly emitAction: ActionEventSink;
   private finalized = false;
   private basePath: string;
+  private readonly policy: ResolvedRequestPolicy;
 
   readonly config: AXEConfig & { auth: AuthConfig };
 
@@ -274,6 +283,7 @@ export class AXE {
       throw new Error("createAXE: auth mode `site` needs `auth.verifySiteKey(key, request)`.");
     }
     this.basePath = base.pathname.replace(/\/$/, "");
+    this.policy = resolveRequestPolicy(config);
     let secret = config.secret;
     if (!secret) {
       secret = crypto.randomUUID() + crypto.randomUUID();
@@ -744,6 +754,14 @@ export class AXE {
     }
 
     if (method === "OPTIONS") return this.preflight(request);
+
+    // Browser-shaped writes are refused before a body, identity, or token is looked at ([P-TRANS-1..4]).
+    const refused = evaluateRequestPolicy(request, this.policy, {
+      path,
+      siteUrls: [this.config.baseUrl, tenant?.baseUrl],
+      isReadOnly: (name) => this.getAction(name)?.definition.readOnly === true,
+    });
+    if (refused) return this.respond(request, tenant, refused, undefined);
 
     if (method === "GET" && (path === WIRE.path.manifest || path === WIRE.path.manifestAlias)) {
       return this.json(request, await this.describeLive(tenant, request), 200, {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage } from "node:http";
 import { createAXE, action, z } from "@axe/core";
 import { axeNext, axeNextPages } from "../src/index";
 
@@ -89,5 +89,143 @@ describe("axeNextPages (Pages API)", () => {
       "applicant-3",
     );
     await new Promise<void>((r) => http.close(() => r()));
+  });
+});
+
+describe("request policy through the Next adapters [P-TRANS-1] [P-TRANS-2]", () => {
+  const SITE = "https://admissions.northgate.example";
+  function writable() {
+    const writes: string[] = [];
+    const axe = createAXE({
+      name: "Northgate University Admissions",
+      description:
+        "Check application status, upload transcripts and recommendation letters, and schedule campus visits.",
+      baseUrl: SITE,
+      auth: { modes: ["none", "user"], userLoginUrl: `${SITE}/login` },
+      secret: "0123456789abcdef0123456789abcdef",
+    });
+    axe.register(
+      action("visits.schedule", {
+        title: "Schedule a campus visit",
+        description:
+          "Books a campus visit for the signed-in applicant on the given date and returns the visit id.",
+        risk: "low",
+        reversible: true,
+        auth: "user",
+        input: z.object({ date: z.string() }),
+        output: z.object({ visitId: z.string() }),
+        handler: async ({ input, context }) => {
+          writes.push(`${context.onBehalfOf}:${input.date}`);
+          return { visitId: `v-${input.date}` };
+        },
+      }),
+    );
+    const identity = (
+      cookie: string | null | undefined,
+      authorization: string | null | undefined,
+    ) =>
+      cookie === "sid=1"
+        ? { onBehalfOf: "applicant-9" }
+        : authorization === "Bearer t"
+          ? { onBehalfOf: "applicant-3" }
+          : null;
+    return { axe, writes, identity };
+  }
+  const envelope = (date: string) => JSON.stringify({ input: { date }, idempotencyKey: date });
+
+  describe("App Router", () => {
+    it("refuses cross-origin cookie writes and non-JSON writes; runs same-origin and bearer JSON", async () => {
+      const { axe, writes, identity } = writable();
+      const { POST } = axeNext(axe, {
+        context: (req) => ({
+          identity: identity(req.headers.get("cookie"), req.headers.get("authorization")),
+        }),
+      });
+      const call = (headers: Record<string, string>, body: string) =>
+        POST(new Request(`${SITE}/axe/actions/visits.schedule`, { method: "POST", headers, body }));
+      const csrf = await call(
+        { "content-type": "text/plain", origin: "https://evil.example", cookie: "sid=1" },
+        envelope("d1"),
+      );
+      const form = await call(
+        { "content-type": "application/x-www-form-urlencoded", authorization: "Bearer t" },
+        `${envelope("d2")}=`,
+      );
+      const same = await call(
+        { "content-type": "application/json", origin: SITE, cookie: "sid=1" },
+        envelope("d3"),
+      );
+      const bearer = await call(
+        { "content-type": "application/json", authorization: "Bearer t" },
+        envelope("d4"),
+      );
+      expect([csrf.status, form.status, same.status, bearer.status]).toEqual([403, 400, 200, 200]);
+      expect(writes).toEqual(["applicant-9:d3", "applicant-3:d4"]);
+    });
+  });
+
+  describe("Pages API", () => {
+    /**
+     * Next's Pages API body parser, as it behaves: JSON bodies become objects, form bodies
+     * become objects, and every other content type (missing included) becomes a string.
+     */
+    function nextBodyParser(req: IncomingMessage, text: string): unknown {
+      const type = (req.headers["content-type"] ?? "text/plain").split(";")[0]!.trim();
+      if (!text) return undefined;
+      if (type === "application/json" || type === "application/ld+json") return JSON.parse(text);
+      if (type === "application/x-www-form-urlencoded")
+        return Object.fromEntries(new URLSearchParams(text));
+      return text;
+    }
+
+    it("keeps the sent content type, so parsed text and form bodies are still refused", async () => {
+      const { axe, writes, identity } = writable();
+      const pages = axeNextPages(axe, {
+        origin: SITE,
+        context: (req) => ({
+          identity: identity(req.headers.cookie, req.headers.authorization),
+        }),
+      });
+      const http = createServer((req, res) => {
+        const chunks: Buffer[] = [];
+        req.on("data", (c: Buffer) => chunks.push(c));
+        req.on("end", () => {
+          const body = nextBodyParser(req, Buffer.concat(chunks).toString());
+          void pages(Object.assign(req, { body }), res);
+        });
+      });
+      await new Promise<void>((r) => http.listen(0, () => r()));
+      const port = (http.address() as { port: number }).port;
+      const call = async (headers: Record<string, string>, body: string) =>
+        (
+          await fetch(`http://127.0.0.1:${port}/axe/actions/visits.schedule`, {
+            method: "POST",
+            headers,
+            body,
+          })
+        ).status;
+      const results = [
+        await call({ "content-type": "text/plain", authorization: "Bearer t" }, envelope("p1")),
+        await call(
+          { "content-type": "application/x-www-form-urlencoded", authorization: "Bearer t" },
+          `${envelope("p2")}=`,
+        ),
+        await call(
+          { "content-type": "text/plain", origin: "https://evil.example", cookie: "sid=1" },
+          envelope("p3"),
+        ),
+        await call(
+          { "content-type": "application/json", origin: SITE, cookie: "sid=1" },
+          envelope("p4"),
+        ),
+        await call(
+          { "content-type": "application/json", authorization: "Bearer t" },
+          envelope("p5"),
+        ),
+      ];
+      expect(results).toEqual([400, 400, 403, 200, 200]);
+      expect(writes).toEqual(["applicant-9:p4", "applicant-3:p5"]);
+      await new Promise<void>((r) => http.close(() => r()));
+    });
   });
 });

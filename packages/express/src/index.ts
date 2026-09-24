@@ -43,16 +43,25 @@ export async function toWebRequest(req: NodeRequestLike, origin?: string): Promi
   const method = (req.method ?? "GET").toUpperCase();
   const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
-    if (req.body !== undefined && !(req.body instanceof Uint8Array)) {
-      init.body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-      headers.set("content-type", "application/json");
+    // The request's own headers are kept as sent, `Content-Type` included: the core's request
+    // policy ([P-TRANS-1]) judges the body by it, so a body parser that turned a text/plain or
+    // form body into a value must not make it look like JSON. The raw stream is preferred while
+    // it is unread (Express 4's json parser leaves `req.body = {}` on a body it skipped).
+    if (streamUnread(req)) {
+      init.body = await readStream(req);
     } else if (req.body instanceof Uint8Array) {
       init.body = toArrayBufferBytes(req.body);
-    } else {
-      init.body = await readStream(req);
+    } else if (req.body !== undefined) {
+      init.body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     }
   }
   return new Request(url, init);
+}
+
+/** Whether no middleware has consumed the request body stream. */
+function streamUnread(req: IncomingMessage): boolean {
+  const r = req as IncomingMessage & { _body?: boolean };
+  return r._body !== true && !req.readableEnded && req.readable && req.readableFlowing !== true;
 }
 
 /** Write a Web `Response` to a Node response. Exported for other Node adapters. */
