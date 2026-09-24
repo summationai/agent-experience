@@ -48,6 +48,7 @@ export const HUB_GROUPS = [
     pages: [
       "docs/surface.md",
       "docs/designing-actions.md",
+      "docs/generating.md",
       "docs/presenting-results.md",
       "docs/requirements-and-kinds.md",
       "docs/human-handoff.md",

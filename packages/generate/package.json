@@ -1,0 +1,51 @@
+{
+  "name": "@axe/generate",
+  "version": "0.1.0",
+  "description": "Derive AXE actions from definitions an application already has: an OpenAPI 3.x document, a table of zod-typed functions, or a tRPC router. Overrides, policy, honesty lints, and provenance.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@axe/core": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/summationai/agent-experience",
+    "directory": "packages/generate"
+  },
+  "keywords": [
+    "axe",
+    "agents",
+    "ai",
+    "openapi",
+    "codegen"
+  ],
+  "devDependencies": {
+    "@axe/testing": "workspace:*"
+  }
+}

@@ -14,7 +14,7 @@ What MCP alone does not give a site: discovery at a domain (there is no well-kno
 
 OpenAPI describes HTTP endpoints for developers: paths, verbs, parameters, response codes. AXE describes capabilities for agents: what an action does in a model-readable `description`, what it commits the user to (`risk`, `reversible`, `idempotent`), what it needs to finish (`accepts` with typed kinds), how to present its output (`display`), and what to do when a human must act (`handoff`).
 
-You can generate an OpenAPI document from a manifest trivially: one `POST /axe/actions/{name}` operation per action, with the action's `input` and `output` schemas as the request and response bodies. The reverse loses the parts that matter: an OpenAPI document has no place for risk metadata, presentation, requirements a wallet can fulfill, or a resume token, and its `description` fields were written for a human reading a reference page. Keep OpenAPI for developers; AXE is a second, smaller surface for agents.
+You can generate an OpenAPI document from a manifest trivially: one `POST /axe/actions/{name}` operation per action, with the action's `input` and `output` schemas as the request and response bodies. The reverse loses the parts that matter: an OpenAPI document has no place for risk metadata, presentation, requirements a wallet can fulfill, or a resume token, and its `description` fields were written for a human reading a reference page. Keep OpenAPI for developers; AXE is a second, smaller surface for agents. The OpenAPI document is still a good place to start from: [`@axe/generate`](generating.md) derives the parts that carry over (names, flags, schemas, the HTTP call) and asks you for the rest instead of guessing.
 
 ### How is this different from llms.txt?
 
