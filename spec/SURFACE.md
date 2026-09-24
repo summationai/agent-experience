@@ -67,6 +67,12 @@ Surface came out of two trials on business applications with opposite shapes (st
 
 **[S-ACT-5]** `target` is an entry id or an index from an observation at the same revision. Ids are stable and SHOULD be preferred.
 
+**[S-ACT-6]** `target` MUST be a non-empty string (an id) or a non-negative integer (an index). Any other value, including a missing or `null` target, an empty string, a negative or fractional number, `NaN`, a boolean, or an object, is `invalid_input` with an issue at `/target`, and no handler runs.
+
+**[S-ACT-7]** An index MUST resolve only to the entry whose `index` in the observation at `expectedRev` is that number. An entry whose `index` is `null` MUST NOT be reachable by number, whatever position it holds in the table; a number that no entry carries is `not_found`. The revision guard of [S-ACT-2] MUST run before the target is resolved, so an index observed at an older revision is `conflict` and can never land on the row that slid into its slot.
+
+**[S-ACT-8]** A string `target` that names a registered entry which cannot be acted on (an unavailable action, a read-only field, a collection that cannot load more) is `unavailable` with `details.reason` per [S-ACT-4], not `not_found`. `not_found` is reserved for a target no entry carries.
+
 **[S-REV-1]** Applications whose state lives in the browser call `bump()` after every change an agent could observe, whoever made it; applications with a server revision adopt it with `setRev()`. In the second case the surface's stale check is the first of two: the server refuses a stale expected revision again.
 
 **[S-REV-2]** A retried act with the same `expectedRev` after a successful act MUST be refused (the revision moved), so a lost response cannot double-apply.
@@ -74,6 +80,18 @@ Surface came out of two trials on business applications with opposite shapes (st
 **[S-REV-3]** An act by one participant is visible to every other participant as a revision move; a human's change between an agent's observe and act is caught by [S-ACT-2].
 
 **[S-REV-4]** The application SHOULD record `actor` and `rev` on the state an act produced (a ledger), so every change names who made it and at which revision.
+
+**[S-REV-5]** The application MUST re-register (or `reconcile`) whenever anything that feeds an entry's `state`, `value`, or `edit` changes, including transient states: a save in flight, data loading, a modal open. An observation MUST reflect the application's state as of its `rev`. A surface that reports a control available while the application has disabled it is a defect; §5.1 is the shortest way to avoid it for a state that spans the surface.
+
+### 5.1 Transient states
+
+**[S-FRZ-1]** `freeze(reason)` marks the whole surface unavailable for a transient state and returns `thaw`. While frozen, every action reports `{ available: false, reason }` with the freeze's reason in place of its own state (and no `requires` or `handoff`), every field is read-only with that `reason`, no collection can load more, and no entry carries an `index`. Field values remain visible.
+
+**[S-FRZ-2]** `freeze` moves the revision, and so does `thaw`. `observe()` carries a top-level `frozen: { reason }` while frozen and omits it otherwise.
+
+**[S-FRZ-3]** An act during a freeze is `error` with `code: "unavailable"`, `retryable: true`, and `details.reason` (also `details.frozen`), whatever the entry's own state, and no handler runs. A numeric target during a freeze is `not_found`, since no row carries an index; an act planned before the freeze is `conflict` under [S-ACT-2].
+
+**[S-FRZ-4]** Freezes nest and are counted: the newest reason is the one reported, the surface thaws when the last freeze is released, and releasing the same freeze twice does nothing.
 
 ## 6. The seam: a surface as AXE actions
 
@@ -88,3 +106,7 @@ Surface came out of two trials on business applications with opposite shapes (st
 **[S-DOM-1]** Applications SHOULD mirror entry names to the DOM as accessible names (`aria-label`) and mark controls with `data-surface-id`, so browser-driving agents and screen readers read the same outcome-stating names. Two of three gains in the first trial came from the names alone.
 
 **[S-DOM-2]** `expose(window)` publishes `observe`, `act`, and `rev` at `window.__surface` for agents that drive the page.
+
+## Provenance
+
+[S-ACT-6] to [S-ACT-8], [S-REV-5], and the rules of §5.1 came from two defects found on a real planning application in the first staging trial, both in the seam between Surface and the application: an act whose `target` was `null` matched a row that was not actionable, and the table kept reporting cells editable while the application had frozen editing during a save, so an act ran into the frozen UI. Both were fixed in the application and became rules of the contract here, so the next application does not find them again.

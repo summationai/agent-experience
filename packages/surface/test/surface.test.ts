@@ -444,3 +444,318 @@ describe("two participants on one application [S-REV-1..4]", () => {
     expect(b.log.every((e) => typeof e.rev === "number")).toBe(true);
   });
 });
+
+describe("target validation [S-ACT-6] [S-ACT-7] [S-ACT-8]", () => {
+  // The first trial found an act with a null target landing on a disabled row. Anything that is
+  // not a non-empty id or a non-negative integer index is refused before any lookup.
+  const badTargets: [string, unknown][] = [
+    ["null", null],
+    ["undefined", undefined],
+    ["empty string", ""],
+    ["negative index", -1],
+    ["fraction", 1.5],
+    ["NaN", Number.NaN],
+    ["Infinity", Number.POSITIVE_INFINITY],
+    ["boolean", true],
+    ["object", { id: "undo" }],
+    ["array", [1]],
+  ];
+
+  it.each(badTargets)("%s is invalid_input naming target, and no handler runs", async (_l, t) => {
+    const b = board();
+    b.setDrafting(false); // every pick row is now unavailable: the shape the defect needed
+    const v = b.surface.observe();
+    const r = await b.surface.act({ op: "CLICK", target: t as never, expectedRev: v.rev });
+    expect(codeOf(r)).toBe("invalid_input");
+    if (r.status === "error") {
+      expect(r.error.details?.issues?.[0]?.path).toBe("/target");
+      expect(r.error.retryable).toBe(false);
+    }
+    expect(b.log).toEqual([]);
+    expect(b.surface.currentRev()).toBe(v.rev);
+  });
+
+  it("an index resolves only to the row whose index it is; unavailable rows have none", async () => {
+    const s = createSurface();
+    const ran: string[] = [];
+    // Registration order puts the disabled row first, so a positional lookup would hit it.
+    s.register({
+      id: "disabled",
+      kind: "action",
+      role: "button",
+      name: "Disabled",
+      state: { available: false, reason: "not yours" },
+      effect: { mutates: "x" },
+      handler: () => ran.push("disabled"),
+    });
+    s.register({
+      id: "enabled",
+      kind: "action",
+      role: "button",
+      name: "Enabled",
+      state: { available: true },
+      effect: { mutates: "x" },
+      handler: () => ran.push("enabled"),
+    });
+    const v = s.observe();
+    expect(v.entries.map((e) => [e.id, e.index])).toEqual([
+      ["disabled", null],
+      ["enabled", 1],
+    ]);
+    expect(codeOf(await s.act({ op: "CLICK", target: 1, expectedRev: v.rev }))).toBe("ok");
+    expect(ran).toEqual(["enabled"]);
+    // Out of range in either direction is not_found; 0 is never an index.
+    expect(codeOf(await s.act({ op: "CLICK", target: 0, expectedRev: v.rev }))).toBe("not_found");
+    expect(codeOf(await s.act({ op: "CLICK", target: 2, expectedRev: v.rev }))).toBe("not_found");
+    expect(ran).toEqual(["enabled"]);
+  });
+
+  it("a stale revision is conflict before the target is looked at, even for a target that does not exist", async () => {
+    const b = board();
+    const v = b.surface.observe();
+    b.human("Gibbs");
+    // The rows shifted: index 1 now names a different player. The guard runs first.
+    const shifted = await b.surface.act({ op: "CLICK", target: 1, expectedRev: v.rev });
+    expect(codeOf(shifted)).toBe("conflict");
+    const missing = await b.surface.act({ op: "CLICK", target: 99, expectedRev: v.rev });
+    expect(codeOf(missing)).toBe("conflict");
+    const unknownId = await b.surface.act({ op: "CLICK", target: "nope", expectedRev: v.rev });
+    expect(codeOf(unknownId)).toBe("conflict");
+    expect(b.log.map((e) => e.actor)).toEqual(["user"]);
+  });
+
+  it("an id that names an unavailable entry is unavailable with the reason, not not_found", async () => {
+    const b = board();
+    b.setDrafting(false);
+    const v = b.surface.observe();
+    expect(b.idx("Draft Gibbs")).toBeNull();
+    const r = await b.surface.act({ op: "CLICK", target: "pick:me:Gibbs", expectedRev: v.rev });
+    expect(codeOf(r)).toBe("unavailable");
+    if (r.status === "error") expect(r.error.details?.reason).toBe("draft not started");
+    expect(b.log).toEqual([]);
+  });
+});
+
+describe("freeze and thaw [S-REV-5] [S-FRZ-1..4]", () => {
+  it("freeze hides availability with the reason, refuses acts, and moves the revision; thaw restores and moves it again", async () => {
+    const s = createSurface();
+    let clicks = 0;
+    let typed = "";
+    let more = 0;
+    s.register({
+      id: "save",
+      kind: "action",
+      role: "button",
+      name: "Save plan",
+      state: { available: true },
+      effect: { mutates: "plan" },
+      handler: () => {
+        clicks++;
+      },
+    });
+    s.register({
+      id: "cell",
+      kind: "field",
+      role: "textbox",
+      name: "March demand",
+      value: "4.2M",
+      edit: {
+        maxLength: 10,
+        set: (t) => {
+          typed = t;
+        },
+      },
+    });
+    s.register({
+      id: "grid",
+      kind: "collection",
+      role: "grid",
+      name: "Months",
+      more: () => {
+        more++;
+      },
+    });
+    const before = s.observe();
+    expect(before.frozen).toBeUndefined();
+    expect(before.entries.map((e) => e.index)).toEqual([1, 2, 3]);
+
+    const thaw = s.freeze("saving");
+    const during = s.observe();
+    expect(during.rev).toBe(before.rev + 1);
+    expect(during.frozen).toEqual({ reason: "saving" });
+    expect(during.entries.map((e) => e.index)).toEqual([null, null, null]);
+    expect(during.entries[0]!.state).toEqual({ available: false, reason: "saving" });
+    expect(during.entries[1]!.edit).toEqual({
+      op: "TYPE_TEXT",
+      maxLength: null,
+      readOnly: true,
+      reason: "saving",
+    });
+    expect(during.entries[1]!.value).toBe("4.2M");
+
+    for (const req of [
+      { op: "CLICK", target: "save" },
+      { op: "TYPE_TEXT", target: "cell", text: "5M" },
+      { op: "SCROLL_DOWN", target: "grid" },
+    ] as const) {
+      const r = await s.act({ ...req, expectedRev: during.rev });
+      expect(codeOf(r)).toBe("unavailable");
+      if (r.status === "error") {
+        expect(r.error.message).toContain("saving");
+        expect(r.error.details?.reason).toBe("saving");
+        expect(r.error.retryable).toBe(true);
+      }
+    }
+    // An index observed before the freeze is caught by the revision guard, not resolved.
+    expect(codeOf(await s.act({ op: "CLICK", target: 1, expectedRev: before.rev }))).toBe(
+      "conflict",
+    );
+    // During the freeze no row carries an index, so a number finds nothing.
+    expect(codeOf(await s.act({ op: "CLICK", target: 1, expectedRev: during.rev }))).toBe(
+      "not_found",
+    );
+    expect([clicks, typed, more]).toEqual([0, "", 0]);
+
+    thaw();
+    const after = s.observe();
+    expect(after.rev).toBe(during.rev + 1);
+    expect(after.frozen).toBeUndefined();
+    expect(after.entries.map((e) => e.index)).toEqual([1, 2, 3]);
+    expect(after.entries[1]!.edit?.maxLength).toBe(10);
+    expect(codeOf(await s.act({ op: "CLICK", target: "save", expectedRev: after.rev }))).toBe("ok");
+    expect(clicks).toBe(1);
+    // A second thaw of the same freeze is a no-op: no revision move, no listener.
+    const seen: number[] = [];
+    s.onChange((e) => seen.push(e.rev));
+    thaw();
+    expect(seen).toEqual([]);
+  });
+
+  it("nested freezes are counted: the newest reason shows, and the surface thaws with the last release", () => {
+    const s = createSurface();
+    s.register({
+      id: "a",
+      kind: "action",
+      role: "button",
+      name: "A",
+      state: { available: true },
+      effect: { mutates: "x" },
+      handler() {},
+    });
+    const events: Record<string, unknown>[] = [];
+    s.onChange((e) => events.push(e));
+    const thawSave = s.freeze("saving");
+    const thawModal = s.freeze("a dialog is open");
+    expect(s.observe().frozen).toEqual({ reason: "a dialog is open" });
+    thawModal();
+    expect(s.observe().frozen).toEqual({ reason: "saving" });
+    expect(s.observe().entries[0]!.index).toBeNull();
+    thawSave();
+    expect(s.observe().frozen).toBeUndefined();
+    expect(s.observe().entries[0]!.index).toBe(1);
+    expect(s.currentRev()).toBe(4);
+    expect(events.map((e) => e.rev)).toEqual([1, 2, 3, 4]);
+    expect(events[0]!.frozen).toBe("saving");
+    expect(events[3]!.thawed).toBe("saving");
+    // Releasing out of order works too: the outer freeze lifting first leaves the inner reason.
+    const outer = s.freeze("saving");
+    const inner = s.freeze("loading");
+    outer();
+    expect(s.observe().frozen).toEqual({ reason: "loading" });
+    inner();
+    expect(s.observe().frozen).toBeUndefined();
+  });
+
+  it("an application freezes while a save is in flight, so a second actor's act is refused instead of running into the frozen UI", async () => {
+    // The planning-grid shape: cells disable during a save; the saved value comes back from the
+    // server; the surface must report the freeze at the revision the other actor observes.
+    const s = createSurface({ app: "planning" });
+    const stored: Record<string, string> = { "cell:2026-03": "4.2M" };
+    const writes: [string, string][] = [];
+    let release!: () => void;
+    const persist = () => new Promise<void>((resolve) => (release = resolve));
+    const registerCell = (id: string) =>
+      s.register({
+        id,
+        kind: "field",
+        role: "textbox",
+        name: `${id} demand`,
+        value: stored[id] ?? null,
+        edit: {
+          set: async (text, actor) => {
+            writes.push([text, actor]);
+            const thaw = s.freeze("saving");
+            try {
+              await persist();
+              stored[id] = text;
+              registerCell(id);
+            } finally {
+              thaw();
+            }
+          },
+        },
+      });
+    registerCell("cell:2026-03");
+
+    const userView = s.observe();
+    const userAct = s.act({
+      op: "TYPE_TEXT",
+      target: "cell:2026-03",
+      text: "4.6M",
+      expectedRev: userView.rev,
+      actor: "user",
+    });
+    // The save is in flight. An agent arriving now sees the freeze and is refused.
+    const agentView = s.observe();
+    expect(agentView.frozen).toEqual({ reason: "saving" });
+    expect(agentView.entries[0]!.edit?.readOnly).toBe(true);
+    expect(agentView.entries[0]!.edit?.reason).toBe("saving");
+    expect(agentView.entries[0]!.value).toBe("4.2M");
+    const refused = await s.act({
+      op: "TYPE_TEXT",
+      target: "cell:2026-03",
+      text: "9M",
+      expectedRev: agentView.rev,
+      actor: "agent",
+    });
+    expect(codeOf(refused)).toBe("unavailable");
+    if (refused.status === "error") expect(refused.error.details?.reason).toBe("saving");
+    // An agent that observed before the save planned against a revision that has since moved.
+    expect(
+      codeOf(
+        await s.act({
+          op: "TYPE_TEXT",
+          target: "cell:2026-03",
+          text: "9M",
+          expectedRev: userView.rev,
+          actor: "agent",
+        }),
+      ),
+    ).toBe("conflict");
+
+    release();
+    const done = await userAct;
+    expect(codeOf(done)).toBe("ok");
+    expect(writes).toEqual([["4.6M", "user"]]);
+    const after = s.observe();
+    expect(after.frozen).toBeUndefined();
+    expect(after.rev).toBe(userView.rev + 2);
+    expect(after.entries[0]!.value).toBe("4.6M");
+    expect(after.entries[0]!.edit?.readOnly).toBe(false);
+    const agentAct = s.act({
+      op: "TYPE_TEXT",
+      target: "cell:2026-03",
+      text: "4.8M",
+      expectedRev: after.rev,
+      actor: "agent",
+    });
+    expect(s.observe().frozen).toEqual({ reason: "saving" });
+    release();
+    expect(codeOf(await agentAct)).toBe("ok");
+    expect(s.observe().frozen).toBeUndefined();
+    expect(writes).toEqual([
+      ["4.6M", "user"],
+      ["4.8M", "agent"],
+    ]);
+  });
+});

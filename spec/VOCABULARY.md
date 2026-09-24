@@ -182,6 +182,7 @@ Names used by `@axe/surface` (`spec/SURFACE.md`): an application's registry of i
 | field     | expectedRev | `expectedRev` | act request `expectedRev`                         | The revision the agent observed; the act is refused if it moved.      |
 | field     | actor       | `actor`       | act request `actor`, act output `actor`           | Who is acting: `agent`, `user`, or an identity.                       |
 | field     | changed     | `changed`     | act output `changed`                              | Entry ids whose state the act changed.                                |
+| field     | frozen      | `frozen`      | observe `frozen`, act error `details.frozen`      | Present while the application holds a freeze: `{ reason }`.           |
 
 ## Reason conventions
 
@@ -454,6 +455,8 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | createSurface          | `createSurface`          | `@axe/surface`        | Create a surface: the registry, revision, observe, and act.                        |
 | api      | unregister             | `unregister`             | `@axe/surface`        | Remove one entry.                                                                  |
 | api      | reconcile              | `reconcile`              | `@axe/surface`        | Drop entries under a prefix that a re-scan did not keep.                           |
+| api      | freeze                 | `freeze`                 | `@axe/surface`        | Mark every entry unavailable with a reason during a transient state; returns thaw. |
+| api      | thaw                   | `thaw`                   | `@axe/surface`        | Release one freeze; the last release restores the entries and moves the revision.  |
 | api      | bump                   | `bump`                   | `@axe/surface`        | Advance the revision after a change, notifying listeners.                          |
 | api      | seedRev                | `seedRev`                | `@axe/surface`        | Adopt a persisted revision if it is ahead.                                         |
 | api      | setRev                 | `setRev`                 | `@axe/surface`        | Adopt the application's own revision as is.                                        |

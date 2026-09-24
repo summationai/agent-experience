@@ -64,6 +64,7 @@ export function surfaceActions(
     at: z.string(),
     entries: z.array(ObservedEntrySchema),
     objects: z.record(z.string(), z.unknown()),
+    frozen: z.object({ reason: z.string() }).optional(),
   });
   const observe = action(observeName, {
     title: "Observe the application",

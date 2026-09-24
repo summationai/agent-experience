@@ -77,6 +77,8 @@ type WireApi =
   | "createSurface"
   | "unregister"
   | "reconcile"
+  | "freeze"
+  | "thaw"
   | "bump"
   | "seedRev"
   | "setRev"
@@ -252,6 +254,7 @@ type WireField =
   | "expectedRev"
   | "actor"
   | "changed"
+  | "frozen"
   | "protocol"
   | "name"
   | "description"
@@ -717,6 +720,7 @@ const api: Readonly<{
   formatConformanceTable: "formatConformanceTable";
   formatDriftReport: "formatDriftReport";
   formatResult: "formatResult";
+  freeze: "freeze";
   fulfillers: "fulfillers";
   handler: "handler";
   idempotencyStore: "idempotencyStore";
@@ -776,6 +780,7 @@ const api: Readonly<{
   state: "state";
   suggestedReason: "suggestedReason";
   surfaceActions: "surfaceActions";
+  thaw: "thaw";
   toHTML: "toHTML";
   tokenStore: "tokenStore";
   toMarkdown: "toMarkdown";
@@ -962,6 +967,7 @@ const field: Readonly<{
   flows: "flows";
   format: "format";
   freshness: "freshness";
+  frozen: "frozen";
   handoff: "handoff";
   handoffStatus: "handoffStatus";
   humanFallbackUrl: "humanFallbackUrl";
@@ -1448,6 +1454,7 @@ const WIRE: Readonly<{
      formatConformanceTable: "formatConformanceTable";
      formatDriftReport: "formatDriftReport";
      formatResult: "formatResult";
+     freeze: "freeze";
      fulfillers: "fulfillers";
      handler: "handler";
      idempotencyStore: "idempotencyStore";
@@ -1507,6 +1514,7 @@ const WIRE: Readonly<{
      state: "state";
      suggestedReason: "suggestedReason";
      surfaceActions: "surfaceActions";
+     thaw: "thaw";
      toHTML: "toHTML";
      tokenStore: "tokenStore";
      toMarkdown: "toMarkdown";
@@ -1616,6 +1624,7 @@ const WIRE: Readonly<{
      flows: "flows";
      format: "format";
      freshness: "freshness";
+     frozen: "frozen";
      handoff: "handoff";
      handoffStatus: "handoffStatus";
      humanFallbackUrl: "humanFallbackUrl";

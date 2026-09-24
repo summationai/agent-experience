@@ -580,6 +580,24 @@ optional value?: JsonValue;
 
 ***
 
+<a id="frozen"></a>
+
+### Frozen
+
+The transient state a `freeze` reports on every entry.
+
+#### Properties
+
+<a id="reason"></a>
+
+##### reason
+
+```ts
+reason: string;
+```
+
+***
+
 <a id="handoffspec"></a>
 
 ### HandoffSpec
@@ -596,7 +614,7 @@ A handoff the application declares for a control only a human can activate.
 instructions: string;
 ```
 
-<a id="reason"></a>
+<a id="reason-1"></a>
 
 ##### reason
 
@@ -651,6 +669,16 @@ at: string;
 ```ts
 entries: ObservedEntry[];
 ```
+
+<a id="frozen-1"></a>
+
+##### frozen?
+
+```ts
+optional frozen?: Frozen;
+```
+
+Present while the application holds a `freeze`: every entry is unavailable for this reason.
 
 <a id="objects"></a>
 
@@ -1011,6 +1039,29 @@ Publish `observe`, `act`, and `rev` on a host object (`window.__surface`) for br
 ###### Returns
 
 `void`
+
+<a id="freeze"></a>
+
+##### freeze()
+
+```ts
+freeze(reason): Thaw;
+```
+
+Report every entry unavailable with `reason` while a transient state lasts (a save in flight,
+a modal open). Moves the revision now and again on `thaw`, so an act planned before the freeze
+is refused as `conflict` and one planned during it as `unavailable`. Freezes nest: the surface
+thaws when the last one is released.
+
+###### Parameters
+
+###### reason
+
+`string`
+
+###### Returns
+
+[`Thaw`](#thaw)
 
 <a id="get"></a>
 
@@ -1452,6 +1503,22 @@ The result envelope: every AXE response body is one of these.
 type Risk = WireRisk;
 ```
 
+***
+
+<a id="thaw"></a>
+
+### Thaw
+
+```ts
+type Thaw = () => void;
+```
+
+Releases one `freeze`. Calling it more than once is harmless.
+
+#### Returns
+
+`void`
+
 ## Variables
 
 <a id="act-1"></a>
@@ -1563,6 +1630,31 @@ Publish `observe`, `act`, and `rev` on a host object (`window.__surface`) for br
 #### Returns
 
 `void`
+
+***
+
+<a id="freeze-1"></a>
+
+### freeze
+
+```ts
+freeze: (reason) => Thaw;
+```
+
+Report every entry unavailable with `reason` while a transient state lasts (a save in flight,
+a modal open). Moves the revision now and again on `thaw`, so an act planned before the freeze
+is refused as `conflict` and one planned during it as `unavailable`. Freezes nest: the surface
+thaws when the last one is released.
+
+#### Parameters
+
+##### reason
+
+`string`
+
+#### Returns
+
+[`Thaw`](#thaw)
 
 ***
 

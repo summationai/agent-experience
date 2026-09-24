@@ -163,7 +163,17 @@ export interface Observation {
   at: string;
   entries: ObservedEntry[];
   objects: Record<string, JsonValue>;
+  /** Present while the application holds a `freeze`: every entry is unavailable for this reason. */
+  frozen?: Frozen;
 }
+
+/** The transient state a `freeze` reports on every entry. */
+export interface Frozen {
+  reason: string;
+}
+
+/** Releases one `freeze`. Calling it more than once is harmless. */
+export type Thaw = () => void;
 
 export interface ActRequest {
   op: Op;
@@ -198,6 +208,13 @@ export interface Surface {
   unregister(id: string): void;
   /** Drop every entry whose id starts with `prefix` and is not in `keep`. Adapters that re-scan a rendered region use this. */
   reconcile(prefix: string, keep: Set<string>): void;
+  /**
+   * Report every entry unavailable with `reason` while a transient state lasts (a save in flight,
+   * a modal open). Moves the revision now and again on `thaw`, so an act planned before the freeze
+   * is refused as `conflict` and one planned during it as `unavailable`. Freezes nest: the surface
+   * thaws when the last one is released.
+   */
+  freeze(reason: string): Thaw;
   /** Adopt a persisted revision if it is ahead of the current one. */
   seedRev(n: number): void;
   /** The application owns the counter: adopt its value as is. */
@@ -266,6 +283,9 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   let app = options.app ?? "app";
   let objectsFn: () => Record<string, JsonValue> = () => ({});
   const now = options.now ?? (() => new Date());
+  // Active freezes, oldest first. The newest reason is the one reported.
+  const freezes: Frozen[] = [];
+  const frozenNow = (): Frozen | undefined => freezes[freezes.length - 1];
 
   const surface: Surface = {
     configure({ app: name }) {
@@ -299,6 +319,20 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       for (const id of [...entries.keys()])
         if (id.startsWith(prefix) && !keep.has(id)) entries.delete(id);
     },
+    freeze(reason) {
+      const hold: Frozen = { reason: String(reason || "busy") };
+      freezes.push(hold);
+      surface.bump({ frozen: hold.reason });
+      let released = false;
+      const thaw: Thaw = () => {
+        if (released) return;
+        released = true;
+        const i = freezes.indexOf(hold);
+        if (i >= 0) freezes.splice(i, 1);
+        surface.bump({ thawed: hold.reason });
+      };
+      return thaw;
+    },
     seedRev(n) {
       if (Number.isFinite(n) && n > rev) rev = n;
     },
@@ -321,6 +355,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
     observe() {
       let i = 0;
       const out: ObservedEntry[] = [];
+      const frozen = frozenNow();
       for (const e of entries.values()) {
         const row: ObservedEntry = {
           index: null,
@@ -333,7 +368,11 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         };
         if (e.kind === "action") {
           const s = e.state ?? { available: true };
-          if (s.available) {
+          if (frozen) {
+            // A freeze supersedes the control's own state: nothing is actionable, and there is
+            // nothing to fulfill or hand off until it lifts.
+            row.state = { available: false, reason: frozen.reason };
+          } else if (s.available) {
             row.state = { available: true, reason: null };
             row.index = ++i;
           } else {
@@ -354,27 +393,28 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         } else if (e.kind === "field") {
           row.value = e.value ?? null;
           const ed = e.edit;
+          const readOnly = !!ed.readOnly || !!frozen;
           row.edit = {
             op: WIRE.op.typeText,
-            maxLength: ed.readOnly ? null : (ed.maxLength ?? null),
-            readOnly: !!ed.readOnly,
-            reason: ed.readOnly ? (ed.reason ?? "read only") : null,
+            maxLength: readOnly ? null : (ed.maxLength ?? null),
+            readOnly,
+            reason: frozen ? frozen.reason : ed.readOnly ? (ed.reason ?? "read only") : null,
           };
-          if (!ed.readOnly && ed.schema)
+          if (!readOnly && !ed.readOnly && ed.schema)
             row.edit.schema = isZodSchema(ed.schema)
               ? toJsonSchema(ed.schema, "input")
               : (ed.schema as JsonSchema);
-          if (!ed.readOnly) row.index = ++i;
+          if (!readOnly) row.index = ++i;
         } else {
           row.total = e.total ?? null;
           row.loaded = e.loaded ?? null;
           row.filter = e.filter ?? null;
           row.sort = e.sort ?? null;
-          if (typeof e.more === "function") row.index = ++i;
+          if (typeof e.more === "function" && !frozen) row.index = ++i;
         }
         out.push(row);
       }
-      return {
+      const view: Observation = {
         protocol: WIRE.protocol.version,
         app,
         rev,
@@ -382,6 +422,8 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         entries: out,
         objects: objectsFn(),
       };
+      if (frozen) view.frozen = { reason: frozen.reason };
+      return view;
     },
     async act(
       req,
@@ -423,6 +465,29 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           },
         );
       }
+      // [S-ACT-6] A target is a non-empty id or a non-negative integer index. Anything else
+      // (null, a fraction, NaN, a boolean, an object) is refused here, before any lookup could
+      // land it on a row.
+      const validTarget =
+        (typeof target === "string" && target.length > 0) ||
+        (typeof target === "number" && Number.isInteger(target) && target >= 0);
+      if (!validTarget) {
+        return err(
+          WIRE.error.invalidInput,
+          "target must be an entry id (a non-empty string) or an index (a non-negative integer) from the observation you are acting on.",
+          {
+            issues: [
+              {
+                path: `/${WIRE.field.target}`,
+                message: "must be a non-empty string id or a non-negative integer index",
+                expected: "string | integer >= 0",
+              },
+            ],
+          },
+        );
+      }
+      // [S-ACT-2] The revision guard runs before the target is resolved, so an index observed at an
+      // older revision can never land on the row that slid into its slot.
       if (expectedRev !== rev) {
         return err(
           WIRE.error.conflict,
@@ -431,9 +496,11 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         );
       }
       const view = surface.observe();
+      // [S-ACT-7] An index resolves only through the observation at this revision, where only
+      // actionable rows carry one; an unavailable row (index null) can never be reached by number.
       const row =
         typeof target === "number"
-          ? view.entries.find((r) => r.index === target)
+          ? view.entries.find((r) => r.index !== null && r.index === target)
           : view.entries.find((r) => r.id === target);
       if (!row) {
         return err(
@@ -446,6 +513,17 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       }
       const e = entries.get(row.id)!;
       const before = rev;
+      // [S-FRZ-3] While frozen, every act is refused with the freeze's reason; no handler runs.
+      if (view.frozen) {
+        return err(
+          WIRE.error.unavailable,
+          `"${row.name}" is not available: ${view.frozen.reason}.`,
+          {
+            retryable: true,
+            details: { rev, reason: view.frozen.reason, frozen: { reason: view.frozen.reason } },
+          },
+        );
+      }
       if (e.kind === "action") {
         if (op !== WIRE.op.click && op !== WIRE.op.toggle)
           return err(
@@ -542,6 +620,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
     reset() {
       entries.clear();
       listeners.clear();
+      freezes.length = 0;
       rev = 0;
       app = options.app ?? "app";
       objectsFn = () => ({});
@@ -557,6 +636,7 @@ export const {
   register,
   unregister,
   reconcile,
+  freeze,
   seedRev,
   setRev,
   currentRev,

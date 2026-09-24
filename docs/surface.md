@@ -89,7 +89,7 @@ surface.expose(typeof window !== "undefined" ? window : null);
 
 `observe` returns the live table: every entry with its `index` (a position among the rows that can be acted on now, `null` otherwise), its `state` with a `reason` when unavailable, its `effect`, current `value` for fields, plus `objects` the application chooses to show and the `rev`.
 
-`act` takes `op`, `target` (the entry id, or its index at the same rev), optional `text` and `confirm`, and the `expectedRev` the agent observed. It returns the [result envelope](concepts.md#the-result-envelope): `ok` with `{ rev, id, actor, changed }`, or `error` with `conflict` when the revision moved (nothing applied), `not_found` for an unknown target, `invalid_input` for a wrong op, missing confirm, or text that fails `maxLength` or the field's schema, and `unavailable` with the reason for a control the application has disabled.
+`act` takes `op`, `target` (the entry id, or its index at the same rev), optional `text` and `confirm`, and the `expectedRev` the agent observed. It returns the [result envelope](concepts.md#the-result-envelope): `ok` with `{ rev, id, actor, changed }`, or `error` with `conflict` when the revision moved (nothing applied), `not_found` for an unknown target, `invalid_input` for a wrong op, missing confirm, or text that fails `maxLength` or the field's schema, and `unavailable` with the reason for a control the application has disabled. A `target` must be a non-empty id or a non-negative integer index; anything else (`null`, a fraction, a boolean) is `invalid_input` before any lookup, an index only ever resolves to the row that carried it at `expectedRev` and never to a row without one, and an id that names a disabled control is `unavailable` with its reason rather than `not_found`.
 
 <!-- include: examples/surface/agent.ts#loop -->
 ```ts
@@ -124,6 +124,25 @@ export async function draftBestAvailable(
 <!-- /include -->
 
 Two participants on one application collide safely: a human change between the agent's observe and act is caught as `conflict`; a retried act after a lost response is refused because the revision moved; an index that shifted cannot land on the row that slid into the slot. The tests in `packages/surface/test` pin each of those.
+
+## Transient states
+
+Availability is only as current as the last registration. Re-register an entry (or `reconcile`) whenever anything that feeds its `state`, `value`, or `edit` changes, and that includes transient states: a save in flight, data loading, a modal open. The first staging trial found a grid that disabled its cells during a save while the surface still reported them editable, and an agent typed into the frozen UI. For a state that spans the whole surface, `freeze(reason)` does it in one call: every entry reports unavailable with that reason, fields go read-only, no row carries an index, `observe` carries a top-level `frozen: { reason }`, acts return `unavailable` with the reason, and the revision moves on freeze and on `thaw`. Freezes nest; the surface thaws when the last one is released.
+
+<!-- include: examples/surface/save.ts#freeze -->
+```ts
+import { surface } from "./board";
+
+export async function save(persist: () => Promise<void>): Promise<void> {
+  const thaw = surface.freeze("saving");
+  try {
+    await persist();
+  } finally {
+    thaw();
+  }
+}
+```
+<!-- /include -->
 
 ## Saying what would unblock a control
 
@@ -217,7 +236,7 @@ Refusals map onto the ladder: an unavailable control with `requires` returns `ne
 
 ## Using it from React
 
-`useSurface(entry, deps)` keeps one entry registered while a component is mounted and refreshes it in place when `deps` change, so an agent's index does not jump because a sibling re-rendered. Render one small registering component per row of a list, so a row that scrolls away leaves the table the moment it leaves the page. Applications that render HTML outside React (a legacy grid) instead re-scan after each render and call `reconcile` to drop rows the scan did not keep.
+`useSurface(entry, deps)` keeps one entry registered while a component is mounted and refreshes it in place when `deps` change, so an agent's index does not jump because a sibling re-rendered. Transient states belong in `deps`: the `saving` or `loading` flag, the open modal, whatever the component uses to disable its own control; left out, the surface keeps reporting the control available after the UI has frozen it. For a state that spans the page, wrap it in `freeze` instead. Render one small registering component per row of a list, so a row that scrolls away leaves the table the moment it leaves the page. Applications that render HTML outside React (a legacy grid) instead re-scan after each render and call `reconcile` to drop rows the scan did not keep.
 
 ## What Surface does not do
 
