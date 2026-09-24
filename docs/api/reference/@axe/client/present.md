@@ -4,11 +4,13 @@
 
 ## Interfaces
 
+<a id="htmloptions"></a>
+
 ### HtmlOptions
 
-Defined in: [packages/client/src/present.ts:198](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L198)
-
 #### Properties
+
+<a id="heading"></a>
 
 ##### heading?
 
@@ -16,9 +18,9 @@ Defined in: [packages/client/src/present.ts:198](https://github.com/summationai/
 optional heading?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:205](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L205)
-
 Text of the heading above the results.
+
+<a id="layout"></a>
 
 ##### layout?
 
@@ -26,9 +28,9 @@ Text of the heading above the results.
 optional layout?: "table" | "cards";
 ```
 
-Defined in: [packages/client/src/present.ts:203](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L203)
-
 `cards` (default for list) or `table`.
+
+<a id="locale"></a>
 
 ##### locale?
 
@@ -36,7 +38,7 @@ Defined in: [packages/client/src/present.ts:203](https://github.com/summationai/
 optional locale?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:199](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L199)
+<a id="title"></a>
 
 ##### title?
 
@@ -44,17 +46,17 @@ Defined in: [packages/client/src/present.ts:199](https://github.com/summationai/
 optional title?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:201](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L201)
-
 Page title. Defaults to the brand name or the action name.
 
 ***
 
+<a id="markdownoptions"></a>
+
 ### MarkdownOptions
 
-Defined in: [packages/client/src/present.ts:110](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L110)
-
 #### Properties
+
+<a id="affordances"></a>
 
 ##### affordances?
 
@@ -62,9 +64,9 @@ Defined in: [packages/client/src/present.ts:110](https://github.com/summationai/
 optional affordances?: boolean;
 ```
 
-Defined in: [packages/client/src/present.ts:113](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L113)
-
 Include the affordances list under the table. Default true.
+
+<a id="locale-1"></a>
 
 ##### locale?
 
@@ -72,7 +74,7 @@ Include the affordances list under the table. Default true.
 optional locale?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:111](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L111)
+<a id="maxcolumns"></a>
 
 ##### maxColumns?
 
@@ -80,17 +82,17 @@ Defined in: [packages/client/src/present.ts:111](https://github.com/summationai/
 optional maxColumns?: number;
 ```
 
-Defined in: [packages/client/src/present.ts:115](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L115)
-
 Cap the number of attribute columns. Default 6.
 
 ***
 
+<a id="presentedattribute"></a>
+
 ### PresentedAttribute
 
-Defined in: packages/core/dist/display.d.ts:42
-
 #### Properties
+
+<a id="compare"></a>
 
 ##### compare?
 
@@ -98,7 +100,7 @@ Defined in: packages/core/dist/display.d.ts:42
 optional compare?: WireCompare;
 ```
 
-Defined in: packages/core/dist/display.d.ts:46
+<a id="format"></a>
 
 ##### format
 
@@ -106,7 +108,7 @@ Defined in: packages/core/dist/display.d.ts:46
 format: WireFormat;
 ```
 
-Defined in: packages/core/dist/display.d.ts:45
+<a id="label"></a>
 
 ##### label
 
@@ -114,7 +116,7 @@ Defined in: packages/core/dist/display.d.ts:45
 label: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:43
+<a id="value"></a>
 
 ##### value
 
@@ -122,15 +124,15 @@ Defined in: packages/core/dist/display.d.ts:43
 value: unknown;
 ```
 
-Defined in: packages/core/dist/display.d.ts:44
-
 ***
+
+<a id="presenteditem"></a>
 
 ### PresentedItem
 
-Defined in: packages/core/dist/display.d.ts:53
-
 #### Properties
+
+<a id="affordances-1"></a>
 
 ##### affordances
 
@@ -138,7 +140,7 @@ Defined in: packages/core/dist/display.d.ts:53
 affordances: ResolvedAffordance[];
 ```
 
-Defined in: packages/core/dist/display.d.ts:63
+<a id="attributes"></a>
 
 ##### attributes
 
@@ -146,7 +148,7 @@ Defined in: packages/core/dist/display.d.ts:63
 attributes: PresentedAttribute[];
 ```
 
-Defined in: packages/core/dist/display.d.ts:61
+<a id="badges"></a>
 
 ##### badges
 
@@ -154,7 +156,7 @@ Defined in: packages/core/dist/display.d.ts:61
 badges: string[];
 ```
 
-Defined in: packages/core/dist/display.d.ts:62
+<a id="id"></a>
 
 ##### id
 
@@ -162,7 +164,7 @@ Defined in: packages/core/dist/display.d.ts:62
 id: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:54
+<a id="images"></a>
 
 ##### images
 
@@ -170,7 +172,7 @@ Defined in: packages/core/dist/display.d.ts:54
 images: string[];
 ```
 
-Defined in: packages/core/dist/display.d.ts:58
+<a id="price"></a>
 
 ##### price?
 
@@ -178,7 +180,7 @@ Defined in: packages/core/dist/display.d.ts:58
 optional price?: PresentedPrice;
 ```
 
-Defined in: packages/core/dist/display.d.ts:60
+<a id="raw"></a>
 
 ##### raw
 
@@ -186,9 +188,9 @@ Defined in: packages/core/dist/display.d.ts:60
 raw: unknown;
 ```
 
-Defined in: packages/core/dist/display.d.ts:65
-
 The raw item with `_axe` removed.
+
+<a id="subtitle"></a>
 
 ##### subtitle?
 
@@ -196,7 +198,7 @@ The raw item with `_axe` removed.
 optional subtitle?: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:56
+<a id="summary"></a>
 
 ##### summary?
 
@@ -204,7 +206,7 @@ Defined in: packages/core/dist/display.d.ts:56
 optional summary?: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:57
+<a id="title-1"></a>
 
 ##### title
 
@@ -212,7 +214,7 @@ Defined in: packages/core/dist/display.d.ts:57
 title: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:55
+<a id="url"></a>
 
 ##### url?
 
@@ -220,17 +222,17 @@ Defined in: packages/core/dist/display.d.ts:55
 optional url?: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:59
-
 ***
 
-### PresentedResult
+<a id="presentedresult"></a>
 
-Defined in: packages/core/dist/display.d.ts:68
+### PresentedResult
 
 The normalized, renderer-ready form of an `ok` result.
 
 #### Properties
+
+<a id="action"></a>
 
 ##### action
 
@@ -238,7 +240,7 @@ The normalized, renderer-ready form of an `ok` result.
 action: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:69
+<a id="brand"></a>
 
 ##### brand?
 
@@ -246,7 +248,7 @@ Defined in: packages/core/dist/display.d.ts:69
 optional brand?: Brand;
 ```
 
-Defined in: packages/core/dist/display.d.ts:75
+<a id="disclaimer"></a>
 
 ##### disclaimer?
 
@@ -254,7 +256,7 @@ Defined in: packages/core/dist/display.d.ts:75
 optional disclaimer?: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:74
+<a id="emptymessage"></a>
 
 ##### emptyMessage?
 
@@ -262,7 +264,7 @@ Defined in: packages/core/dist/display.d.ts:74
 optional emptyMessage?: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:73
+<a id="items"></a>
 
 ##### items
 
@@ -270,7 +272,7 @@ Defined in: packages/core/dist/display.d.ts:73
 items: PresentedItem[];
 ```
 
-Defined in: packages/core/dist/display.d.ts:71
+<a id="kind"></a>
 
 ##### kind
 
@@ -278,7 +280,7 @@ Defined in: packages/core/dist/display.d.ts:71
 kind: WireDisplayKind | "generic";
 ```
 
-Defined in: packages/core/dist/display.d.ts:70
+<a id="output"></a>
 
 ##### output
 
@@ -286,9 +288,9 @@ Defined in: packages/core/dist/display.d.ts:70
 output: unknown;
 ```
 
-Defined in: packages/core/dist/display.d.ts:77
-
 The output with every `_axe` key removed.
+
+<a id="suggestedcomparison"></a>
 
 ##### suggestedComparison
 
@@ -296,15 +298,15 @@ The output with every `_axe` key removed.
 suggestedComparison: string[];
 ```
 
-Defined in: packages/core/dist/display.d.ts:72
-
 ***
+
+<a id="resolvedaffordance"></a>
 
 ### ResolvedAffordance
 
-Defined in: packages/core/dist/display.d.ts:36
-
 #### Properties
+
+<a id="action-1"></a>
 
 ##### action
 
@@ -312,7 +314,7 @@ Defined in: packages/core/dist/display.d.ts:36
 action: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:37
+<a id="input"></a>
 
 ##### input
 
@@ -320,7 +322,7 @@ Defined in: packages/core/dist/display.d.ts:37
 input: Record<string, unknown>;
 ```
 
-Defined in: packages/core/dist/display.d.ts:39
+<a id="primary"></a>
 
 ##### primary
 
@@ -328,7 +330,7 @@ Defined in: packages/core/dist/display.d.ts:39
 primary: boolean;
 ```
 
-Defined in: packages/core/dist/display.d.ts:40
+<a id="title-2"></a>
 
 ##### title
 
@@ -336,17 +338,15 @@ Defined in: packages/core/dist/display.d.ts:40
 title: string;
 ```
 
-Defined in: packages/core/dist/display.d.ts:38
-
 ## Functions
+
+<a id="escapehtml"></a>
 
 ### escapeHtml()
 
 ```ts
 function escapeHtml(s): string;
 ```
-
-Defined in: [packages/client/src/present.ts:208](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L208)
 
 #### Parameters
 
@@ -360,13 +360,13 @@ Defined in: [packages/client/src/present.ts:208](https://github.com/summationai/
 
 ***
 
+<a id="formatprice"></a>
+
 ### formatPrice()
 
 ```ts
 function formatPrice(price, locale?): string;
 ```
-
-Defined in: [packages/client/src/present.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L91)
 
 #### Parameters
 
@@ -384,13 +384,13 @@ Defined in: [packages/client/src/present.ts:91](https://github.com/summationai/c
 
 ***
 
+<a id="formatvalue"></a>
+
 ### formatValue()
 
 ```ts
 function formatValue(attr, locale?): string;
 ```
-
-Defined in: [packages/client/src/present.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L37)
 
 Format an attribute for humans. Locale-aware where it can be, plain otherwise.
 
@@ -410,6 +410,8 @@ Format an attribute for humans. Locale-aware where it can be, plain otherwise.
 
 ***
 
+<a id="present"></a>
+
 ### present()
 
 ```ts
@@ -419,8 +421,6 @@ function present(
    brand?
 ): PresentedResult;
 ```
-
-Defined in: [packages/client/src/present.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L19)
 
 Apply an action's `display` to an `ok` result. Throws when the result is not `ok`.
 
@@ -444,13 +444,13 @@ Apply an action's `display` to an `ok` result. Throws when the result is not `ok
 
 ***
 
+<a id="tohtml"></a>
+
 ### toHTML()
 
 ```ts
 function toHTML(presented, options?): string;
 ```
-
-Defined in: [packages/client/src/present.ts:266](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L266)
 
 A self-contained, dependency-free comparison page. Cards or a table, responsive,
 brand-aware, with the disclaimer, a link per item, and affordance buttons that dispatch
@@ -472,13 +472,13 @@ brand-aware, with the disclaimer, a link per item, and affordance buttons that d
 
 ***
 
+<a id="tomarkdown"></a>
+
 ### toMarkdown()
 
 ```ts
 function toMarkdown(presented, options?): string;
 ```
-
-Defined in: [packages/client/src/present.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L123)
 
 A comparison table for chat surfaces, with links, badges, the disclaimer, and each item's affordances.
 

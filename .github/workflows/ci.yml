@@ -33,3 +33,9 @@ jobs:
       - run: pnpm -r test
       - name: Conformance against the getting-started example
         run: node scripts/ci-conformance.mjs
+      - name: Install site browsers
+        run: pnpm --filter body-spray-site exec playwright install --with-deps chromium firefox webkit
+      - run: pnpm site:build
+      - name: site/dist is committed and up to date
+        run: git diff --exit-code -- site/dist ':!site/dist/assets/og.png'
+      - run: pnpm site:test

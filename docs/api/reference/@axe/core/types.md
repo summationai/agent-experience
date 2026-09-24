@@ -4,11 +4,13 @@
 
 ## Interfaces
 
+<a id="accept"></a>
+
 ### Accept
 
-Defined in: [packages/core/src/types.ts:244](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L244)
-
 #### Properties
+
+<a id="description"></a>
 
 ##### description
 
@@ -16,7 +18,7 @@ Defined in: [packages/core/src/types.ts:244](https://github.com/summationai/code
 description: string;
 ```
 
-Defined in: [packages/core/src/types.ts:247](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L247)
+<a id="instructions"></a>
 
 ##### instructions?
 
@@ -24,7 +26,7 @@ Defined in: [packages/core/src/types.ts:247](https://github.com/summationai/code
 optional instructions?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:250](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L250)
+<a id="kind"></a>
 
 ##### kind
 
@@ -32,7 +34,7 @@ Defined in: [packages/core/src/types.ts:250](https://github.com/summationai/code
 kind: string;
 ```
 
-Defined in: [packages/core/src/types.ts:245](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L245)
+<a id="schema"></a>
 
 ##### schema
 
@@ -40,7 +42,7 @@ Defined in: [packages/core/src/types.ts:245](https://github.com/summationai/code
 schema: JsonSchema;
 ```
 
-Defined in: [packages/core/src/types.ts:248](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L248)
+<a id="sensitive"></a>
 
 ##### sensitive
 
@@ -48,7 +50,7 @@ Defined in: [packages/core/src/types.ts:248](https://github.com/summationai/code
 sensitive: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:249](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L249)
+<a id="title"></a>
 
 ##### title
 
@@ -56,17 +58,17 @@ Defined in: [packages/core/src/types.ts:249](https://github.com/summationai/code
 title: string;
 ```
 
-Defined in: [packages/core/src/types.ts:246](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L246)
-
 ***
 
-### ActionDefinition
+<a id="actiondefinition"></a>
 
-Defined in: [packages/core/src/types.ts:185](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L185)
+### ActionDefinition
 
 An action as it appears in the manifest.
 
 #### Properties
+
+<a id="affordances"></a>
 
 ##### affordances?
 
@@ -74,7 +76,7 @@ An action as it appears in the manifest.
 optional affordances?: Affordance[];
 ```
 
-Defined in: [packages/core/src/types.ts:198](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L198)
+<a id="auth"></a>
 
 ##### auth
 
@@ -82,7 +84,7 @@ Defined in: [packages/core/src/types.ts:198](https://github.com/summationai/code
 auth: WireAuthMode;
 ```
 
-Defined in: [packages/core/src/types.ts:195](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L195)
+<a id="deprecated"></a>
 
 ##### deprecated?
 
@@ -90,7 +92,7 @@ Defined in: [packages/core/src/types.ts:195](https://github.com/summationai/code
 optional deprecated?: Deprecation;
 ```
 
-Defined in: [packages/core/src/types.ts:202](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L202)
+<a id="description-1"></a>
 
 ##### description
 
@@ -98,7 +100,7 @@ Defined in: [packages/core/src/types.ts:202](https://github.com/summationai/code
 description: string;
 ```
 
-Defined in: [packages/core/src/types.ts:188](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L188)
+<a id="display"></a>
 
 ##### display?
 
@@ -106,7 +108,7 @@ Defined in: [packages/core/src/types.ts:188](https://github.com/summationai/code
 optional display?: Display;
 ```
 
-Defined in: [packages/core/src/types.ts:197](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L197)
+<a id="examples"></a>
 
 ##### examples?
 
@@ -114,7 +116,7 @@ Defined in: [packages/core/src/types.ts:197](https://github.com/summationai/code
 optional examples?: ActionExample[];
 ```
 
-Defined in: [packages/core/src/types.ts:196](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L196)
+<a id="freshness"></a>
 
 ##### freshness?
 
@@ -122,7 +124,7 @@ Defined in: [packages/core/src/types.ts:196](https://github.com/summationai/code
 optional freshness?: Freshness;
 ```
 
-Defined in: [packages/core/src/types.ts:200](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L200)
+<a id="humanhandoff"></a>
 
 ##### humanHandoff?
 
@@ -130,13 +132,13 @@ Defined in: [packages/core/src/types.ts:200](https://github.com/summationai/code
 optional humanHandoff?: object;
 ```
 
-Defined in: [packages/core/src/types.ts:201](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L201)
-
 ###### reasons
 
 ```ts
 reasons: string[];
 ```
+
+<a id="idempotent"></a>
 
 ##### idempotent
 
@@ -144,7 +146,7 @@ reasons: string[];
 idempotent: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:192](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L192)
+<a id="input"></a>
 
 ##### input
 
@@ -152,7 +154,7 @@ Defined in: [packages/core/src/types.ts:192](https://github.com/summationai/code
 input: JsonSchema;
 ```
 
-Defined in: [packages/core/src/types.ts:189](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L189)
+<a id="name"></a>
 
 ##### name
 
@@ -160,7 +162,7 @@ Defined in: [packages/core/src/types.ts:189](https://github.com/summationai/code
 name: string;
 ```
 
-Defined in: [packages/core/src/types.ts:186](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L186)
+<a id="output"></a>
 
 ##### output
 
@@ -168,7 +170,7 @@ Defined in: [packages/core/src/types.ts:186](https://github.com/summationai/code
 output: JsonSchema;
 ```
 
-Defined in: [packages/core/src/types.ts:190](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L190)
+<a id="pagination"></a>
 
 ##### pagination?
 
@@ -176,7 +178,7 @@ Defined in: [packages/core/src/types.ts:190](https://github.com/summationai/code
 optional pagination?: Pagination;
 ```
 
-Defined in: [packages/core/src/types.ts:199](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L199)
+<a id="readonly"></a>
 
 ##### readOnly
 
@@ -184,7 +186,7 @@ Defined in: [packages/core/src/types.ts:199](https://github.com/summationai/code
 readOnly: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:191](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L191)
+<a id="reversible"></a>
 
 ##### reversible
 
@@ -192,7 +194,7 @@ Defined in: [packages/core/src/types.ts:191](https://github.com/summationai/code
 reversible: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:193](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L193)
+<a id="risk"></a>
 
 ##### risk
 
@@ -200,7 +202,7 @@ Defined in: [packages/core/src/types.ts:193](https://github.com/summationai/code
 risk: WireRisk;
 ```
 
-Defined in: [packages/core/src/types.ts:194](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L194)
+<a id="title-1"></a>
 
 ##### title
 
@@ -208,15 +210,15 @@ Defined in: [packages/core/src/types.ts:194](https://github.com/summationai/code
 title: string;
 ```
 
-Defined in: [packages/core/src/types.ts:187](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L187)
-
 ***
+
+<a id="actionexample"></a>
 
 ### ActionExample
 
-Defined in: [packages/core/src/types.ts:174](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L174)
-
 #### Properties
+
+<a id="input-1"></a>
 
 ##### input
 
@@ -224,7 +226,7 @@ Defined in: [packages/core/src/types.ts:174](https://github.com/summationai/code
 input: JsonValue;
 ```
 
-Defined in: [packages/core/src/types.ts:175](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L175)
+<a id="output-1"></a>
 
 ##### output
 
@@ -232,17 +234,17 @@ Defined in: [packages/core/src/types.ts:175](https://github.com/summationai/code
 output: JsonValue;
 ```
 
-Defined in: [packages/core/src/types.ts:176](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L176)
-
 ***
 
-### Affordance
+<a id="affordance"></a>
 
-Defined in: [packages/core/src/types.ts:143](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L143)
+### Affordance
 
 A statically declared affordance. `input` values are JSON Pointers relative to the item.
 
 #### Properties
+
+<a id="action"></a>
 
 ##### action
 
@@ -250,7 +252,7 @@ A statically declared affordance. `input` values are JSON Pointers relative to t
 action: string;
 ```
 
-Defined in: [packages/core/src/types.ts:144](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L144)
+<a id="input-2"></a>
 
 ##### input
 
@@ -258,7 +260,7 @@ Defined in: [packages/core/src/types.ts:144](https://github.com/summationai/code
 input: Record<string, JsonPointer>;
 ```
 
-Defined in: [packages/core/src/types.ts:146](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L146)
+<a id="primary"></a>
 
 ##### primary?
 
@@ -266,7 +268,7 @@ Defined in: [packages/core/src/types.ts:146](https://github.com/summationai/code
 optional primary?: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:147](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L147)
+<a id="title-2"></a>
 
 ##### title
 
@@ -274,15 +276,15 @@ Defined in: [packages/core/src/types.ts:147](https://github.com/summationai/code
 title: string;
 ```
 
-Defined in: [packages/core/src/types.ts:145](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L145)
-
 ***
+
+<a id="agentidentification"></a>
 
 ### AgentIdentification
 
-Defined in: [packages/core/src/types.ts:209](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L209)
-
 #### Properties
+
+<a id="contact"></a>
 
 ##### contact?
 
@@ -290,7 +292,7 @@ Defined in: [packages/core/src/types.ts:209](https://github.com/summationai/code
 optional contact?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:213](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L213)
+<a id="name-1"></a>
 
 ##### name
 
@@ -298,7 +300,7 @@ Defined in: [packages/core/src/types.ts:213](https://github.com/summationai/code
 name: string;
 ```
 
-Defined in: [packages/core/src/types.ts:210](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L210)
+<a id="vendor"></a>
 
 ##### vendor?
 
@@ -306,7 +308,7 @@ Defined in: [packages/core/src/types.ts:210](https://github.com/summationai/code
 optional vendor?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:212](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L212)
+<a id="version"></a>
 
 ##### version?
 
@@ -314,15 +316,15 @@ Defined in: [packages/core/src/types.ts:212](https://github.com/summationai/code
 optional version?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:211](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L211)
-
 ***
+
+<a id="agentpolicy"></a>
 
 ### AgentPolicy
 
-Defined in: [packages/core/src/types.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L57)
-
 #### Properties
+
+<a id="allow"></a>
 
 ##### allow?
 
@@ -330,7 +332,7 @@ Defined in: [packages/core/src/types.ts:57](https://github.com/summationai/code/
 optional allow?: string[];
 ```
 
-Defined in: [packages/core/src/types.ts:58](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L58)
+<a id="deny"></a>
 
 ##### deny?
 
@@ -338,15 +340,15 @@ Defined in: [packages/core/src/types.ts:58](https://github.com/summationai/code/
 optional deny?: string[];
 ```
 
-Defined in: [packages/core/src/types.ts:59](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L59)
-
 ***
+
+<a id="attributedisplay"></a>
 
 ### AttributeDisplay
 
-Defined in: [packages/core/src/types.ts:114](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L114)
-
 #### Properties
+
+<a id="compare"></a>
 
 ##### compare?
 
@@ -354,7 +356,7 @@ Defined in: [packages/core/src/types.ts:114](https://github.com/summationai/code
 optional compare?: WireCompare;
 ```
 
-Defined in: [packages/core/src/types.ts:118](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L118)
+<a id="format"></a>
 
 ##### format?
 
@@ -362,7 +364,7 @@ Defined in: [packages/core/src/types.ts:118](https://github.com/summationai/code
 optional format?: WireFormat;
 ```
 
-Defined in: [packages/core/src/types.ts:117](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L117)
+<a id="label"></a>
 
 ##### label
 
@@ -370,7 +372,7 @@ Defined in: [packages/core/src/types.ts:117](https://github.com/summationai/code
 label: string;
 ```
 
-Defined in: [packages/core/src/types.ts:115](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L115)
+<a id="path"></a>
 
 ##### path
 
@@ -378,15 +380,15 @@ Defined in: [packages/core/src/types.ts:115](https://github.com/summationai/code
 path: string;
 ```
 
-Defined in: [packages/core/src/types.ts:116](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L116)
-
 ***
+
+<a id="axeevent"></a>
 
 ### AXEEvent
 
-Defined in: [packages/core/src/types.ts:339](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L339)
-
 #### Properties
+
+<a id="action-1"></a>
 
 ##### action
 
@@ -394,7 +396,7 @@ Defined in: [packages/core/src/types.ts:339](https://github.com/summationai/code
 action: string;
 ```
 
-Defined in: [packages/core/src/types.ts:342](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L342)
+<a id="agent"></a>
 
 ##### agent
 
@@ -402,7 +404,7 @@ Defined in: [packages/core/src/types.ts:342](https://github.com/summationai/code
 agent: EventAgent | null;
 ```
 
-Defined in: [packages/core/src/types.ts:345](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L345)
+<a id="errorcode"></a>
 
 ##### errorCode
 
@@ -410,7 +412,7 @@ Defined in: [packages/core/src/types.ts:345](https://github.com/summationai/code
 errorCode: WireError | null;
 ```
 
-Defined in: [packages/core/src/types.ts:348](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L348)
+<a id="kind-1"></a>
 
 ##### kind
 
@@ -418,7 +420,7 @@ Defined in: [packages/core/src/types.ts:348](https://github.com/summationai/code
 kind: string | null;
 ```
 
-Defined in: [packages/core/src/types.ts:347](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L347)
+<a id="ladder"></a>
 
 ##### ladder
 
@@ -426,7 +428,7 @@ Defined in: [packages/core/src/types.ts:347](https://github.com/summationai/code
 ladder: WireLadder;
 ```
 
-Defined in: [packages/core/src/types.ts:344](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L344)
+<a id="latencyms"></a>
 
 ##### latencyMs
 
@@ -434,7 +436,7 @@ Defined in: [packages/core/src/types.ts:344](https://github.com/summationai/code
 latencyMs: number;
 ```
 
-Defined in: [packages/core/src/types.ts:346](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L346)
+<a id="schemaversion"></a>
 
 ##### schemaVersion
 
@@ -442,7 +444,7 @@ Defined in: [packages/core/src/types.ts:346](https://github.com/summationai/code
 schemaVersion: 1;
 ```
 
-Defined in: [packages/core/src/types.ts:340](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L340)
+<a id="status"></a>
 
 ##### status
 
@@ -450,7 +452,7 @@ Defined in: [packages/core/src/types.ts:340](https://github.com/summationai/code
 status: WireStatus;
 ```
 
-Defined in: [packages/core/src/types.ts:343](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L343)
+<a id="tenant"></a>
 
 ##### tenant
 
@@ -458,7 +460,7 @@ Defined in: [packages/core/src/types.ts:343](https://github.com/summationai/code
 tenant: string | null;
 ```
 
-Defined in: [packages/core/src/types.ts:349](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L349)
+<a id="ts"></a>
 
 ##### ts
 
@@ -466,17 +468,17 @@ Defined in: [packages/core/src/types.ts:349](https://github.com/summationai/code
 ts: string;
 ```
 
-Defined in: [packages/core/src/types.ts:341](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L341)
-
 ***
 
-### AxeReserved
+<a id="axereserved"></a>
 
-Defined in: [packages/core/src/types.ts:159](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L159)
+### AxeReserved
 
 The reserved `_axe` member on an output or item.
 
 #### Properties
+
+<a id="affordances-1"></a>
 
 ##### affordances?
 
@@ -484,15 +486,15 @@ The reserved `_axe` member on an output or item.
 optional affordances?: DynamicAffordance[];
 ```
 
-Defined in: [packages/core/src/types.ts:160](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L160)
-
 ***
+
+<a id="brand"></a>
 
 ### Brand
 
-Defined in: [packages/core/src/types.ts:74](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L74)
-
 #### Properties
+
+<a id="accentcolor"></a>
 
 ##### accentColor?
 
@@ -500,7 +502,7 @@ Defined in: [packages/core/src/types.ts:74](https://github.com/summationai/code/
 optional accentColor?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L77)
+<a id="logourl"></a>
 
 ##### logoUrl?
 
@@ -508,7 +510,7 @@ Defined in: [packages/core/src/types.ts:77](https://github.com/summationai/code/
 optional logoUrl?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:76](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L76)
+<a id="name-2"></a>
 
 ##### name?
 
@@ -516,7 +518,7 @@ Defined in: [packages/core/src/types.ts:76](https://github.com/summationai/code/
 optional name?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:75](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L75)
+<a id="tone"></a>
 
 ##### tone?
 
@@ -524,15 +526,15 @@ Defined in: [packages/core/src/types.ts:75](https://github.com/summationai/code/
 optional tone?: WireTone;
 ```
 
-Defined in: [packages/core/src/types.ts:78](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L78)
-
 ***
+
+<a id="contact-1"></a>
 
 ### Contact
 
-Defined in: [packages/core/src/types.ts:69](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L69)
-
 #### Properties
+
+<a id="email"></a>
 
 ##### email?
 
@@ -540,7 +542,7 @@ Defined in: [packages/core/src/types.ts:69](https://github.com/summationai/code/
 optional email?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:70](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L70)
+<a id="url"></a>
 
 ##### url?
 
@@ -548,15 +550,15 @@ Defined in: [packages/core/src/types.ts:70](https://github.com/summationai/code/
 optional url?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:71](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L71)
-
 ***
+
+<a id="continuerequest"></a>
 
 ### ContinueRequest
 
-Defined in: [packages/core/src/types.ts:230](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L230)
-
 #### Properties
+
+<a id="continuationtoken"></a>
 
 ##### continuationToken
 
@@ -564,7 +566,7 @@ Defined in: [packages/core/src/types.ts:230](https://github.com/summationai/code
 continuationToken: string;
 ```
 
-Defined in: [packages/core/src/types.ts:231](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L231)
+<a id="kind-2"></a>
 
 ##### kind
 
@@ -572,7 +574,7 @@ Defined in: [packages/core/src/types.ts:231](https://github.com/summationai/code
 kind: string;
 ```
 
-Defined in: [packages/core/src/types.ts:232](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L232)
+<a id="payload"></a>
 
 ##### payload
 
@@ -580,15 +582,15 @@ Defined in: [packages/core/src/types.ts:232](https://github.com/summationai/code
 payload: JsonValue;
 ```
 
-Defined in: [packages/core/src/types.ts:233](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L233)
-
 ***
+
+<a id="deprecation"></a>
 
 ### Deprecation
 
-Defined in: [packages/core/src/types.ts:179](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L179)
-
 #### Properties
+
+<a id="replacedby"></a>
 
 ##### replacedBy?
 
@@ -596,7 +598,7 @@ Defined in: [packages/core/src/types.ts:179](https://github.com/summationai/code
 optional replacedBy?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:181](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L181)
+<a id="since"></a>
 
 ##### since
 
@@ -604,15 +606,15 @@ Defined in: [packages/core/src/types.ts:181](https://github.com/summationai/code
 since: string;
 ```
 
-Defined in: [packages/core/src/types.ts:180](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L180)
-
 ***
+
+<a id="display-1"></a>
 
 ### Display
 
-Defined in: [packages/core/src/types.ts:133](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L133)
-
 #### Properties
+
+<a id="disclaimer"></a>
 
 ##### disclaimer?
 
@@ -620,7 +622,7 @@ Defined in: [packages/core/src/types.ts:133](https://github.com/summationai/code
 optional disclaimer?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:139](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L139)
+<a id="emptymessage"></a>
 
 ##### emptyMessage?
 
@@ -628,7 +630,7 @@ Defined in: [packages/core/src/types.ts:139](https://github.com/summationai/code
 optional emptyMessage?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:138](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L138)
+<a id="item"></a>
 
 ##### item?
 
@@ -636,7 +638,7 @@ Defined in: [packages/core/src/types.ts:138](https://github.com/summationai/code
 optional item?: ItemDisplay;
 ```
 
-Defined in: [packages/core/src/types.ts:136](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L136)
+<a id="items"></a>
 
 ##### items?
 
@@ -644,7 +646,7 @@ Defined in: [packages/core/src/types.ts:136](https://github.com/summationai/code
 optional items?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:135](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L135)
+<a id="kind-3"></a>
 
 ##### kind
 
@@ -652,7 +654,7 @@ Defined in: [packages/core/src/types.ts:135](https://github.com/summationai/code
 kind: WireDisplayKind;
 ```
 
-Defined in: [packages/core/src/types.ts:134](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L134)
+<a id="suggestedcomparison"></a>
 
 ##### suggestedComparison?
 
@@ -660,17 +662,17 @@ Defined in: [packages/core/src/types.ts:134](https://github.com/summationai/code
 optional suggestedComparison?: string[];
 ```
 
-Defined in: [packages/core/src/types.ts:137](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L137)
-
 ***
 
-### DynamicAffordance
+<a id="dynamicaffordance"></a>
 
-Defined in: [packages/core/src/types.ts:151](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L151)
+### DynamicAffordance
 
 A dynamic affordance returned under `_axe`. `input` values are concrete.
 
 #### Properties
+
+<a id="action-2"></a>
 
 ##### action
 
@@ -678,7 +680,7 @@ A dynamic affordance returned under `_axe`. `input` values are concrete.
 action: string;
 ```
 
-Defined in: [packages/core/src/types.ts:152](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L152)
+<a id="input-3"></a>
 
 ##### input
 
@@ -686,7 +688,7 @@ Defined in: [packages/core/src/types.ts:152](https://github.com/summationai/code
 input: Record<string, JsonValue>;
 ```
 
-Defined in: [packages/core/src/types.ts:154](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L154)
+<a id="primary-1"></a>
 
 ##### primary?
 
@@ -694,7 +696,7 @@ Defined in: [packages/core/src/types.ts:154](https://github.com/summationai/code
 optional primary?: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:155](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L155)
+<a id="title-3"></a>
 
 ##### title
 
@@ -702,15 +704,15 @@ Defined in: [packages/core/src/types.ts:155](https://github.com/summationai/code
 title: string;
 ```
 
-Defined in: [packages/core/src/types.ts:153](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L153)
-
 ***
+
+<a id="errorbody"></a>
 
 ### ErrorBody
 
-Defined in: [packages/core/src/types.ts:268](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L268)
-
 #### Properties
+
+<a id="code"></a>
 
 ##### code
 
@@ -718,15 +720,13 @@ Defined in: [packages/core/src/types.ts:268](https://github.com/summationai/code
 code: WireError;
 ```
 
-Defined in: [packages/core/src/types.ts:269](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L269)
+<a id="details"></a>
 
 ##### details?
 
 ```ts
 optional details?: JsonObject & object;
 ```
-
-Defined in: [packages/core/src/types.ts:272](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L272)
 
 ###### Type Declaration
 
@@ -736,13 +736,15 @@ Defined in: [packages/core/src/types.ts:272](https://github.com/summationai/code
 optional issues?: ValidationIssue[];
 ```
 
+<a id="message"></a>
+
 ##### message
 
 ```ts
 message: string;
 ```
 
-Defined in: [packages/core/src/types.ts:270](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L270)
+<a id="retryable"></a>
 
 ##### retryable
 
@@ -750,15 +752,15 @@ Defined in: [packages/core/src/types.ts:270](https://github.com/summationai/code
 retryable: boolean;
 ```
 
-Defined in: [packages/core/src/types.ts:271](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L271)
-
 ***
+
+<a id="errorresult"></a>
 
 ### ErrorResult
 
-Defined in: [packages/core/src/types.ts:302](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L302)
-
 #### Properties
+
+<a id="error"></a>
 
 ##### error
 
@@ -766,7 +768,7 @@ Defined in: [packages/core/src/types.ts:302](https://github.com/summationai/code
 error: ErrorBody;
 ```
 
-Defined in: [packages/core/src/types.ts:304](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L304)
+<a id="status-1"></a>
 
 ##### status
 
@@ -774,15 +776,15 @@ Defined in: [packages/core/src/types.ts:304](https://github.com/summationai/code
 status: "error";
 ```
 
-Defined in: [packages/core/src/types.ts:303](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L303)
-
 ***
+
+<a id="eventagent"></a>
 
 ### EventAgent
 
-Defined in: [packages/core/src/types.ts:333](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L333)
-
 #### Properties
+
+<a id="name-3"></a>
 
 ##### name?
 
@@ -790,7 +792,7 @@ Defined in: [packages/core/src/types.ts:333](https://github.com/summationai/code
 optional name?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:335](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L335)
+<a id="vendor-1"></a>
 
 ##### vendor?
 
@@ -798,7 +800,7 @@ Defined in: [packages/core/src/types.ts:335](https://github.com/summationai/code
 optional vendor?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:334](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L334)
+<a id="version-1"></a>
 
 ##### version?
 
@@ -806,15 +808,15 @@ Defined in: [packages/core/src/types.ts:334](https://github.com/summationai/code
 optional version?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:336](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L336)
-
 ***
+
+<a id="flow"></a>
 
 ### Flow
 
-Defined in: [packages/core/src/types.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L81)
-
 #### Properties
+
+<a id="description-2"></a>
 
 ##### description
 
@@ -822,7 +824,7 @@ Defined in: [packages/core/src/types.ts:81](https://github.com/summationai/code/
 description: string;
 ```
 
-Defined in: [packages/core/src/types.ts:84](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L84)
+<a id="name-4"></a>
 
 ##### name
 
@@ -830,7 +832,7 @@ Defined in: [packages/core/src/types.ts:84](https://github.com/summationai/code/
 name: string;
 ```
 
-Defined in: [packages/core/src/types.ts:82](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L82)
+<a id="steps"></a>
 
 ##### steps
 
@@ -838,7 +840,7 @@ Defined in: [packages/core/src/types.ts:82](https://github.com/summationai/code/
 steps: string[];
 ```
 
-Defined in: [packages/core/src/types.ts:85](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L85)
+<a id="title-4"></a>
 
 ##### title
 
@@ -846,15 +848,15 @@ Defined in: [packages/core/src/types.ts:85](https://github.com/summationai/code/
 title: string;
 ```
 
-Defined in: [packages/core/src/types.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L83)
-
 ***
+
+<a id="freshness-1"></a>
 
 ### Freshness
 
-Defined in: [packages/core/src/types.ts:169](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L169)
-
 #### Properties
+
+<a id="cachettlseconds"></a>
 
 ##### cacheTtlSeconds?
 
@@ -862,7 +864,7 @@ Defined in: [packages/core/src/types.ts:169](https://github.com/summationai/code
 optional cacheTtlSeconds?: number;
 ```
 
-Defined in: [packages/core/src/types.ts:170](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L170)
+<a id="validuntil"></a>
 
 ##### validUntil?
 
@@ -870,15 +872,15 @@ Defined in: [packages/core/src/types.ts:170](https://github.com/summationai/code
 optional validUntil?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:171](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L171)
-
 ***
+
+<a id="handoff"></a>
 
 ### Handoff
 
-Defined in: [packages/core/src/types.ts:253](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L253)
-
 #### Properties
+
+<a id="expiresat"></a>
 
 ##### expiresAt
 
@@ -886,7 +888,7 @@ Defined in: [packages/core/src/types.ts:253](https://github.com/summationai/code
 expiresAt: string;
 ```
 
-Defined in: [packages/core/src/types.ts:258](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L258)
+<a id="instructions-1"></a>
 
 ##### instructions
 
@@ -894,7 +896,7 @@ Defined in: [packages/core/src/types.ts:258](https://github.com/summationai/code
 instructions: string;
 ```
 
-Defined in: [packages/core/src/types.ts:255](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L255)
+<a id="reason"></a>
 
 ##### reason
 
@@ -902,7 +904,7 @@ Defined in: [packages/core/src/types.ts:255](https://github.com/summationai/code
 reason: string;
 ```
 
-Defined in: [packages/core/src/types.ts:254](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L254)
+<a id="resumetoken"></a>
 
 ##### resumeToken
 
@@ -910,7 +912,7 @@ Defined in: [packages/core/src/types.ts:254](https://github.com/summationai/code
 resumeToken: string;
 ```
 
-Defined in: [packages/core/src/types.ts:257](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L257)
+<a id="url-1"></a>
 
 ##### url
 
@@ -918,7 +920,7 @@ Defined in: [packages/core/src/types.ts:257](https://github.com/summationai/code
 url: string;
 ```
 
-Defined in: [packages/core/src/types.ts:256](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L256)
+<a id="whatagentshouldsaytouser"></a>
 
 ##### whatAgentShouldSayToUser
 
@@ -926,15 +928,15 @@ Defined in: [packages/core/src/types.ts:256](https://github.com/summationai/code
 whatAgentShouldSayToUser: string;
 ```
 
-Defined in: [packages/core/src/types.ts:259](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L259)
-
 ***
+
+<a id="indexsite"></a>
 
 ### IndexSite
 
-Defined in: [packages/core/src/types.ts:315](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L315)
-
 #### Properties
+
+<a id="manifesturl"></a>
 
 ##### manifestUrl
 
@@ -942,7 +944,7 @@ Defined in: [packages/core/src/types.ts:315](https://github.com/summationai/code
 manifestUrl: string;
 ```
 
-Defined in: [packages/core/src/types.ts:317](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L317)
+<a id="name-5"></a>
 
 ##### name
 
@@ -950,7 +952,7 @@ Defined in: [packages/core/src/types.ts:317](https://github.com/summationai/code
 name: string;
 ```
 
-Defined in: [packages/core/src/types.ts:316](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L316)
+<a id="tags"></a>
 
 ##### tags?
 
@@ -958,7 +960,7 @@ Defined in: [packages/core/src/types.ts:316](https://github.com/summationai/code
 optional tags?: string[];
 ```
 
-Defined in: [packages/core/src/types.ts:319](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L319)
+<a id="updatedat"></a>
 
 ##### updatedAt
 
@@ -966,15 +968,15 @@ Defined in: [packages/core/src/types.ts:319](https://github.com/summationai/code
 updatedAt: string;
 ```
 
-Defined in: [packages/core/src/types.ts:318](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L318)
-
 ***
+
+<a id="itemdisplay"></a>
 
 ### ItemDisplay
 
-Defined in: [packages/core/src/types.ts:121](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L121)
-
 #### Properties
+
+<a id="attributes"></a>
 
 ##### attributes?
 
@@ -982,7 +984,7 @@ Defined in: [packages/core/src/types.ts:121](https://github.com/summationai/code
 optional attributes?: AttributeDisplay[];
 ```
 
-Defined in: [packages/core/src/types.ts:129](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L129)
+<a id="badges"></a>
 
 ##### badges?
 
@@ -990,7 +992,7 @@ Defined in: [packages/core/src/types.ts:129](https://github.com/summationai/code
 optional badges?: string[];
 ```
 
-Defined in: [packages/core/src/types.ts:130](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L130)
+<a id="id"></a>
 
 ##### id
 
@@ -998,7 +1000,7 @@ Defined in: [packages/core/src/types.ts:130](https://github.com/summationai/code
 id: string;
 ```
 
-Defined in: [packages/core/src/types.ts:122](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L122)
+<a id="image"></a>
 
 ##### image?
 
@@ -1006,7 +1008,7 @@ Defined in: [packages/core/src/types.ts:122](https://github.com/summationai/code
 optional image?: string | string[];
 ```
 
-Defined in: [packages/core/src/types.ts:126](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L126)
+<a id="price"></a>
 
 ##### price?
 
@@ -1014,7 +1016,7 @@ Defined in: [packages/core/src/types.ts:126](https://github.com/summationai/code
 optional price?: PriceDisplay;
 ```
 
-Defined in: [packages/core/src/types.ts:128](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L128)
+<a id="subtitle"></a>
 
 ##### subtitle?
 
@@ -1022,7 +1024,7 @@ Defined in: [packages/core/src/types.ts:128](https://github.com/summationai/code
 optional subtitle?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:124](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L124)
+<a id="summary"></a>
 
 ##### summary?
 
@@ -1030,7 +1032,7 @@ Defined in: [packages/core/src/types.ts:124](https://github.com/summationai/code
 optional summary?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:125](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L125)
+<a id="title-5"></a>
 
 ##### title
 
@@ -1038,7 +1040,7 @@ Defined in: [packages/core/src/types.ts:125](https://github.com/summationai/code
 title: string;
 ```
 
-Defined in: [packages/core/src/types.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L123)
+<a id="url-2"></a>
 
 ##### url?
 
@@ -1046,15 +1048,15 @@ Defined in: [packages/core/src/types.ts:123](https://github.com/summationai/code
 optional url?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:127](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L127)
-
 ***
+
+<a id="manifest"></a>
 
 ### Manifest
 
-Defined in: [packages/core/src/types.ts:88](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L88)
-
 #### Properties
+
+<a id="actions"></a>
 
 ##### actions
 
@@ -1062,7 +1064,7 @@ Defined in: [packages/core/src/types.ts:88](https://github.com/summationai/code/
 actions: ActionDefinition[];
 ```
 
-Defined in: [packages/core/src/types.ts:95](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L95)
+<a id="auth-1"></a>
 
 ##### auth
 
@@ -1070,7 +1072,7 @@ Defined in: [packages/core/src/types.ts:95](https://github.com/summationai/code/
 auth: ManifestAuth;
 ```
 
-Defined in: [packages/core/src/types.ts:94](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L94)
+<a id="baseurl"></a>
 
 ##### baseUrl
 
@@ -1078,7 +1080,7 @@ Defined in: [packages/core/src/types.ts:94](https://github.com/summationai/code/
 baseUrl: string;
 ```
 
-Defined in: [packages/core/src/types.ts:92](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L92)
+<a id="brand-1"></a>
 
 ##### brand?
 
@@ -1086,7 +1088,7 @@ Defined in: [packages/core/src/types.ts:92](https://github.com/summationai/code/
 optional brand?: Brand;
 ```
 
-Defined in: [packages/core/src/types.ts:99](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L99)
+<a id="contact-2"></a>
 
 ##### contact?
 
@@ -1094,7 +1096,7 @@ Defined in: [packages/core/src/types.ts:99](https://github.com/summationai/code/
 optional contact?: Contact;
 ```
 
-Defined in: [packages/core/src/types.ts:98](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L98)
+<a id="description-3"></a>
 
 ##### description
 
@@ -1102,7 +1104,7 @@ Defined in: [packages/core/src/types.ts:98](https://github.com/summationai/code/
 description: string;
 ```
 
-Defined in: [packages/core/src/types.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L91)
+<a id="flows"></a>
 
 ##### flows?
 
@@ -1110,7 +1112,7 @@ Defined in: [packages/core/src/types.ts:91](https://github.com/summationai/code/
 optional flows?: Flow[];
 ```
 
-Defined in: [packages/core/src/types.ts:96](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L96)
+<a id="humanfallbackurl"></a>
 
 ##### humanFallbackUrl?
 
@@ -1118,7 +1120,7 @@ Defined in: [packages/core/src/types.ts:96](https://github.com/summationai/code/
 optional humanFallbackUrl?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:93](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L93)
+<a id="indexurl"></a>
 
 ##### indexUrl?
 
@@ -1126,7 +1128,7 @@ Defined in: [packages/core/src/types.ts:93](https://github.com/summationai/code/
 optional indexUrl?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:100](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L100)
+<a id="name-6"></a>
 
 ##### name
 
@@ -1134,7 +1136,7 @@ Defined in: [packages/core/src/types.ts:100](https://github.com/summationai/code
 name: string;
 ```
 
-Defined in: [packages/core/src/types.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L90)
+<a id="policies"></a>
 
 ##### policies?
 
@@ -1142,7 +1144,7 @@ Defined in: [packages/core/src/types.ts:90](https://github.com/summationai/code/
 optional policies?: Policies;
 ```
 
-Defined in: [packages/core/src/types.ts:97](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L97)
+<a id="protocol"></a>
 
 ##### protocol
 
@@ -1150,7 +1152,7 @@ Defined in: [packages/core/src/types.ts:97](https://github.com/summationai/code/
 protocol: string;
 ```
 
-Defined in: [packages/core/src/types.ts:89](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L89)
+<a id="updatedat-1"></a>
 
 ##### updatedAt?
 
@@ -1158,15 +1160,15 @@ Defined in: [packages/core/src/types.ts:89](https://github.com/summationai/code/
 optional updatedAt?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:101](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L101)
-
 ***
+
+<a id="manifestauth-1"></a>
 
 ### ManifestAuth
 
-Defined in: [packages/core/src/types.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L47)
-
 #### Properties
+
+<a id="modes"></a>
 
 ##### modes
 
@@ -1174,7 +1176,7 @@ Defined in: [packages/core/src/types.ts:47](https://github.com/summationai/code/
 modes: WireAuthMode[];
 ```
 
-Defined in: [packages/core/src/types.ts:48](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L48)
+<a id="userloginurl"></a>
 
 ##### userLoginUrl?
 
@@ -1182,15 +1184,15 @@ Defined in: [packages/core/src/types.ts:48](https://github.com/summationai/code/
 optional userLoginUrl?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:49](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L49)
-
 ***
+
+<a id="needshumanresult"></a>
 
 ### NeedsHumanResult
 
-Defined in: [packages/core/src/types.ts:290](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L290)
-
 #### Properties
+
+<a id="handoff-1"></a>
 
 ##### handoff
 
@@ -1198,7 +1200,7 @@ Defined in: [packages/core/src/types.ts:290](https://github.com/summationai/code
 handoff: Handoff;
 ```
 
-Defined in: [packages/core/src/types.ts:292](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L292)
+<a id="status-2"></a>
 
 ##### status
 
@@ -1206,15 +1208,15 @@ Defined in: [packages/core/src/types.ts:292](https://github.com/summationai/code
 status: "needs_human";
 ```
 
-Defined in: [packages/core/src/types.ts:291](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L291)
-
 ***
+
+<a id="needsinputresult"></a>
 
 ### NeedsInputResult
 
-Defined in: [packages/core/src/types.ts:280](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L280)
-
 #### Properties
+
+<a id="accepts"></a>
 
 ##### accepts
 
@@ -1222,7 +1224,7 @@ Defined in: [packages/core/src/types.ts:280](https://github.com/summationai/code
 accepts: Accept[];
 ```
 
-Defined in: [packages/core/src/types.ts:284](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L284)
+<a id="continuationtoken-1"></a>
 
 ##### continuationToken
 
@@ -1230,7 +1232,7 @@ Defined in: [packages/core/src/types.ts:284](https://github.com/summationai/code
 continuationToken: string;
 ```
 
-Defined in: [packages/core/src/types.ts:285](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L285)
+<a id="expiresat-1"></a>
 
 ##### expiresAt
 
@@ -1238,7 +1240,7 @@ Defined in: [packages/core/src/types.ts:285](https://github.com/summationai/code
 expiresAt: string;
 ```
 
-Defined in: [packages/core/src/types.ts:286](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L286)
+<a id="fallback"></a>
 
 ##### fallback?
 
@@ -1246,7 +1248,7 @@ Defined in: [packages/core/src/types.ts:286](https://github.com/summationai/code
 optional fallback?: Handoff;
 ```
 
-Defined in: [packages/core/src/types.ts:287](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L287)
+<a id="message-1"></a>
 
 ##### message
 
@@ -1254,7 +1256,7 @@ Defined in: [packages/core/src/types.ts:287](https://github.com/summationai/code
 message: string;
 ```
 
-Defined in: [packages/core/src/types.ts:283](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L283)
+<a id="reason-1"></a>
 
 ##### reason
 
@@ -1262,7 +1264,7 @@ Defined in: [packages/core/src/types.ts:283](https://github.com/summationai/code
 reason: string;
 ```
 
-Defined in: [packages/core/src/types.ts:282](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L282)
+<a id="status-3"></a>
 
 ##### status
 
@@ -1270,13 +1272,11 @@ Defined in: [packages/core/src/types.ts:282](https://github.com/summationai/code
 status: "needs_input";
 ```
 
-Defined in: [packages/core/src/types.ts:281](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L281)
-
 ***
 
-### OkResult
+<a id="okresult"></a>
 
-Defined in: [packages/core/src/types.ts:275](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L275)
+### OkResult
 
 #### Type Parameters
 
@@ -1286,13 +1286,15 @@ Defined in: [packages/core/src/types.ts:275](https://github.com/summationai/code
 
 #### Properties
 
+<a id="output-2"></a>
+
 ##### output
 
 ```ts
 output: O;
 ```
 
-Defined in: [packages/core/src/types.ts:277](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L277)
+<a id="status-4"></a>
 
 ##### status
 
@@ -1300,15 +1302,15 @@ Defined in: [packages/core/src/types.ts:277](https://github.com/summationai/code
 status: "ok";
 ```
 
-Defined in: [packages/core/src/types.ts:276](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L276)
-
 ***
+
+<a id="pagination-1"></a>
 
 ### Pagination
 
-Defined in: [packages/core/src/types.ts:163](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L163)
-
 #### Properties
+
+<a id="cursorin"></a>
 
 ##### cursorIn
 
@@ -1316,7 +1318,7 @@ Defined in: [packages/core/src/types.ts:163](https://github.com/summationai/code
 cursorIn: string;
 ```
 
-Defined in: [packages/core/src/types.ts:164](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L164)
+<a id="cursorout"></a>
 
 ##### cursorOut
 
@@ -1324,15 +1326,13 @@ Defined in: [packages/core/src/types.ts:164](https://github.com/summationai/code
 cursorOut: string;
 ```
 
-Defined in: [packages/core/src/types.ts:165](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L165)
+<a id="pagesize"></a>
 
 ##### pageSize
 
 ```ts
 pageSize: object;
 ```
-
-Defined in: [packages/core/src/types.ts:166](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L166)
 
 ###### default
 
@@ -1348,11 +1348,13 @@ max: number;
 
 ***
 
+<a id="pendingresult"></a>
+
 ### PendingResult
 
-Defined in: [packages/core/src/types.ts:295](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L295)
-
 #### Properties
+
+<a id="expiresat-2"></a>
 
 ##### expiresAt?
 
@@ -1360,7 +1362,7 @@ Defined in: [packages/core/src/types.ts:295](https://github.com/summationai/code
 optional expiresAt?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:299](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L299)
+<a id="pollurl"></a>
 
 ##### pollUrl
 
@@ -1368,7 +1370,7 @@ Defined in: [packages/core/src/types.ts:299](https://github.com/summationai/code
 pollUrl: string;
 ```
 
-Defined in: [packages/core/src/types.ts:297](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L297)
+<a id="retryafter"></a>
 
 ##### retryAfter
 
@@ -1376,7 +1378,7 @@ Defined in: [packages/core/src/types.ts:297](https://github.com/summationai/code
 retryAfter: number;
 ```
 
-Defined in: [packages/core/src/types.ts:298](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L298)
+<a id="status-5"></a>
 
 ##### status
 
@@ -1384,15 +1386,15 @@ Defined in: [packages/core/src/types.ts:298](https://github.com/summationai/code
 status: "pending";
 ```
 
-Defined in: [packages/core/src/types.ts:296](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L296)
-
 ***
+
+<a id="platformindex"></a>
 
 ### PlatformIndex
 
-Defined in: [packages/core/src/types.ts:322](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L322)
-
 #### Properties
+
+<a id="next"></a>
 
 ##### next?
 
@@ -1400,15 +1402,13 @@ Defined in: [packages/core/src/types.ts:322](https://github.com/summationai/code
 optional next?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:326](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L326)
+<a id="platform"></a>
 
 ##### platform
 
 ```ts
 platform: object;
 ```
-
-Defined in: [packages/core/src/types.ts:324](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L324)
 
 ###### name
 
@@ -1422,13 +1422,15 @@ name: string;
 url: string;
 ```
 
+<a id="protocol-1"></a>
+
 ##### protocol
 
 ```ts
 protocol: string;
 ```
 
-Defined in: [packages/core/src/types.ts:323](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L323)
+<a id="sites"></a>
 
 ##### sites
 
@@ -1436,15 +1438,15 @@ Defined in: [packages/core/src/types.ts:323](https://github.com/summationai/code
 sites: IndexSite[];
 ```
 
-Defined in: [packages/core/src/types.ts:325](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L325)
-
 ***
+
+<a id="policies-1"></a>
 
 ### Policies
 
-Defined in: [packages/core/src/types.ts:62](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L62)
-
 #### Properties
+
+<a id="agents"></a>
 
 ##### agents?
 
@@ -1452,7 +1454,7 @@ Defined in: [packages/core/src/types.ts:62](https://github.com/summationai/code/
 optional agents?: AgentPolicy;
 ```
 
-Defined in: [packages/core/src/types.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L66)
+<a id="dataretention"></a>
 
 ##### dataRetention?
 
@@ -1460,7 +1462,7 @@ Defined in: [packages/core/src/types.ts:66](https://github.com/summationai/code/
 optional dataRetention?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L65)
+<a id="ratelimit"></a>
 
 ##### rateLimit?
 
@@ -1468,7 +1470,7 @@ Defined in: [packages/core/src/types.ts:65](https://github.com/summationai/code/
 optional rateLimit?: RateLimitPolicy;
 ```
 
-Defined in: [packages/core/src/types.ts:63](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L63)
+<a id="termsurl"></a>
 
 ##### termsUrl?
 
@@ -1476,15 +1478,15 @@ Defined in: [packages/core/src/types.ts:63](https://github.com/summationai/code/
 optional termsUrl?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L64)
-
 ***
+
+<a id="pricedisplay"></a>
 
 ### PriceDisplay
 
-Defined in: [packages/core/src/types.ts:108](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L108)
-
 #### Properties
+
+<a id="amount"></a>
 
 ##### amount
 
@@ -1492,7 +1494,7 @@ Defined in: [packages/core/src/types.ts:108](https://github.com/summationai/code
 amount: string;
 ```
 
-Defined in: [packages/core/src/types.ts:109](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L109)
+<a id="currency"></a>
 
 ##### currency
 
@@ -1500,7 +1502,7 @@ Defined in: [packages/core/src/types.ts:109](https://github.com/summationai/code
 currency: string;
 ```
 
-Defined in: [packages/core/src/types.ts:110](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L110)
+<a id="period"></a>
 
 ##### period?
 
@@ -1508,15 +1510,15 @@ Defined in: [packages/core/src/types.ts:110](https://github.com/summationai/code
 optional period?: WirePeriod;
 ```
 
-Defined in: [packages/core/src/types.ts:111](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L111)
-
 ***
+
+<a id="ratelimitpolicy"></a>
 
 ### RateLimitPolicy
 
-Defined in: [packages/core/src/types.ts:52](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L52)
-
 #### Properties
+
+<a id="burst"></a>
 
 ##### burst?
 
@@ -1524,7 +1526,7 @@ Defined in: [packages/core/src/types.ts:52](https://github.com/summationai/code/
 optional burst?: number;
 ```
 
-Defined in: [packages/core/src/types.ts:54](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L54)
+<a id="requestsperminute"></a>
 
 ##### requestsPerMinute
 
@@ -1532,15 +1534,15 @@ Defined in: [packages/core/src/types.ts:54](https://github.com/summationai/code/
 requestsPerMinute: number;
 ```
 
-Defined in: [packages/core/src/types.ts:53](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L53)
-
 ***
+
+<a id="requestcontext"></a>
 
 ### RequestContext
 
-Defined in: [packages/core/src/types.ts:216](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L216)
-
 #### Properties
+
+<a id="agent-1"></a>
 
 ##### agent?
 
@@ -1548,7 +1550,7 @@ Defined in: [packages/core/src/types.ts:216](https://github.com/summationai/code
 optional agent?: AgentIdentification;
 ```
 
-Defined in: [packages/core/src/types.ts:220](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L220)
+<a id="locale"></a>
 
 ##### locale?
 
@@ -1556,7 +1558,7 @@ Defined in: [packages/core/src/types.ts:220](https://github.com/summationai/code
 optional locale?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:218](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L218)
+<a id="onbehalfof"></a>
 
 ##### onBehalfOf?
 
@@ -1564,7 +1566,7 @@ Defined in: [packages/core/src/types.ts:218](https://github.com/summationai/code
 optional onBehalfOf?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:217](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L217)
+<a id="sessionid"></a>
 
 ##### sessionId?
 
@@ -1572,7 +1574,7 @@ Defined in: [packages/core/src/types.ts:217](https://github.com/summationai/code
 optional sessionId?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:221](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L221)
+<a id="timezone"></a>
 
 ##### timezone?
 
@@ -1580,13 +1582,11 @@ Defined in: [packages/core/src/types.ts:221](https://github.com/summationai/code
 optional timezone?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:219](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L219)
-
 ***
 
-### RequestEnvelope
+<a id="requestenvelope"></a>
 
-Defined in: [packages/core/src/types.ts:224](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L224)
+### RequestEnvelope
 
 #### Type Parameters
 
@@ -1596,13 +1596,15 @@ Defined in: [packages/core/src/types.ts:224](https://github.com/summationai/code
 
 #### Properties
 
+<a id="context"></a>
+
 ##### context?
 
 ```ts
 optional context?: RequestContext;
 ```
 
-Defined in: [packages/core/src/types.ts:226](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L226)
+<a id="idempotencykey"></a>
 
 ##### idempotencyKey?
 
@@ -1610,7 +1612,7 @@ Defined in: [packages/core/src/types.ts:226](https://github.com/summationai/code
 optional idempotencyKey?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:227](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L227)
+<a id="input-4"></a>
 
 ##### input
 
@@ -1618,15 +1620,15 @@ Defined in: [packages/core/src/types.ts:227](https://github.com/summationai/code
 input: I;
 ```
 
-Defined in: [packages/core/src/types.ts:225](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L225)
-
 ***
+
+<a id="resumerequest"></a>
 
 ### ResumeRequest
 
-Defined in: [packages/core/src/types.ts:236](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L236)
-
 #### Properties
+
+<a id="resumetoken-1"></a>
 
 ##### resumeToken
 
@@ -1634,15 +1636,15 @@ Defined in: [packages/core/src/types.ts:236](https://github.com/summationai/code
 resumeToken: string;
 ```
 
-Defined in: [packages/core/src/types.ts:237](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L237)
-
 ***
+
+<a id="validationissue"></a>
 
 ### ValidationIssue
 
-Defined in: [packages/core/src/types.ts:262](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L262)
-
 #### Properties
+
+<a id="expected"></a>
 
 ##### expected?
 
@@ -1650,7 +1652,7 @@ Defined in: [packages/core/src/types.ts:262](https://github.com/summationai/code
 optional expected?: string;
 ```
 
-Defined in: [packages/core/src/types.ts:265](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L265)
+<a id="message-2"></a>
 
 ##### message
 
@@ -1658,7 +1660,7 @@ Defined in: [packages/core/src/types.ts:265](https://github.com/summationai/code
 message: string;
 ```
 
-Defined in: [packages/core/src/types.ts:264](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L264)
+<a id="path-1"></a>
 
 ##### path
 
@@ -1666,9 +1668,9 @@ Defined in: [packages/core/src/types.ts:264](https://github.com/summationai/code
 path: string;
 ```
 
-Defined in: [packages/core/src/types.ts:263](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L263)
-
 ## Type Aliases
+
+<a id="attributeformat"></a>
 
 ### AttributeFormat
 
@@ -1676,9 +1678,9 @@ Defined in: [packages/core/src/types.ts:263](https://github.com/summationai/code
 type AttributeFormat = WireFormat;
 ```
 
-Defined in: [packages/core/src/types.ts:38](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L38)
-
 ***
+
+<a id="authmode"></a>
 
 ### AuthMode
 
@@ -1686,9 +1688,9 @@ Defined in: [packages/core/src/types.ts:38](https://github.com/summationai/code/
 type AuthMode = WireAuthMode;
 ```
 
-Defined in: [packages/core/src/types.ts:33](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L33)
-
 ***
+
+<a id="brandtone-1"></a>
 
 ### BrandTone
 
@@ -1696,9 +1698,9 @@ Defined in: [packages/core/src/types.ts:33](https://github.com/summationai/code/
 type BrandTone = WireTone;
 ```
 
-Defined in: [packages/core/src/types.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L41)
-
 ***
+
+<a id="comparedirection"></a>
 
 ### CompareDirection
 
@@ -1706,9 +1708,9 @@ Defined in: [packages/core/src/types.ts:41](https://github.com/summationai/code/
 type CompareDirection = WireCompare;
 ```
 
-Defined in: [packages/core/src/types.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L39)
-
 ***
+
+<a id="displaykind-1"></a>
 
 ### DisplayKind
 
@@ -1716,9 +1718,9 @@ Defined in: [packages/core/src/types.ts:39](https://github.com/summationai/code/
 type DisplayKind = WireDisplayKind;
 ```
 
-Defined in: [packages/core/src/types.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L37)
-
 ***
+
+<a id="errorcode-1"></a>
 
 ### ErrorCode
 
@@ -1726,17 +1728,15 @@ Defined in: [packages/core/src/types.ts:37](https://github.com/summationai/code/
 type ErrorCode = WireError;
 ```
 
-Defined in: [packages/core/src/types.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L35)
-
 ***
+
+<a id="jsonobject"></a>
 
 ### JsonObject
 
 ```ts
 type JsonObject = object;
 ```
-
-Defined in: [packages/core/src/types.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L24)
 
 A JSON object.
 
@@ -1748,25 +1748,25 @@ A JSON object.
 
 ***
 
+<a id="jsonpointer"></a>
+
 ### JsonPointer
 
 ```ts
 type JsonPointer = string;
 ```
 
-Defined in: [packages/core/src/types.ts:30](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L30)
-
 An RFC 6901 JSON Pointer, for example `/units` or `/price/amount`.
 
 ***
+
+<a id="jsonschema"></a>
 
 ### JsonSchema
 
 ```ts
 type JsonSchema = object;
 ```
-
-Defined in: [packages/core/src/types.ts:27](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L27)
 
 A JSON Schema document (draft 2020-12). Kept loose on purpose; the SDK generates these.
 
@@ -1777,6 +1777,8 @@ A JSON Schema document (draft 2020-12). Kept loose on purpose; the SDK generates
 ```
 
 ***
+
+<a id="jsonvalue"></a>
 
 ### JsonValue
 
@@ -1792,11 +1794,11 @@ type JsonValue =
 };
 ```
 
-Defined in: [packages/core/src/types.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L21)
-
 A JSON value.
 
 ***
+
+<a id="ladder-1"></a>
 
 ### Ladder
 
@@ -1804,9 +1806,9 @@ A JSON value.
 type Ladder = WireLadder;
 ```
 
-Defined in: [packages/core/src/types.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L36)
-
 ***
+
+<a id="priceperiod"></a>
 
 ### PricePeriod
 
@@ -1814,9 +1816,9 @@ Defined in: [packages/core/src/types.ts:36](https://github.com/summationai/code/
 type PricePeriod = WirePeriod;
 ```
 
-Defined in: [packages/core/src/types.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L40)
-
 ***
+
+<a id="result"></a>
 
 ### Result
 
@@ -1829,8 +1831,6 @@ type Result<O> =
   | ErrorResult;
 ```
 
-Defined in: [packages/core/src/types.ts:308](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L308)
-
 The result envelope: every AXE response body is one of these.
 
 #### Type Parameters
@@ -1841,20 +1841,20 @@ The result envelope: every AXE response body is one of these.
 
 ***
 
+<a id="resultstatus"></a>
+
 ### ResultStatus
 
 ```ts
 type ResultStatus = WireStatus;
 ```
 
-Defined in: [packages/core/src/types.ts:34](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L34)
-
 ***
+
+<a id="risk-1"></a>
 
 ### Risk
 
 ```ts
 type Risk = WireRisk;
 ```
-
-Defined in: [packages/core/src/types.ts:32](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/types.ts#L32)

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        background: #0b1416;
+        color: #f4f6f6;
+        font:
+          400 28px/1.35 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      .wrap {
+        padding: 72px 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        font-size: 34px;
+        font-weight: 600;
+      }
+      .brand svg {
+        width: 48px;
+        height: 48px;
+      }
+      h1 {
+        font-size: 64px;
+        line-height: 1.1;
+        margin: 0;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        max-width: 980px;
+      }
+      p {
+        margin: 0;
+        color: #9fb3b0;
+        font-size: 30px;
+        max-width: 980px;
+      }
+      .bar {
+        height: 6px;
+        width: 140px;
+        background: #14b8a6;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <svg viewBox="0 0 32 32">
+          <rect x="2" y="2" width="28" height="28" rx="7" fill="#14b8a6" />
+          <path
+            d="M9 22l7-13 7 13"
+            fill="none"
+            stroke="#0b1416"
+            stroke-width="3"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M12.5 17h7"
+            fill="none"
+            stroke="#0b1416"
+            stroke-width="3"
+            stroke-linecap="round"
+          /></svg
+        >Body Spray
+      </div>
+      <div>
+        <div class="bar"></div>
+        <h1 style="margin-top: 28px">Agents are becoming the front door to every website.</h1>
+      </div>
+      <p>
+        AXE: an open protocol and TypeScript SDK that lets any site declare what it can do, how to
+        present results, and when a human must step in.
+      </p>
+    </div>
+  </body>
+</html>

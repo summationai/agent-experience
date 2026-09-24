@@ -22,7 +22,14 @@ export type {
   ParityTarget,
 } from "./audit/index";
 export { formatAuditTable, formatAuditHtml } from "./audit/format";
-export { checkVocabularyDrift, formatDriftReport, inlineCodeSpans, wireLikeNames } from "./drift";
+export {
+  checkVocabularyDrift,
+  formatDriftReport,
+  inlineCodeSpans,
+  wireLikeNames,
+  htmlCodeSpans,
+  jsStringLiterals,
+} from "./drift";
 export type { DriftOptions, DriftReport } from "./drift";
 export {
   createTestClient,

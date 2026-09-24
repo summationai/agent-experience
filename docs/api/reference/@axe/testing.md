@@ -4,11 +4,13 @@
 
 ## Interfaces
 
+<a id="auditcategory"></a>
+
 ### AuditCategory
 
-Defined in: [testing/src/audit/index.ts:27](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L27)
-
 #### Properties
+
+<a id="checks"></a>
 
 ##### checks
 
@@ -16,7 +18,7 @@ Defined in: [testing/src/audit/index.ts:27](https://github.com/summationai/code/
 checks: AuditCheck[];
 ```
 
-Defined in: [testing/src/audit/index.ts:32](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L32)
+<a id="id"></a>
 
 ##### id
 
@@ -24,7 +26,7 @@ Defined in: [testing/src/audit/index.ts:32](https://github.com/summationai/code/
 id: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L28)
+<a id="max"></a>
 
 ##### max
 
@@ -32,7 +34,7 @@ Defined in: [testing/src/audit/index.ts:28](https://github.com/summationai/code/
 max: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:30](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L30)
+<a id="score"></a>
 
 ##### score
 
@@ -40,7 +42,7 @@ Defined in: [testing/src/audit/index.ts:30](https://github.com/summationai/code/
 score: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:31](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L31)
+<a id="title"></a>
 
 ##### title
 
@@ -48,15 +50,15 @@ Defined in: [testing/src/audit/index.ts:31](https://github.com/summationai/code/
 title: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:29](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L29)
-
 ***
+
+<a id="auditcheck"></a>
 
 ### AuditCheck
 
-Defined in: [testing/src/audit/index.ts:15](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L15)
-
 #### Properties
+
+<a id="category"></a>
 
 ##### category
 
@@ -64,7 +66,7 @@ Defined in: [testing/src/audit/index.ts:15](https://github.com/summationai/code/
 category: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:17](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L17)
+<a id="detail"></a>
 
 ##### detail
 
@@ -72,7 +74,7 @@ Defined in: [testing/src/audit/index.ts:17](https://github.com/summationai/code/
 detail: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:23](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L23)
+<a id="docs"></a>
 
 ##### docs
 
@@ -80,7 +82,7 @@ Defined in: [testing/src/audit/index.ts:23](https://github.com/summationai/code/
 docs: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L24)
+<a id="earned"></a>
 
 ##### earned
 
@@ -88,9 +90,9 @@ Defined in: [testing/src/audit/index.ts:24](https://github.com/summationai/code/
 earned: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L21)
-
 Fraction earned, 0..1.
+
+<a id="id-1"></a>
 
 ##### id
 
@@ -98,7 +100,7 @@ Fraction earned, 0..1.
 id: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L16)
+<a id="status"></a>
 
 ##### status
 
@@ -106,7 +108,7 @@ Defined in: [testing/src/audit/index.ts:16](https://github.com/summationai/code/
 status: "pass" | "fail" | "skip" | "partial";
 ```
 
-Defined in: [testing/src/audit/index.ts:22](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L22)
+<a id="title-1"></a>
 
 ##### title
 
@@ -114,7 +116,7 @@ Defined in: [testing/src/audit/index.ts:22](https://github.com/summationai/code/
 title: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L18)
+<a id="weight"></a>
 
 ##### weight
 
@@ -122,15 +124,15 @@ Defined in: [testing/src/audit/index.ts:18](https://github.com/summationai/code/
 weight: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L19)
-
 ***
+
+<a id="auditfix"></a>
 
 ### AuditFix
 
-Defined in: [testing/src/audit/index.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L35)
-
 #### Properties
+
+<a id="category-1"></a>
 
 ##### category
 
@@ -138,7 +140,7 @@ Defined in: [testing/src/audit/index.ts:35](https://github.com/summationai/code/
 category: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:38](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L38)
+<a id="check"></a>
 
 ##### check
 
@@ -146,7 +148,7 @@ Defined in: [testing/src/audit/index.ts:38](https://github.com/summationai/code/
 check: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L36)
+<a id="detail-1"></a>
 
 ##### detail
 
@@ -154,7 +156,7 @@ Defined in: [testing/src/audit/index.ts:36](https://github.com/summationai/code/
 detail: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L41)
+<a id="docs-1"></a>
 
 ##### docs
 
@@ -162,7 +164,7 @@ Defined in: [testing/src/audit/index.ts:41](https://github.com/summationai/code/
 docs: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:42](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L42)
+<a id="points"></a>
 
 ##### points
 
@@ -170,9 +172,9 @@ Defined in: [testing/src/audit/index.ts:42](https://github.com/summationai/code/
 points: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L40)
-
 Points recoverable.
+
+<a id="title-2"></a>
 
 ##### title
 
@@ -180,13 +182,11 @@ Points recoverable.
 title: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L37)
-
 ***
 
-### AuditOptions
+<a id="auditoptions"></a>
 
-Defined in: [testing/src/audit/index.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L66)
+### AuditOptions
 
 #### Extends
 
@@ -194,13 +194,13 @@ Defined in: [testing/src/audit/index.ts:66](https://github.com/summationai/code/
 
 #### Properties
 
+<a id="auth"></a>
+
 ##### auth?
 
 ```ts
 optional auth?: string;
 ```
-
-Defined in: [testing/src/conformance/index.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L83)
 
 Bearer token for `user` or `site` actions, so the ladder can be exercised.
 
@@ -208,23 +208,23 @@ Bearer token for `user` or `site` actions, so the ladder can be exercised.
 
 [`ConformanceOptions`](#conformanceoptions).[`auth`](#auth-1)
 
+<a id="browser"></a>
+
 ##### browser?
 
 ```ts
 optional browser?: boolean;
 ```
 
-Defined in: [testing/src/audit/index.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L68)
-
 Fetch each parity URL and look for the agent-facing price/availability values on the page.
+
+<a id="fetch"></a>
 
 ##### fetch?
 
 ```ts
 optional fetch?: (input, init?) => Promise<Response>;
 ```
-
-Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L81)
 
 ###### Parameters
 
@@ -244,25 +244,25 @@ Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai
 
 [`ConformanceOptions`](#conformanceoptions).[`fetch`](#fetch-1)
 
+<a id="headers"></a>
+
 ##### headers?
 
 ```ts
 optional headers?: Record<string, string>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L84)
-
 ###### Inherited from
 
 [`ConformanceOptions`](#conformanceoptions).[`headers`](#headers-1)
+
+<a id="ladder"></a>
 
 ##### ladder?
 
 ```ts
 optional ladder?: object;
 ```
-
-Defined in: [testing/src/conformance/index.ts:92](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L92)
 
 Explicit action + input known to return `needs_input`, when examples do not.
 
@@ -282,15 +282,17 @@ input: JsonValue;
 
 [`ConformanceOptions`](#conformanceoptions).[`ladder`](#ladder-1)
 
+<a id="minscore"></a>
+
 ##### minScore?
 
 ```ts
 optional minScore?: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:70](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L70)
-
 Fail below this score (used by the CLI exit code).
+
+<a id="nomutate"></a>
 
 ##### noMutate?
 
@@ -298,13 +300,13 @@ Fail below this score (used by the CLI exit code).
 optional noMutate?: boolean;
 ```
 
-Defined in: [testing/src/conformance/index.ts:86](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L86)
-
 Skip checks that call mutating actions.
 
 ###### Inherited from
 
 [`ConformanceOptions`](#conformanceoptions).[`noMutate`](#nomutate-1)
+
+<a id="timeoutms"></a>
 
 ##### timeoutMs?
 
@@ -312,21 +314,19 @@ Skip checks that call mutating actions.
 optional timeoutMs?: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L90)
-
 Per-request timeout. Default 15000 ms.
 
 ###### Inherited from
 
 [`ConformanceOptions`](#conformanceoptions).[`timeoutMs`](#timeoutms-1)
 
+<a id="vendor"></a>
+
 ##### vendor?
 
 ```ts
 optional vendor?: string;
 ```
-
-Defined in: [testing/src/conformance/index.ts:88](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L88)
 
 Vendor to present in `context.agent`.
 
@@ -336,11 +336,13 @@ Vendor to present in `context.agent`.
 
 ***
 
+<a id="auditreport"></a>
+
 ### AuditReport
 
-Defined in: [testing/src/audit/index.ts:55](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L55)
-
 #### Properties
+
+<a id="categories"></a>
 
 ##### categories
 
@@ -348,7 +350,7 @@ Defined in: [testing/src/audit/index.ts:55](https://github.com/summationai/code/
 categories: AuditCategory[];
 ```
 
-Defined in: [testing/src/audit/index.ts:58](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L58)
+<a id="conformance"></a>
 
 ##### conformance
 
@@ -356,7 +358,7 @@ Defined in: [testing/src/audit/index.ts:58](https://github.com/summationai/code/
 conformance: ConformanceReport;
 ```
 
-Defined in: [testing/src/audit/index.ts:62](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L62)
+<a id="fixes"></a>
 
 ##### fixes
 
@@ -364,7 +366,7 @@ Defined in: [testing/src/audit/index.ts:62](https://github.com/summationai/code/
 fixes: AuditFix[];
 ```
 
-Defined in: [testing/src/audit/index.ts:59](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L59)
+<a id="generatedat"></a>
 
 ##### generatedAt
 
@@ -372,7 +374,7 @@ Defined in: [testing/src/audit/index.ts:59](https://github.com/summationai/code/
 generatedAt: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:63](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L63)
+<a id="hardfailure"></a>
 
 ##### hardFailure
 
@@ -380,15 +382,13 @@ Defined in: [testing/src/audit/index.ts:63](https://github.com/summationai/code/
 hardFailure: string | null;
 ```
 
-Defined in: [testing/src/audit/index.ts:61](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L61)
+<a id="parity"></a>
 
 ##### parity
 
 ```ts
 parity: object;
 ```
-
-Defined in: [testing/src/audit/index.ts:60](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L60)
 
 ###### checked
 
@@ -408,13 +408,15 @@ note: string;
 targets: ParityTarget[];
 ```
 
+<a id="score-1"></a>
+
 ##### score
 
 ```ts
 score: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L57)
+<a id="url"></a>
 
 ##### url
 
@@ -422,17 +424,17 @@ Defined in: [testing/src/audit/index.ts:57](https://github.com/summationai/code/
 url: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L56)
-
 ***
 
-### AxeLike
+<a id="axelike"></a>
 
-Defined in: [testing/src/helpers.ts:11](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L11)
+### AxeLike
 
 The subset of an `AXE` instance the helpers need.
 
 #### Methods
+
+<a id="describe"></a>
 
 ##### describe()
 
@@ -440,19 +442,17 @@ The subset of an `AXE` instance the helpers need.
 describe(): Manifest;
 ```
 
-Defined in: [testing/src/helpers.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L16)
-
 ###### Returns
 
 [`Manifest`](client/index.md#manifest-1)
+
+<a id="handle"></a>
 
 ##### handle()
 
 ```ts
 handle(request, adapter?): Promise<Response>;
 ```
-
-Defined in: [testing/src/helpers.ts:12](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L12)
 
 ###### Parameters
 
@@ -475,11 +475,13 @@ Defined in: [testing/src/helpers.ts:12](https://github.com/summationai/code/blob
 
 ***
 
+<a id="check-1"></a>
+
 ### Check
 
-Defined in: [testing/src/conformance/index.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L39)
-
 #### Properties
+
+<a id="detail-2"></a>
 
 ##### detail
 
@@ -487,7 +489,7 @@ Defined in: [testing/src/conformance/index.ts:39](https://github.com/summationai
 detail: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L45)
+<a id="docs-2"></a>
 
 ##### docs
 
@@ -495,9 +497,9 @@ Defined in: [testing/src/conformance/index.ts:45](https://github.com/summationai
 docs: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L47)
-
 Doc section that explains the fix.
+
+<a id="id-2"></a>
 
 ##### id
 
@@ -505,7 +507,7 @@ Doc section that explains the fix.
 id: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L40)
+<a id="requirements"></a>
 
 ##### requirements
 
@@ -513,9 +515,9 @@ Defined in: [testing/src/conformance/index.ts:40](https://github.com/summationai
 requirements: string[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:44](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L44)
-
 Spec requirement ids this check verifies.
+
+<a id="status-1"></a>
 
 ##### status
 
@@ -523,7 +525,7 @@ Spec requirement ids this check verifies.
 status: CheckStatus;
 ```
 
-Defined in: [testing/src/conformance/index.ts:42](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L42)
+<a id="title-3"></a>
 
 ##### title
 
@@ -531,13 +533,11 @@ Defined in: [testing/src/conformance/index.ts:42](https://github.com/summationai
 title: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L41)
-
 ***
 
-### ConformanceOptions
+<a id="conformanceoptions"></a>
 
-Defined in: [testing/src/conformance/index.ts:80](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L80)
+### ConformanceOptions
 
 #### Extended by
 
@@ -545,23 +545,23 @@ Defined in: [testing/src/conformance/index.ts:80](https://github.com/summationai
 
 #### Properties
 
+<a id="auth-1"></a>
+
 ##### auth?
 
 ```ts
 optional auth?: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L83)
-
 Bearer token for `user` or `site` actions, so the ladder can be exercised.
+
+<a id="fetch-1"></a>
 
 ##### fetch?
 
 ```ts
 optional fetch?: (input, init?) => Promise<Response>;
 ```
-
-Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L81)
 
 ###### Parameters
 
@@ -577,21 +577,21 @@ Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai
 
 `Promise`\<`Response`\>
 
+<a id="headers-1"></a>
+
 ##### headers?
 
 ```ts
 optional headers?: Record<string, string>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L84)
+<a id="ladder-1"></a>
 
 ##### ladder?
 
 ```ts
 optional ladder?: object;
 ```
-
-Defined in: [testing/src/conformance/index.ts:92](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L92)
 
 Explicit action + input known to return `needs_input`, when examples do not.
 
@@ -607,15 +607,17 @@ action: string;
 input: JsonValue;
 ```
 
+<a id="nomutate-1"></a>
+
 ##### noMutate?
 
 ```ts
 optional noMutate?: boolean;
 ```
 
-Defined in: [testing/src/conformance/index.ts:86](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L86)
-
 Skip checks that call mutating actions.
+
+<a id="timeoutms-1"></a>
 
 ##### timeoutMs?
 
@@ -623,9 +625,9 @@ Skip checks that call mutating actions.
 optional timeoutMs?: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L90)
-
 Per-request timeout. Default 15000 ms.
+
+<a id="vendor-1"></a>
 
 ##### vendor?
 
@@ -633,17 +635,17 @@ Per-request timeout. Default 15000 ms.
 optional vendor?: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:88](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L88)
-
 Vendor to present in `context.agent`.
 
 ***
 
+<a id="conformancereport"></a>
+
 ### ConformanceReport
 
-Defined in: [testing/src/conformance/index.ts:50](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L50)
-
 #### Properties
+
+<a id="checks-1"></a>
 
 ##### checks
 
@@ -651,7 +653,7 @@ Defined in: [testing/src/conformance/index.ts:50](https://github.com/summationai
 checks: Check[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:54](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L54)
+<a id="failed"></a>
 
 ##### failed
 
@@ -659,7 +661,7 @@ Defined in: [testing/src/conformance/index.ts:54](https://github.com/summationai
 failed: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L56)
+<a id="manifest"></a>
 
 ##### manifest
 
@@ -667,7 +669,7 @@ Defined in: [testing/src/conformance/index.ts:56](https://github.com/summationai
 manifest: Manifest | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:53](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L53)
+<a id="manifesturl"></a>
 
 ##### manifestUrl
 
@@ -675,7 +677,7 @@ Defined in: [testing/src/conformance/index.ts:53](https://github.com/summationai
 manifestUrl: string | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:52](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L52)
+<a id="observations"></a>
 
 ##### observations
 
@@ -683,9 +685,9 @@ Defined in: [testing/src/conformance/index.ts:52](https://github.com/summationai
 observations: Observations;
 ```
 
-Defined in: [testing/src/conformance/index.ts:62](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L62)
-
 Observations the audit reuses.
+
+<a id="ok"></a>
 
 ##### ok
 
@@ -693,9 +695,9 @@ Observations the audit reuses.
 ok: boolean;
 ```
 
-Defined in: [testing/src/conformance/index.ts:60](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L60)
-
 True when no check failed.
+
+<a id="passed"></a>
 
 ##### passed
 
@@ -703,7 +705,7 @@ True when no check failed.
 passed: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:55](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L55)
+<a id="skipped"></a>
 
 ##### skipped
 
@@ -711,7 +713,7 @@ Defined in: [testing/src/conformance/index.ts:55](https://github.com/summationai
 skipped: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:58](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L58)
+<a id="url-1"></a>
 
 ##### url
 
@@ -719,7 +721,7 @@ Defined in: [testing/src/conformance/index.ts:58](https://github.com/summationai
 url: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:51](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L51)
+<a id="warnings"></a>
 
 ##### warnings
 
@@ -727,15 +729,15 @@ Defined in: [testing/src/conformance/index.ts:51](https://github.com/summationai
 warnings: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L57)
-
 ***
+
+<a id="driftoptions"></a>
 
 ### DriftOptions
 
-Defined in: [testing/src/drift.ts:12](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L12)
-
 #### Properties
+
+<a id="allowlistpath"></a>
 
 ##### allowlistPath?
 
@@ -743,9 +745,9 @@ Defined in: [testing/src/drift.ts:12](https://github.com/summationai/code/blob/5
 optional allowlistPath?: string;
 ```
 
-Defined in: [testing/src/drift.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L16)
-
 Path to the allowlist JSON, relative to root. Default `spec/drift-allowlist.json`.
+
+<a id="docpaths"></a>
 
 ##### docPaths?
 
@@ -753,9 +755,9 @@ Path to the allowlist JSON, relative to root. Default `spec/drift-allowlist.json
 optional docPaths?: string[];
 ```
 
-Defined in: [testing/src/drift.ts:20](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L20)
-
 Doc directories to scan. Default `spec`, `docs`, and `README.md`; `docs/api` is skipped.
+
+<a id="maxallowlist"></a>
 
 ##### maxAllowlist?
 
@@ -763,9 +765,9 @@ Doc directories to scan. Default `spec`, `docs`, and `README.md`; `docs/api` is 
 optional maxAllowlist?: number;
 ```
 
-Defined in: [testing/src/drift.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L18)
-
 Maximum allowlist entries before the check fails. Default 15.
+
+<a id="root"></a>
 
 ##### root
 
@@ -773,17 +775,17 @@ Maximum allowlist entries before the check fails. Default 15.
 root: string;
 ```
 
-Defined in: [testing/src/drift.ts:14](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L14)
-
 Repository root containing `spec/`, `docs/`, `packages/`, `README.md`.
 
 ***
 
+<a id="driftreport"></a>
+
 ### DriftReport
 
-Defined in: [testing/src/drift.ts:23](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L23)
-
 #### Properties
+
+<a id="allowlist"></a>
 
 ##### allowlist
 
@@ -791,15 +793,13 @@ Defined in: [testing/src/drift.ts:23](https://github.com/summationai/code/blob/5
 allowlist: string[];
 ```
 
-Defined in: [testing/src/drift.ts:34](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L34)
+<a id="literals"></a>
 
 ##### literals
 
 ```ts
 literals: object[];
 ```
-
-Defined in: [testing/src/drift.ts:33](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L33)
 
 Source files with literal wire names that should use WIRE.
 
@@ -815,15 +815,17 @@ file: string;
 literal: string;
 ```
 
+<a id="missingfromtypes"></a>
+
 ##### missingFromTypes
 
 ```ts
 missingFromTypes: string[];
 ```
 
-Defined in: [testing/src/drift.ts:31](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L31)
-
 `field`/`api` entries missing from every public .d.ts.
+
+<a id="ok-1"></a>
 
 ##### ok
 
@@ -831,7 +833,7 @@ Defined in: [testing/src/drift.ts:31](https://github.com/summationai/code/blob/5
 ok: boolean;
 ```
 
-Defined in: [testing/src/drift.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L35)
+<a id="unknown"></a>
 
 ##### unknown
 
@@ -839,9 +841,9 @@ Defined in: [testing/src/drift.ts:35](https://github.com/summationai/code/blob/5
 unknown: Record<string, string[]>;
 ```
 
-Defined in: [testing/src/drift.ts:25](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L25)
-
 Tokens that look like wire names but are not in the vocabulary: token → files.
+
+<a id="unmentioned"></a>
 
 ##### unmentioned
 
@@ -849,9 +851,9 @@ Tokens that look like wire names but are not in the vocabulary: token → files.
 unmentioned: string[];
 ```
 
-Defined in: [testing/src/drift.ts:27](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L27)
-
 Vocabulary entries never mentioned in any doc.
+
+<a id="unused"></a>
 
 ##### unused
 
@@ -859,25 +861,23 @@ Vocabulary entries never mentioned in any doc.
 unused: string[];
 ```
 
-Defined in: [testing/src/drift.ts:29](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L29)
-
 Vocabulary entries never used in any source file.
 
 ***
 
+<a id="observations-1"></a>
+
 ### Observations
 
-Defined in: [testing/src/conformance/index.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L65)
-
 #### Properties
+
+<a id="calls"></a>
 
 ##### calls
 
 ```ts
 calls: object[];
 ```
-
-Defined in: [testing/src/conformance/index.ts:71](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L71)
 
 Actions called live and whether each returned a non-error status.
 
@@ -893,13 +893,15 @@ action: string;
 status: string;
 ```
 
+<a id="hintfound"></a>
+
 ##### hintFound
 
 ```ts
 hintFound: "header" | "robots" | "link" | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L77)
+<a id="idempotencyreplayworked"></a>
 
 ##### idempotencyReplayWorked
 
@@ -907,17 +909,15 @@ Defined in: [testing/src/conformance/index.ts:77](https://github.com/summationai
 idempotencyReplayWorked: boolean | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:75](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L75)
-
 Whether a mutating action with a usable idempotency path was found.
+
+<a id="needshuman"></a>
 
 ##### needsHuman
 
 ```ts
 needsHuman: object[];
 ```
-
-Defined in: [testing/src/conformance/index.ts:69](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L69)
 
 Every `needs_human` seen.
 
@@ -933,13 +933,13 @@ action: string;
 reason: string;
 ```
 
+<a id="needsinput"></a>
+
 ##### needsInput
 
 ```ts
 needsInput: object[];
 ```
-
-Defined in: [testing/src/conformance/index.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L67)
 
 Every `needs_input` seen, with the action that produced it.
 
@@ -955,13 +955,13 @@ action: string;
 result: NeedsInputResult;
 ```
 
+<a id="outputs"></a>
+
 ##### outputs
 
 ```ts
 outputs: object[];
 ```
-
-Defined in: [testing/src/conformance/index.ts:73](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L73)
 
 Per-action outputs from live example runs, for display and parity checks.
 
@@ -977,21 +977,23 @@ action: string;
 output: unknown;
 ```
 
+<a id="tokentamperrejected"></a>
+
 ##### tokenTamperRejected
 
 ```ts
 tokenTamperRejected: boolean | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:76](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L76)
-
 ***
+
+<a id="paritytarget"></a>
 
 ### ParityTarget
 
-Defined in: [testing/src/audit/index.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L45)
-
 #### Properties
+
+<a id="action"></a>
 
 ##### action
 
@@ -999,7 +1001,7 @@ Defined in: [testing/src/audit/index.ts:45](https://github.com/summationai/code/
 action: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:46](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L46)
+<a id="expect"></a>
 
 ##### expect
 
@@ -1007,9 +1009,9 @@ Defined in: [testing/src/audit/index.ts:46](https://github.com/summationai/code/
 expect: Record<string, string>;
 ```
 
-Defined in: [testing/src/audit/index.ts:50](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L50)
-
 Values an auditor should find on the human page.
+
+<a id="found"></a>
 
 ##### found?
 
@@ -1017,9 +1019,9 @@ Values an auditor should find on the human page.
 optional found?: Record<string, boolean>;
 ```
 
-Defined in: [testing/src/audit/index.ts:52](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L52)
-
 Filled in with `--browser`.
+
+<a id="itemid"></a>
 
 ##### itemId
 
@@ -1027,7 +1029,7 @@ Filled in with `--browser`.
 itemId: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L47)
+<a id="url-2"></a>
 
 ##### url
 
@@ -1035,13 +1037,11 @@ Defined in: [testing/src/audit/index.ts:47](https://github.com/summationai/code/
 url: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:48](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L48)
-
 ***
 
-### TestClientOptions
+<a id="testclientoptions"></a>
 
-Defined in: [testing/src/helpers.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L19)
+### TestClientOptions
 
 #### Extends
 
@@ -1049,13 +1049,13 @@ Defined in: [testing/src/helpers.ts:19](https://github.com/summationai/code/blob
 
 #### Properties
 
+<a id="agent"></a>
+
 ##### agent?
 
 ```ts
 optional agent?: AgentIdentification;
 ```
-
-Defined in: client/dist/index.d.ts:51
 
 Sent as `context.agent` and as the `User-Agent` when possible.
 
@@ -1065,13 +1065,13 @@ Sent as `context.agent` and as the `User-Agent` when possible.
 ClientOptions.agent
 ```
 
+<a id="auth-2"></a>
+
 ##### auth?
 
 ```ts
 optional auth?: string | (() => MaybePromise<string | undefined>);
 ```
-
-Defined in: client/dist/index.d.ts:49
 
 Bearer token, or a function returning one, sent in `Authorization`.
 
@@ -1081,13 +1081,13 @@ Bearer token, or a function returning one, sent in `Authorization`.
 ClientOptions.auth
 ```
 
+<a id="confirm"></a>
+
 ##### confirm?
 
 ```ts
 optional confirm?: (request) => MaybePromise<boolean>;
 ```
-
-Defined in: client/dist/index.d.ts:57
 
 Called before any `sensitive` payload is sent. Without it, sensitive options are skipped.
 
@@ -1107,13 +1107,13 @@ Called before any `sensitive` payload is sent. Without it, sensitive options are
 ClientOptions.confirm
 ```
 
+<a id="fetch-2"></a>
+
 ##### fetch?
 
 ```ts
 optional fetch?: FetchLike;
 ```
-
-Defined in: client/dist/index.d.ts:45
 
 ###### Inherited from
 
@@ -1121,13 +1121,13 @@ Defined in: client/dist/index.d.ts:45
 ClientOptions.fetch
 ```
 
+<a id="fulfillers"></a>
+
 ##### fulfillers?
 
 ```ts
 optional fulfillers?: Fulfiller[];
 ```
-
-Defined in: client/dist/index.d.ts:55
 
 ###### Inherited from
 
@@ -1135,13 +1135,13 @@ Defined in: client/dist/index.d.ts:55
 ClientOptions.fulfillers
 ```
 
+<a id="headers-2"></a>
+
 ##### headers?
 
 ```ts
 optional headers?: Record<string, string>;
 ```
-
-Defined in: client/dist/index.d.ts:47
 
 Extra headers on every request.
 
@@ -1150,6 +1150,8 @@ Extra headers on every request.
 ```ts
 ClientOptions.headers
 ```
+
+<a id="identity"></a>
 
 ##### identity?
 
@@ -1161,9 +1163,9 @@ optional identity?:
   | null;
 ```
 
-Defined in: [testing/src/helpers.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L21)
-
 Act as this user without going through your `authenticate` function.
+
+<a id="locale"></a>
 
 ##### locale?
 
@@ -1171,21 +1173,19 @@ Act as this user without going through your `authenticate` function.
 optional locale?: string;
 ```
 
-Defined in: client/dist/index.d.ts:52
-
 ###### Inherited from
 
 ```ts
 ClientOptions.locale
 ```
 
+<a id="maxretryafterms"></a>
+
 ##### maxRetryAfterMs?
 
 ```ts
 optional maxRetryAfterMs?: number;
 ```
-
-Defined in: client/dist/index.d.ts:59
 
 Longest `Retry-After` the client will honor automatically, in ms. Default 30000.
 
@@ -1195,13 +1195,13 @@ Longest `Retry-After` the client will honor automatically, in ms. Default 30000.
 ClientOptions.maxRetryAfterMs
 ```
 
+<a id="retries"></a>
+
 ##### retries?
 
 ```ts
 optional retries?: number;
 ```
-
-Defined in: client/dist/index.d.ts:61
 
 Retries after `rate_limited`/`unavailable`. Default 1.
 
@@ -1211,13 +1211,13 @@ Retries after `rate_limited`/`unavailable`. Default 1.
 ClientOptions.retries
 ```
 
+<a id="sessionid"></a>
+
 ##### sessionId?
 
 ```ts
 optional sessionId?: string;
 ```
-
-Defined in: client/dist/index.d.ts:54
 
 ###### Inherited from
 
@@ -1225,13 +1225,13 @@ Defined in: client/dist/index.d.ts:54
 ClientOptions.sessionId
 ```
 
+<a id="timezone"></a>
+
 ##### timezone?
 
 ```ts
 optional timezone?: string;
 ```
-
-Defined in: client/dist/index.d.ts:53
 
 ###### Inherited from
 
@@ -1241,15 +1241,17 @@ ClientOptions.timezone
 
 ## Type Aliases
 
+<a id="checkstatus-1"></a>
+
 ### CheckStatus
 
 ```ts
 type CheckStatus = "pass" | "fail" | "warn" | "skip";
 ```
 
-Defined in: [testing/src/conformance/index.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L37)
-
 ***
+
+<a id="coverage"></a>
 
 ### Coverage
 
@@ -1263,13 +1265,13 @@ type Coverage =
 };
 ```
 
-Defined in: [testing/src/conformance/requirements.ts:6](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/requirements.ts#L6)
-
 Where every numbered requirement in spec/AXE-PROTOCOL.md is verified: by a conformance
 check id (runs against any URL) or by a named test in a package. A test asserts that
 every `[P-...]` identifier in the spec appears here.
 
 ## Variables
+
+<a id="requirements-1"></a>
 
 ### REQUIREMENTS
 
@@ -1277,9 +1279,9 @@ every `[P-...]` identifier in the spec appears here.
 const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>>;
 ```
 
-Defined in: [testing/src/conformance/requirements.ts:8](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/requirements.ts#L8)
-
 ***
+
+<a id="sample_payloads"></a>
 
 ### SAMPLE\_PAYLOADS
 
@@ -1287,11 +1289,11 @@ Defined in: [testing/src/conformance/requirements.ts:8](https://github.com/summa
 const SAMPLE_PAYLOADS: Readonly<Record<string, JsonValue>>;
 ```
 
-Defined in: [testing/src/helpers.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L66)
-
 A valid sample payload for every well-known kind, for exercising `/axe/continue` in tests and conformance.
 
 ***
+
+<a id="weights"></a>
 
 ### WEIGHTS
 
@@ -1299,9 +1301,9 @@ A valid sample payload for every well-known kind, for exercising `/axe/continue`
 const WEIGHTS: Weights;
 ```
 
-Defined in: [testing/src/audit/index.ts:79](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L79)
-
 ***
+
+<a id="well_known_kind_names"></a>
 
 ### WELL\_KNOWN\_KIND\_NAMES
 
@@ -1309,19 +1311,17 @@ Defined in: [testing/src/audit/index.ts:79](https://github.com/summationai/code/
 const WELL_KNOWN_KIND_NAMES: readonly string[];
 ```
 
-Defined in: [testing/src/helpers.ts:133](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L133)
-
 Names of every well-known kind.
 
 ## Functions
+
+<a id="checkvocabularydrift"></a>
 
 ### checkVocabularyDrift()
 
 ```ts
 function checkVocabularyDrift(options): DriftReport;
 ```
-
-Defined in: [testing/src/drift.ts:118](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L118)
 
 #### Parameters
 
@@ -1335,13 +1335,13 @@ Defined in: [testing/src/drift.ts:118](https://github.com/summationai/code/blob/
 
 ***
 
+<a id="createtestclient"></a>
+
 ### createTestClient()
 
 ```ts
 function createTestClient(axe, options?): AXEClient;
 ```
-
-Defined in: [testing/src/helpers.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L28)
 
 An `AXEClient` bound to an in-process server: no network, no port. Pass `identity`
 to act as a signed-in user.
@@ -1362,13 +1362,13 @@ to act as a signed-in user.
 
 ***
 
+<a id="formataudithtml"></a>
+
 ### formatAuditHtml()
 
 ```ts
 function formatAuditHtml(report): string;
 ```
-
-Defined in: [testing/src/audit/format.ts:76](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/format.ts#L76)
 
 Self-contained HTML report suitable for attaching to a pull request.
 
@@ -1384,13 +1384,13 @@ Self-contained HTML report suitable for attaching to a pull request.
 
 ***
 
+<a id="formataudittable"></a>
+
 ### formatAuditTable()
 
 ```ts
 function formatAuditTable(report, options?): string;
 ```
-
-Defined in: [testing/src/audit/format.ts:8](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/format.ts#L8)
 
 Terminal table.
 
@@ -1412,13 +1412,13 @@ Terminal table.
 
 ***
 
+<a id="formatconformancetable"></a>
+
 ### formatConformanceTable()
 
 ```ts
 function formatConformanceTable(report, options?): string;
 ```
-
-Defined in: [testing/src/conformance/index.ts:1741](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L1741)
 
 Plain-text table for terminals.
 
@@ -1440,13 +1440,13 @@ Plain-text table for terminals.
 
 ***
 
+<a id="formatdriftreport"></a>
+
 ### formatDriftReport()
 
 ```ts
 function formatDriftReport(r): string;
 ```
-
-Defined in: [testing/src/drift.ts:269](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L269)
 
 Human-readable summary.
 
@@ -1462,13 +1462,13 @@ Human-readable summary.
 
 ***
 
+<a id="graphconnectivity"></a>
+
 ### graphConnectivity()
 
 ```ts
 function graphConnectivity(m): object;
 ```
-
-Defined in: [testing/src/audit/index.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L123)
 
 Actions reachable from a read action or from another action's affordances.
 
@@ -1496,13 +1496,13 @@ orphanTransactions: string[];
 
 ***
 
+<a id="inlinecodespans"></a>
+
 ### inlineCodeSpans()
 
 ```ts
 function inlineCodeSpans(markdown): string[];
 ```
-
-Defined in: [testing/src/drift.ts:52](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L52)
 
 Inline code spans, with fenced blocks removed first.
 
@@ -1518,6 +1518,8 @@ Inline code spans, with fenced blocks removed first.
 
 ***
 
+<a id="invokeaction"></a>
+
 ### invokeAction()
 
 ```ts
@@ -1528,8 +1530,6 @@ function invokeAction<O>(
    options?
 ): Promise<Result<O>>;
 ```
-
-Defined in: [testing/src/helpers.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L39)
 
 Invoke one action in-process and return the raw result envelope. Adds an idempotency
 key for mutating actions.
@@ -1577,13 +1577,13 @@ key for mutating actions.
 
 ***
 
+<a id="runaudit"></a>
+
 ### runAudit()
 
 ```ts
 function runAudit(url, options?): Promise<AuditReport>;
 ```
-
-Defined in: [testing/src/audit/index.ts:177](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/audit/index.ts#L177)
 
 Run the audit. Runs the conformance suite first and reuses its observations.
 
@@ -1603,13 +1603,13 @@ Run the audit. Runs the conformance suite first and reuses its observations.
 
 ***
 
+<a id="runconformance"></a>
+
 ### runConformance()
 
 ```ts
 function runConformance(url, options?): Promise<ConformanceReport>;
 ```
-
-Defined in: [testing/src/conformance/index.ts:1711](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/conformance/index.ts#L1711)
 
 Run the conformance suite against a site.
 
@@ -1629,13 +1629,13 @@ Run the conformance suite against a site.
 
 ***
 
+<a id="samplepayload"></a>
+
 ### samplePayload()
 
 ```ts
 function samplePayload(kind): JsonValue | undefined;
 ```
-
-Defined in: [testing/src/helpers.ts:128](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/helpers.ts#L128)
 
 Sample payload for a kind, or undefined for custom kinds.
 
@@ -1651,13 +1651,13 @@ Sample payload for a kind, or undefined for custom kinds.
 
 ***
 
+<a id="wirelikenames"></a>
+
 ### wireLikeNames()
 
 ```ts
 function wireLikeNames(span): WireLikeName[];
 ```
-
-Defined in: [testing/src/drift.ts:80](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/testing/src/drift.ts#L80)
 
 #### Parameters
 

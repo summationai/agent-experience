@@ -18,6 +18,8 @@ export interface DriftOptions {
   maxAllowlist?: number;
   /** Doc directories to scan. Default `spec`, `docs`, and `README.md`; `docs/api` is skipped. */
   docPaths?: string[];
+  /** Site source directories: `.html` files contribute their `<code>` spans, `.js` files their string literals. */
+  sitePaths?: string[];
 }
 
 export interface DriftReport {
@@ -44,6 +46,36 @@ function walk(dir: string, filter: (p: string) => boolean, out: string[] = []): 
     if (name === "node_modules" || name === "dist" || name === ".turbo") continue;
     if (statSync(p).isDirectory()) walk(p, filter, out);
     else if (filter(p)) out.push(p);
+  }
+  return out;
+}
+
+/** `<code>` contents of an HTML file, decoded; build markers and generated blocks are ignored. */
+export function htmlCodeSpans(html: string): string[] {
+  const spans: string[] = [];
+  const re = /<code[^>]*>([\s\S]*?)<\/code>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    const text = m[1]!
+      .replace(/<[^>]+>/g, "")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .trim();
+    if (text && !text.includes("\n")) spans.push(text);
+  }
+  return spans;
+}
+
+/** String literals of a JavaScript file (single, double, and template without expressions). */
+export function jsStringLiterals(source: string): string[] {
+  const out: string[] = [];
+  const re = /"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\$]|\\.)*)`/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source))) {
+    const v = (m[1] ?? m[2] ?? m[3] ?? "").trim();
+    if (v && v.length < 80 && !v.includes(" ")) out.push(v);
   }
   return out;
 }
@@ -147,12 +179,22 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
       );
     else docFiles.push(full);
   }
+  const siteFiles: string[] = [];
+  for (const p of options.sitePaths ?? []) {
+    const full = join(root, p);
+    if (existsSync(full))
+      siteFiles.push(...walk(full, (f) => f.endsWith(".html") || f.endsWith(".js")));
+  }
   const unknown: Record<string, string[]> = {};
   const mentioned = new Set<string>();
-  for (const file of docFiles) {
+  for (const file of [...docFiles, ...siteFiles]) {
     const rel = relative(root, file);
     const text = readFileSync(file, "utf8");
-    const spans = inlineCodeSpans(text);
+    const spans = file.endsWith(".html")
+      ? htmlCodeSpans(text)
+      : file.endsWith(".js")
+        ? jsStringLiterals(text)
+        : inlineCodeSpans(text);
     for (const span of spans) {
       if (rel === "spec/VOCABULARY.md") {
         if (byName.has(span)) mentioned.add(span);

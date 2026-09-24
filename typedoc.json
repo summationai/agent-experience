@@ -26,5 +26,7 @@
   "githubPages": false,
   "name": "AXE API reference",
   "outputFileStrategy": "modules",
-  "excludeExternals": true
+  "excludeExternals": true,
+  "disableSources": true,
+  "useHTMLAnchors": true
 }

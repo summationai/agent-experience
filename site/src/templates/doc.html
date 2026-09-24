@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-root="{{root}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{title}} — {{siteName}}</title>
+    <meta name="description" content="{{description}}" />
+    <meta name="color-scheme" content="light dark" />
+    <style>
+      {{css}}
+    </style>
+    <link rel="icon" href="{{root}}assets/logo.svg" type="image/svg+xml" />
+  </head>
+  <body class="doc-page">
+    <a class="skip-link" href="#content">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Site">
+        <a class="brand" href="{{root}}index.html"
+          ><img src="{{root}}assets/logo.svg" alt="" width="24" height="24" /><span
+            >{{siteName}}</span
+          ></a
+        >
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="doc-sidebar">
+          Menu
+        </button>
+        <div class="nav-links">
+          <a href="{{root}}index.html#why">Why</a>
+          <a href="{{root}}index.html#how-it-works">How it works</a>
+          <a href="{{root}}docs/README.html" aria-current="location">Docs</a>
+          <a href="{{root}}docs/spec/AXE-PROTOCOL.html">Spec</a>
+          <a href="{{githubRepo}}" rel="noopener noreferrer">GitHub</a>
+          <button
+            class="search-open"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="search-dialog"
+          >
+            Search <kbd>/</kbd>
+          </button>
+          <button class="theme-toggle" type="button" aria-pressed="false">Dark</button>
+        </div>
+      </nav>
+    </header>
+    <div class="doc-layout">
+      <aside class="sidebar" id="doc-sidebar">
+        <nav class="doc-nav" aria-label="Documentation">
+          <a class="back" href="{{root}}index.html">Back to site</a>
+          {{nav}}
+        </nav>
+      </aside>
+      <main id="content" class="doc-main">
+        <article class="prose">{{content}}</article>
+        <footer class="doc-footer">
+          <nav class="pager" aria-label="Previous and next page">{{pager}}</nav>
+          <p class="edit">
+            <a href="{{editUrl}}" rel="noopener noreferrer">Edit this page</a> ·
+            <span>{{sourcePath}}</span> · <span class="version">{{version}}</span>
+          </p>
+        </footer>
+      </main>
+      <aside class="rail">{{toc}}</aside>
+    </div>
+    <dialog id="search-dialog" class="search-dialog" aria-label="Search the documentation">
+      <form class="search-form" role="search" method="dialog">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search docs"
+          aria-label="Search the documentation"
+          autocomplete="off"
+        />
+        <button type="submit" class="search-close">Close</button>
+      </form>
+      <ul class="search-results" role="listbox" aria-label="Results"></ul>
+    </dialog>
+    {{script}}
+  </body>
+</html>

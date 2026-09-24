@@ -4,6 +4,8 @@
 
 ## Variables
 
+<a id="acceptschema"></a>
+
 ### AcceptSchema
 
 ```ts
@@ -17,9 +19,9 @@ const AcceptSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:248](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L248)
-
 ***
+
+<a id="action_name"></a>
 
 ### ACTION\_NAME
 
@@ -27,9 +29,9 @@ Defined in: [packages/core/src/schemas.ts:248](https://github.com/summationai/co
 const ACTION_NAME: RegExp;
 ```
 
-Defined in: [packages/core/src/schemas.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L28)
-
 ***
+
+<a id="actionexampleschema"></a>
 
 ### ActionExampleSchema
 
@@ -40,9 +42,9 @@ const ActionExampleSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:114](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L114)
-
 ***
+
+<a id="actionschema"></a>
 
 ### ActionSchema
 
@@ -127,9 +129,9 @@ const ActionSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:118](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L118)
-
 ***
+
+<a id="affordanceschema"></a>
 
 ### AffordanceSchema
 
@@ -142,9 +144,9 @@ const AffordanceSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L81)
-
 ***
+
+<a id="agentidentificationschema"></a>
 
 ### AgentIdentificationSchema
 
@@ -157,9 +159,9 @@ const AgentIdentificationSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:211](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L211)
-
 ***
+
+<a id="attributedisplayschema"></a>
 
 ### AttributeDisplaySchema
 
@@ -187,9 +189,9 @@ const AttributeDisplaySchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L47)
-
 ***
+
+<a id="authmodeschema"></a>
 
 ### AuthModeSchema
 
@@ -201,9 +203,9 @@ const AuthModeSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L18)
-
 ***
+
+<a id="brandschema"></a>
 
 ### BrandSchema
 
@@ -220,9 +222,9 @@ const BrandSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:172](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L172)
-
 ***
+
+<a id="compareschema"></a>
 
 ### CompareSchema
 
@@ -234,9 +236,9 @@ const CompareSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L24)
-
 ***
+
+<a id="contactschema"></a>
 
 ### ContactSchema
 
@@ -247,9 +249,9 @@ const ContactSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:168](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L168)
-
 ***
+
+<a id="continuerequestschema"></a>
 
 ### ContinueRequestSchema
 
@@ -261,9 +263,9 @@ const ContinueRequestSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:238](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L238)
-
 ***
+
+<a id="displaykindschema"></a>
 
 ### DisplayKindSchema
 
@@ -277,9 +279,9 @@ const DisplayKindSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:22](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L22)
-
 ***
+
+<a id="displayschema"></a>
 
 ### DisplaySchema
 
@@ -325,9 +327,9 @@ const DisplaySchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:70](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L70)
-
 ***
+
+<a id="dynamicaffordanceschema"></a>
 
 ### DynamicAffordanceSchema
 
@@ -340,9 +342,9 @@ const DynamicAffordanceSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L90)
-
 ***
+
+<a id="errorbodyschema"></a>
 
 ### ErrorBodySchema
 
@@ -365,9 +367,9 @@ const ErrorBodySchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:274](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L274)
-
 ***
+
+<a id="errorcodeschema"></a>
 
 ### ErrorCodeSchema
 
@@ -385,9 +387,9 @@ const ErrorCodeSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:20](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L20)
-
 ***
+
+<a id="errorresultschema"></a>
 
 ### ErrorResultSchema
 
@@ -413,9 +415,9 @@ const ErrorResultSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:308](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L308)
-
 ***
+
+<a id="eventschema"></a>
 
 ### EventSchema
 
@@ -462,9 +464,9 @@ const EventSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:338](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L338)
-
 ***
+
+<a id="flowschema"></a>
 
 ### FlowSchema
 
@@ -477,9 +479,9 @@ const FlowSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:184](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L184)
-
 ***
+
+<a id="formatschema"></a>
 
 ### FormatSchema
 
@@ -498,9 +500,9 @@ const FormatSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:23](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L23)
-
 ***
+
+<a id="freshnessschema"></a>
 
 ### FreshnessSchema
 
@@ -511,9 +513,9 @@ const FreshnessSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:107](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L107)
-
 ***
+
+<a id="handoffschema"></a>
 
 ### HandoffSchema
 
@@ -528,9 +530,9 @@ const HandoffSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:259](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L259)
-
 ***
+
+<a id="indexsiteschema"></a>
 
 ### IndexSiteSchema
 
@@ -543,9 +545,9 @@ const IndexSiteSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:320](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L320)
-
 ***
+
+<a id="itemdisplayschema"></a>
 
 ### ItemDisplaySchema
 
@@ -593,9 +595,9 @@ const ItemDisplaySchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L56)
-
 ***
+
+<a id="kind_name"></a>
 
 ### KIND\_NAME
 
@@ -603,9 +605,9 @@ Defined in: [packages/core/src/schemas.ts:56](https://github.com/summationai/cod
 const KIND_NAME: RegExp;
 ```
 
-Defined in: [packages/core/src/schemas.ts:29](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L29)
-
 ***
+
+<a id="ladderschema"></a>
 
 ### LadderSchema
 
@@ -621,9 +623,9 @@ const LadderSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L21)
-
 ***
+
+<a id="manifestauthschema"></a>
 
 ### ManifestAuthSchema
 
@@ -638,9 +640,9 @@ const ManifestAuthSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:146](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L146)
-
 ***
+
+<a id="manifestschema"></a>
 
 ### ManifestSchema
 
@@ -770,9 +772,9 @@ const ManifestSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:193](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L193)
-
 ***
+
+<a id="needshumanresultschema"></a>
 
 ### NeedsHumanResultSchema
 
@@ -790,9 +792,9 @@ const NeedsHumanResultSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:297](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L297)
-
 ***
+
+<a id="needsinputresultschema"></a>
 
 ### NeedsInputResultSchema
 
@@ -822,9 +824,9 @@ const NeedsInputResultSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:286](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L286)
-
 ***
+
+<a id="okresultschema"></a>
 
 ### OkResultSchema
 
@@ -835,9 +837,9 @@ const OkResultSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:283](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L283)
-
 ***
+
+<a id="paginationschema"></a>
 
 ### PaginationSchema
 
@@ -852,9 +854,9 @@ const PaginationSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:99](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L99)
-
 ***
+
+<a id="pendingresultschema"></a>
 
 ### PendingResultSchema
 
@@ -867,9 +869,9 @@ const PendingResultSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:300](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L300)
-
 ***
+
+<a id="periodschema"></a>
 
 ### PeriodSchema
 
@@ -883,9 +885,9 @@ const PeriodSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:25](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L25)
-
 ***
+
+<a id="platformindexschema"></a>
 
 ### PlatformIndexSchema
 
@@ -906,9 +908,9 @@ const PlatformIndexSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:329](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L329)
-
 ***
+
+<a id="policiesschema"></a>
 
 ### PoliciesSchema
 
@@ -927,9 +929,9 @@ const PoliciesSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:150](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L150)
-
 ***
+
+<a id="pricedisplayschema"></a>
 
 ### PriceDisplaySchema
 
@@ -947,9 +949,9 @@ const PriceDisplaySchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:43](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L43)
-
 ***
+
+<a id="protocol_version"></a>
 
 ### PROTOCOL\_VERSION
 
@@ -957,9 +959,9 @@ Defined in: [packages/core/src/schemas.ts:43](https://github.com/summationai/cod
 const PROTOCOL_VERSION: RegExp;
 ```
 
-Defined in: [packages/core/src/schemas.ts:31](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L31)
-
 ***
+
+<a id="requestcontextschema"></a>
 
 ### RequestContextSchema
 
@@ -978,9 +980,9 @@ const RequestContextSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:220](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L220)
-
 ***
+
+<a id="requestenvelopeschema"></a>
 
 ### RequestEnvelopeSchema
 
@@ -1003,9 +1005,9 @@ const RequestEnvelopeSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:230](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L230)
-
 ***
+
+<a id="resultschema"></a>
 
 ### ResultSchema
 
@@ -1071,9 +1073,9 @@ const ResultSchema: ZodDiscriminatedUnion<[ZodObject<{
 }, $strict>], "status">;
 ```
 
-Defined in: [packages/core/src/schemas.ts:312](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L312)
-
 ***
+
+<a id="resumerequestschema"></a>
 
 ### ResumeRequestSchema
 
@@ -1083,9 +1085,9 @@ const ResumeRequestSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:246](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L246)
-
 ***
+
+<a id="riskschema"></a>
 
 ### RiskSchema
 
@@ -1098,9 +1100,9 @@ const RiskSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:17](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L17)
-
 ***
+
+<a id="statusschema"></a>
 
 ### StatusSchema
 
@@ -1114,9 +1116,9 @@ const StatusSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L19)
-
 ***
+
+<a id="toneschema"></a>
 
 ### ToneSchema
 
@@ -1128,9 +1130,9 @@ const ToneSchema: ZodEnum<{
 }>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:26](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L26)
-
 ***
+
+<a id="validationissueschema"></a>
 
 ### ValidationIssueSchema
 
@@ -1142,17 +1144,15 @@ const ValidationIssueSchema: ZodObject<{
 }, $strict>;
 ```
 
-Defined in: [packages/core/src/schemas.ts:270](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L270)
-
 ## Functions
+
+<a id="specjsonschemas"></a>
 
 ### specJsonSchemas()
 
 ```ts
 function specJsonSchemas(): Record<string, JsonSchema>;
 ```
-
-Defined in: [packages/core/src/schemas.ts:361](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/schemas.ts#L361)
 
 The JSON Schemas published under `spec/schemas/`, keyed by file stem.
 
@@ -1162,11 +1162,15 @@ The JSON Schemas published under `spec/schemas/`, keyed by file stem.
 
 ## References
 
+<a id="deepequal"></a>
+
 ### deepEqual
 
 Re-exports [deepEqual](index.md#deepequal)
 
 ***
+
+<a id="schemasstructurallyequal"></a>
 
 ### schemasStructurallyEqual
 
@@ -1174,11 +1178,15 @@ Re-exports [schemasStructurallyEqual](index.md#schemasstructurallyequal)
 
 ***
 
+<a id="tojsonschema"></a>
+
 ### toJsonSchema
 
 Re-exports [toJsonSchema](index.md#tojsonschema)
 
 ***
+
+<a id="validatejsonschema"></a>
 
 ### validateJsonSchema
 

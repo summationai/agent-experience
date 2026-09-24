@@ -4,21 +4,21 @@
 
 ## Interfaces
 
-### MeterLike
+<a id="meterlike"></a>
 
-Defined in: [packages/core/src/events.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L35)
+### MeterLike
 
 Structural subset of an OpenTelemetry `Meter`, so `@axe/core` needs no OTel dependency.
 
 #### Methods
+
+<a id="createcounter"></a>
 
 ##### createCounter()
 
 ```ts
 createCounter(name, options?): object;
 ```
-
-Defined in: [packages/core/src/events.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L36)
 
 ###### Parameters
 
@@ -60,13 +60,13 @@ add(value, attributes?): void;
 
 `void`
 
+<a id="createhistogram"></a>
+
 ##### createHistogram()
 
 ```ts
 createHistogram(name, options?): object;
 ```
-
-Defined in: [packages/core/src/events.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L40)
 
 ###### Parameters
 
@@ -110,21 +110,21 @@ record(value, attributes?): void;
 
 ***
 
-### TracerLike
+<a id="tracerlike"></a>
 
-Defined in: [packages/core/src/events.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L47)
+### TracerLike
 
 Structural subset of an OpenTelemetry `Tracer`.
 
 #### Methods
+
+<a id="startspan"></a>
 
 ##### startSpan()
 
 ```ts
 startSpan(name, options?): object;
 ```
-
-Defined in: [packages/core/src/events.ts:48](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L48)
 
 ###### Parameters
 
@@ -206,13 +206,13 @@ setStatus(status): unknown;
 
 ## Type Aliases
 
+<a id="eventsink"></a>
+
 ### EventSink
 
 ```ts
 type EventSink = (event) => void | Promise<void>;
 ```
-
-Defined in: [packages/core/src/events.ts:10](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L10)
 
 Anything that receives events. Errors are swallowed and reported to `onSinkError`.
 
@@ -228,13 +228,13 @@ Anything that receives events. Errors are swallowed and reported to `onSinkError
 
 ## Functions
 
+<a id="combinesinks"></a>
+
 ### combineSinks()
 
 ```ts
 function combineSinks(sinks, onSinkError?): EventSink;
 ```
-
-Defined in: [packages/core/src/events.ts:109](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L109)
 
 Fan events out to several sinks, isolating failures.
 
@@ -254,13 +254,13 @@ readonly [`EventSink`](#eventsink)[]
 
 ***
 
+<a id="consolesink"></a>
+
 ### consoleSink()
 
 ```ts
 function consoleSink(write?): EventSink;
 ```
-
-Defined in: [packages/core/src/events.ts:13](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L13)
 
 Sink: one JSON line per event on stdout.
 
@@ -276,13 +276,13 @@ Sink: one JSON line per event on stdout.
 
 ***
 
+<a id="jsonlfilesink"></a>
+
 ### jsonlFileSink()
 
 ```ts
 function jsonlFileSink(path): EventSink;
 ```
-
-Defined in: [packages/core/src/events.ts:23](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L23)
 
 Sink: append JSON lines to a file. Node only. The file handle is opened lazily and
 writes are serialized, so events never interleave.
@@ -299,13 +299,13 @@ writes are serialized, so events never interleave.
 
 ***
 
+<a id="otelsink"></a>
+
 ### otelSink()
 
 ```ts
 function otelSink(options): EventSink;
 ```
-
-Defined in: [packages/core/src/events.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L66)
 
 Sink: record an `axe.requests` counter and an `axe.latency` histogram, and optionally
 a span per event. Pass the real objects from `@opentelemetry/api`:
@@ -332,13 +332,13 @@ otelSink({ meter: metrics.getMeter("axe"), tracer: trace.getTracer("axe") })
 
 ***
 
+<a id="parseuseragent"></a>
+
 ### parseUserAgent()
 
 ```ts
 function parseUserAgent(header): EventAgent | null;
 ```
-
-Defined in: [packages/core/src/events.ts:101](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/events.ts#L101)
 
 Parse the recommended `User-Agent` form `Name/1.2 (+https://contact; axe/0.1)` into an EventAgent.
 
@@ -354,11 +354,15 @@ Parse the recommended `User-Agent` form `Name/1.2 (+https://contact; axe/0.1)` i
 
 ## References
 
+<a id="axeevent"></a>
+
 ### AXEEvent
 
 Re-exports [AXEEvent](types.md#axeevent)
 
 ***
+
+<a id="eventagent"></a>
 
 ### EventAgent
 

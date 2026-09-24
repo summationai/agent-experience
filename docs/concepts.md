@@ -175,11 +175,11 @@ flowchart TD
   A[Agent calls action] --> B{Can the site finish?}
   B -- yes --> OK[ok: output]
   B -- something is missing --> NI[needs_input: accepts list]
+  B -- only a human can do it --> NH[needs_human: handoff]
   NI --> C{Agent holds a matching kind?}
   C -- yes, confirm if sensitive --> CONT[POST /axe/continue] --> B
   C -- no, fallback present --> NH
   C -- no, no fallback --> ASK[Agent asks its user, then continues] --> CONT
-  B -- only a human can do it --> NH[needs_human: handoff]
   NH --> H[Human acts on the site] --> RES[POST /axe/resume] --> B
 ````
 

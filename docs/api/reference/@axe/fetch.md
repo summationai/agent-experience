@@ -4,9 +4,9 @@
 
 ## Interfaces
 
-### FetchAdapterOptions
+<a id="fetchadapteroptions"></a>
 
-Defined in: [index.ts:14](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/fetch/src/index.ts#L14)
+### FetchAdapterOptions
 
 #### Type Parameters
 
@@ -16,13 +16,13 @@ Defined in: [index.ts:14](https://github.com/summationai/code/blob/543afa0f64e4b
 
 #### Properties
 
+<a id="context"></a>
+
 ##### context?
 
 ```ts
 optional context?: (request, env?) => MaybePromise<AdapterContext | undefined>;
 ```
-
-Defined in: [index.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/fetch/src/index.ts#L16)
 
 Inject the platform's session or tenant. Receives the request and whatever extra argument the platform passes (Workers `env`, Hono `Context`).
 
@@ -42,13 +42,13 @@ Inject the platform's session or tenant. Receives the request and whatever extra
 
 ## Functions
 
+<a id="axefetch"></a>
+
 ### axeFetch()
 
 ```ts
 function axeFetch<Env>(axe, options?): (request, env?) => Promise<Response>;
 ```
-
-Defined in: [index.ts:20](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/fetch/src/index.ts#L20)
 
 A fetch handler for the whole AXE surface.
 
@@ -74,13 +74,13 @@ A fetch handler for the whole AXE surface.
 
 ***
 
+<a id="isaxepath"></a>
+
 ### isAxePath()
 
 ```ts
 function isAxePath(pathname): boolean;
 ```
-
-Defined in: [index.ts:32](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/fetch/src/index.ts#L32)
 
 #### Parameters
 

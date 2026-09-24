@@ -46,6 +46,10 @@ Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line e
 - **[Protocol spec](spec/AXE-PROTOCOL.md)** — normative, with [well-known kinds](spec/KINDS.md), [events](spec/EVENTS.md), and the [vocabulary](spec/VOCABULARY.md).
 - **[All docs](docs/README.md)** — designing actions, presenting results, requirements and kinds, human handoff, auth, integrations, MCP, agent builders, testing, security, audit, analytics, platforms, deploying, API reference, FAQ.
 
+## Website
+
+Open `site/dist/index.html` from disk for the landing page and every doc as a static site; it needs no server and makes no network requests. The same directory deploys as plain static files anywhere. `pnpm site:build` regenerates it from `docs/`; see [docs/site.md](docs/site.md).
+
 ## Packages
 
 | Package        | What it is                                                                                                |

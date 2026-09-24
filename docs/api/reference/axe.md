@@ -4,11 +4,13 @@
 
 ## Interfaces
 
+<a id="commandcontext"></a>
+
 ### CommandContext
 
-Defined in: [index.ts:42](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L42)
-
 #### Properties
+
+<a id="args"></a>
 
 ##### args
 
@@ -16,15 +18,13 @@ Defined in: [index.ts:42](https://github.com/summationai/code/blob/543afa0f64e4b
 args: string[];
 ```
 
-Defined in: [index.ts:43](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L43)
+<a id="stderr"></a>
 
 ##### stderr
 
 ```ts
 stderr: (line) => void;
 ```
-
-Defined in: [index.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L45)
 
 ###### Parameters
 
@@ -36,13 +36,13 @@ Defined in: [index.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b
 
 `void`
 
+<a id="stdout"></a>
+
 ##### stdout
 
 ```ts
 stdout: (line) => void;
 ```
-
-Defined in: [index.ts:44](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L44)
 
 ###### Parameters
 
@@ -56,13 +56,13 @@ Defined in: [index.ts:44](https://github.com/summationai/code/blob/543afa0f64e4b
 
 ## Functions
 
+<a id="run"></a>
+
 ### run()
 
 ```ts
 function run(argv, io?): Promise<number>;
 ```
-
-Defined in: [index.ts:60](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L60)
 
 Run the CLI with the given argv (without node and script). Returns the exit code.
 

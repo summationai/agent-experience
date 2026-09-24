@@ -5,6 +5,8 @@ import {
   formatDriftReport,
   wireLikeNames,
   inlineCodeSpans,
+  htmlCodeSpans,
+  jsStringLiterals,
 } from "../src/drift";
 
 const root = join(__dirname, "../../..");
@@ -29,10 +31,16 @@ describe("vocabulary drift", () => {
     expect(wireLikeNames("rentUsd")[0]!.name).toBe("rentUsd");
     expect(wireLikeNames("Some prose")).toEqual([]);
     expect(inlineCodeSpans("a `b` c\n```\n`ignored`\n```\n`d`")).toEqual(["b", "d"]);
+    expect(
+      htmlCodeSpans('<p>x <code>needs_input</code> and <code class="k">&lt;a&gt;</code></p>'),
+    ).toEqual(["needs_input", "<a>"]);
+    expect(
+      jsStringLiterals("var a = \"continuationToken\"; var b = 'two words'; f(`axe_continue`);"),
+    ).toEqual(["continuationToken", "axe_continue"]);
   });
 
-  it("the repository has no vocabulary drift", () => {
-    const report = checkVocabularyDrift({ root });
+  it("the repository has no vocabulary drift, including the site sources", () => {
+    const report = checkVocabularyDrift({ root, sitePaths: ["site/src"] });
     expect(report.ok, "\n" + formatDriftReport(report)).toBe(true);
     expect(report.allowlist.length).toBeLessThan(15);
   });

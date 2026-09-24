@@ -13,3 +13,7 @@ Initial release of the Body Spray SDK and the `axe/0.1` protocol.
 - `@axe/express`, `@axe/next`, `@axe/fetch`: adapters.
 - `@axe/testing`: conformance suite, AXE audit, vocabulary drift check, test helpers.
 - `axe` CLI: init, validate, inspect, preview, conformance, audit, mcp.
+
+### Website
+
+- `site/`: a static marketing and documentation site built from `docs/`, `spec/`, and the root Markdown files. Runs from `file://` with no network; `site/dist/` is committed and reproducible. Landing page with the escalation-ladder demo (real envelopes), the search → present → select demo (real `toHTML()` output), an embedded `axe audit` report, and a docs hub generated from `docs/README.md`. Tests: reproducible build, offline load in Chromium/Firefox/WebKit, link check, demo behavior, responsive screenshots, Lighthouse ≥ 95.

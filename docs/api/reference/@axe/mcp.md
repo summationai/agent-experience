@@ -4,13 +4,15 @@
 
 ## Interfaces
 
-### AxeLike
+<a id="axelike"></a>
 
-Defined in: [packages/mcp/src/index.ts:20](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L20)
+### AxeLike
 
 Anything with `handle(Request)`: an `AXE` instance from `@axe/core`.
 
 #### Methods
+
+<a id="describe"></a>
 
 ##### describe()
 
@@ -18,19 +20,17 @@ Anything with `handle(Request)`: an `AXE` instance from `@axe/core`.
 describe(): Manifest;
 ```
 
-Defined in: [packages/mcp/src/index.ts:22](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L22)
-
 ###### Returns
 
 [`Manifest`](client/index.md#manifest-1)
+
+<a id="handle"></a>
 
 ##### handle()
 
 ```ts
 handle(request): Promise<Response>;
 ```
-
-Defined in: [packages/mcp/src/index.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L21)
 
 ###### Parameters
 
@@ -44,11 +44,13 @@ Defined in: [packages/mcp/src/index.ts:21](https://github.com/summationai/code/b
 
 ***
 
+<a id="derivedmcpserver"></a>
+
 ### DerivedMcpServer
 
-Defined in: [packages/mcp/src/index.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L35)
-
 #### Properties
+
+<a id="client"></a>
 
 ##### client
 
@@ -56,7 +58,7 @@ Defined in: [packages/mcp/src/index.ts:35](https://github.com/summationai/code/b
 client: AXEClient;
 ```
 
-Defined in: [packages/mcp/src/index.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L37)
+<a id="manifest"></a>
 
 ##### manifest
 
@@ -64,7 +66,7 @@ Defined in: [packages/mcp/src/index.ts:37](https://github.com/summationai/code/b
 manifest: Manifest;
 ```
 
-Defined in: [packages/mcp/src/index.ts:38](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L38)
+<a id="server"></a>
 
 ##### server
 
@@ -72,15 +74,13 @@ Defined in: [packages/mcp/src/index.ts:38](https://github.com/summationai/code/b
 server: Server;
 ```
 
-Defined in: [packages/mcp/src/index.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L36)
+<a id="tools"></a>
 
 ##### tools
 
 ```ts
 tools: object[];
 ```
-
-Defined in: [packages/mcp/src/index.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L39)
 
 ###### \_meta?
 
@@ -240,11 +240,13 @@ optional title?: string;
 
 ***
 
+<a id="mcpserveroptions"></a>
+
 ### McpServerOptions
 
-Defined in: [packages/mcp/src/index.ts:25](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L25)
-
 #### Properties
+
+<a id="client-1"></a>
 
 ##### client?
 
@@ -252,9 +254,9 @@ Defined in: [packages/mcp/src/index.ts:25](https://github.com/summationai/code/b
 optional client?: ClientOptions;
 ```
 
-Defined in: [packages/mcp/src/index.ts:30](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L30)
-
 Options for the underlying AXE client (auth, agent identification, fetch).
+
+<a id="name"></a>
 
 ##### name?
 
@@ -262,9 +264,9 @@ Options for the underlying AXE client (auth, agent identification, fetch).
 optional name?: string;
 ```
 
-Defined in: [packages/mcp/src/index.ts:27](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L27)
-
 Server name reported to MCP clients. Defaults to the manifest name.
+
+<a id="pollbudgetms"></a>
 
 ##### pollBudgetMs?
 
@@ -272,9 +274,9 @@ Server name reported to MCP clients. Defaults to the manifest name.
 optional pollBudgetMs?: number;
 ```
 
-Defined in: [packages/mcp/src/index.ts:32](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L32)
-
 How long `pending` results are polled inside a tool call before returning. Default 20000 ms.
+
+<a id="version"></a>
 
 ##### version?
 
@@ -282,23 +284,21 @@ How long `pending` results are polled inside a tool call before returning. Defau
 optional version?: string;
 ```
 
-Defined in: [packages/mcp/src/index.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L28)
-
 ***
+
+<a id="servehttpoptions"></a>
 
 ### ServeHttpOptions
 
-Defined in: [packages/mcp/src/index.ts:368](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L368)
-
 #### Properties
+
+<a id="sessionidgenerator"></a>
 
 ##### sessionIdGenerator?
 
 ```ts
 optional sessionIdGenerator?: () => string;
 ```
-
-Defined in: [packages/mcp/src/index.ts:370](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L370)
 
 Stateless mode (default) needs no session id. Set to `() => crypto.randomUUID()` for stateful sessions.
 
@@ -308,13 +308,13 @@ Stateless mode (default) needs no session id. Set to `() => crypto.randomUUID()`
 
 ## Functions
 
+<a id="createmcpserver"></a>
+
 ### createMcpServer()
 
 ```ts
 function createMcpServer(source, options?): Promise<DerivedMcpServer>;
 ```
-
-Defined in: [packages/mcp/src/index.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L57)
 
 Create an MCP server from an AXE server instance, a manifest object, or a URL to discover.
 
@@ -334,6 +334,8 @@ Create an MCP server from an AXE server instance, a manifest object, or a URL to
 
 ***
 
+<a id="formatresult"></a>
+
 ### formatResult()
 
 ```ts
@@ -343,8 +345,6 @@ function formatResult(
    brand
 ): object;
 ```
-
-Defined in: [packages/mcp/src/index.ts:273](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L273)
 
 Render a result envelope as MCP tool content. Exported for tests and custom bridges.
 
@@ -509,13 +509,13 @@ optional structuredContent?: object;
 
 ***
 
+<a id="servehttp"></a>
+
 ### serveHttp()
 
 ```ts
 function serveHttp(derived, options?): (request) => Promise<Response>;
 ```
-
-Defined in: [packages/mcp/src/index.ts:376](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L376)
 
 A fetch handler for the Streamable HTTP transport. Mount it at `/mcp` in any Web-standard framework.
 
@@ -535,13 +535,13 @@ A fetch handler for the Streamable HTTP transport. Mount it at `/mcp` in any Web
 
 ***
 
+<a id="servestdio"></a>
+
 ### serveStdio()
 
 ```ts
 function serveStdio(derived): Promise<void>;
 ```
-
-Defined in: [packages/mcp/src/index.ts:364](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L364)
 
 Connect the server to stdio (for Claude Desktop, Claude Code, and `axe mcp`).
 
@@ -557,13 +557,13 @@ Connect the server to stdio (for Claude Desktop, Claude Code, and `axe mcp`).
 
 ***
 
+<a id="toolnamefor"></a>
+
 ### toolNameFor()
 
 ```ts
 function toolNameFor(actionName): string;
 ```
-
-Defined in: [packages/mcp/src/index.ts:43](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/mcp/src/index.ts#L43)
 
 MCP tool name for an AXE action: dots become underscores (`units.search` → `units_search`).
 

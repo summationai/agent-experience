@@ -4,19 +4,19 @@
 
 ## Classes
 
+<a id="axeclient"></a>
+
 ### AXEClient
 
-Defined in: [packages/client/src/index.ts:257](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L257)
-
 #### Constructors
+
+<a id="constructor"></a>
 
 ##### Constructor
 
 ```ts
 new AXEClient(manifestDoc, options?): AXEClient;
 ```
-
-Defined in: [packages/client/src/index.ts:261](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L261)
 
 ###### Parameters
 
@@ -34,13 +34,13 @@ Defined in: [packages/client/src/index.ts:261](https://github.com/summationai/co
 
 #### Methods
 
+<a id="action"></a>
+
 ##### action()
 
 ```ts
 action(name): ActionDefinition | undefined;
 ```
-
-Defined in: [packages/client/src/index.ts:284](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L284)
 
 One action's definition, or undefined.
 
@@ -54,19 +54,21 @@ One action's definition, or undefined.
 
 [`ActionDefinition`](#actiondefinition) \| `undefined`
 
+<a id="allowed"></a>
+
 ##### allowed()
 
 ```ts
 allowed(): boolean;
 ```
 
-Defined in: [packages/client/src/index.ts:289](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L289)
-
 Whether this client's vendor is allowed by `policies.agents`. Agents MUST check before calling.
 
 ###### Returns
 
 `boolean`
+
+<a id="continue"></a>
 
 ##### continue()
 
@@ -78,8 +80,6 @@ continue<O>(
    options?
 ): Promise<Result<O>>;
 ```
-
-Defined in: [packages/client/src/index.ts:326](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L326)
 
 Satisfy a `needs_input` requirement.
 
@@ -111,6 +111,8 @@ Satisfy a `needs_input` requirement.
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="invoke"></a>
+
 ##### invoke()
 
 ```ts
@@ -120,8 +122,6 @@ invoke<O>(
    options?
 ): Promise<Result<O>>;
 ```
-
-Defined in: [packages/client/src/index.ts:299](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L299)
 
 Invoke an action. Generates an idempotency key for mutating actions when none is given.
 
@@ -149,13 +149,13 @@ Invoke an action. Generates an idempotency key for mutating actions when none is
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="manifest"></a>
+
 ##### manifest()
 
 ```ts
 manifest(): Manifest;
 ```
-
-Defined in: [packages/client/src/index.ts:279](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L279)
 
 The manifest this client was built from.
 
@@ -163,13 +163,13 @@ The manifest this client was built from.
 
 [`Manifest`](#manifest-1)
 
+<a id="poll"></a>
+
 ##### poll()
 
 ```ts
 poll<O>(pendingResult, options?): Promise<Result<O>>;
 ```
-
-Defined in: [packages/client/src/index.ts:352](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L352)
 
 Poll a `pending` result until it settles or `maxWaitMs` passes (then the last `pending` is returned).
 
@@ -193,13 +193,13 @@ Poll a `pending` result until it settles or `maxWaitMs` passes (then the last `p
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="resume"></a>
+
 ##### resume()
 
 ```ts
 resume<O>(resumeToken, options?): Promise<Result<O>>;
 ```
-
-Defined in: [packages/client/src/index.ts:340](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L340)
 
 Resume after a human handoff.
 
@@ -223,6 +223,8 @@ Resume after a human handoff.
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="run"></a>
+
 ##### run()
 
 ```ts
@@ -232,8 +234,6 @@ run<O>(
    options?
 ): Promise<RunOutcome<O>>;
 ```
-
-Defined in: [packages/client/src/index.ts:373](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L373)
 
 Drive the whole escalation ladder: invoke, satisfy each `needs_input` from
 registered fulfillers (confirming sensitive payloads), poll pending work, and
@@ -263,13 +263,13 @@ surface a handoff only when nothing else works.
 
 `Promise`\<[`RunOutcome`](#runoutcome)\<`O`\>\>
 
+<a id="discover"></a>
+
 ##### discover()
 
 ```ts
 static discover(url, options?): Promise<AXEClient>;
 ```
-
-Defined in: [packages/client/src/index.ts:270](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L270)
 
 Discover and construct in one step.
 
@@ -289,9 +289,9 @@ Discover and construct in one step.
 
 ***
 
-### AXEClientError
+<a id="axeclienterror"></a>
 
-Defined in: [packages/client/src/index.ts:148](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L148)
+### AXEClientError
 
 Thrown for transport-level failures (network, non-JSON body). Protocol errors are returned as `error` results.
 
@@ -301,13 +301,13 @@ Thrown for transport-level failures (network, non-JSON body). Protocol errors ar
 
 #### Constructors
 
+<a id="constructor-1"></a>
+
 ##### Constructor
 
 ```ts
 new AXEClientError(message, cause?): AXEClientError;
 ```
-
-Defined in: [packages/client/src/index.ts:150](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L150)
 
 ###### Parameters
 
@@ -331,13 +331,13 @@ Error.constructor
 
 #### Properties
 
+<a id="cause"></a>
+
 ##### cause
 
 ```ts
 readonly cause: unknown;
 ```
-
-Defined in: [packages/client/src/index.ts:149](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L149)
 
 ###### Overrides
 
@@ -345,13 +345,13 @@ Defined in: [packages/client/src/index.ts:149](https://github.com/summationai/co
 Error.cause
 ```
 
+<a id="message"></a>
+
 ##### message
 
 ```ts
 message: string;
 ```
-
-Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1077
 
 ###### Inherited from
 
@@ -359,13 +359,13 @@ Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/li
 Error.message
 ```
 
+<a id="name"></a>
+
 ##### name
 
 ```ts
 name: string;
 ```
-
-Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1076
 
 ###### Inherited from
 
@@ -373,13 +373,13 @@ Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/li
 Error.name
 ```
 
+<a id="stack"></a>
+
 ##### stack?
 
 ```ts
 optional stack?: string;
 ```
-
-Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/lib.es5.d.ts:1078
 
 ###### Inherited from
 
@@ -387,13 +387,13 @@ Defined in: node\_modules/.pnpm/typescript@5.9.3/node\_modules/typescript/lib/li
 Error.stack
 ```
 
+<a id="stacktracelimit"></a>
+
 ##### stackTraceLimit
 
 ```ts
 static stackTraceLimit: number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/globals.d.ts:68
 
 The `Error.stackTraceLimit` property specifies the number of stack frames
 collected by a stack trace (whether generated by `new Error().stack` or
@@ -413,13 +413,13 @@ Error.stackTraceLimit
 
 #### Methods
 
+<a id="capturestacktrace"></a>
+
 ##### captureStackTrace()
 
 ```ts
 static captureStackTrace(targetObject, constructorOpt?): void;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/globals.d.ts:52
 
 Creates a `.stack` property on `targetObject`, which when accessed returns
 a string representing the location in the code at which
@@ -485,13 +485,13 @@ a();
 Error.captureStackTrace
 ```
 
+<a id="preparestacktrace"></a>
+
 ##### prepareStackTrace()
 
 ```ts
 static prepareStackTrace(err, stackTraces): any;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/globals.d.ts:56
 
 ###### Parameters
 
@@ -519,11 +519,13 @@ Error.prepareStackTrace
 
 ## Interfaces
 
+<a id="accept"></a>
+
 ### Accept
 
-Defined in: packages/core/dist/types.d.ts:199
-
 #### Properties
+
+<a id="description"></a>
 
 ##### description
 
@@ -531,7 +533,7 @@ Defined in: packages/core/dist/types.d.ts:199
 description: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:202
+<a id="instructions"></a>
 
 ##### instructions?
 
@@ -539,7 +541,7 @@ Defined in: packages/core/dist/types.d.ts:202
 optional instructions?: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:205
+<a id="kind"></a>
 
 ##### kind
 
@@ -547,7 +549,7 @@ Defined in: packages/core/dist/types.d.ts:205
 kind: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:200
+<a id="schema"></a>
 
 ##### schema
 
@@ -555,7 +557,7 @@ Defined in: packages/core/dist/types.d.ts:200
 schema: JsonSchema;
 ```
 
-Defined in: packages/core/dist/types.d.ts:203
+<a id="sensitive"></a>
 
 ##### sensitive
 
@@ -563,7 +565,7 @@ Defined in: packages/core/dist/types.d.ts:203
 sensitive: boolean;
 ```
 
-Defined in: packages/core/dist/types.d.ts:204
+<a id="title"></a>
 
 ##### title
 
@@ -571,17 +573,17 @@ Defined in: packages/core/dist/types.d.ts:204
 title: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:201
-
 ***
 
-### ActionDefinition
+<a id="actiondefinition"></a>
 
-Defined in: packages/core/dist/types.d.ts:152
+### ActionDefinition
 
 An action as it appears in the manifest.
 
 #### Properties
+
+<a id="affordances"></a>
 
 ##### affordances?
 
@@ -589,7 +591,7 @@ An action as it appears in the manifest.
 optional affordances?: Affordance[];
 ```
 
-Defined in: packages/core/dist/types.d.ts:165
+<a id="auth"></a>
 
 ##### auth
 
@@ -597,7 +599,7 @@ Defined in: packages/core/dist/types.d.ts:165
 auth: WireAuthMode;
 ```
 
-Defined in: packages/core/dist/types.d.ts:162
+<a id="deprecated"></a>
 
 ##### deprecated?
 
@@ -605,7 +607,7 @@ Defined in: packages/core/dist/types.d.ts:162
 optional deprecated?: Deprecation;
 ```
 
-Defined in: packages/core/dist/types.d.ts:171
+<a id="description-1"></a>
 
 ##### description
 
@@ -613,7 +615,7 @@ Defined in: packages/core/dist/types.d.ts:171
 description: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:155
+<a id="display"></a>
 
 ##### display?
 
@@ -621,7 +623,7 @@ Defined in: packages/core/dist/types.d.ts:155
 optional display?: Display;
 ```
 
-Defined in: packages/core/dist/types.d.ts:164
+<a id="examples"></a>
 
 ##### examples?
 
@@ -629,7 +631,7 @@ Defined in: packages/core/dist/types.d.ts:164
 optional examples?: ActionExample[];
 ```
 
-Defined in: packages/core/dist/types.d.ts:163
+<a id="freshness"></a>
 
 ##### freshness?
 
@@ -637,7 +639,7 @@ Defined in: packages/core/dist/types.d.ts:163
 optional freshness?: Freshness;
 ```
 
-Defined in: packages/core/dist/types.d.ts:167
+<a id="humanhandoff"></a>
 
 ##### humanHandoff?
 
@@ -645,13 +647,13 @@ Defined in: packages/core/dist/types.d.ts:167
 optional humanHandoff?: object;
 ```
 
-Defined in: packages/core/dist/types.d.ts:168
-
 ###### reasons
 
 ```ts
 reasons: string[];
 ```
+
+<a id="idempotent"></a>
 
 ##### idempotent
 
@@ -659,7 +661,7 @@ reasons: string[];
 idempotent: boolean;
 ```
 
-Defined in: packages/core/dist/types.d.ts:159
+<a id="input"></a>
 
 ##### input
 
@@ -667,7 +669,7 @@ Defined in: packages/core/dist/types.d.ts:159
 input: JsonSchema;
 ```
 
-Defined in: packages/core/dist/types.d.ts:156
+<a id="name-1"></a>
 
 ##### name
 
@@ -675,7 +677,7 @@ Defined in: packages/core/dist/types.d.ts:156
 name: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:153
+<a id="output"></a>
 
 ##### output
 
@@ -683,7 +685,7 @@ Defined in: packages/core/dist/types.d.ts:153
 output: JsonSchema;
 ```
 
-Defined in: packages/core/dist/types.d.ts:157
+<a id="pagination"></a>
 
 ##### pagination?
 
@@ -691,7 +693,7 @@ Defined in: packages/core/dist/types.d.ts:157
 optional pagination?: Pagination;
 ```
 
-Defined in: packages/core/dist/types.d.ts:166
+<a id="readonly"></a>
 
 ##### readOnly
 
@@ -699,7 +701,7 @@ Defined in: packages/core/dist/types.d.ts:166
 readOnly: boolean;
 ```
 
-Defined in: packages/core/dist/types.d.ts:158
+<a id="reversible"></a>
 
 ##### reversible
 
@@ -707,7 +709,7 @@ Defined in: packages/core/dist/types.d.ts:158
 reversible: boolean;
 ```
 
-Defined in: packages/core/dist/types.d.ts:160
+<a id="risk"></a>
 
 ##### risk
 
@@ -715,7 +717,7 @@ Defined in: packages/core/dist/types.d.ts:160
 risk: WireRisk;
 ```
 
-Defined in: packages/core/dist/types.d.ts:161
+<a id="title-1"></a>
 
 ##### title
 
@@ -723,15 +725,15 @@ Defined in: packages/core/dist/types.d.ts:161
 title: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:154
-
 ***
+
+<a id="clientoptions"></a>
 
 ### ClientOptions
 
-Defined in: [packages/client/src/index.ts:94](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L94)
-
 #### Properties
+
+<a id="agent"></a>
 
 ##### agent?
 
@@ -739,9 +741,9 @@ Defined in: [packages/client/src/index.ts:94](https://github.com/summationai/cod
 optional agent?: AgentIdentification;
 ```
 
-Defined in: [packages/client/src/index.ts:101](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L101)
-
 Sent as `context.agent` and as the `User-Agent` when possible.
+
+<a id="auth-1"></a>
 
 ##### auth?
 
@@ -749,17 +751,15 @@ Sent as `context.agent` and as the `User-Agent` when possible.
 optional auth?: string | (() => MaybePromise<string | undefined>);
 ```
 
-Defined in: [packages/client/src/index.ts:99](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L99)
-
 Bearer token, or a function returning one, sent in `Authorization`.
+
+<a id="confirm"></a>
 
 ##### confirm?
 
 ```ts
 optional confirm?: (request) => MaybePromise<boolean>;
 ```
-
-Defined in: [packages/client/src/index.ts:107](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L107)
 
 Called before any `sensitive` payload is sent. Without it, sensitive options are skipped.
 
@@ -773,13 +773,15 @@ Called before any `sensitive` payload is sent. Without it, sensitive options are
 
 `MaybePromise`\<`boolean`\>
 
+<a id="fetch"></a>
+
 ##### fetch?
 
 ```ts
 optional fetch?: FetchLike;
 ```
 
-Defined in: [packages/client/src/index.ts:95](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L95)
+<a id="fulfillers"></a>
 
 ##### fulfillers?
 
@@ -787,7 +789,7 @@ Defined in: [packages/client/src/index.ts:95](https://github.com/summationai/cod
 optional fulfillers?: Fulfiller[];
 ```
 
-Defined in: [packages/client/src/index.ts:105](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L105)
+<a id="headers"></a>
 
 ##### headers?
 
@@ -795,9 +797,9 @@ Defined in: [packages/client/src/index.ts:105](https://github.com/summationai/co
 optional headers?: Record<string, string>;
 ```
 
-Defined in: [packages/client/src/index.ts:97](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L97)
-
 Extra headers on every request.
+
+<a id="locale"></a>
 
 ##### locale?
 
@@ -805,7 +807,7 @@ Extra headers on every request.
 optional locale?: string;
 ```
 
-Defined in: [packages/client/src/index.ts:102](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L102)
+<a id="maxretryafterms"></a>
 
 ##### maxRetryAfterMs?
 
@@ -813,9 +815,9 @@ Defined in: [packages/client/src/index.ts:102](https://github.com/summationai/co
 optional maxRetryAfterMs?: number;
 ```
 
-Defined in: [packages/client/src/index.ts:109](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L109)
-
 Longest `Retry-After` the client will honor automatically, in ms. Default 30000.
+
+<a id="retries"></a>
 
 ##### retries?
 
@@ -823,9 +825,9 @@ Longest `Retry-After` the client will honor automatically, in ms. Default 30000.
 optional retries?: number;
 ```
 
-Defined in: [packages/client/src/index.ts:111](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L111)
-
 Retries after `rate_limited`/`unavailable`. Default 1.
+
+<a id="sessionid"></a>
 
 ##### sessionId?
 
@@ -833,7 +835,7 @@ Retries after `rate_limited`/`unavailable`. Default 1.
 optional sessionId?: string;
 ```
 
-Defined in: [packages/client/src/index.ts:104](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L104)
+<a id="timezone"></a>
 
 ##### timezone?
 
@@ -841,17 +843,17 @@ Defined in: [packages/client/src/index.ts:104](https://github.com/summationai/co
 optional timezone?: string;
 ```
 
-Defined in: [packages/client/src/index.ts:103](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L103)
-
 ***
 
-### ConfirmRequest
+<a id="confirmrequest"></a>
 
-Defined in: [packages/client/src/index.ts:86](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L86)
+### ConfirmRequest
 
 Passed to `confirm` before a sensitive payload is sent.
 
 #### Properties
+
+<a id="accept-1"></a>
 
 ##### accept
 
@@ -859,7 +861,7 @@ Passed to `confirm` before a sensitive payload is sent.
 accept: Accept;
 ```
 
-Defined in: [packages/client/src/index.ts:88](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L88)
+<a id="action-1"></a>
 
 ##### action
 
@@ -867,7 +869,7 @@ Defined in: [packages/client/src/index.ts:88](https://github.com/summationai/cod
 action: string;
 ```
 
-Defined in: [packages/client/src/index.ts:87](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L87)
+<a id="message-1"></a>
 
 ##### message
 
@@ -875,7 +877,7 @@ Defined in: [packages/client/src/index.ts:87](https://github.com/summationai/cod
 message: string;
 ```
 
-Defined in: [packages/client/src/index.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L91)
+<a id="payload"></a>
 
 ##### payload
 
@@ -883,17 +885,17 @@ Defined in: [packages/client/src/index.ts:91](https://github.com/summationai/cod
 payload: JsonValue;
 ```
 
-Defined in: [packages/client/src/index.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L90)
-
 The payload the fulfiller produced. Show the user a summary, never log it.
 
 ***
 
+<a id="discoveroptions"></a>
+
 ### DiscoverOptions
 
-Defined in: [packages/client/src/index.ts:161](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L161)
-
 #### Properties
+
+<a id="fetch-1"></a>
 
 ##### fetch?
 
@@ -901,7 +903,7 @@ Defined in: [packages/client/src/index.ts:161](https://github.com/summationai/co
 optional fetch?: FetchLike;
 ```
 
-Defined in: [packages/client/src/index.ts:162](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L162)
+<a id="headers-1"></a>
 
 ##### headers?
 
@@ -909,15 +911,15 @@ Defined in: [packages/client/src/index.ts:162](https://github.com/summationai/co
 optional headers?: Record<string, string>;
 ```
 
-Defined in: [packages/client/src/index.ts:163](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L163)
-
 ***
+
+<a id="errorresult"></a>
 
 ### ErrorResult
 
-Defined in: packages/core/dist/types.d.ts:251
-
 #### Properties
+
+<a id="error"></a>
 
 ##### error
 
@@ -925,7 +927,7 @@ Defined in: packages/core/dist/types.d.ts:251
 error: ErrorBody;
 ```
 
-Defined in: packages/core/dist/types.d.ts:253
+<a id="status"></a>
 
 ##### status
 
@@ -933,13 +935,11 @@ Defined in: packages/core/dist/types.d.ts:253
 status: "error";
 ```
 
-Defined in: packages/core/dist/types.d.ts:252
-
 ***
 
-### Fulfiller
+<a id="fulfiller"></a>
 
-Defined in: [packages/client/src/index.ts:80](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L80)
+### Fulfiller
 
 Provides payloads for one or more kinds: a wallet for `payment.*`, a credential
 store for `identity.*`, a profile for `contact.*`. Return `undefined` when this
@@ -947,23 +947,23 @@ fulfiller cannot satisfy the request; the client moves to the next option.
 
 #### Properties
 
+<a id="kinds"></a>
+
 ##### kinds
 
 ```ts
 kinds: readonly string[];
 ```
 
-Defined in: [packages/client/src/index.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L81)
-
 #### Methods
+
+<a id="fulfill"></a>
 
 ##### fulfill()
 
 ```ts
 fulfill(request): MaybePromise<JsonValue | undefined>;
 ```
-
-Defined in: [packages/client/src/index.ts:82](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L82)
 
 ###### Parameters
 
@@ -977,13 +977,15 @@ Defined in: [packages/client/src/index.ts:82](https://github.com/summationai/cod
 
 ***
 
-### FulfillRequest
+<a id="fulfillrequest"></a>
 
-Defined in: [packages/client/src/index.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L66)
+### FulfillRequest
 
 What a fulfiller receives for one `accepts[]` entry.
 
 #### Properties
+
+<a id="accept-2"></a>
 
 ##### accept
 
@@ -991,7 +993,7 @@ What a fulfiller receives for one `accepts[]` entry.
 accept: Accept;
 ```
 
-Defined in: [packages/client/src/index.ts:70](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L70)
+<a id="accepts"></a>
 
 ##### accepts
 
@@ -999,9 +1001,9 @@ Defined in: [packages/client/src/index.ts:70](https://github.com/summationai/cod
 accepts: Accept[];
 ```
 
-Defined in: [packages/client/src/index.ts:72](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L72)
-
 Every alternative the site offered, so a fulfiller can prefer one.
+
+<a id="action-2"></a>
 
 ##### action
 
@@ -1009,7 +1011,7 @@ Every alternative the site offered, so a fulfiller can prefer one.
 action: string;
 ```
 
-Defined in: [packages/client/src/index.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L67)
+<a id="message-2"></a>
 
 ##### message
 
@@ -1017,7 +1019,7 @@ Defined in: [packages/client/src/index.ts:67](https://github.com/summationai/cod
 message: string;
 ```
 
-Defined in: [packages/client/src/index.ts:69](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L69)
+<a id="reason"></a>
 
 ##### reason
 
@@ -1025,15 +1027,15 @@ Defined in: [packages/client/src/index.ts:69](https://github.com/summationai/cod
 reason: string;
 ```
 
-Defined in: [packages/client/src/index.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L68)
-
 ***
+
+<a id="handoff"></a>
 
 ### Handoff
 
-Defined in: packages/core/dist/types.d.ts:207
-
 #### Properties
+
+<a id="expiresat"></a>
 
 ##### expiresAt
 
@@ -1041,7 +1043,7 @@ Defined in: packages/core/dist/types.d.ts:207
 expiresAt: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:212
+<a id="instructions-1"></a>
 
 ##### instructions
 
@@ -1049,7 +1051,7 @@ Defined in: packages/core/dist/types.d.ts:212
 instructions: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:209
+<a id="reason-1"></a>
 
 ##### reason
 
@@ -1057,7 +1059,7 @@ Defined in: packages/core/dist/types.d.ts:209
 reason: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:208
+<a id="resumetoken"></a>
 
 ##### resumeToken
 
@@ -1065,7 +1067,7 @@ Defined in: packages/core/dist/types.d.ts:208
 resumeToken: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:211
+<a id="url"></a>
 
 ##### url
 
@@ -1073,7 +1075,7 @@ Defined in: packages/core/dist/types.d.ts:211
 url: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:210
+<a id="whatagentshouldsaytouser"></a>
 
 ##### whatAgentShouldSayToUser
 
@@ -1081,13 +1083,11 @@ Defined in: packages/core/dist/types.d.ts:210
 whatAgentShouldSayToUser: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:213
-
 ***
 
-### InvokeOptions
+<a id="invokeoptions"></a>
 
-Defined in: [packages/client/src/index.ts:114](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L114)
+### InvokeOptions
 
 #### Extended by
 
@@ -1095,13 +1095,15 @@ Defined in: [packages/client/src/index.ts:114](https://github.com/summationai/co
 
 #### Properties
 
+<a id="context"></a>
+
 ##### context?
 
 ```ts
 optional context?: Partial<RequestContext>;
 ```
 
-Defined in: [packages/client/src/index.ts:116](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L116)
+<a id="idempotencykey"></a>
 
 ##### idempotencyKey?
 
@@ -1109,7 +1111,7 @@ Defined in: [packages/client/src/index.ts:116](https://github.com/summationai/co
 optional idempotencyKey?: string;
 ```
 
-Defined in: [packages/client/src/index.ts:115](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L115)
+<a id="signal"></a>
 
 ##### signal?
 
@@ -1117,15 +1119,15 @@ Defined in: [packages/client/src/index.ts:115](https://github.com/summationai/co
 optional signal?: AbortSignal;
 ```
 
-Defined in: [packages/client/src/index.ts:117](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L117)
-
 ***
+
+<a id="manifest-1"></a>
 
 ### Manifest
 
-Defined in: packages/core/dist/types.d.ts:68
-
 #### Properties
+
+<a id="actions"></a>
 
 ##### actions
 
@@ -1133,7 +1135,7 @@ Defined in: packages/core/dist/types.d.ts:68
 actions: ActionDefinition[];
 ```
 
-Defined in: packages/core/dist/types.d.ts:75
+<a id="auth-2"></a>
 
 ##### auth
 
@@ -1141,7 +1143,7 @@ Defined in: packages/core/dist/types.d.ts:75
 auth: ManifestAuth;
 ```
 
-Defined in: packages/core/dist/types.d.ts:74
+<a id="baseurl"></a>
 
 ##### baseUrl
 
@@ -1149,7 +1151,7 @@ Defined in: packages/core/dist/types.d.ts:74
 baseUrl: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:72
+<a id="brand"></a>
 
 ##### brand?
 
@@ -1157,7 +1159,7 @@ Defined in: packages/core/dist/types.d.ts:72
 optional brand?: Brand;
 ```
 
-Defined in: packages/core/dist/types.d.ts:79
+<a id="contact"></a>
 
 ##### contact?
 
@@ -1165,7 +1167,7 @@ Defined in: packages/core/dist/types.d.ts:79
 optional contact?: Contact;
 ```
 
-Defined in: packages/core/dist/types.d.ts:78
+<a id="description-2"></a>
 
 ##### description
 
@@ -1173,7 +1175,7 @@ Defined in: packages/core/dist/types.d.ts:78
 description: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:71
+<a id="flows"></a>
 
 ##### flows?
 
@@ -1181,7 +1183,7 @@ Defined in: packages/core/dist/types.d.ts:71
 optional flows?: Flow[];
 ```
 
-Defined in: packages/core/dist/types.d.ts:76
+<a id="humanfallbackurl"></a>
 
 ##### humanFallbackUrl?
 
@@ -1189,7 +1191,7 @@ Defined in: packages/core/dist/types.d.ts:76
 optional humanFallbackUrl?: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:73
+<a id="indexurl"></a>
 
 ##### indexUrl?
 
@@ -1197,7 +1199,7 @@ Defined in: packages/core/dist/types.d.ts:73
 optional indexUrl?: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:80
+<a id="name-2"></a>
 
 ##### name
 
@@ -1205,7 +1207,7 @@ Defined in: packages/core/dist/types.d.ts:80
 name: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:70
+<a id="policies"></a>
 
 ##### policies?
 
@@ -1213,7 +1215,7 @@ Defined in: packages/core/dist/types.d.ts:70
 optional policies?: Policies;
 ```
 
-Defined in: packages/core/dist/types.d.ts:77
+<a id="protocol"></a>
 
 ##### protocol
 
@@ -1221,7 +1223,7 @@ Defined in: packages/core/dist/types.d.ts:77
 protocol: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:69
+<a id="updatedat"></a>
 
 ##### updatedAt?
 
@@ -1229,15 +1231,15 @@ Defined in: packages/core/dist/types.d.ts:69
 optional updatedAt?: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:81
-
 ***
+
+<a id="needshumanresult"></a>
 
 ### NeedsHumanResult
 
-Defined in: packages/core/dist/types.d.ts:241
-
 #### Properties
+
+<a id="handoff-1"></a>
 
 ##### handoff
 
@@ -1245,7 +1247,7 @@ Defined in: packages/core/dist/types.d.ts:241
 handoff: Handoff;
 ```
 
-Defined in: packages/core/dist/types.d.ts:243
+<a id="status-1"></a>
 
 ##### status
 
@@ -1253,15 +1255,15 @@ Defined in: packages/core/dist/types.d.ts:243
 status: "needs_human";
 ```
 
-Defined in: packages/core/dist/types.d.ts:242
-
 ***
+
+<a id="needsinputresult"></a>
 
 ### NeedsInputResult
 
-Defined in: packages/core/dist/types.d.ts:232
-
 #### Properties
+
+<a id="accepts-1"></a>
 
 ##### accepts
 
@@ -1269,7 +1271,7 @@ Defined in: packages/core/dist/types.d.ts:232
 accepts: Accept[];
 ```
 
-Defined in: packages/core/dist/types.d.ts:236
+<a id="continuationtoken"></a>
 
 ##### continuationToken
 
@@ -1277,7 +1279,7 @@ Defined in: packages/core/dist/types.d.ts:236
 continuationToken: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:237
+<a id="expiresat-1"></a>
 
 ##### expiresAt
 
@@ -1285,7 +1287,7 @@ Defined in: packages/core/dist/types.d.ts:237
 expiresAt: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:238
+<a id="fallback"></a>
 
 ##### fallback?
 
@@ -1293,7 +1295,7 @@ Defined in: packages/core/dist/types.d.ts:238
 optional fallback?: Handoff;
 ```
 
-Defined in: packages/core/dist/types.d.ts:239
+<a id="message-3"></a>
 
 ##### message
 
@@ -1301,7 +1303,7 @@ Defined in: packages/core/dist/types.d.ts:239
 message: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:235
+<a id="reason-2"></a>
 
 ##### reason
 
@@ -1309,7 +1311,7 @@ Defined in: packages/core/dist/types.d.ts:235
 reason: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:234
+<a id="status-2"></a>
 
 ##### status
 
@@ -1317,13 +1319,11 @@ Defined in: packages/core/dist/types.d.ts:234
 status: "needs_input";
 ```
 
-Defined in: packages/core/dist/types.d.ts:233
-
 ***
 
-### OkResult
+<a id="okresult"></a>
 
-Defined in: packages/core/dist/types.d.ts:228
+### OkResult
 
 #### Type Parameters
 
@@ -1333,13 +1333,15 @@ Defined in: packages/core/dist/types.d.ts:228
 
 #### Properties
 
+<a id="output-1"></a>
+
 ##### output
 
 ```ts
 output: O;
 ```
 
-Defined in: packages/core/dist/types.d.ts:230
+<a id="status-3"></a>
 
 ##### status
 
@@ -1347,15 +1349,15 @@ Defined in: packages/core/dist/types.d.ts:230
 status: "ok";
 ```
 
-Defined in: packages/core/dist/types.d.ts:229
-
 ***
+
+<a id="pendingresult"></a>
 
 ### PendingResult
 
-Defined in: packages/core/dist/types.d.ts:245
-
 #### Properties
+
+<a id="expiresat-2"></a>
 
 ##### expiresAt?
 
@@ -1363,7 +1365,7 @@ Defined in: packages/core/dist/types.d.ts:245
 optional expiresAt?: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:249
+<a id="pollurl"></a>
 
 ##### pollUrl
 
@@ -1371,7 +1373,7 @@ Defined in: packages/core/dist/types.d.ts:249
 pollUrl: string;
 ```
 
-Defined in: packages/core/dist/types.d.ts:247
+<a id="retryafter"></a>
 
 ##### retryAfter
 
@@ -1379,7 +1381,7 @@ Defined in: packages/core/dist/types.d.ts:247
 retryAfter: number;
 ```
 
-Defined in: packages/core/dist/types.d.ts:248
+<a id="status-4"></a>
 
 ##### status
 
@@ -1387,13 +1389,11 @@ Defined in: packages/core/dist/types.d.ts:248
 status: "pending";
 ```
 
-Defined in: packages/core/dist/types.d.ts:246
-
 ***
 
-### PollOptions
+<a id="polloptions"></a>
 
-Defined in: [packages/client/src/index.ts:120](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L120)
+### PollOptions
 
 #### Extended by
 
@@ -1401,23 +1401,23 @@ Defined in: [packages/client/src/index.ts:120](https://github.com/summationai/co
 
 #### Properties
 
+<a id="maxwaitms"></a>
+
 ##### maxWaitMs?
 
 ```ts
 optional maxWaitMs?: number;
 ```
 
-Defined in: [packages/client/src/index.ts:122](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L122)
-
 Give up after this long. Default 60000.
+
+<a id="onpending"></a>
 
 ##### onPending?
 
 ```ts
 optional onPending?: (result) => void;
 ```
-
-Defined in: [packages/client/src/index.ts:124](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L124)
 
 ###### Parameters
 
@@ -1429,19 +1429,19 @@ Defined in: [packages/client/src/index.ts:124](https://github.com/summationai/co
 
 `void`
 
+<a id="signal-1"></a>
+
 ##### signal?
 
 ```ts
 optional signal?: AbortSignal;
 ```
 
-Defined in: [packages/client/src/index.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L123)
-
 ***
 
-### RunOptions
+<a id="runoptions"></a>
 
-Defined in: [packages/client/src/index.ts:127](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L127)
+### RunOptions
 
 #### Extends
 
@@ -1449,17 +1449,19 @@ Defined in: [packages/client/src/index.ts:127](https://github.com/summationai/co
 
 #### Properties
 
+<a id="context-1"></a>
+
 ##### context?
 
 ```ts
 optional context?: Partial<RequestContext>;
 ```
 
-Defined in: [packages/client/src/index.ts:116](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L116)
-
 ###### Inherited from
 
 [`InvokeOptions`](#invokeoptions).[`context`](#context)
+
+<a id="idempotencykey-1"></a>
 
 ##### idempotencyKey?
 
@@ -1467,11 +1469,11 @@ Defined in: [packages/client/src/index.ts:116](https://github.com/summationai/co
 optional idempotencyKey?: string;
 ```
 
-Defined in: [packages/client/src/index.ts:115](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L115)
-
 ###### Inherited from
 
 [`InvokeOptions`](#invokeoptions).[`idempotencyKey`](#idempotencykey)
+
+<a id="maxsteps"></a>
 
 ##### maxSteps?
 
@@ -1479,9 +1481,9 @@ Defined in: [packages/client/src/index.ts:115](https://github.com/summationai/co
 optional maxSteps?: number;
 ```
 
-Defined in: [packages/client/src/index.ts:131](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L131)
-
 Safety valve for requirement chains. Default 8.
+
+<a id="maxwaitms-1"></a>
 
 ##### maxWaitMs?
 
@@ -1489,21 +1491,19 @@ Safety valve for requirement chains. Default 8.
 optional maxWaitMs?: number;
 ```
 
-Defined in: [packages/client/src/index.ts:122](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L122)
-
 Give up after this long. Default 60000.
 
 ###### Inherited from
 
 [`PollOptions`](#polloptions).[`maxWaitMs`](#maxwaitms)
 
+<a id="onpending-1"></a>
+
 ##### onPending?
 
 ```ts
 optional onPending?: (result) => void;
 ```
-
-Defined in: [packages/client/src/index.ts:124](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L124)
 
 ###### Parameters
 
@@ -1519,15 +1519,17 @@ Defined in: [packages/client/src/index.ts:124](https://github.com/summationai/co
 
 [`PollOptions`](#polloptions).[`onPending`](#onpending)
 
+<a id="pollpending"></a>
+
 ##### pollPending?
 
 ```ts
 optional pollPending?: boolean;
 ```
 
-Defined in: [packages/client/src/index.ts:129](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L129)
-
 Follow `pending` results by polling. Default true.
+
+<a id="signal-2"></a>
 
 ##### signal?
 
@@ -1535,13 +1537,13 @@ Follow `pending` results by polling. Default true.
 optional signal?: AbortSignal;
 ```
 
-Defined in: [packages/client/src/index.ts:117](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L117)
-
 ###### Inherited from
 
 [`InvokeOptions`](#invokeoptions).[`signal`](#signal)
 
 ## Type Aliases
+
+<a id="jsonvalue"></a>
 
 ### JsonValue
 
@@ -1557,11 +1559,11 @@ type JsonValue =
 };
 ```
 
-Defined in: packages/core/dist/types.d.ts:11
-
 A JSON value.
 
 ***
+
+<a id="result"></a>
 
 ### Result
 
@@ -1574,8 +1576,6 @@ type Result<O> =
   | ErrorResult;
 ```
 
-Defined in: packages/core/dist/types.d.ts:256
-
 The result envelope: every AXE response body is one of these.
 
 #### Type Parameters
@@ -1585,6 +1585,8 @@ The result envelope: every AXE response body is one of these.
 `O` = [`JsonValue`](#jsonvalue)
 
 ***
+
+<a id="runoutcome"></a>
 
 ### RunOutcome
 
@@ -1620,8 +1622,6 @@ type RunOutcome<O> =
 };
 ```
 
-Defined in: [packages/client/src/index.ts:135](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L135)
-
 What `run()` settles to.
 
 #### Type Parameters
@@ -1630,425 +1630,9 @@ What `run()` settles to.
 
 `O` = [`JsonValue`](#jsonvalue)
 
-## Variables
-
-### WIRE
-
-```ts
-const WIRE: Readonly<{
-  api: Readonly<{
-     accept: "accept";
-     action: "action";
-     allowCredentials: "allowCredentials";
-     allowed: "allowed";
-     appendHandoffId: "appendHandoffId";
-     authenticate: "authenticate";
-     axeExpress: "axeExpress";
-     axeFetch: "axeFetch";
-     axeNext: "axeNext";
-     axeNextPages: "axeNextPages";
-     checkVocabularyDrift: "checkVocabularyDrift";
-     claims: "claims";
-     combineSinks: "combineSinks";
-     completeHandoff: "completeHandoff";
-     completion: "completion";
-     confirm: "confirm";
-     consoleSink: "consoleSink";
-     continue: "continue";
-     cors: "cors";
-     createAXE: "createAXE";
-     createMcpServer: "createMcpServer";
-     createTestClient: "createTestClient";
-     customKind: "customKind";
-     describe: "describe";
-     discover: "discover";
-     fetchHandler: "fetchHandler";
-     formatAuditHtml: "formatAuditHtml";
-     formatAuditTable: "formatAuditTable";
-     formatConformanceTable: "formatConformanceTable";
-     formatDriftReport: "formatDriftReport";
-     formatResult: "formatResult";
-     fulfillers: "fulfillers";
-     handler: "handler";
-     idempotencyStore: "idempotencyStore";
-     idempotencyTtlSeconds: "idempotencyTtlSeconds";
-     identity: "identity";
-     index: "index";
-     invoke: "invoke";
-     invokeAction: "invokeAction";
-     isAxePath: "isAxePath";
-     isError: "isError";
-     isNeedsHuman: "isNeedsHuman";
-     isNeedsInput: "isNeedsInput";
-     isOk: "isOk";
-     isPending: "isPending";
-     jsonlFileSink: "jsonlFileSink";
-     kinds: "kinds";
-     lintAgentText: "lintAgentText";
-     lintManifest: "lintManifest";
-     manifest: "manifest";
-     manifestCacheSeconds: "manifestCacheSeconds";
-     maxRetryAfterMs: "maxRetryAfterMs";
-     maxWaitMs: "maxWaitMs";
-     needsInput: "needsInput";
-     onContinue: "onContinue";
-     onError: "onError";
-     onEvent: "onEvent";
-     onPoll: "onPoll";
-     onRequest: "onRequest";
-     onResult: "onResult";
-     onResume: "onResume";
-     otelSink: "otelSink";
-     parseUserAgent: "parseUserAgent";
-     poll: "poll";
-     pollBudgetMs: "pollBudgetMs";
-     present: "present";
-     register: "register";
-     requireCompletion: "requireCompletion";
-     requireIdempotencyKey: "requireIdempotencyKey";
-     resolveDisplay: "resolveDisplay";
-     resume: "resume";
-     retries: "retries";
-     run: "run";
-     runAudit: "runAudit";
-     runConformance: "runConformance";
-     samplePayload: "samplePayload";
-     secret: "secret";
-     sendWebResponse: "sendWebResponse";
-     serveHttp: "serveHttp";
-     serveStdio: "serveStdio";
-     siteKey: "siteKey";
-     state: "state";
-     suggestedReason: "suggestedReason";
-     toHTML: "toHTML";
-     tokenStore: "tokenStore";
-     toMarkdown: "toMarkdown";
-     toolNameFor: "toolNameFor";
-     toWebRequest: "toWebRequest";
-     ttlSeconds: "ttlSeconds";
-     verifySiteKey: "verifySiteKey";
-     withMimeTypes: "withMimeTypes";
-  }>;
-  authMode: Readonly<{
-     none: "none";
-     site: "site";
-     user: "user";
-  }>;
-  cli: Readonly<{
-     audit: "axe audit";
-     conformance: "axe conformance";
-     init: "axe init";
-     inspect: "axe inspect";
-     mcp: "axe mcp";
-     preview: "axe preview";
-     validate: "axe validate";
-  }>;
-  compare: Readonly<{
-     higherBetter: "higher-better";
-     lowerBetter: "lower-better";
-     neutral: "neutral";
-  }>;
-  displayKind: Readonly<{
-     document: "document";
-     item: "item";
-     list: "list";
-     status: "status";
-     table: "table";
-  }>;
-  error: Readonly<{
-     conflict: "conflict";
-     forbidden: "forbidden";
-     internal: "internal";
-     invalidInput: "invalid_input";
-     notFound: "not_found";
-     rateLimited: "rate_limited";
-     unauthorized: "unauthorized";
-     unavailable: "unavailable";
-     unsupported: "unsupported";
-  }>;
-  field: Readonly<{
-     accentColor: "accentColor";
-     accepts: "accepts";
-     action: "action";
-     actions: "actions";
-     affordances: "affordances";
-     agent: "agent";
-     agents: "agents";
-     allow: "allow";
-     amount: "amount";
-     attributes: "attributes";
-     auth: "auth";
-     axeReserved: "_axe";
-     badges: "badges";
-     baseUrl: "baseUrl";
-     brand: "brand";
-     burst: "burst";
-     cacheTtlSeconds: "cacheTtlSeconds";
-     code: "code";
-     compare: "compare";
-     contact: "contact";
-     context: "context";
-     continuationToken: "continuationToken";
-     currency: "currency";
-     cursorIn: "cursorIn";
-     cursorOut: "cursorOut";
-     dataRetention: "dataRetention";
-     default: "default";
-     deny: "deny";
-     deprecated: "deprecated";
-     description: "description";
-     details: "details";
-     disclaimer: "disclaimer";
-     display: "display";
-     email: "email";
-     emptyMessage: "emptyMessage";
-     error: "error";
-     errorCode: "errorCode";
-     examples: "examples";
-     expected: "expected";
-     expiresAt: "expiresAt";
-     fallback: "fallback";
-     flows: "flows";
-     format: "format";
-     freshness: "freshness";
-     handoff: "handoff";
-     handoffStatus: "handoffStatus";
-     humanFallbackUrl: "humanFallbackUrl";
-     humanHandoff: "humanHandoff";
-     id: "id";
-     idempotencyKey: "idempotencyKey";
-     idempotent: "idempotent";
-     image: "image";
-     indexUrl: "indexUrl";
-     input: "input";
-     instructions: "instructions";
-     issues: "issues";
-     item: "item";
-     items: "items";
-     kind: "kind";
-     label: "label";
-     ladder: "ladder";
-     latencyMs: "latencyMs";
-     locale: "locale";
-     logoUrl: "logoUrl";
-     manifestUrl: "manifestUrl";
-     max: "max";
-     message: "message";
-     modes: "modes";
-     name: "name";
-     next: "next";
-     onBehalfOf: "onBehalfOf";
-     output: "output";
-     pageSize: "pageSize";
-     pagination: "pagination";
-     path: "path";
-     payload: "payload";
-     period: "period";
-     platform: "platform";
-     policies: "policies";
-     pollUrl: "pollUrl";
-     price: "price";
-     primary: "primary";
-     protocol: "protocol";
-     rateLimit: "rateLimit";
-     readOnly: "readOnly";
-     reason: "reason";
-     reasons: "reasons";
-     replacedBy: "replacedBy";
-     requestsPerMinute: "requestsPerMinute";
-     resumeToken: "resumeToken";
-     retryable: "retryable";
-     retryAfter: "retryAfter";
-     reversible: "reversible";
-     risk: "risk";
-     schema: "schema";
-     schemaVersion: "schemaVersion";
-     sensitive: "sensitive";
-     sessionId: "sessionId";
-     since: "since";
-     sites: "sites";
-     status: "status";
-     steps: "steps";
-     subtitle: "subtitle";
-     suggestedComparison: "suggestedComparison";
-     summary: "summary";
-     tags: "tags";
-     tenant: "tenant";
-     termsUrl: "termsUrl";
-     timezone: "timezone";
-     title: "title";
-     tone: "tone";
-     ts: "ts";
-     updatedAt: "updatedAt";
-     url: "url";
-     userLoginUrl: "userLoginUrl";
-     validUntil: "validUntil";
-     vendor: "vendor";
-     version: "version";
-     whatAgentShouldSayToUser: "whatAgentShouldSayToUser";
-  }>;
-  format: Readonly<{
-     area: "area";
-     boolean: "boolean";
-     currency: "currency";
-     date: "date";
-     datetime: "datetime";
-     distance: "distance";
-     duration: "duration";
-     list: "list";
-     number: "number";
-     text: "text";
-  }>;
-  header: Readonly<{
-     authorization: "Authorization";
-     contentType: "Content-Type";
-     manifest: "AXE-Manifest";
-     protocol: "AXE-Protocol";
-     rateLimitPolicy: "RateLimit-Policy";
-     retryAfter: "Retry-After";
-     userAgent: "User-Agent";
-  }>;
-  kind: Readonly<{
-     consentTerms: "consent.terms";
-     contactAddress: "contact.address";
-     contactEmail: "contact.email";
-     contactPhone: "contact.phone";
-     customPrefix: "x-";
-     documentBase64: "document.base64";
-     documentUrl: "document.url";
-     identityDateOfBirth: "identity.date-of-birth";
-     identityGovernmentId: "identity.government-id";
-     identitySsnLast4: "identity.ssn-last-4";
-     paymentAchDebit: "payment.ach-debit";
-     paymentCard: "payment.card";
-     paymentInvoice: "payment.invoice";
-     paymentWireConfirmation: "payment.wire-confirmation";
-  }>;
-  ladder: Readonly<{
-     continued: "continued";
-     error: "error";
-     needsHuman: "needs_human";
-     needsInput: "needs_input";
-     ok: "ok";
-     pending: "pending";
-     resumed: "resumed";
-  }>;
-  link: Readonly<{
-     manifestRel: "axe-manifest";
-  }>;
-  path: Readonly<{
-     actions: "/axe/actions";
-     continue: "/axe/continue";
-     index: "/.well-known/axe-index.json";
-     manifest: "/.well-known/axe.json";
-     manifestAlias: "/axe/manifest";
-     poll: "/axe/poll";
-     resume: "/axe/resume";
-  }>;
-  payload: Readonly<{
-     acceptedAt: "acceptedAt";
-     acceptedBy: "acceptedBy";
-     accountHolderName: "accountHolderName";
-     accountNumber: "accountNumber";
-     accountType: "accountType";
-     authorizationText: "authorizationText";
-     authorizedAt: "authorizedAt";
-     bankName: "bankName";
-     billingEmail: "billingEmail";
-     billingPostalCode: "billingPostalCode";
-     brand: "brand";
-     canReceiveSms: "canReceiveSms";
-     city: "city";
-     companyName: "companyName";
-     contentBase64: "contentBase64";
-     country: "country";
-     dateOfBirth: "dateOfBirth";
-     documentNumber: "documentNumber";
-     documentType: "documentType";
-     expiresOn: "expiresOn";
-     expMonth: "expMonth";
-     expYear: "expYear";
-     filename: "filename";
-     fullName: "fullName";
-     issuingCountry: "issuingCountry";
-     last4: "last4";
-     line1: "line1";
-     line2: "line2";
-     mimeType: "mimeType";
-     netTermsDays: "netTermsDays";
-     phone: "phone";
-     policyUrl: "policyUrl";
-     policyVersion: "policyVersion";
-     postalCode: "postalCode";
-     provider: "provider";
-     purchaseOrderNumber: "purchaseOrderNumber";
-     referenceNumber: "referenceNumber";
-     region: "region";
-     routingNumber: "routingNumber";
-     scope: "scope";
-     sentAt: "sentAt";
-     sizeBytes: "sizeBytes";
-     taxId: "taxId";
-     token: "token";
-  }>;
-  period: Readonly<{
-     day: "day";
-     hour: "hour";
-     month: "month";
-     once: "once";
-     year: "year";
-  }>;
-  protocol: Readonly<{
-     version: "axe/0.1";
-  }>;
-  query: Readonly<{
-     handoff: "axe_handoff";
-  }>;
-  reason: Readonly<{
-     consentRequired: "consent_required";
-     documentRequired: "document_required";
-     identityRequired: "identity_required";
-     loginRequired: "login_required";
-     paymentRequired: "payment_required";
-  }>;
-  risk: Readonly<{
-     high: "high";
-     low: "low";
-     medium: "medium";
-     none: "none";
-  }>;
-  robots: Readonly<{
-     index: "AXE-Index";
-     manifest: "AXE-Manifest";
-  }>;
-  status: Readonly<{
-     error: "error";
-     needsHuman: "needs_human";
-     needsInput: "needs_input";
-     ok: "ok";
-     pending: "pending";
-  }>;
-  tone: Readonly<{
-     casual: "casual";
-     formal: "formal";
-     neutral: "neutral";
-  }>;
-  tool: Readonly<{
-     continue: "axe_continue";
-     manifest: "axe_manifest";
-     poll: "axe_poll";
-     resume: "axe_resume";
-  }>;
-}>;
-```
-
-Defined in: packages/core/dist/vocabulary.d.ts:789
-
-Every wire-level name in the AXE protocol, grouped by category.
-Use these constants instead of string literals for paths, headers, statuses,
-error codes, ladder values, kinds, MCP tool names, and CLI command names.
-
 ## Functions
+
+<a id="discover-1"></a>
 
 ### discover()
 
@@ -2059,8 +1643,6 @@ function discover(url, options?): Promise<{
   via: "well-known" | "alias" | "header" | "link";
 }>;
 ```
-
-Defined in: [packages/client/src/index.ts:171](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L171)
 
 Find a manifest starting from any URL: `/.well-known/axe.json`, `/axe/manifest`, the
 `AXE-Manifest` response header, then a `<link rel="axe-manifest">` in the page. Returns
@@ -2086,13 +1668,13 @@ the manifest and where it was found.
 
 ***
 
+<a id="findlinkhref"></a>
+
 ### findLinkHref()
 
 ```ts
 function findLinkHref(html): string | undefined;
 ```
-
-Defined in: [packages/client/src/index.ts:238](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L238)
 
 Extract the href of `<link rel="axe-manifest">` from HTML without a parser.
 
@@ -2108,13 +1690,13 @@ Extract the href of `<link rel="axe-manifest">` from HTML without a parser.
 
 ***
 
+<a id="iserror"></a>
+
 ### isError()
 
 ```ts
 function isError<O>(r): r is ErrorResult;
 ```
-
-Defined in: [packages/client/src/index.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L57)
 
 #### Type Parameters
 
@@ -2134,13 +1716,13 @@ Defined in: [packages/client/src/index.ts:57](https://github.com/summationai/cod
 
 ***
 
+<a id="isneedshuman"></a>
+
 ### isNeedsHuman()
 
 ```ts
 function isNeedsHuman<O>(r): r is NeedsHumanResult;
 ```
-
-Defined in: [packages/client/src/index.ts:51](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L51)
 
 #### Type Parameters
 
@@ -2160,13 +1742,13 @@ Defined in: [packages/client/src/index.ts:51](https://github.com/summationai/cod
 
 ***
 
+<a id="isneedsinput"></a>
+
 ### isNeedsInput()
 
 ```ts
 function isNeedsInput<O>(r): r is NeedsInputResult;
 ```
-
-Defined in: [packages/client/src/index.ts:48](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L48)
 
 #### Type Parameters
 
@@ -2186,13 +1768,13 @@ Defined in: [packages/client/src/index.ts:48](https://github.com/summationai/cod
 
 ***
 
+<a id="isok"></a>
+
 ### isOk()
 
 ```ts
 function isOk<O>(r): r is OkResult<O>;
 ```
-
-Defined in: [packages/client/src/index.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L45)
 
 #### Type Parameters
 
@@ -2212,13 +1794,13 @@ Defined in: [packages/client/src/index.ts:45](https://github.com/summationai/cod
 
 ***
 
+<a id="ispending"></a>
+
 ### isPending()
 
 ```ts
 function isPending<O>(r): r is PendingResult;
 ```
-
-Defined in: [packages/client/src/index.ts:54](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/index.ts#L54)
 
 #### Type Parameters
 

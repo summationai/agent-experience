@@ -23,7 +23,10 @@
     "docs:api": "typedoc",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm build && changeset publish"
+    "release": "pnpm build && changeset publish",
+    "site:build": "pnpm --filter body-spray-site build",
+    "site:test": "pnpm --filter body-spray-site test",
+    "site:dev": "pnpm --filter body-spray-site dev"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",

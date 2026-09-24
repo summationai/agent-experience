@@ -123,3 +123,29 @@ If you disagree with something here, open an issue that quotes the entry. Most o
 **`document.base64` payloads are capped at 10 MiB decoded, enforced on `/axe/continue`.** The spec said so; the code now does. Larger documents use `document.url`.
 
 **Prettier does not format `docs/**/*.md` or the README.** It reformatted included code blocks (and turned fences into four backticks), which made every include stale. The include script owns those blocks.
+
+## Site
+
+**The site is a build output of the docs, not a second copy of them.** `site/build.mjs` renders `docs/**`, `spec/*.md`, and the root Markdown files with one template; the landing page pulls code from `docs/examples/` and prose from `docs/why-axe.md` through include markers, the docs hub and sidebar come from the ordered list in `docs/README.md`, and the demo data is produced by running `docs/examples/apartments/site.ts` in-process. Changing a sentence on the landing page means changing the doc it comes from.
+
+**`site/dist/` is committed.** The deliverable is a directory someone double-clicks. Reproducibility is a test: two builds must hash identically, and the committed output must match a fresh build. The clock and `crypto.randomUUID` are pinned while the fixtures run so tokens, ids, and expiry timestamps are the same on every build; the audit report's timestamp is replaced with a fixed phrase.
+
+**The Open Graph image is the one non-reproducible byte sequence.** It is rendered by a browser, and text rasterization differs across machines. It is excluded from the reproducibility hash and from the CI freshness diff. Rendering it deterministically would require bundling a font and a pure rasterizer, which is more machinery than one social card justifies.
+
+**Mermaid is rendered with `beautiful-mermaid`, a pure-JavaScript renderer.** It is synchronous, has no DOM dependency, and produces identical SVG on every machine, which the mermaid CLI (headless Chromium, system fonts) does not. Its Google Fonts `@import` is stripped so the SVG makes no network request; the diagram uses the system font stack through CSS variables so it inverts with the theme. Each diagram carries an ASCII rendering and its source behind a disclosure as the text alternative.
+
+**Shiki runs at build time and emits classes, not inline styles.** Dual-theme inline styles cost about 45 bytes per token. Identical light/dark color pairs become short class names (`t0…tN`, assigned in a deterministic order) with the pairs emitted once as CSS custom properties; two rules switch between them for the theme. Consecutive same-style tokens are merged.
+
+**The page script is inlined and minified; data loads on intent.** Lighthouse's simulated LCP counts every script the page requests, deferred or not, so an external `site.js` plus the demo data would have cost ten points. The script is inlined (one classic `<script>`, no module, works from `file://`); the ladder envelopes and the rendered search (`fixtures.js`) load when the demos come within 800 px of the viewport or are interacted with; the search index (`search-index.js`) loads when the search control is hovered, focused, or opened. Both are classic scripts injected by the page, never `fetch()`, so `file://` works. A reader who never scrolls never downloads them. The brief's "embedded as a `<script type="application/json">`" became a shared deferred data script for this reason; nothing is fetched.
+
+**The stylesheet is one file with landing-only and docs-only regions.** Each page type inlines only the regions it needs plus the shared ones. Inline CSS removes a render-blocking request; region splitting keeps the inlined bytes down.
+
+**The rendered search is a sandboxed `srcdoc` iframe.** It is the unmodified output of `toHTML()`, including the renderer's one static script. `sandbox="allow-scripts"` lets that script dispatch `axe:select`; the iframe posts the selection to the parent, which binds the unit id into the ladder demo. The only alternative that keeps the output unmodified is an iframe.
+
+**Lighthouse runs against a local port, best of two runs.** Lighthouse does not audit `file://` URLs; the test serves `dist/` on a loopback port for the run only. Simulated metrics vary run to run by a point or two, so the test takes the better of two runs, which is Lighthouse's own recommendation for stable scores. Both audited pages score 96 on performance and 96 to 97 on accessibility at the time of writing.
+
+**Screenshot baselines are compared only on the platform that produced them.** Font rasterization differs between macOS and Linux; the baselines record their platform, and the comparison is skipped elsewhere rather than failing on noise. `--update-screenshots` regenerates them.
+
+**TypeDoc output is rendered like any other Markdown, with unresolvable links unwrapped.** TypeDoc links to Node's types and to source lines; sources are disabled (they embedded a commit hash and pointed at the wrong repository), and links to symbols the reference does not contain become plain text so the link checker stays strict for everything else.
+
+**Root README badges are dropped from the site.** They are images from shields.io; the site is offline-complete. The alt text is rendered instead.

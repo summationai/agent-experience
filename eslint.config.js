@@ -4,7 +4,15 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "docs/api/**", "**/coverage/**", "**/.turbo/**"],
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "docs/api/**",
+      "**/coverage/**",
+      "**/.turbo/**",
+      "site/test/__screenshots__/**",
+      "site/_*.mjs",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -22,6 +30,7 @@ export default tseslint.config(
   },
   {
     files: ["**/*.mjs", "**/*.js"],
+    ignores: ["site/src/**"],
     languageOptions: {
       globals: {
         process: "readonly",
@@ -30,6 +39,30 @@ export default tseslint.config(
         fetch: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        Request: "readonly",
+        Response: "readonly",
+        Buffer: "readonly",
+        window: "readonly",
+        document: "readonly",
+      },
+    },
+  },
+  {
+    files: ["site/src/**/*.js"],
+    languageOptions: {
+      globals: {
+        window: "readonly",
+        document: "readonly",
+        navigator: "readonly",
+        localStorage: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        IntersectionObserver: "readonly",
+        CustomEvent: "readonly",
       },
     },
   },

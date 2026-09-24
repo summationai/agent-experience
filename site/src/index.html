@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en" data-root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Body Spray — Agentic eXperience Engineering</title>
+    <meta
+      name="description"
+      content="AXE is an open, HTTP-native protocol and TypeScript SDK that lets any website declare what it can do for agents, how to present results, and when a human must step in."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content="Body Spray — Agentic eXperience Engineering" />
+    <meta
+      property="og:description"
+      content="Agents are becoming the front door to every website. AXE lets yours declare what it can do, how to present results, and when a human must step in."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      {{css}}
+    </style>
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  </head>
+  <body class="landing">
+    <a class="skip-link" href="#content">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-nav" aria-label="Site">
+        <a class="brand" href="index.html"
+          ><img src="assets/logo.svg" alt="" width="24" height="24" /><span>Body Spray</span></a
+        >
+        <button
+          class="nav-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-links"
+        >
+          Menu
+        </button>
+        <div class="nav-links" id="primary-links">
+          <a href="#why">Why</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="docs/README.html">Docs</a>
+          <a href="docs/spec/AXE-PROTOCOL.html">Spec</a>
+          <a href="{{githubRepo}}" rel="noopener noreferrer">GitHub</a>
+          <button
+            class="search-open"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="search-dialog"
+          >
+            Search <kbd>/</kbd>
+          </button>
+          <button class="theme-toggle" type="button" aria-pressed="false">Dark</button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="content">
+      <section class="section hero" aria-labelledby="hero-title">
+        <h1 id="hero-title">Agents are becoming the front door to every website.</h1>
+        <p class="lede">
+          AXE is an open, HTTP-native protocol and TypeScript SDK that lets your site declare what
+          it can do, how to present results, what it needs to finish, and when a human must step in.
+          You wrap functions you already have.
+        </p>
+        <p class="tagline">{{tagline}}</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="docs/getting-started.html">Get started</a>
+          <a class="btn btn-secondary" href="docs/spec/AXE-PROTOCOL.html">Read the spec</a>
+        </div>
+        <div class="install">
+          <code>npm i @axe/core</code
+          ><button class="copy" type="button" aria-label="Copy install command">Copy</button>
+        </div>
+        <ul class="chips" aria-label="Facts">
+          <li>Apache-2.0</li>
+          <li>TypeScript</li>
+          <li>Works with MCP</li>
+        </ul>
+      </section>
+
+      <section class="section" id="why" aria-labelledby="why-title">
+        <div class="section-head">
+          <p class="eyebrow">The problem</p>
+          <h2 id="why-title">Today the agent gives up and hands the task back.</h2>
+          <p>
+            The same request, twice: once against a website as it is, once against a website that
+            declares what it can do.
+          </p>
+        </div>
+        <div class="exchange">
+          <div class="chat fails" aria-label="Without AXE">
+            <h3>Without AXE</h3>
+            <p class="msg user">
+              Apply for the one-bedroom at The Meridian in Bellevue and pay the holding deposit from
+              my checking account.
+            </p>
+            <p class="sys">Agent opens a headless browser and starts the six-page application.</p>
+            <p class="msg agent">
+              I found the unit and filled in the first pages, but the deposit form wants bank
+              details typed into a widget I can't safely use, and I can't tell whether submitting
+              charges you. I couldn't complete this. Please finish it yourself.
+            </p>
+          </div>
+          <div class="chat" aria-label="With AXE">
+            <h3>With AXE</h3>
+            <p class="msg user">
+              Apply for the one-bedroom at The Meridian in Bellevue and pay the holding deposit from
+              my checking account.
+            </p>
+            <p class="sys">
+              Agent calls <code>applications.submit</code>; the site answers
+              <code>needs_input</code> accepting <code>payment.ach-debit</code>.
+            </p>
+            <p class="msg agent">
+              Oakridge needs a $500 refundable deposit by bank transfer. Use your checking account
+              ending 4471?
+            </p>
+            <p class="msg user">Yes.</p>
+            <p class="sys">
+              Agent continues with the authorization from its wallet; the site answers
+              <code>ok</code>.
+            </p>
+            <p class="msg agent">
+              Done. Application APP-8812 is submitted and the deposit is received.
+            </p>
+          </div>
+        </div>
+        <div class="prose excerpt" style="max-width: 46rem; margin-top: 2.5rem">
+          <h3>Where the browser gives up</h3>
+          <!-- include-md: docs/why-axe.md#the-problem --><!-- /include-md -->
+        </div>
+      </section>
+
+      <section class="section" id="how-it-works" aria-labelledby="how-title">
+        <div class="section-head">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-title">The ladder: complete, ask the agent, then the human.</h2>
+          <p>
+            When an action cannot finish, the site says exactly what would unblock it, in a form the
+            agent may already hold. Only when nothing matches does it hand off to the human, with a
+            URL, a reason, and a token to resume. Every envelope below is real: the build runs the
+            docs' apartment example and records what came back.
+          </p>
+        </div>
+        <div class="ladder" id="ladder-demo">
+          <div>
+            <div class="tabs" role="tablist" aria-label="Ladder path">
+              <button
+                role="tab"
+                id="tab-wallet"
+                aria-selected="true"
+                aria-controls="ladder-panel"
+                data-path="wallet"
+              >
+                Agent has a wallet
+              </button>
+              <button
+                role="tab"
+                id="tab-handoff"
+                aria-selected="false"
+                aria-controls="ladder-panel"
+                data-path="handoff"
+                tabindex="-1"
+              >
+                Nothing matches
+              </button>
+            </div>
+            <ol class="rungs" aria-label="Escalation ladder">
+              <li class="rung" data-rung="ok">
+                <span class="dot" aria-hidden="true">1</span>
+                <div>
+                  <strong>ok</strong>
+                  <p>The work is done. <code>output</code> is present.</p>
+                </div>
+              </li>
+              <li class="rung" data-rung="needs_input">
+                <span class="dot" aria-hidden="true">2</span>
+                <div>
+                  <strong>needs_input</strong>
+                  <p>
+                    The site lists <code>accepts</code>: kinds the agent may hold, each with a
+                    schema.
+                  </p>
+                </div>
+              </li>
+              <li class="rung" data-rung="needs_human">
+                <span class="dot" aria-hidden="true">3</span>
+                <div>
+                  <strong>needs_human</strong>
+                  <p>
+                    A <code>handoff</code>: url, instructions, what to tell the user, and a
+                    <code>resumeToken</code>.
+                  </p>
+                </div>
+              </li>
+            </ol>
+            <p class="demo-bound" id="ladder-bound" aria-live="polite">
+              Applying for <code>u_204</code>. Pick a unit in the search below to change it.
+            </p>
+          </div>
+          <div id="ladder-panel" role="tabpanel" aria-labelledby="tab-wallet">
+            <div class="demo-controls">
+              <button class="btn btn-secondary" type="button" id="ladder-step">Step</button>
+              <button class="btn btn-secondary" type="button" id="ladder-reset">Reset</button>
+              <span class="status" id="ladder-status" aria-live="polite">status: —</span>
+              <span class="muted" id="ladder-progress"></span>
+            </div>
+            <p class="demo-caption" id="ladder-caption" aria-live="polite">
+              Press Step to send the first request.
+            </p>
+            <div class="envelope" id="ladder-envelope"></div>
+          </div>
+        </div>
+        <p style="margin-top: 1.5rem">
+          <a href="docs/concepts.html#the-escalation-ladder">The ladder in the concepts guide</a> ·
+          <a href="docs/requirements-and-kinds.html">Requirements and kinds</a> ·
+          <a href="docs/human-handoff.html">Human handoff</a>
+        </p>
+      </section>
+
+      <section class="section" id="arc" aria-labelledby="arc-title">
+        <div class="section-head">
+          <p class="eyebrow">The read side</p>
+          <h2 id="arc-title">Search, present, select.</h2>
+          <p>
+            Most agent journeys start with a read. The site declares which fields matter for
+            comparison and what can be done with each result; the agent renders. The search results
+            shown here are the output of the reference renderer in <code>@axe/client/present</code>,
+            produced at build time from the docs' Bellevue example. Choose a unit and the ladder
+            above binds that unit's id.
+          </p>
+        </div>
+        <div class="arc">
+          <div>
+            <!-- generated: arc-demo --><!-- /generated -->
+            <p class="arc-note">
+              Rendered by <code>toHTML</code>. Buttons dispatch an <code>axe:select</code> event
+              with the affordance's bound input; this page listens and hands it to the ladder. The
+              second unit shows dynamic affordances: the site knows an application is already open,
+              so it offers only a tour.
+            </p>
+          </div>
+          <div>
+            <!-- generated: arc-declaration --><!-- /generated -->
+            <p class="arc-note">
+              <a href="docs/presenting-results.html">Presenting results</a> covers pointers,
+              attributes, pagination, freshness, and the renderers.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="declare" aria-labelledby="declare-title">
+        <div class="section-head">
+          <p class="eyebrow">What you declare</p>
+          <h2 id="declare-title">Six things a site gives an agent.</h2>
+        </div>
+        <div class="grid">
+          <div class="tile">
+            <h3><a href="docs/concepts.html#manifest">Manifest</a></h3>
+            <p>
+              One JSON document at a fixed path: who you are, what you can do, how to authenticate,
+              what the rules are.
+            </p>
+          </div>
+          <div class="tile">
+            <h3><a href="docs/designing-actions.html">Actions</a></h3>
+            <p>
+              Typed operations with schemas, a description written for a model, and truthful
+              <code>risk</code>, <code>readOnly</code>, <code>idempotent</code>, and
+              <code>reversible</code> metadata.
+            </p>
+          </div>
+          <div class="tile">
+            <h3><a href="docs/presenting-results.html">Display</a></h3>
+            <p>
+              Which fields matter when a user compares results, where the human page is, and the
+              disclaimer that must accompany any rendering.
+            </p>
+          </div>
+          <div class="tile">
+            <h3><a href="docs/presenting-results.html#affordances">Affordances</a></h3>
+            <p>
+              What can be done with each result, with inputs pre-bound. The user's pick becomes the
+              next call with no guesswork.
+            </p>
+          </div>
+          <div class="tile">
+            <h3><a href="docs/requirements-and-kinds.html">Requirements and kinds</a></h3>
+            <p>
+              Ask the agent first: a shared vocabulary of payloads a wallet or credential store can
+              supply.
+            </p>
+          </div>
+          <div class="tile">
+            <h3><a href="docs/human-handoff.html">Handoff</a></h3>
+            <p>
+              The human, last: a URL that lands on the step, plain instructions, and a token to
+              resume.
+            </p>
+          </div>
+        </div>
+        <div class="prose" style="max-width: 60rem; margin-top: 2.5rem">
+          <p class="muted">
+            If you did search optimization in 2008, the shape is familiar. The mapping, from the
+            docs:
+          </p>
+          <!-- generated: seo-table --><!-- /generated -->
+        </div>
+      </section>
+
+      <section class="section" id="audit" aria-labelledby="audit-title">
+        <div class="section-head">
+          <p class="eyebrow">Get to a passing score</p>
+          <h2 id="audit-title">There is a number to move.</h2>
+          <p>
+            <code>axe audit</code> scores a site 0 to 100 across five categories, Discoverable,
+            Describable, Presentable, Actionable, and Trustworthy, and prints a prioritized fix
+            list. The report below is the real output for the docs' apartment example, generated
+            when this page was built; it scores
+            <!-- generated: audit-score --><!-- /generated -->.
+          </p>
+        </div>
+        <!-- generated: audit-report --><!-- /generated -->
+        <p style="margin-top: 1.5rem">
+          <a href="docs/audit.html">How the score is computed</a> ·
+          <a href="docs/audit.html#honesty-rules">The honesty rules</a>
+        </p>
+      </section>
+
+      <section class="section" id="code" aria-labelledby="code-title">
+        <div class="section-head">
+          <p class="eyebrow">Code</p>
+          <h2 id="code-title">Wrap what you already have.</h2>
+          <p>
+            A yoga studio exposes one read-only search and one booking. These are the docs' own
+            examples; they typecheck in the repository.
+          </p>
+        </div>
+        <!-- include: docs/examples/getting-started/axe.ts#action --><!-- /include -->
+        <!-- include: docs/examples/designing-actions/descriptions.ts#good-action --><!-- /include -->
+        <h3 style="margin-top: 2rem">Mount it</h3>
+        <div class="tabs" role="tablist" aria-label="Framework">
+          <button
+            role="tab"
+            id="tab-express"
+            aria-selected="true"
+            aria-controls="mount-express"
+            data-mount="express"
+          >
+            Express
+          </button>
+          <button
+            role="tab"
+            id="tab-next"
+            aria-selected="false"
+            aria-controls="mount-next"
+            data-mount="next"
+            tabindex="-1"
+          >
+            Next.js
+          </button>
+          <button
+            role="tab"
+            id="tab-fetch"
+            aria-selected="false"
+            aria-controls="mount-fetch"
+            data-mount="fetch"
+            tabindex="-1"
+          >
+            Hono, Remix, Workers
+          </button>
+        </div>
+        <div id="mount-express" role="tabpanel" aria-labelledby="tab-express">
+          <!-- include: docs/examples/getting-started/server-express.ts#all --><!-- /include -->
+        </div>
+        <div id="mount-next" role="tabpanel" aria-labelledby="tab-next" hidden>
+          <!-- include: docs/examples/getting-started/route.ts#all --><!-- /include -->
+        </div>
+        <div id="mount-fetch" role="tabpanel" aria-labelledby="tab-fetch" hidden>
+          <!-- include: docs/examples/getting-started/server-fetch.ts#all --><!-- /include -->
+        </div>
+        <h3 style="margin-top: 2rem">Then three commands</h3>
+        <div class="commands">
+          <div class="cmd">
+            <code>npx axe init</code>
+            <p>
+              Writes an <code>axe.ts</code> with one read-only action and the mount file for your
+              framework.
+            </p>
+          </div>
+          <div class="cmd">
+            <code>npx axe conformance http://localhost:3000</code>
+            <p>
+              Runs the protocol suite against your server and prints a pass/fail table. This is how
+              you know you are done.
+            </p>
+          </div>
+          <div class="cmd">
+            <code>npx axe mcp http://localhost:3000</code>
+            <p>
+              Serves your site to Claude Desktop or Claude Code as an MCP server, one tool per
+              action.
+            </p>
+          </div>
+        </div>
+        <p style="margin-top: 1.5rem">
+          <a href="docs/getting-started.html">The 15-minute tutorial</a>
+        </p>
+      </section>
+
+      <section class="section" id="who" aria-labelledby="who-title">
+        <div class="section-head">
+          <p class="eyebrow">Who it is for</p>
+          <h2 id="who-title">Any organization with a website and something to do.</h2>
+        </div>
+        <div class="grid">
+          <div class="tile">
+            <h3>Yoga studio</h3>
+            <p>Book a class.</p>
+          </div>
+          <div class="tile">
+            <h3>University</h3>
+            <p>Check application status, upload a transcript.</p>
+          </div>
+          <div class="tile">
+            <h3>Property manager</h3>
+            <p>Find a unit, apply.</p>
+          </div>
+          <div class="tile">
+            <h3>Dentist</h3>
+            <p>Reschedule an appointment.</p>
+          </div>
+          <div class="tile">
+            <h3>City</h3>
+            <p>Pay a parking ticket.</p>
+          </div>
+          <div class="tile">
+            <h3>Online shop</h3>
+            <p>Track an order, start a return.</p>
+          </div>
+        </div>
+        <p style="margin-top: 1.5rem">
+          Platforms can enable every tenant at once: one action set, one resolver, one index.
+          <a href="docs/platforms.html">Platforms</a>
+        </p>
+      </section>
+
+      <section class="section" id="docs" aria-labelledby="docs-title">
+        <div class="section-head">
+          <p class="eyebrow">Docs</p>
+          <h2 id="docs-title">Read the docs.</h2>
+          <p>
+            Written for an engineer who has never heard of AXE and has 20 minutes before standup.
+          </p>
+        </div>
+        <!-- generated: docs-hub --><!-- /generated -->
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="inner">
+        <p class="status-banner">v0 — the protocol may change before 1.0.</p>
+        <ul class="footer-links">
+          <li><a href="{{githubRepo}}" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="docs/spec/AXE-PROTOCOL.html">Spec</a></li>
+          <li><a href="docs/repo/ROADMAP.html">Roadmap</a></li>
+          <li><a href="docs/repo/DECISIONS.html">Decisions</a></li>
+          <li><a href="docs/repo/CHANGELOG.html">Changelog</a></li>
+          <li><a href="docs/repo/SECURITY.html">Security policy</a></li>
+          <li><a href="{{githubRepo}}/blob/main/LICENSE" rel="noopener noreferrer">License</a></li>
+        </ul>
+        <small
+          >Body Spray is an open protocol and SDK. It has no central authority; agents decide whom
+          to trust.</small
+        >
+      </div>
+    </footer>
+
+    <dialog id="search-dialog" class="search-dialog" aria-label="Search the documentation">
+      <form class="search-form" role="search" method="dialog">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search docs"
+          aria-label="Search the documentation"
+          autocomplete="off"
+        />
+        <button type="submit" class="search-close">Close</button>
+      </form>
+      <ul class="search-results" role="listbox" aria-label="Results"></ul>
+    </dialog>
+    {{script}}
+  </body>
+</html>

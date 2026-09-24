@@ -4,19 +4,19 @@
 
 ## Interfaces
 
+<a id="nextadapteroptions"></a>
+
 ### NextAdapterOptions
 
-Defined in: [packages/next/src/index.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L16)
-
 #### Properties
+
+<a id="context"></a>
 
 ##### context?
 
 ```ts
 optional context?: (request) => MaybePromise<AdapterContext | undefined>;
 ```
-
-Defined in: [packages/next/src/index.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L18)
 
 Inject the app's session or tenant.
 
@@ -32,19 +32,19 @@ Inject the app's session or tenant.
 
 ***
 
+<a id="nextpagesadapteroptions"></a>
+
 ### NextPagesAdapterOptions
 
-Defined in: [packages/next/src/index.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L40)
-
 #### Properties
+
+<a id="context-1"></a>
 
 ##### context?
 
 ```ts
 optional context?: (req, res) => MaybePromise<AdapterContext | undefined>;
 ```
-
-Defined in: [packages/next/src/index.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L41)
 
 ###### Parameters
 
@@ -60,21 +60,21 @@ Defined in: [packages/next/src/index.ts:41](https://github.com/summationai/code/
 
 `MaybePromise`\<`AdapterContext` \| `undefined`\>
 
+<a id="origin"></a>
+
 ##### origin?
 
 ```ts
 optional origin?: string;
 ```
 
-Defined in: [packages/next/src/index.ts:46](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L46)
-
 The public origin, e.g. `https://example.com`. Defaults to the request's `Host` header.
 
 ***
 
-### PagesApiRequestLike
+<a id="pagesapirequestlike"></a>
 
-Defined in: [packages/next/src/index.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L35)
+### PagesApiRequestLike
 
 A Pages API request: Next parses JSON bodies into `body` by default.
 
@@ -84,13 +84,13 @@ A Pages API request: Next parses JSON bodies into `body` by default.
 
 #### Properties
 
+<a id="aborted"></a>
+
 ##### ~~aborted~~
 
 ```ts
 aborted: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1222
 
 The `message.aborted` property will be `true` if the request has
 been aborted.
@@ -109,21 +109,21 @@ Since v17.0.0,v16.12.0 - Check `message.destroyed` from <a href="stream.html#cla
 IncomingMessage.aborted
 ```
 
+<a id="body"></a>
+
 ##### body?
 
 ```ts
 optional body?: unknown;
 ```
 
-Defined in: [packages/next/src/index.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L36)
+<a id="closed"></a>
 
 ##### closed
 
 ```ts
 readonly closed: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:161
 
 Is `true` after `'close'` has been emitted.
 
@@ -137,13 +137,13 @@ v18.0.0
 IncomingMessage.closed
 ```
 
+<a id="complete"></a>
+
 ##### complete
 
 ```ts
 complete: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1257
 
 The `message.complete` property will be `true` if a complete HTTP message has
 been received and successfully parsed.
@@ -176,13 +176,13 @@ v0.3.0
 IncomingMessage.complete
 ```
 
+<a id="connection"></a>
+
 ##### ~~connection~~
 
 ```ts
 connection: Socket;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1263
 
 Alias for `message.socket`.
 
@@ -200,13 +200,13 @@ Since v16.0.0 - Use `socket`.
 IncomingMessage.connection
 ```
 
+<a id="destroyed"></a>
+
 ##### destroyed
 
 ```ts
 destroyed: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:156
 
 Is `true` after `readable.destroy()` has been called.
 
@@ -220,13 +220,13 @@ v8.0.0
 IncomingMessage.destroyed
 ```
 
+<a id="errored"></a>
+
 ##### errored
 
 ```ts
 readonly errored: Error | null;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:166
 
 Returns error if the stream has been destroyed with an error.
 
@@ -240,13 +240,13 @@ v18.0.0
 IncomingMessage.errored
 ```
 
+<a id="headers"></a>
+
 ##### headers
 
 ```ts
 headers: IncomingHttpHeaders;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1303
 
 The request/response headers object.
 
@@ -283,13 +283,13 @@ v0.1.5
 IncomingMessage.headers
 ```
 
+<a id="headersdistinct"></a>
+
 ##### headersDistinct
 
 ```ts
 headersDistinct: Dict<string[]>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1318
 
 Similar to `message.headers`, but there is no join logic and the values are
 always arrays of strings, even for headers received just once.
@@ -313,13 +313,13 @@ v18.3.0, v16.17.0
 IncomingMessage.headersDistinct
 ```
 
+<a id="httpversion"></a>
+
 ##### httpVersion
 
 ```ts
 httpVersion: string;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1231
 
 In case of server request, the HTTP version sent by the client. In the case of
 client response, the HTTP version of the connected-to server.
@@ -337,13 +337,13 @@ v0.1.1
 IncomingMessage.httpVersion
 ```
 
+<a id="httpversionmajor"></a>
+
 ##### httpVersionMajor
 
 ```ts
 httpVersionMajor: number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1232
 
 ###### Inherited from
 
@@ -351,13 +351,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/h
 IncomingMessage.httpVersionMajor
 ```
 
+<a id="httpversionminor"></a>
+
 ##### httpVersionMinor
 
 ```ts
 httpVersionMinor: number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1233
 
 ###### Inherited from
 
@@ -365,13 +365,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/h
 IncomingMessage.httpVersionMinor
 ```
 
+<a id="method"></a>
+
 ##### method?
 
 ```ts
 optional method?: string;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1373
 
 **Only valid for request obtained from Server.**
 
@@ -387,21 +387,21 @@ v0.1.1
 IncomingMessage.method
 ```
 
+<a id="query"></a>
+
 ##### query?
 
 ```ts
 optional query?: Record<string, string | string[] | undefined>;
 ```
 
-Defined in: [packages/next/src/index.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L37)
+<a id="rawheaders"></a>
 
 ##### rawHeaders
 
 ```ts
 rawHeaders: string[];
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1343
 
 The raw request/response headers list exactly as they were received.
 
@@ -435,13 +435,13 @@ v0.11.6
 IncomingMessage.rawHeaders
 ```
 
+<a id="rawtrailers"></a>
+
 ##### rawTrailers
 
 ```ts
 rawTrailers: string[];
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1361
 
 The raw request/response trailer keys and values exactly as they were
 received. Only populated at the `'end'` event.
@@ -456,13 +456,13 @@ v0.11.6
 IncomingMessage.rawTrailers
 ```
 
+<a id="readable"></a>
+
 ##### readable
 
 ```ts
 readable: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:112
 
 Is `true` if it is safe to call [read](#read), which means
 the stream has not been destroyed or emitted `'error'` or `'end'`.
@@ -477,13 +477,13 @@ v11.4.0
 IncomingMessage.readable
 ```
 
+<a id="readableaborted"></a>
+
 ##### readableAborted
 
 ```ts
 readonly readableAborted: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:106
 
 **`Experimental`**
 
@@ -499,13 +499,13 @@ v16.8.0
 IncomingMessage.readableAborted
 ```
 
+<a id="readabledidread"></a>
+
 ##### readableDidRead
 
 ```ts
 readonly readableDidRead: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:118
 
 **`Experimental`**
 
@@ -521,13 +521,13 @@ v16.7.0, v14.18.0
 IncomingMessage.readableDidRead
 ```
 
+<a id="readableencoding"></a>
+
 ##### readableEncoding
 
 ```ts
 readonly readableEncoding: BufferEncoding | null;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:123
 
 Getter for the property `encoding` of a given `Readable` stream. The `encoding` property can be set using the [setEncoding](#setencoding) method.
 
@@ -541,13 +541,13 @@ v12.7.0
 IncomingMessage.readableEncoding
 ```
 
+<a id="readableended"></a>
+
 ##### readableEnded
 
 ```ts
 readonly readableEnded: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:128
 
 Becomes `true` when [`'end'`](https://nodejs.org/docs/latest-v20.x/api/stream.html#event-end) event is emitted.
 
@@ -561,13 +561,13 @@ v12.9.0
 IncomingMessage.readableEnded
 ```
 
+<a id="readableflowing"></a>
+
 ##### readableFlowing
 
 ```ts
 readonly readableFlowing: boolean | null;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:134
 
 This property reflects the current state of a `Readable` stream as described
 in the [Three states](https://nodejs.org/docs/latest-v20.x/api/stream.html#three-states) section.
@@ -582,13 +582,13 @@ v9.4.0
 IncomingMessage.readableFlowing
 ```
 
+<a id="readablehighwatermark"></a>
+
 ##### readableHighWaterMark
 
 ```ts
 readonly readableHighWaterMark: number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:139
 
 Returns the value of `highWaterMark` passed when creating this `Readable`.
 
@@ -602,13 +602,13 @@ v9.3.0
 IncomingMessage.readableHighWaterMark
 ```
 
+<a id="readablelength"></a>
+
 ##### readableLength
 
 ```ts
 readonly readableLength: number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:146
 
 This property contains the number of bytes (or objects) in the queue
 ready to be read. The value provides introspection data regarding
@@ -624,13 +624,13 @@ v9.4.0
 IncomingMessage.readableLength
 ```
 
+<a id="readableobjectmode"></a>
+
 ##### readableObjectMode
 
 ```ts
 readonly readableObjectMode: boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:151
 
 Getter for the property `objectMode` of a given `Readable` stream.
 
@@ -644,13 +644,13 @@ v12.3.0
 IncomingMessage.readableObjectMode
 ```
 
+<a id="socket"></a>
+
 ##### socket
 
 ```ts
 socket: Socket;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1275
 
 The `net.Socket` object associated with the connection.
 
@@ -671,13 +671,13 @@ v0.3.0
 IncomingMessage.socket
 ```
 
+<a id="statuscode"></a>
+
 ##### statusCode?
 
 ```ts
 optional statusCode?: number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1423
 
 **Only valid for response obtained from ClientRequest.**
 
@@ -693,13 +693,13 @@ v0.1.1
 IncomingMessage.statusCode
 ```
 
+<a id="statusmessage"></a>
+
 ##### statusMessage?
 
 ```ts
 optional statusMessage?: string;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1430
 
 **Only valid for response obtained from ClientRequest.**
 
@@ -715,13 +715,13 @@ v0.11.10
 IncomingMessage.statusMessage
 ```
 
+<a id="trailers"></a>
+
 ##### trailers
 
 ```ts
 trailers: Dict<string>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1348
 
 The request/response trailers object. Only populated at the `'end'` event.
 
@@ -735,13 +735,13 @@ v0.3.0
 IncomingMessage.trailers
 ```
 
+<a id="trailersdistinct"></a>
+
 ##### trailersDistinct
 
 ```ts
 trailersDistinct: Dict<string[]>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1355
 
 Similar to `message.trailers`, but there is no join logic and the values are
 always arrays of strings, even for headers received just once.
@@ -757,13 +757,13 @@ v18.3.0, v16.17.0
 IncomingMessage.trailersDistinct
 ```
 
+<a id="url"></a>
+
 ##### url?
 
 ```ts
 optional url?: string;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1416
 
 **Only valid for request obtained from Server.**
 
@@ -817,13 +817,13 @@ IncomingMessage.url
 
 #### Methods
 
+<a id="_construct"></a>
+
 ##### \_construct()?
 
 ```ts
 optional _construct(callback): void;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:168
 
 ###### Parameters
 
@@ -841,13 +841,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage._construct
 ```
 
+<a id="_destroy"></a>
+
 ##### \_destroy()
 
 ```ts
 _destroy(error, callback): void;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:609
 
 ###### Parameters
 
@@ -869,13 +869,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage._destroy
 ```
 
+<a id="_read"></a>
+
 ##### \_read()
 
 ```ts
 _read(size): void;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:169
 
 ###### Parameters
 
@@ -893,13 +893,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage._read
 ```
 
+<a id="asyncdispose"></a>
+
 ##### \[asyncDispose\]()
 
 ```ts
 asyncDispose: Promise<void>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:694
 
 Calls `readable.destroy()` with an `AbortError` and returns a promise that fulfills when the stream is finished.
 
@@ -917,13 +917,13 @@ v20.4.0
 IncomingMessage.[asyncDispose]
 ```
 
+<a id="asynciterator"></a>
+
 ##### \[asyncIterator\]()
 
 ```ts
 asyncIterator: AsyncIterator<any>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:689
 
 ###### Returns
 
@@ -935,6 +935,8 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.[asyncIterator]
 ```
 
+<a id="capturerejectionsymbol"></a>
+
 ##### \[captureRejectionSymbol\]()?
 
 ```ts
@@ -944,8 +946,6 @@ optional [captureRejectionSymbol]<K>(
    ...args
 ): void;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:103
 
 ###### Type Parameters
 
@@ -977,6 +977,8 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/e
 IncomingMessage.[captureRejectionSymbol]
 ```
 
+<a id="addlistener"></a>
+
 ##### addListener()
 
 ###### Call Signature
@@ -984,8 +986,6 @@ IncomingMessage.[captureRejectionSymbol]
 ```ts
 addListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:633
 
 Event emitter
 The defined events on documents including:
@@ -1023,8 +1023,6 @@ IncomingMessage.addListener
 addListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:634
-
 Event emitter
 The defined events on documents including:
 1. close
@@ -1060,8 +1058,6 @@ IncomingMessage.addListener
 ```ts
 addListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:635
 
 Event emitter
 The defined events on documents including:
@@ -1099,8 +1095,6 @@ IncomingMessage.addListener
 addListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:636
-
 Event emitter
 The defined events on documents including:
 1. close
@@ -1136,8 +1130,6 @@ IncomingMessage.addListener
 ```ts
 addListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:637
 
 Event emitter
 The defined events on documents including:
@@ -1175,8 +1167,6 @@ IncomingMessage.addListener
 addListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:638
-
 Event emitter
 The defined events on documents including:
 1. close
@@ -1212,8 +1202,6 @@ IncomingMessage.addListener
 ```ts
 addListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:639
 
 Event emitter
 The defined events on documents including:
@@ -1251,8 +1239,6 @@ IncomingMessage.addListener
 addListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:640
-
 Event emitter
 The defined events on documents including:
 1. close
@@ -1283,13 +1269,13 @@ The defined events on documents including:
 IncomingMessage.addListener
 ```
 
+<a id="asindexedpairs"></a>
+
 ##### asIndexedPairs()
 
 ```ts
 asIndexedPairs(options?): Readable;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:584
 
 This method returns a new stream with chunks of the underlying stream paired with a counter
 in the form `[index, chunk]`. The first index value is `0` and it increases by 1 for each chunk produced.
@@ -1316,13 +1302,13 @@ v17.5.0
 IncomingMessage.asIndexedPairs
 ```
 
+<a id="compose"></a>
+
 ##### compose()
 
 ```ts
 compose<T>(stream, options?): T;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:35
 
 ###### Type Parameters
 
@@ -1355,13 +1341,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.compose
 ```
 
+<a id="destroy"></a>
+
 ##### destroy()
 
 ```ts
 destroy(error?): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1436
 
 Calls `destroy()` on the socket that received the `IncomingMessage`. If `error` is provided, an `'error'` event is emitted on the socket and `error` is passed
 as an argument to any listeners on the event.
@@ -1386,13 +1372,13 @@ v0.3.0
 IncomingMessage.destroy
 ```
 
+<a id="drop"></a>
+
 ##### drop()
 
 ```ts
 drop(limit, options?): Readable;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:570
 
 This method returns a new stream with the first *limit* chunks dropped from the start.
 
@@ -1424,6 +1410,8 @@ v17.5.0
 IncomingMessage.drop
 ```
 
+<a id="emit"></a>
+
 ##### emit()
 
 ###### Call Signature
@@ -1431,8 +1419,6 @@ IncomingMessage.drop
 ```ts
 emit(event): boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:641
 
 Synchronously calls each of the listeners registered for the event named `eventName`, in the order they were registered, passing the supplied arguments
 to each.
@@ -1498,8 +1484,6 @@ IncomingMessage.emit
 emit(event, chunk): boolean;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:642
-
 ###### Parameters
 
 ###### event
@@ -1526,8 +1510,6 @@ IncomingMessage.emit
 emit(event): boolean;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:643
-
 ###### Parameters
 
 ###### event
@@ -1549,8 +1531,6 @@ IncomingMessage.emit
 ```ts
 emit(event, err): boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:644
 
 ###### Parameters
 
@@ -1578,8 +1558,6 @@ IncomingMessage.emit
 emit(event): boolean;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:645
-
 ###### Parameters
 
 ###### event
@@ -1601,8 +1579,6 @@ IncomingMessage.emit
 ```ts
 emit(event): boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:646
 
 ###### Parameters
 
@@ -1626,8 +1602,6 @@ IncomingMessage.emit
 emit(event): boolean;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:647
-
 ###### Parameters
 
 ###### event
@@ -1650,8 +1624,6 @@ IncomingMessage.emit
 emit(event, ...args): boolean;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:648
-
 ###### Parameters
 
 ###### event
@@ -1672,13 +1644,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.emit
 ```
 
+<a id="eventnames"></a>
+
 ##### eventNames()
 
 ```ts
 eventNames(): (string | symbol)[];
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:968
 
 Returns an array listing the events for which the emitter has registered
 listeners. The values in the array are strings or `Symbol`s.
@@ -1711,13 +1683,13 @@ v6.0.0
 IncomingMessage.eventNames
 ```
 
+<a id="every"></a>
+
 ##### every()
 
 ```ts
 every(fn, options?): Promise<boolean>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:549
 
 This method is similar to `Array.prototype.every` and calls *fn* on each chunk in the stream
 to check if all awaited return values are truthy value for *fn*. Once an *fn* call on a chunk
@@ -1752,13 +1724,13 @@ v17.5.0
 IncomingMessage.every
 ```
 
+<a id="filter"></a>
+
 ##### filter()
 
 ```ts
 filter(fn, options?): Readable;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:477
 
 This method allows filtering the stream. For each chunk in the stream the *fn* function will be called
 and if it returns a truthy value, the chunk will be passed to the result stream.
@@ -1792,6 +1764,8 @@ v17.4.0, v16.14.0
 IncomingMessage.filter
 ```
 
+<a id="find"></a>
+
 ##### find()
 
 ###### Call Signature
@@ -1799,8 +1773,6 @@ IncomingMessage.filter
 ```ts
 find<T>(fn, options?): Promise<T | undefined>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:532
 
 This method is similar to `Array.prototype.find` and calls *fn* on each chunk in the stream
 to find a chunk with a truthy value for *fn*. Once an *fn* call's awaited return value is truthy,
@@ -1848,8 +1820,6 @@ IncomingMessage.find
 find(fn, options?): Promise<any>;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:536
-
 This method is similar to `Array.prototype.find` and calls *fn* on each chunk in the stream
 to find a chunk with a truthy value for *fn*. Once an *fn* call's awaited return value is truthy,
 the stream is destroyed and the promise is fulfilled with value for which *fn* returned a truthy value.
@@ -1884,13 +1854,13 @@ v17.5.0
 IncomingMessage.find
 ```
 
+<a id="flatmap"></a>
+
 ##### flatMap()
 
 ```ts
 flatMap(fn, options?): Readable;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:563
 
 This method returns a new stream by applying the given callback to each chunk of the stream
 and then flattening the result.
@@ -1926,13 +1896,13 @@ v17.5.0
 IncomingMessage.flatMap
 ```
 
+<a id="foreach"></a>
+
 ##### forEach()
 
 ```ts
 forEach(fn, options?): Promise<void>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:496
 
 This method allows iterating a stream. For each chunk in the stream the *fn* function will be called.
 If the *fn* function returns a promise - that promise will be `await`ed.
@@ -1973,13 +1943,13 @@ v17.5.0
 IncomingMessage.forEach
 ```
 
+<a id="getmaxlisteners"></a>
+
 ##### getMaxListeners()
 
 ```ts
 getMaxListeners(): number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:820
 
 Returns the current max listener value for the `EventEmitter` which is either
 set by `emitter.setMaxListeners(n)` or defaults to EventEmitter.defaultMaxListeners.
@@ -1998,13 +1968,13 @@ v1.0.0
 IncomingMessage.getMaxListeners
 ```
 
+<a id="ispaused"></a>
+
 ##### isPaused()
 
 ```ts
 isPaused(): boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:330
 
 The `readable.isPaused()` method returns the current operating state of the `Readable`.
 This is used primarily by the mechanism that underlies the `readable.pipe()` method.
@@ -2034,13 +2004,13 @@ v0.11.14
 IncomingMessage.isPaused
 ```
 
+<a id="iterator"></a>
+
 ##### iterator()
 
 ```ts
 iterator(options?): AsyncIterator<any>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:460
 
 The iterator created by this method gives users the option to cancel the destruction
 of the stream if the `for await...of` loop is exited by `return`, `break`, or `throw`,
@@ -2072,13 +2042,13 @@ v16.3.0
 IncomingMessage.iterator
 ```
 
+<a id="listenercount"></a>
+
 ##### listenerCount()
 
 ```ts
 listenerCount<K>(eventName, listener?): number;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:914
 
 Returns the number of listeners listening for the event named `eventName`.
 If `listener` is provided, it will return how many times the listener is found
@@ -2118,13 +2088,13 @@ v3.2.0
 IncomingMessage.listenerCount
 ```
 
+<a id="listeners"></a>
+
 ##### listeners()
 
 ```ts
 listeners<K>(eventName): Function[];
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:833
 
 Returns a copy of the array of listeners for the event named `eventName`.
 
@@ -2162,13 +2132,13 @@ v0.1.26
 IncomingMessage.listeners
 ```
 
+<a id="map"></a>
+
 ##### map()
 
 ```ts
 map(fn, options?): Readable;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:468
 
 This method allows mapping over the stream. The *fn* function will be called for every chunk in the stream.
 If the *fn* function returns a promise - that promise will be `await`ed before being passed to the result stream.
@@ -2201,13 +2171,13 @@ v17.4.0, v16.14.0
 IncomingMessage.map
 ```
 
+<a id="off"></a>
+
 ##### off()
 
 ```ts
 off<K>(eventName, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:793
 
 Alias for `emitter.removeListener()`.
 
@@ -2241,6 +2211,8 @@ v10.0.0
 IncomingMessage.off
 ```
 
+<a id="on"></a>
+
 ##### on()
 
 ###### Call Signature
@@ -2248,8 +2220,6 @@ IncomingMessage.off
 ```ts
 on(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:649
 
 Adds the `listener` function to the end of the listeners array for the event
 named `eventName`. No checks are made to see if the `listener` has already
@@ -2310,8 +2280,6 @@ IncomingMessage.on
 on(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:650
-
 ###### Parameters
 
 ###### event
@@ -2337,8 +2305,6 @@ IncomingMessage.on
 ```ts
 on(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:651
 
 ###### Parameters
 
@@ -2366,8 +2332,6 @@ IncomingMessage.on
 on(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:652
-
 ###### Parameters
 
 ###### event
@@ -2393,8 +2357,6 @@ IncomingMessage.on
 ```ts
 on(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:653
 
 ###### Parameters
 
@@ -2422,8 +2384,6 @@ IncomingMessage.on
 on(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:654
-
 ###### Parameters
 
 ###### event
@@ -2449,8 +2409,6 @@ IncomingMessage.on
 ```ts
 on(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:655
 
 ###### Parameters
 
@@ -2478,8 +2436,6 @@ IncomingMessage.on
 on(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:656
-
 ###### Parameters
 
 ###### event
@@ -2500,6 +2456,8 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.on
 ```
 
+<a id="once"></a>
+
 ##### once()
 
 ###### Call Signature
@@ -2507,8 +2465,6 @@ IncomingMessage.on
 ```ts
 once(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:657
 
 Adds a **one-time** `listener` function for the event named `eventName`. The
 next time `eventName` is triggered, this listener is removed and then invoked.
@@ -2567,8 +2523,6 @@ IncomingMessage.once
 once(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:658
-
 ###### Parameters
 
 ###### event
@@ -2594,8 +2548,6 @@ IncomingMessage.once
 ```ts
 once(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:659
 
 ###### Parameters
 
@@ -2623,8 +2575,6 @@ IncomingMessage.once
 once(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:660
-
 ###### Parameters
 
 ###### event
@@ -2650,8 +2600,6 @@ IncomingMessage.once
 ```ts
 once(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:661
 
 ###### Parameters
 
@@ -2679,8 +2627,6 @@ IncomingMessage.once
 once(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:662
-
 ###### Parameters
 
 ###### event
@@ -2706,8 +2652,6 @@ IncomingMessage.once
 ```ts
 once(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:663
 
 ###### Parameters
 
@@ -2735,8 +2679,6 @@ IncomingMessage.once
 once(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:664
-
 ###### Parameters
 
 ###### event
@@ -2757,13 +2699,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.once
 ```
 
+<a id="pause"></a>
+
 ##### pause()
 
 ```ts
 pause(): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:294
 
 The `readable.pause()` method will cause a stream in flowing mode to stop
 emitting `'data'` events, switching out of flowing mode. Any data that
@@ -2798,13 +2740,13 @@ v0.9.4
 IncomingMessage.pause
 ```
 
+<a id="pipe"></a>
+
 ##### pipe()
 
 ```ts
 pipe<T>(destination, options?): T;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:29
 
 ###### Type Parameters
 
@@ -2834,6 +2776,8 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.pipe
 ```
 
+<a id="prependlistener"></a>
+
 ##### prependListener()
 
 ###### Call Signature
@@ -2841,8 +2785,6 @@ IncomingMessage.pipe
 ```ts
 prependListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:665
 
 Adds the `listener` function to the _beginning_ of the listeners array for the
 event named `eventName`. No checks are made to see if the `listener` has
@@ -2889,8 +2831,6 @@ IncomingMessage.prependListener
 prependListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:666
-
 ###### Parameters
 
 ###### event
@@ -2916,8 +2856,6 @@ IncomingMessage.prependListener
 ```ts
 prependListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:667
 
 ###### Parameters
 
@@ -2945,8 +2883,6 @@ IncomingMessage.prependListener
 prependListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:668
-
 ###### Parameters
 
 ###### event
@@ -2972,8 +2908,6 @@ IncomingMessage.prependListener
 ```ts
 prependListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:669
 
 ###### Parameters
 
@@ -3001,8 +2935,6 @@ IncomingMessage.prependListener
 prependListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:670
-
 ###### Parameters
 
 ###### event
@@ -3028,8 +2960,6 @@ IncomingMessage.prependListener
 ```ts
 prependListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:671
 
 ###### Parameters
 
@@ -3057,8 +2987,6 @@ IncomingMessage.prependListener
 prependListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:672
-
 ###### Parameters
 
 ###### event
@@ -3079,6 +3007,8 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.prependListener
 ```
 
+<a id="prependoncelistener"></a>
+
 ##### prependOnceListener()
 
 ###### Call Signature
@@ -3086,8 +3016,6 @@ IncomingMessage.prependListener
 ```ts
 prependOnceListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:673
 
 Adds a **one-time**`listener` function for the event named `eventName` to the _beginning_ of the listeners array. The next time `eventName` is triggered, this
 listener is removed, and then invoked.
@@ -3132,8 +3060,6 @@ IncomingMessage.prependOnceListener
 prependOnceListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:674
-
 ###### Parameters
 
 ###### event
@@ -3159,8 +3085,6 @@ IncomingMessage.prependOnceListener
 ```ts
 prependOnceListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:675
 
 ###### Parameters
 
@@ -3188,8 +3112,6 @@ IncomingMessage.prependOnceListener
 prependOnceListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:676
-
 ###### Parameters
 
 ###### event
@@ -3215,8 +3137,6 @@ IncomingMessage.prependOnceListener
 ```ts
 prependOnceListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:677
 
 ###### Parameters
 
@@ -3244,8 +3164,6 @@ IncomingMessage.prependOnceListener
 prependOnceListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:678
-
 ###### Parameters
 
 ###### event
@@ -3271,8 +3189,6 @@ IncomingMessage.prependOnceListener
 ```ts
 prependOnceListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:679
 
 ###### Parameters
 
@@ -3300,8 +3216,6 @@ IncomingMessage.prependOnceListener
 prependOnceListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:680
-
 ###### Parameters
 
 ###### event
@@ -3322,13 +3236,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.prependOnceListener
 ```
 
+<a id="push"></a>
+
 ##### push()
 
 ```ts
 push(chunk, encoding?): boolean;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:450
 
 ###### Parameters
 
@@ -3350,13 +3264,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.push
 ```
 
+<a id="rawlisteners"></a>
+
 ##### rawListeners()
 
 ```ts
 rawListeners<K>(eventName): Function[];
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:864
 
 Returns a copy of the array of listeners for the event named `eventName`,
 including any wrappers (such as those created by `.once()`).
@@ -3412,13 +3326,13 @@ v9.4.0
 IncomingMessage.rawListeners
 ```
 
+<a id="read"></a>
+
 ##### read()
 
 ```ts
 read(size?): any;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:247
 
 The `readable.read()` method reads data out of the internal buffer and
 returns it. If no data is available to be read, `null` is returned. By default,
@@ -3516,6 +3430,8 @@ v0.9.4
 IncomingMessage.read
 ```
 
+<a id="reduce"></a>
+
 ##### reduce()
 
 ###### Call Signature
@@ -3527,8 +3443,6 @@ reduce<T>(
    options?
 ): Promise<T>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:599
 
 This method calls *fn* on each chunk of the stream in order, passing it the result from the calculation
 on the previous element. It returns a promise for the final value of the reduction.
@@ -3589,8 +3503,6 @@ reduce<T>(
 ): Promise<T>;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:604
-
 This method calls *fn* on each chunk of the stream in order, passing it the result from the calculation
 on the previous element. It returns a promise for the final value of the reduction.
 
@@ -3640,13 +3552,13 @@ v17.5.0
 IncomingMessage.reduce
 ```
 
+<a id="removealllisteners"></a>
+
 ##### removeAllListeners()
 
 ```ts
 removeAllListeners(eventName?): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:804
 
 Removes all listeners, or those of the specified `eventName`.
 
@@ -3676,6 +3588,8 @@ v0.1.26
 IncomingMessage.removeAllListeners
 ```
 
+<a id="removelistener"></a>
+
 ##### removeListener()
 
 ###### Call Signature
@@ -3683,8 +3597,6 @@ IncomingMessage.removeAllListeners
 ```ts
 removeListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:681
 
 Removes the specified `listener` from the listener array for the event named `eventName`.
 
@@ -3796,8 +3708,6 @@ IncomingMessage.removeListener
 removeListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:682
-
 ###### Parameters
 
 ###### event
@@ -3823,8 +3733,6 @@ IncomingMessage.removeListener
 ```ts
 removeListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:683
 
 ###### Parameters
 
@@ -3852,8 +3760,6 @@ IncomingMessage.removeListener
 removeListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:684
-
 ###### Parameters
 
 ###### event
@@ -3879,8 +3785,6 @@ IncomingMessage.removeListener
 ```ts
 removeListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:685
 
 ###### Parameters
 
@@ -3908,8 +3812,6 @@ IncomingMessage.removeListener
 removeListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:686
-
 ###### Parameters
 
 ###### event
@@ -3935,8 +3837,6 @@ IncomingMessage.removeListener
 ```ts
 removeListener(event, listener): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:687
 
 ###### Parameters
 
@@ -3964,8 +3864,6 @@ IncomingMessage.removeListener
 removeListener(event, listener): this;
 ```
 
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:688
-
 ###### Parameters
 
 ###### event
@@ -3986,13 +3884,13 @@ Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/s
 IncomingMessage.removeListener
 ```
 
+<a id="resume"></a>
+
 ##### resume()
 
 ```ts
 resume(): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:313
 
 The `readable.resume()` method causes an explicitly paused `Readable` stream to
 resume emitting `'data'` events, switching the stream into flowing mode.
@@ -4024,13 +3922,13 @@ v0.9.4
 IncomingMessage.resume
 ```
 
+<a id="setencoding"></a>
+
 ##### setEncoding()
 
 ```ts
 setEncoding(encoding): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:272
 
 The `readable.setEncoding()` method sets the character encoding for
 data read from the `Readable` stream.
@@ -4075,13 +3973,13 @@ v0.9.4
 IncomingMessage.setEncoding
 ```
 
+<a id="setmaxlisteners"></a>
+
 ##### setMaxListeners()
 
 ```ts
 setMaxListeners(n): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/events.d.ts:814
 
 By default `EventEmitter`s will print a warning if more than `10` listeners are
 added for a particular event. This is a useful default that helps finding
@@ -4110,13 +4008,13 @@ v0.3.5
 IncomingMessage.setMaxListeners
 ```
 
+<a id="settimeout"></a>
+
 ##### setTimeout()
 
 ```ts
 setTimeout(msecs, callback?): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/http.d.ts:1366
 
 Calls `message.socket.setTimeout(msecs, callback)`.
 
@@ -4144,13 +4042,13 @@ v0.5.9
 IncomingMessage.setTimeout
 ```
 
+<a id="some"></a>
+
 ##### some()
 
 ```ts
 some(fn, options?): Promise<boolean>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:518
 
 This method is similar to `Array.prototype.some` and calls *fn* on each chunk in the stream
 until the awaited return value is `true` (or any truthy value). Once an *fn* call on a chunk
@@ -4185,13 +4083,13 @@ v17.5.0
 IncomingMessage.some
 ```
 
+<a id="take"></a>
+
 ##### take()
 
 ```ts
 take(limit, options?): Readable;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:577
 
 This method returns a new stream with the first *limit* chunks.
 
@@ -4223,13 +4121,13 @@ v17.5.0
 IncomingMessage.take
 ```
 
+<a id="toarray"></a>
+
 ##### toArray()
 
 ```ts
 toArray(options?): Promise<any[]>;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:508
 
 This method allows easily obtaining the contents of a stream.
 
@@ -4258,13 +4156,13 @@ v17.5.0
 IncomingMessage.toArray
 ```
 
+<a id="unpipe"></a>
+
 ##### unpipe()
 
 ```ts
 unpipe(destination?): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:357
 
 The `readable.unpipe()` method detaches a `Writable` stream previously attached
 using the [pipe](#pipe) method.
@@ -4311,13 +4209,13 @@ v0.9.4
 IncomingMessage.unpipe
 ```
 
+<a id="unshift"></a>
+
 ##### unshift()
 
 ```ts
 unshift(chunk, encoding?): void;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:423
 
 Passing `chunk` as `null` signals the end of the stream (EOF) and behaves the
 same as `readable.push(null)`, after which no more data can be written. The EOF
@@ -4408,13 +4306,13 @@ v0.9.11
 IncomingMessage.unshift
 ```
 
+<a id="wrap"></a>
+
 ##### wrap()
 
 ```ts
 wrap(stream): this;
 ```
-
-Defined in: node\_modules/.pnpm/@types+node@20.19.43/node\_modules/@types/node/stream.d.ts:449
 
 Prior to Node.js 0.10, streams did not implement the entire `node:stream` module API as it is currently defined. (See `Compatibility` for more
 information.)
@@ -4462,13 +4360,13 @@ IncomingMessage.wrap
 
 ## Functions
 
+<a id="axenext"></a>
+
 ### axeNext()
 
 ```ts
 function axeNext(axe, options?): object;
 ```
-
-Defined in: [packages/next/src/index.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L24)
 
 App Router route handlers. Export the returned `GET`, `POST`, and `OPTIONS` from your route file.
 
@@ -4506,13 +4404,13 @@ POST: RouteHandler;
 
 ***
 
+<a id="axenextpages"></a>
+
 ### axeNextPages()
 
 ```ts
 function axeNextPages(axe, options?): (req, res) => Promise<void>;
 ```
-
-Defined in: [packages/next/src/index.ts:50](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L50)
 
 Pages API handler. Use a catch-all route (`pages/api/axe/[...axe].ts`) and rewrite `/.well-known/axe.json` and `/axe/:path*` to it.
 

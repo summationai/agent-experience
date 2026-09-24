@@ -11,3 +11,5 @@ docs/images
 packages/core/src/vocabulary.ts
 docs/**/*.md
 README.md
+site/dist
+site/test/__screenshots__
