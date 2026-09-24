@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/payment.ach-debit.schema.json",
+  "title": "Bank account (ACH)",
+  "description": "Authorization for a one-time ACH debit from a US bank account. Kind: payment.ach-debit. Sensitive: true.",
+  "type": "object",
+  "properties": {
+    "accountHolderName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "routingNumber": {
+      "type": "string",
+      "pattern": "^[0-9]{9}$",
+      "description": "ABA routing number"
+    },
+    "accountNumber": {
+      "type": "string",
+      "pattern": "^[0-9]{4,17}$"
+    },
+    "accountType": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "savings"
+      ]
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Amount in major units"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 currency code, e.g. USD"
+    },
+    "authorizedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+      "description": "When the user authorized the debit"
+    },
+    "authorizationText": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The exact authorization text the user agreed to"
+    }
+  },
+  "required": [
+    "accountHolderName",
+    "routingNumber",
+    "accountNumber",
+    "accountType",
+    "amount",
+    "currency",
+    "authorizedAt",
+    "authorizationText"
+  ],
+  "additionalProperties": false
+}

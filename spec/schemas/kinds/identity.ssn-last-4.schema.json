@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/identity.ssn-last-4.schema.json",
+  "title": "Last four of SSN",
+  "description": "Last four digits of a US Social Security number. Kind: identity.ssn-last-4. Sensitive: true.",
+  "type": "object",
+  "properties": {
+    "last4": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$"
+    }
+  },
+  "required": [
+    "last4"
+  ],
+  "additionalProperties": false
+}

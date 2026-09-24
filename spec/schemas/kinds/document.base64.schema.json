@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/document.base64.schema.json",
+  "title": "Document upload",
+  "description": "A document uploaded inline as base64. Kind: document.base64. Sensitive: false.",
+  "type": "object",
+  "properties": {
+    "filename": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mimeType": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contentBase64": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Standard base64 without a data URL prefix"
+    }
+  },
+  "required": [
+    "filename",
+    "mimeType",
+    "contentBase64"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+  "entryPoints": [
+    "src/index.ts",
+    "src/vocabulary.ts",
+    "src/kinds.ts",
+    "src/events.ts",
+    "src/display.ts",
+    "src/lint.ts",
+    "src/schemas.ts",
+    "src/types.ts"
+  ]
+}

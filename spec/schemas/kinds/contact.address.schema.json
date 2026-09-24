@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/contact.address.schema.json",
+  "title": "Postal address",
+  "description": "A postal address for the user. Kind: contact.address. Sensitive: false.",
+  "type": "object",
+  "properties": {
+    "line1": {
+      "type": "string",
+      "minLength": 1
+    },
+    "line2": {
+      "type": "string",
+      "minLength": 1
+    },
+    "city": {
+      "type": "string",
+      "minLength": 1
+    },
+    "region": {
+      "description": "State, province, or prefecture",
+      "type": "string",
+      "minLength": 1
+    },
+    "postalCode": {
+      "type": "string",
+      "minLength": 1
+    },
+    "country": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code"
+    }
+  },
+  "required": [
+    "line1",
+    "city",
+    "country"
+  ],
+  "additionalProperties": false
+}

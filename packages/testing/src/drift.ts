@@ -154,7 +154,7 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
         if (
           span === name ||
           (name.length > 3 &&
-            (span.includes(name) || span.split(/[\s.\[\]()/{}:?=,]+/).includes(name)))
+            (span.includes(name) || span.split(/[\s.[\]()/{}:?=,]+/).includes(name)))
         )
           mentioned.add(name);
       }

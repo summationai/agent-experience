@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/document.url.schema.json",
+  "title": "Document by URL",
+  "description": "A document the site fetches from an HTTPS URL. Kind: document.url. Sensitive: false.",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "HTTPS URL the site fetches once"
+    },
+    "mimeType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "e.g. application/pdf"
+    },
+    "filename": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sizeBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "url",
+    "mimeType"
+  ],
+  "additionalProperties": false
+}

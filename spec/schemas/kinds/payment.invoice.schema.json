@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/payment.invoice.schema.json",
+  "title": "Invoice on net terms",
+  "description": "Request to be invoiced instead of paying now. Kind: payment.invoice. Sensitive: false.",
+  "type": "object",
+  "properties": {
+    "companyName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "billingEmail": {
+      "type": "string",
+      "format": "email",
+      "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+    },
+    "purchaseOrderNumber": {
+      "type": "string",
+      "minLength": 1
+    },
+    "netTermsDays": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 180
+    },
+    "taxId": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "companyName",
+    "billingEmail"
+  ],
+  "additionalProperties": false
+}

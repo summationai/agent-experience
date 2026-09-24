@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/resume.schema.json",
+  "type": "object",
+  "properties": {
+    "resumeToken": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "resumeToken"
+  ],
+  "additionalProperties": false
+}

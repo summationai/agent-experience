@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/continue.schema.json",
+  "type": "object",
+  "properties": {
+    "continuationToken": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^(payment|identity|document|contact|consent)\\.[a-z][a-z0-9-]*$|^x-[a-z0-9]+(-[a-z0-9]+)*\\.[a-z][a-z0-9-]*$"
+    },
+    "payload": {}
+  },
+  "required": [
+    "continuationToken",
+    "kind",
+    "payload"
+  ],
+  "additionalProperties": false
+}

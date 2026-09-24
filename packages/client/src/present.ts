@@ -4,12 +4,7 @@
  * every string is escaped, URLs are validated, and the only script is the SDK's own.
  */
 import type { ActionDefinition, Brand, OkResult, Result } from "@axe/core/types";
-import type {
-  PresentedAttribute,
-  PresentedItem,
-  PresentedResult,
-  ResolvedAffordance,
-} from "@axe/core/display";
+import type { PresentedAttribute, PresentedItem, PresentedResult } from "@axe/core/display";
 import { resolveDisplay } from "@axe/core/display";
 import * as WIRE from "@axe/core/vocabulary";
 

@@ -4,19 +4,12 @@
   "description": "Command-line tool for AXE: init, validate, inspect, preview, conformance, audit, mcp.",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -49,5 +42,9 @@
   ],
   "bin": {
     "axe": "./dist/index.js"
+  },
+  "devDependencies": {
+    "@axe/express": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.1"
   }
 }

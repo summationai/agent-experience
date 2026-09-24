@@ -1,0 +1,31 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "packages",
+  "entryPoints": [
+    "packages/core",
+    "packages/client",
+    "packages/mcp",
+    "packages/express",
+    "packages/next",
+    "packages/fetch",
+    "packages/testing",
+    "packages/cli"
+  ],
+  "packageOptions": {
+    "entryPoints": ["src/index.ts"],
+    "excludeInternal": true,
+    "excludePrivate": true
+  },
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "docs/api",
+  "readme": "none",
+  "cleanOutputDir": true,
+  "hidePageHeader": true,
+  "hideBreadcrumbs": false,
+  "useCodeBlocks": true,
+  "githubPages": false,
+  "name": "AXE API reference",
+  "outputFileStrategy": "modules",
+  "excludeExternals": true,
+  "excludeInherited": true
+}

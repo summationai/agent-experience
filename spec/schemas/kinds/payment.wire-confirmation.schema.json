@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://axe.dev/schemas/axe-0.1/kinds/payment.wire-confirmation.schema.json",
+  "title": "Wire transfer confirmation",
+  "description": "Confirmation that a wire was sent following the site's instructions. Kind: payment.wire-confirmation. Sensitive: false.",
+  "type": "object",
+  "properties": {
+    "referenceNumber": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Bank reference, IMAD, or OMAD"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Amount in major units"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 currency code, e.g. USD"
+    },
+    "sentAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "bankName": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "referenceNumber",
+    "amount",
+    "currency",
+    "sentAt"
+  ],
+  "additionalProperties": false
+}
