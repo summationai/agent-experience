@@ -128,6 +128,9 @@ export const client = await AXEClient.discover("https://oakridge-rentals.example
 <!-- /include -->
 
 URL checks do not stop request forgery. They see names, not addresses: a public name can resolve to a private address, and DNS rebinding can change the answer between a check and the connection. Only a check at connection time sees the address actually used. Run a host-side client behind an egress policy (a forward proxy or firewall that refuses private ranges and metadata endpoints), or inject a `fetch` whose connector refuses private addresses after resolution. Treat `destinationPolicy` as the application-level half of that boundary, not all of it.
+### Surfaces served over HTTP
+
+A surface holds field values, domain objects, and the text agents typed. In the browser (`expose`) that is the page's own data and adds no reader. Served through `@axe/surface/axe` it is published to whoever the server admits, so the bridge declares `auth` on every action it generates and defaults to `user`: a server that lists no `user` mode, including the public default, refuses the bridge rather than serving it, and a public surface is an explicit `auth: "none"`. Anonymous callers of a protected surface are refused by the runtime before the surface sees them, and the manifest and anonymous `/axe/state` never read it. A server hosting many users' surfaces resolves one per caller from a template (`scopedSurfaces`), so one user's values, reasons, and ledger never reach another. Fields marked `sensitive` never publish their value or keep their typed text, and the ledger's text policy (`keep`, `hash`, `omit`, `redact`) covers the rest. What each handler lets a caller do inside the application is still the handler's check. See [Surface](surface.md#who-can-observe-and-act).
 
 ## What the SDK mitigates
 
@@ -150,6 +153,7 @@ URL checks do not stop request forgery. They see names, not addresses: a public 
 | Model-chosen poll URLs | `axe_poll` polls only a `pollUrl` the server returned | `@axe/mcp` |
 | Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@axe/core/events`                         |
 | Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
+| Anonymous or cross-user surface reads | Bridge actions default to `auth: "user"`; per-caller surfaces from a template; `sensitive` fields and the ledger text policy | `@axe/surface/axe`, `@axe/surface`        |
 
 ## What your site must provide
 

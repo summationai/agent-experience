@@ -882,6 +882,18 @@ optional object?: string;
 role: string;
 ```
 
+<a id="sensitive-1"></a>
+
+##### sensitive?
+
+```ts
+optional sensitive?: boolean;
+```
+
+The value is private ([S-PRV-1]): it never appears in `observe()`, `describeEntry`, the DOM
+mirror, or the ledger's `text` (successful acts and refusals alike), and the bridge's action
+events never carry it. The row says `sensitive: true` instead of carrying `value`.
+
 <a id="value"></a>
 
 ##### value?
@@ -1118,6 +1130,64 @@ The entry id the act resolved to; for a refusal before the target resolved, the 
 
 ```ts
 optional text?: string;
+```
+
+The text the act carried, when the ledger's text policy keeps it ([S-PRV-2]); never for a sensitive field.
+
+<a id="texthash"></a>
+
+##### textHash?
+
+```ts
+optional textHash?: string;
+```
+
+SHA-256 of the text, hex, when the ledger's text policy is `hash` ([S-PRV-2]). A correlation value, not secrecy: guessable text can be recovered from it.
+
+***
+
+<a id="ledgeroptions"></a>
+
+### LedgerOptions
+
+#### Properties
+
+<a id="max"></a>
+
+##### max?
+
+```ts
+optional max?: number;
+```
+
+<a id="redact"></a>
+
+##### redact?
+
+```ts
+optional redact?: (text, entryId) => string | undefined;
+```
+
+###### Parameters
+
+###### text
+
+`string`
+
+###### entryId
+
+`string` \| `null`
+
+###### Returns
+
+`string` \| `undefined`
+
+<a id="text-3"></a>
+
+##### text?
+
+```ts
+optional text?: LedgerTextPolicy;
 ```
 
 ***
@@ -1403,6 +1473,16 @@ rev: number;
 ```ts
 role: string;
 ```
+
+<a id="sensitive-2"></a>
+
+##### sensitive?
+
+```ts
+optional sensitive?: true;
+```
+
+Present on a sensitive field ([S-PRV-1]), which carries no `value`.
 
 <a id="sort-1"></a>
 
@@ -1986,16 +2066,14 @@ optional app?: string;
 ##### ledger?
 
 ```ts
-optional ledger?: object;
+optional ledger?: LedgerOptions;
 ```
 
-Ledger retention. `max` is the number of most recent entries kept; default 1000.
-
-###### max?
-
-```ts
-optional max?: number;
-```
+Ledger retention and text policy. `max` is the number of most recent entries kept; default
+1000. `text` is what the ledger keeps of the free text an act carried ([S-PRV-2]): `keep` (the
+default), `hash` (`textHash` only), or `omit`; a sensitive field's text is never kept whatever
+the policy. `redact` rewrites kept text (return `undefined` to drop it), for example to mask
+an account number inside a note.
 
 <a id="now"></a>
 
@@ -2223,6 +2301,18 @@ type JsonValue =
 ```
 
 A JSON value.
+
+***
+
+<a id="ledgertextpolicy"></a>
+
+### LedgerTextPolicy
+
+```ts
+type LedgerTextPolicy = "keep" | "hash" | "omit";
+```
+
+What the ledger keeps of the free text an act carried ([S-PRV-2]).
 
 ***
 

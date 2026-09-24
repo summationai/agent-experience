@@ -129,6 +129,11 @@ type WireApi =
   | "retries"
   | "maxRetryAfterMs"
   | "maxWaitMs"
+  | "trust"
+  | "allowCrossOrigin"
+  | "allowHttp"
+  | "destinationPolicy"
+  | "checkDestination"
   | "toolNameFor"
   | "formatResult"
   | "pollBudgetMs"
@@ -153,9 +158,15 @@ type WireApi =
   | "attributesFor"
   | "revisionMode"
   | "SURFACE_ATTRIBUTES"
+  | "toJsonSchema"
   | "SurfaceConflict"
   | "ActContext"
-  | "toJsonSchema"
+  | "scopedSurfaces"
+  | "authFor"
+  | "redactEvent"
+  | "idleMs"
+  | "onEvict"
+  | "keyFor"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -318,6 +329,7 @@ type WireField =
   | "frozen"
   | "ignoredRev"
   | "conflict"
+  | "textHash"
   | "protocol"
   | "name"
   | "description"
@@ -770,16 +782,20 @@ const api: Readonly<{
   actionNameFor: "actionNameFor";
   addProvider: "addProvider";
   allowCredentials: "allowCredentials";
+  allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
+  allowHttp: "allowHttp";
   appendHandoffId: "appendHandoffId";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
+  authFor: "authFor";
   availability: "availability";
   axeExpress: "axeExpress";
   axeFetch: "axeFetch";
   axeNext: "axeNext";
   axeNextPages: "axeNextPages";
   bump: "bump";
+  checkDestination: "checkDestination";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
   combineSinks: "combineSinks";
@@ -800,6 +816,7 @@ const api: Readonly<{
   describe: "describe";
   describeEntry: "describeEntry";
   describeLive: "describeLive";
+  destinationPolicy: "destinationPolicy";
   discover: "discover";
   emit: "emit";
   entries: "entries";
@@ -822,6 +839,7 @@ const api: Readonly<{
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
   identity: "identity";
+  idleMs: "idleMs";
   includeDeprecated: "includeDeprecated";
   index: "index";
   invoke: "invoke";
@@ -834,6 +852,7 @@ const api: Readonly<{
   isPending: "isPending";
   jsonlFileSink: "jsonlFileSink";
   jsonSchemaToZod: "jsonSchemaToZod";
+  keyFor: "keyFor";
   kinds: "kinds";
   ledger: "ledger";
   lintAgentText: "lintAgentText";
@@ -851,6 +870,7 @@ const api: Readonly<{
   onContinue: "onContinue";
   onError: "onError";
   onEvent: "onEvent";
+  onEvict: "onEvict";
   onPoll: "onPoll";
   onRequest: "onRequest";
   onResult: "onResult";
@@ -862,6 +882,7 @@ const api: Readonly<{
   pollBudgetMs: "pollBudgetMs";
   present: "present";
   reconcile: "reconcile";
+  redactEvent: "redactEvent";
   register: "register";
   registerGenerated: "registerGenerated";
   registryVersion: "registryVersion";
@@ -879,6 +900,7 @@ const api: Readonly<{
   runAudit: "runAudit";
   runConformance: "runConformance";
   samplePayload: "samplePayload";
+  scopedSurfaces: "scopedSurfaces";
   secret: "secret";
   seedRev: "seedRev";
   sendWebResponse: "sendWebResponse";
@@ -902,6 +924,7 @@ const api: Readonly<{
   toMarkdown: "toMarkdown";
   toolNameFor: "toolNameFor";
   toWebRequest: "toWebRequest";
+  trust: "trust";
   trustedOrigins: "trustedOrigins";
   ttlSeconds: "ttlSeconds";
   unavailable: "unavailable";
@@ -1197,6 +1220,7 @@ const field: Readonly<{
   tenant: "tenant";
   termsUrl: "termsUrl";
   text: "text";
+  textHash: "textHash";
   timezone: "timezone";
   title: "title";
   tone: "tone";
@@ -1580,16 +1604,20 @@ const WIRE: Readonly<{
      actionNameFor: "actionNameFor";
      addProvider: "addProvider";
      allowCredentials: "allowCredentials";
+     allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
+     allowHttp: "allowHttp";
      appendHandoffId: "appendHandoffId";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
+     authFor: "authFor";
      availability: "availability";
      axeExpress: "axeExpress";
      axeFetch: "axeFetch";
      axeNext: "axeNext";
      axeNextPages: "axeNextPages";
      bump: "bump";
+     checkDestination: "checkDestination";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
      combineSinks: "combineSinks";
@@ -1610,6 +1638,7 @@ const WIRE: Readonly<{
      describe: "describe";
      describeEntry: "describeEntry";
      describeLive: "describeLive";
+     destinationPolicy: "destinationPolicy";
      discover: "discover";
      emit: "emit";
      entries: "entries";
@@ -1632,6 +1661,7 @@ const WIRE: Readonly<{
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
      identity: "identity";
+     idleMs: "idleMs";
      includeDeprecated: "includeDeprecated";
      index: "index";
      invoke: "invoke";
@@ -1644,6 +1674,7 @@ const WIRE: Readonly<{
      isPending: "isPending";
      jsonlFileSink: "jsonlFileSink";
      jsonSchemaToZod: "jsonSchemaToZod";
+     keyFor: "keyFor";
      kinds: "kinds";
      ledger: "ledger";
      lintAgentText: "lintAgentText";
@@ -1661,6 +1692,7 @@ const WIRE: Readonly<{
      onContinue: "onContinue";
      onError: "onError";
      onEvent: "onEvent";
+     onEvict: "onEvict";
      onPoll: "onPoll";
      onRequest: "onRequest";
      onResult: "onResult";
@@ -1672,6 +1704,7 @@ const WIRE: Readonly<{
      pollBudgetMs: "pollBudgetMs";
      present: "present";
      reconcile: "reconcile";
+     redactEvent: "redactEvent";
      register: "register";
      registerGenerated: "registerGenerated";
      registryVersion: "registryVersion";
@@ -1689,6 +1722,7 @@ const WIRE: Readonly<{
      runAudit: "runAudit";
      runConformance: "runConformance";
      samplePayload: "samplePayload";
+     scopedSurfaces: "scopedSurfaces";
      secret: "secret";
      seedRev: "seedRev";
      sendWebResponse: "sendWebResponse";
@@ -1712,6 +1746,7 @@ const WIRE: Readonly<{
      toMarkdown: "toMarkdown";
      toolNameFor: "toolNameFor";
      toWebRequest: "toWebRequest";
+     trust: "trust";
      trustedOrigins: "trustedOrigins";
      ttlSeconds: "ttlSeconds";
      unavailable: "unavailable";
@@ -1919,6 +1954,7 @@ const WIRE: Readonly<{
      tenant: "tenant";
      termsUrl: "termsUrl";
      text: "text";
+     textHash: "textHash";
      timezone: "timezone";
      title: "title";
      tone: "tone";

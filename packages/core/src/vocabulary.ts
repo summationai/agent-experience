@@ -334,6 +334,8 @@ export const field = /* @__PURE__ */ Object.freeze({
   ignoredRev: "ignoredRev",
   /** `{ currentRev? }`: the handler's own precondition failed; the act is `conflict` and nothing is adopted. */
   handlerConflict: "conflict",
+  /** SHA-256 of the act's text, hex, under the ledger's `hash` text policy. */
+  textHash: "textHash",
   /** Protocol version string. */
   protocol: "protocol",
   /** Identifier or display name, depending on context. */
@@ -524,7 +526,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   accepts: "accepts",
   /** JSON Schema for the payload of this kind. */
   schema: "schema",
-  /** Agents MUST confirm with the user before sending. */
+  /** On `accepts`: agents MUST confirm with the user before sending. On a Surface field: its value is private and never published. */
   sensitive: "sensitive",
   /** Agent-read text to relay (accepts) or what the human must do (handoff). */
   instructions: "instructions",
@@ -1036,6 +1038,18 @@ export const api = /* @__PURE__ */ Object.freeze({
   surfaceConflict: "SurfaceConflict",
   /** `{ id, op, expectedRev, actor }`, passed to a handler, setter, or `more`, so the write can carry the presented revision. */
   actContext: "ActContext",
+  /** One surface per tenant and principal, created on first use, evicted when idle or over `max`. */
+  scopedSurfaces: "scopedSurfaces",
+  /** Bridge option: the auth mode of one entry's action, overriding `auth`. */
+  authFor: "authFor",
+  /** Bridge option: rewrite the details of each `surface.act` event before it is emitted. */
+  redactEvent: "redactEvent",
+  /** `scopedSurfaces` option: evict a surface unused for this long (default 30 minutes). */
+  idleMs: "idleMs",
+  /** `scopedSurfaces` option: called with each evicted surface. */
+  onEvict: "onEvict",
+  /** The scope key `scopedSurfaces` computes for a caller: tenant and principal. */
+  keyFor: "keyFor",
   /** Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. */
   fromOpenAPI: "fromOpenAPI",
   /** Action source: a table of zod-typed functions keyed by action name. */
@@ -1134,7 +1148,7 @@ export type WireEntryKind = "action" | "field" | "collection";
 /** Union of every `op` name. */
 export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 /** Union of every `field` name. */
-export type WireField = "app" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "actor" | "changed" | "seq" | "ledgerSeq" | "revBefore" | "revAfter" | "limit" | "frozen" | "ignoredRev" | "conflict" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant" | "live" | "availability" | "available" | "requires" | "rev" | "expectedRev" | "currentRev" | "event";
+export type WireField = "app" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "actor" | "changed" | "seq" | "ledgerSeq" | "revBefore" | "revAfter" | "limit" | "frozen" | "ignoredRev" | "conflict" | "textHash" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant" | "live" | "availability" | "available" | "requires" | "rev" | "expectedRev" | "currentRev" | "event";
 /** Union of every `domAttribute` name. */
 export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-surface-object" | "data-surface-reason" | "aria-label" | "aria-disabled" | "aria-readonly";
 /** Union of every `reason` name. */
@@ -1146,7 +1160,7 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1276,6 +1290,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "frozen", name: "frozen" },
   { category: "field", key: "ignoredRev", name: "ignoredRev" },
   { category: "field", key: "handlerConflict", name: "conflict" },
+  { category: "field", key: "textHash", name: "textHash" },
   { category: "domAttribute", key: "surfaceId", name: "data-surface-id" },
   { category: "domAttribute", key: "surfaceKind", name: "data-surface-kind" },
   { category: "domAttribute", key: "surfaceObject", name: "data-surface-object" },
@@ -1615,6 +1630,12 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "toJsonSchema", name: "toJsonSchema" },
   { category: "api", key: "surfaceConflict", name: "SurfaceConflict" },
   { category: "api", key: "actContext", name: "ActContext" },
+  { category: "api", key: "scopedSurfaces", name: "scopedSurfaces" },
+  { category: "api", key: "authFor", name: "authFor" },
+  { category: "api", key: "redactEvent", name: "redactEvent" },
+  { category: "api", key: "idleMs", name: "idleMs" },
+  { category: "api", key: "onEvict", name: "onEvict" },
+  { category: "api", key: "keyFor", name: "keyFor" },
   { category: "api", key: "fromOpenAPI", name: "fromOpenAPI" },
   { category: "api", key: "fromFunctions", name: "fromFunctions" },
   { category: "api", key: "fromTRPCRouter", name: "fromTRPCRouter" },

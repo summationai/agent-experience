@@ -85,7 +85,7 @@ surface.expose(typeof window !== "undefined" ? window : null);
 ```
 <!-- /include -->
 
-`expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names). In the first trial, two of three gains came from the names alone.
+`expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. It is browser-local: anything running in the page can already read what the page shows and call its handlers, so `expose` gives no one access they did not have, and it needs no auth. Serving the same surface over HTTP is different; see [Who can observe and act](#who-can-observe-and-act). The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names). In the first trial, two of three gains came from the names alone.
 
 ## Observe and act
 
@@ -298,7 +298,7 @@ registerLock();
 
 ## Serving a surface as an AXE manifest
 
-Every entry becomes its own AXE action. An agent reading the manifest, or the tool list of the derived MCP server, sees "Draft Jahmyr Gibbs (RB)" and "Lock March", each with its own `availability` and reason, not one `act` tool with a `target` parameter. `surfaceActions` returns an action provider: hand it to `addProvider` and the set follows the registry from then on, so a row that registers or unregisters as the page changes is in or out of the manifest, `/axe/state`, and the MCP tools on the next request.
+Every entry becomes its own AXE action, and every action the bridge generates is protected by default: its `auth` is `user`, so only a caller your server authenticates can observe, read the ledger, or act. The next section covers the other modes and one surface per user. An agent reading the manifest, or the tool list of the derived MCP server, sees "Draft Jahmyr Gibbs (RB)" and "Lock March", each with its own `availability` and reason, not one `act` tool with a `target` parameter. `surfaceActions` returns an action provider: hand it to `addProvider` and the set follows the registry from then on, so a row that registers or unregisters as the page changes is in or out of the manifest, `/axe/state`, and the MCP tools on the next request.
 
 <!-- include: examples/surface/serve.ts#serve -->
 ```ts
@@ -319,8 +319,10 @@ export const axe = createAXE({
 });
 
 // One action per entry, plus board.observe and board.ledger. The set follows the registry: a row
-// that registers or unregisters is in or out of the manifest on the next request.
-export const bridge = surfaceActions(surface, { namespace: "board" });
+// that registers or unregisters is in or out of the manifest on the next request. `auth: "user"`
+// is the default, written out: an anonymous caller can neither observe nor act, and the server
+// above must list `user` in its modes or it refuses the bridge.
+export const bridge = surfaceActions(surface, { namespace: "board", auth: "user" });
 axe.addProvider(bridge);
 
 export const handler = axe.fetchHandler();
@@ -354,6 +356,134 @@ The ledger is a complete record of what reached the surface. The bridge validate
 Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry's action passes the same `expectedRev` to `act`, so the protocol's check is the first gate and the surface's the second: two requests that both pass the server's check at one revision are ordered by the surface, and the later one is checked again when its turn comes. The handler receives the same value for its own write. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
 
 The set is rebuilt only when the registry changed shape (`registryVersion` moved: a register, an unregister, a `reconcile`); a `bump` alone reuses the previous set, and a re-registered row rebuilds only its own action. Invocation resolves the action name through a map, so hundreds of rows cost hundreds of small lookups on `/axe/state` and one lookup per act. An entry whose name fails the honesty lint (an instruction aimed at the agent) is not published; the bridge's `onError` option hears about it and the row stays in `observe`. A retried `idempotencyKey` for an action whose row has since left the board (the pick that was just drafted) is still answered from the idempotency store, so a lost response is recoverable.
+
+## Who can observe and act
+
+A surface in the browser is the page's own data. Served over HTTP, it is whatever the server lets through: `observe` returns every field value and the domain objects you pass to `setObjects`, and the ledger keeps the text agents typed. So the bridge declares an `auth` mode on every action it generates, and the AXE runtime enforces it before any bridge handler runs ([Auth](auth.md)).
+
+- `auth` is `user` unless you say otherwise. Each mode the bridge uses must be listed in the server's `auth.modes`, or the server refuses the bridge on its first request with an error naming the mode. `createAXE` without `auth` is public (`{ modes: ["none"] }`), so serving a surface from a server you forgot to configure fails loudly instead of publishing it.
+- `auth: "none"` makes the surface public over HTTP. Write it only for data you would put on the open web, and say why in a comment next to it. `auth: "site"` admits partner keys through `verifySiteKey`.
+- `read` sets the mode of `<ns>.observe` and `<ns>.ledger` apart from the controls, and `authFor(entry)` sets one entry's mode (return undefined to keep `auth`).
+
+<!-- include: examples/surface/access.ts#modes -->
+```ts
+// A public read side over protected controls, with one control anyone may use. Every mode used
+// must be in the server's auth.modes; `none` here publishes every value observe returns.
+export function publicBoard(surface: Surface) {
+  return surfaceActions(surface, {
+    namespace: "board",
+    auth: "user",
+    read: "none",
+    authFor: (entry) => (entry.id === "refresh" ? "none" : undefined),
+  });
+}
+
+// A demo or a test harness that is deliberately public says so.
+export function demoBridge(surface: Surface) {
+  // Public on purpose: a sandbox board with no real data.
+  return surfaceActions(surface, { namespace: "demo", auth: "none" });
+}
+```
+<!-- /include -->
+
+An anonymous call to a protected action is refused by the runtime, not by the surface: `unauthorized` without credentials, or a `login_required` handoff when the server has a `userLoginUrl`, and a site key outside its allowlist is `forbidden`. Nothing reaches the surface, the ledger, or the action events. An entry's `state.reason` stays what the application says about the control; it is never used to say "sign in first".
+
+The manifest at `/.well-known/axe.json` is cacheable and computed for nobody in particular. For a protected entry it shows the action (its name, the entry's `name` as its title, its effect) and an `availability` of `{ available: true }`, the protocol's report for an action that makes no claim, because the bridge does not read the surface for a caller the runtime has not identified. `/axe/state` reads the surface once the caller is signed in and reports each control's reason for that caller. Entry names are therefore public in the manifest of a protected surface; if they carry private data ("Set salary for Dana Reyes"), use one surface per caller with a template, below.
+
+### One surface per user or tenant
+
+A server that holds surfaces for many people must not serve one person's state to another. Pass a resolver in place of the surface, and a `template`: the application's shape, the controls every caller has, named without anyone's data. `scopedSurfaces` builds the resolver. Its default key is the tenant id plus the principal (the user's `onBehalfOf`, else the site key's id), so two users, two partners, or one user on two tenants never share a surface; it creates a surface on the first request in a scope and drops the least recently used beyond `max` and any left idle longer than `idleMs`.
+
+<!-- include: examples/surface/access.ts#scoped -->
+```ts
+// One surface per signed-in user (and per tenant, on a platform). The template is the
+// application's shape: the controls every user has, named without anyone's data. It is what the
+// manifest and the MCP tool list show.
+const template = createSurface({ app: "notes" });
+registerNotes(template, "", async () => undefined);
+
+// Each user's surface holds that user's values and runs that user's handlers.
+const scopes = scopedSurfaces({
+  create: (_key, { identity }) => {
+    const userId = identity!.onBehalfOf;
+    const s = createSurface({ app: "notes", revision: "app", ledger: { text: "hash" } });
+    registerNotes(s, loadNotes(userId).note, (text) => saveNote(userId, text));
+    return s;
+  },
+  max: 500, // surfaces kept; the least recently used goes first
+  idleMs: 15 * 60 * 1000, // a surface unused this long is dropped
+});
+
+export const axe = createAXE({
+  name: "Notes",
+  description:
+    "Private notes: read and edit the signed-in user's note and see what an agent changed in it.",
+  baseUrl: "https://notes.example",
+  auth: {
+    modes: ["user"],
+    authenticate: async (request) => {
+      const session = await verifySession(request);
+      return session ? { onBehalfOf: session.userId } : null;
+    },
+  },
+  secret: process.env.AXE_SECRET,
+  // No `revision`: each user's surface has its own, and its own guard checks expectedRev.
+});
+axe.addProvider(surfaceActions(scopes.resolve, { namespace: "notes", template }));
+```
+<!-- /include -->
+
+What each caller sees:
+
+| Endpoint                            | Anonymous                                                  | A signed-in caller                                               |
+| ----------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| `/.well-known/axe.json`             | the template's actions, each `{ available: true }`         | the same document; manifests are shared and cached               |
+| `/axe/state`                        | every action `{ available: true }`; no surface is read     | each control's availability and reason from the caller's surface |
+| `<ns>.observe`, `<ns>.ledger`       | `unauthorized`                                             | the caller's own table, values, revision, and ledger             |
+| an entry's action                   | `unauthorized` (or a login handoff)                        | runs against the caller's surface; an id it lacks is `not_found` |
+
+A row in a caller's surface whose id is not in the template appears in that caller's `observe`, without an action. With a resolver, leave `revision` off `createAXE`: the server's revision provider does not see who is calling, and each caller's surface checks the `expectedRev` it is given against its own revision.
+
+### Sensitive values and the ledger's text
+
+A field registered with `sensitive: true` keeps its value to the application: its row in `observe()` says `sensitive: true` and carries no `value` (locally, through `expose`, and through `<ns>.observe`), `describeEntry` says `value hidden`, and the ledger never keeps the text typed into it, whether the act ran or was refused. The DOM mirror never carries a value for any field.
+
+<!-- include: examples/surface/access.ts#sensitive -->
+```ts
+function registerNotes(
+  s: Surface,
+  note: string,
+  save: (text: string) => Promise<number | undefined>,
+): void {
+  s.register({
+    id: "note",
+    kind: "field",
+    role: "textbox",
+    name: "Private note",
+    value: note,
+    edit: {
+      maxLength: 2000,
+      set: async (text) => {
+        const rev = await save(text);
+        return rev === undefined ? undefined : { changed: ["note"], rev };
+      },
+    },
+  });
+  s.register({
+    id: "account",
+    kind: "field",
+    role: "textbox",
+    name: "Account number for payouts",
+    // Never in observe(), describeEntry, the ledger's text, or an action event.
+    sensitive: true,
+    value: "",
+    edit: { set: async () => undefined },
+  });
+}
+```
+<!-- /include -->
+
+For everything else, `createSurface({ ledger: { text } })` chooses what the ledger keeps of an act's text: `keep` (the default), `hash` (`textHash`, a SHA-256 that links equal texts but does not hide guessable ones), or `omit`; `ledger.redact(text, entryId)` rewrites kept text, for example to mask an account number inside a note. `surface.act` action events never carry text or values; the bridge's `redactEvent` rewrites their `details` when an entry id is itself personal. `setObjects` is yours: keep private data out of it, or protect the read side.
 
 ## Accessible names
 
@@ -454,7 +584,7 @@ The rendered button reads `aria-label="Draft Jahmyr Gibbs (RB)"` with `data-surf
 
 ## What Surface does not do
 
-It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 21 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
+It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 21 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
 
 ## Next steps
 

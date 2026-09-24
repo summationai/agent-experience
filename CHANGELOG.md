@@ -70,6 +70,13 @@ What the first integration into a legacy-DOM application asked for, made general
 - A stale handler report ([S-REV-6]): a reported `rev` lower than the surface's revision when the handler settles is not adopted; the ledger entry carries it as `ignoredRev` (also in `<ns>.ledger` output).
 - Bridge ([S-AXE-4]): the entry action passes the envelope's `expectedRev` to the queued act, so the server's check is the first gate and the surface's the second; a test drives two concurrent invocations through `axe.handle`.
 - Vocabulary: `SurfaceConflict`, `ActContext`, `ignoredRev`, the handler report's `conflict`.
+### Surface: authorization and privacy (contract v0.5)
+
+- `spec/SURFACE.md` §6.1 ([S-AUTH-1] to [S-AUTH-6], [S-PRV-1] to [S-PRV-3]); [S-LED-1] and [S-DOM-2] updated. From the 2026-09-24 review, item 5.
+- `@axe/surface/axe`: every generated action declares `auth`, default `user`; a server whose `auth.modes` lacks `user` (including `createAXE`'s public default) refuses the bridge on its first request. Options `auth`, `read` (observe and ledger), `authFor(entry)`, `template`, `redactEvent`. `surfaceActions` accepts a resolver `(context) => Surface | null` in place of a surface, with a `template` for the action set; `scopedSurfaces({ create, key, max, idleMs, now, onEvict })` builds one keyed by tenant and principal. Availability for an unidentified caller never reads a protected surface. Types `SurfaceContext`, `SurfaceResolver`, `ScopedSurfaces`, `ScopedSurfacesOptions`.
+- `@axe/surface`: field entries take `sensitive: true` (no `value` in `observe()`, `describeEntry` says `value hidden`, no ledger text); `createSurface({ ledger: { text: "keep" | "hash" | "omit", redact } })`; ledger entries may carry `textHash`. Types `LedgerOptions`, `LedgerTextPolicy`.
+- Migration: a bridge that should stay public passes `auth: "none"`; otherwise add `user` (or `site`) to the server's `auth.modes`. Docs examples now pass `auth` explicitly.
+- Vocabulary: `scopedSurfaces`, `authFor`, `redactEvent`, `idleMs`, `onEvict`, `keyFor`, `textHash`; `sensitive` also names the Surface field flag.
 
 ### Generate
 

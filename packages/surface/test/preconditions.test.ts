@@ -413,7 +413,7 @@ describe("through AXE: the server's check is the first gate, the surface's queue
       secret: "0123456789abcdef0123456789abcdef",
       revision: s.currentRev,
     });
-    axe.addProvider(surfaceActions(s));
+    axe.addProvider(surfaceActions(s, { auth: "none" }));
     // Know, without sleeping, that the second request has reached the surface and claimed.
     const secondClaimed = barrier();
     const act = s.act.bind(s);
