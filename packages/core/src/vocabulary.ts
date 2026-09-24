@@ -246,52 +246,84 @@ export const kind = /* @__PURE__ */ Object.freeze({
   customPrefix: "x-",
 } as const);
 
-/** `reason` names. */
-export const reason = /* @__PURE__ */ Object.freeze({
-  /** Emitted by the SDK when a `user` action is called without identity. */
-  loginRequired: "login_required",
-  /** Recommended reason string when `accepts` are payment kinds. */
-  paymentRequired: "payment_required",
-  /** Recommended reason string when `accepts` are consent kinds. */
-  consentRequired: "consent_required",
-  /** Recommended reason string when `accepts` are identity kinds. */
-  identityRequired: "identity_required",
-  /** Recommended reason string when `accepts` are document kinds. */
-  documentRequired: "document_required",
+/** `entryKind` names. */
+export const entryKind = /* @__PURE__ */ Object.freeze({
+  /** A control that does something when activated: a button, a switch. */
+  action: "action",
+  /** A value the user can edit: an input, a cell. */
+  field: "field",
+  /** A list or grid that can load more. */
+  collection: "collection",
 } as const);
 
-/** `tool` names. */
-export const tool = /* @__PURE__ */ Object.freeze({
-  /** Satisfy a `needs_input` requirement with a chosen `kind` and `payload`. */
-  continue: "axe_continue",
-  /** Resume after a human handoff with a `resumeToken`. */
-  resume: "axe_resume",
-  /** Return the site's manifest so the model can read descriptions and the affordance graph. */
-  manifest: "axe_manifest",
-  /** Poll a `pending` result's `pollUrl` until it settles. */
-  poll: "axe_poll",
-} as const);
-
-/** `cli` names. */
-export const cli = /* @__PURE__ */ Object.freeze({
-  /** Scaffold an `axe.ts` for a framework. */
-  init: "axe init",
-  /** Load an `axe.ts`, validate the manifest, lint descriptions. */
-  validate: "axe validate",
-  /** Discover and print a manifest and its affordance graph. */
-  inspect: "axe inspect",
-  /** Call a read action and render the result to HTML. */
-  preview: "axe preview",
-  /** Run the conformance suite against a URL. */
-  conformance: "axe conformance",
-  /** Produce the AXE Score and fix list. */
-  audit: "axe audit",
-  /** Serve any AXE site as an MCP server over stdio. */
-  mcp: "axe mcp",
+/** `op` names. */
+export const op = /* @__PURE__ */ Object.freeze({
+  /** Activate an action entry. */
+  click: "CLICK",
+  /** Activate a switch-role action entry. */
+  toggle: "TOGGLE",
+  /** Set a field entry's value. */
+  typeText: "TYPE_TEXT",
+  /** Ask a collection entry to load more. */
+  scrollDown: "SCROLL_DOWN",
 } as const);
 
 /** `field` names. */
 export const field = /* @__PURE__ */ Object.freeze({
+  /** The application name the surface belongs to. */
+  app: "app",
+  /** The application's single revision counter. */
+  rev: "rev",
+  /** When the snapshot was taken. */
+  at: "at",
+  /** The indexed table of controls. */
+  entries: "entries",
+  /** Domain objects the application chooses to show alongside the table. */
+  objects: "objects",
+  /** Position among entries that can be acted on now; null otherwise. */
+  index: "index",
+  /** The control's ARIA-style role: `button`, `switch`, `textbox`, `grid`. */
+  role: "role",
+  /** Stable identifier of the domain object the control belongs to. */
+  object: "object",
+  /** `{ available, reason?, requires?, handoff? }` for action entries. */
+  state: "state",
+  /** Whether the control can be activated right now. */
+  available: "available",
+  /** `accepts`-shaped list of kinds that would make the control available. */
+  requires: "requires",
+  /** `{ mutates, idempotent, reversible, risk, confirm?, text? }`. */
+  effect: "effect",
+  /** Name of the state the action changes. */
+  mutates: "mutates",
+  /** The action requires explicit confirmation. */
+  confirm: "confirm",
+  /** Free text passed to a handler; the prompt for it. */
+  text: "text",
+  /** `{ op, maxLength?, readOnly, reason?, schema? }` for field entries. */
+  edit: "edit",
+  /** Longest accepted text. */
+  maxLength: "maxLength",
+  /** A field entry's current value. */
+  value: "value",
+  /** Items in a collection. */
+  total: "total",
+  /** Items currently rendered. */
+  loaded: "loaded",
+  /** The collection's active filter. */
+  filter: "filter",
+  /** The collection's active sort. */
+  sort: "sort",
+  /** The operation to perform. */
+  op: "op",
+  /** Entry id or index to act on. */
+  target: "target",
+  /** The revision the agent observed; the act is refused if it moved. */
+  expectedRev: "expectedRev",
+  /** Who is acting: `agent`, `user`, or an identity. */
+  actor: "actor",
+  /** Entry ids whose state the act changed. */
+  changed: "changed",
   /** Protocol version string. */
   protocol: "protocol",
   /** Identifier or display name, depending on context. */
@@ -532,6 +564,50 @@ export const field = /* @__PURE__ */ Object.freeze({
   tenant: "tenant",
 } as const);
 
+/** `reason` names. */
+export const reason = /* @__PURE__ */ Object.freeze({
+  /** Emitted by the SDK when a `user` action is called without identity. */
+  loginRequired: "login_required",
+  /** Recommended reason string when `accepts` are payment kinds. */
+  paymentRequired: "payment_required",
+  /** Recommended reason string when `accepts` are consent kinds. */
+  consentRequired: "consent_required",
+  /** Recommended reason string when `accepts` are identity kinds. */
+  identityRequired: "identity_required",
+  /** Recommended reason string when `accepts` are document kinds. */
+  documentRequired: "document_required",
+} as const);
+
+/** `tool` names. */
+export const tool = /* @__PURE__ */ Object.freeze({
+  /** Satisfy a `needs_input` requirement with a chosen `kind` and `payload`. */
+  continue: "axe_continue",
+  /** Resume after a human handoff with a `resumeToken`. */
+  resume: "axe_resume",
+  /** Return the site's manifest so the model can read descriptions and the affordance graph. */
+  manifest: "axe_manifest",
+  /** Poll a `pending` result's `pollUrl` until it settles. */
+  poll: "axe_poll",
+} as const);
+
+/** `cli` names. */
+export const cli = /* @__PURE__ */ Object.freeze({
+  /** Scaffold an `axe.ts` for a framework. */
+  init: "axe init",
+  /** Load an `axe.ts`, validate the manifest, lint descriptions. */
+  validate: "axe validate",
+  /** Discover and print a manifest and its affordance graph. */
+  inspect: "axe inspect",
+  /** Call a read action and render the result to HTML. */
+  preview: "axe preview",
+  /** Run the conformance suite against a URL. */
+  conformance: "axe conformance",
+  /** Produce the AXE Score and fix list. */
+  audit: "axe audit",
+  /** Serve any AXE site as an MCP server over stdio. */
+  mcp: "axe mcp",
+} as const);
+
 /** `payload` names. */
 export const payload = /* @__PURE__ */ Object.freeze({
   /** PSP-issued single-use or network token. */
@@ -734,6 +810,34 @@ export const api = /* @__PURE__ */ Object.freeze({
   createTestClient: "createTestClient",
   /** The drift test as a function, for use in other repositories. */
   checkVocabularyDrift: "checkVocabularyDrift",
+  /** Create a surface: the registry, revision, observe, and act. */
+  createSurface: "createSurface",
+  /** Remove one entry. */
+  unregister: "unregister",
+  /** Drop entries under a prefix that a re-scan did not keep. */
+  reconcile: "reconcile",
+  /** Advance the revision after a change, notifying listeners. */
+  bump: "bump",
+  /** Adopt a persisted revision if it is ahead. */
+  seedRev: "seedRev",
+  /** Adopt the application's own revision as is. */
+  setRev: "setRev",
+  /** Read the revision. */
+  currentRev: "currentRev",
+  /** Subscribe to revision changes. */
+  onChange: "onChange",
+  /** Provide the domain objects included in every snapshot. */
+  setObjects: "setObjects",
+  /** Take an indexed snapshot of the live table. */
+  observe: "observe",
+  /** Run one control's own handler under the revision guard; returns a result envelope. */
+  act: "act",
+  /** Publish observe and act on a host object for browser agents. */
+  expose: "expose",
+  /** React hook that keeps one entry registered while mounted. */
+  useSurface: "useSurface",
+  /** Derive AXE actions (observe and act) from a surface. */
+  surfaceActions: "surfaceActions",
   /** Restrict a document kind to specific MIME types. */
   withMimeTypes: "withMimeTypes",
   /** Define a site-specific kind under `x-<org>.`. */
@@ -833,10 +937,12 @@ export const WIRE = /* @__PURE__ */ Object.freeze({
   period,
   tone,
   kind,
+  entryKind,
+  op,
+  field,
   reason,
   tool,
   cli,
-  field,
   payload,
   api,
 } as const);
@@ -876,18 +982,22 @@ export type WirePeriod = "once" | "hour" | "day" | "month" | "year";
 export type WireTone = "formal" | "neutral" | "casual";
 /** Union of every `kind` name. */
 export type WireKind = "payment.card" | "payment.ach-debit" | "payment.wire-confirmation" | "payment.invoice" | "identity.government-id" | "identity.date-of-birth" | "identity.ssn-last-4" | "document.url" | "document.base64" | "contact.email" | "contact.phone" | "contact.address" | "consent.terms" | "x-";
+/** Union of every `entryKind` name. */
+export type WireEntryKind = "action" | "field" | "collection";
+/** Union of every `op` name. */
+export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
+/** Union of every `field` name. */
+export type WireField = "app" | "rev" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "available" | "requires" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "expectedRev" | "actor" | "changed" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
 /** Union of every `reason` name. */
 export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required";
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll";
 /** Union of every `cli` name. */
 export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp";
-/** Union of every `field` name. */
-export type WireField = "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -978,6 +1088,40 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "kind", key: "contactAddress", name: "contact.address" },
   { category: "kind", key: "consentTerms", name: "consent.terms" },
   { category: "kind", key: "customPrefix", name: "x-" },
+  { category: "entryKind", key: "action", name: "action" },
+  { category: "entryKind", key: "field", name: "field" },
+  { category: "entryKind", key: "collection", name: "collection" },
+  { category: "op", key: "click", name: "CLICK" },
+  { category: "op", key: "toggle", name: "TOGGLE" },
+  { category: "op", key: "typeText", name: "TYPE_TEXT" },
+  { category: "op", key: "scrollDown", name: "SCROLL_DOWN" },
+  { category: "field", key: "app", name: "app" },
+  { category: "field", key: "rev", name: "rev" },
+  { category: "field", key: "at", name: "at" },
+  { category: "field", key: "entries", name: "entries" },
+  { category: "field", key: "objects", name: "objects" },
+  { category: "field", key: "index", name: "index" },
+  { category: "field", key: "role", name: "role" },
+  { category: "field", key: "object", name: "object" },
+  { category: "field", key: "state", name: "state" },
+  { category: "field", key: "available", name: "available" },
+  { category: "field", key: "requires", name: "requires" },
+  { category: "field", key: "effect", name: "effect" },
+  { category: "field", key: "mutates", name: "mutates" },
+  { category: "field", key: "confirm", name: "confirm" },
+  { category: "field", key: "text", name: "text" },
+  { category: "field", key: "edit", name: "edit" },
+  { category: "field", key: "maxLength", name: "maxLength" },
+  { category: "field", key: "value", name: "value" },
+  { category: "field", key: "total", name: "total" },
+  { category: "field", key: "loaded", name: "loaded" },
+  { category: "field", key: "filter", name: "filter" },
+  { category: "field", key: "sort", name: "sort" },
+  { category: "field", key: "op", name: "op" },
+  { category: "field", key: "target", name: "target" },
+  { category: "field", key: "expectedRev", name: "expectedRev" },
+  { category: "field", key: "actor", name: "actor" },
+  { category: "field", key: "changed", name: "changed" },
   { category: "reason", key: "loginRequired", name: "login_required" },
   { category: "reason", key: "paymentRequired", name: "payment_required" },
   { category: "reason", key: "consentRequired", name: "consent_required" },
@@ -1211,6 +1355,20 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "runAudit", name: "runAudit" },
   { category: "api", key: "createTestClient", name: "createTestClient" },
   { category: "api", key: "checkVocabularyDrift", name: "checkVocabularyDrift" },
+  { category: "api", key: "createSurface", name: "createSurface" },
+  { category: "api", key: "unregister", name: "unregister" },
+  { category: "api", key: "reconcile", name: "reconcile" },
+  { category: "api", key: "bump", name: "bump" },
+  { category: "api", key: "seedRev", name: "seedRev" },
+  { category: "api", key: "setRev", name: "setRev" },
+  { category: "api", key: "currentRev", name: "currentRev" },
+  { category: "api", key: "onChange", name: "onChange" },
+  { category: "api", key: "setObjects", name: "setObjects" },
+  { category: "api", key: "observe", name: "observe" },
+  { category: "api", key: "act", name: "act" },
+  { category: "api", key: "expose", name: "expose" },
+  { category: "api", key: "useSurface", name: "useSurface" },
+  { category: "api", key: "surfaceActions", name: "surfaceActions" },
   { category: "api", key: "withMimeTypes", name: "withMimeTypes" },
   { category: "api", key: "customKind", name: "customKind" },
   { category: "api", key: "suggestedReason", name: "suggestedReason" },

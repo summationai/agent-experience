@@ -74,6 +74,20 @@ type WireApi =
   | "runAudit"
   | "createTestClient"
   | "checkVocabularyDrift"
+  | "createSurface"
+  | "unregister"
+  | "reconcile"
+  | "bump"
+  | "seedRev"
+  | "setRev"
+  | "currentRev"
+  | "onChange"
+  | "setObjects"
+  | "observe"
+  | "act"
+  | "expose"
+  | "useSurface"
+  | "surfaceActions"
   | "withMimeTypes"
   | "customKind"
   | "suggestedReason"
@@ -172,6 +186,18 @@ Union of every `displayKind` name.
 
 ***
 
+<a id="wireentrykind"></a>
+
+### WireEntryKind
+
+```ts
+type WireEntryKind = "action" | "field" | "collection";
+```
+
+Union of every `entryKind` name.
+
+***
+
 <a id="wireerror"></a>
 
 ### WireError
@@ -199,6 +225,33 @@ Union of every `error` name.
 
 ```ts
 type WireField = 
+  | "app"
+  | "rev"
+  | "at"
+  | "entries"
+  | "objects"
+  | "index"
+  | "role"
+  | "object"
+  | "state"
+  | "available"
+  | "requires"
+  | "effect"
+  | "mutates"
+  | "confirm"
+  | "text"
+  | "edit"
+  | "maxLength"
+  | "value"
+  | "total"
+  | "loaded"
+  | "filter"
+  | "sort"
+  | "op"
+  | "target"
+  | "expectedRev"
+  | "actor"
+  | "changed"
   | "protocol"
   | "name"
   | "description"
@@ -422,6 +475,18 @@ Union of every `link` name.
 
 ***
 
+<a id="wireop"></a>
+
+### WireOp
+
+```ts
+type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
+```
+
+Union of every `op` name.
+
+***
+
 <a id="wirepath"></a>
 
 ### WirePath
@@ -617,6 +682,7 @@ Union of every `tool` name.
 ```ts
 const api: Readonly<{
   accept: "accept";
+  act: "act";
   action: "action";
   allowCredentials: "allowCredentials";
   allowed: "allowed";
@@ -626,6 +692,7 @@ const api: Readonly<{
   axeFetch: "axeFetch";
   axeNext: "axeNext";
   axeNextPages: "axeNextPages";
+  bump: "bump";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
   combineSinks: "combineSinks";
@@ -637,10 +704,13 @@ const api: Readonly<{
   cors: "cors";
   createAXE: "createAXE";
   createMcpServer: "createMcpServer";
+  createSurface: "createSurface";
   createTestClient: "createTestClient";
+  currentRev: "currentRev";
   customKind: "customKind";
   describe: "describe";
   discover: "discover";
+  expose: "expose";
   fetchHandler: "fetchHandler";
   formatAuditHtml: "formatAuditHtml";
   formatAuditTable: "formatAuditTable";
@@ -670,6 +740,8 @@ const api: Readonly<{
   maxRetryAfterMs: "maxRetryAfterMs";
   maxWaitMs: "maxWaitMs";
   needsInput: "needsInput";
+  observe: "observe";
+  onChange: "onChange";
   onContinue: "onContinue";
   onError: "onError";
   onEvent: "onEvent";
@@ -682,6 +754,7 @@ const api: Readonly<{
   poll: "poll";
   pollBudgetMs: "pollBudgetMs";
   present: "present";
+  reconcile: "reconcile";
   register: "register";
   requireCompletion: "requireCompletion";
   requireIdempotencyKey: "requireIdempotencyKey";
@@ -693,18 +766,24 @@ const api: Readonly<{
   runConformance: "runConformance";
   samplePayload: "samplePayload";
   secret: "secret";
+  seedRev: "seedRev";
   sendWebResponse: "sendWebResponse";
   serveHttp: "serveHttp";
   serveStdio: "serveStdio";
+  setObjects: "setObjects";
+  setRev: "setRev";
   siteKey: "siteKey";
   state: "state";
   suggestedReason: "suggestedReason";
+  surfaceActions: "surfaceActions";
   toHTML: "toHTML";
   tokenStore: "tokenStore";
   toMarkdown: "toMarkdown";
   toolNameFor: "toolNameFor";
   toWebRequest: "toWebRequest";
   ttlSeconds: "ttlSeconds";
+  unregister: "unregister";
+  useSurface: "useSurface";
   verifySiteKey: "verifySiteKey";
   withMimeTypes: "withMimeTypes";
 }>;
@@ -784,6 +863,22 @@ const displayKind: Readonly<{
 
 ***
 
+<a id="entrykind"></a>
+
+### entryKind
+
+```ts
+const entryKind: Readonly<{
+  action: "action";
+  collection: "collection";
+  field: "field";
+}>;
+```
+
+`entryKind` names.
+
+***
+
 <a id="error"></a>
 
 ### error
@@ -816,21 +911,27 @@ const field: Readonly<{
   accepts: "accepts";
   action: "action";
   actions: "actions";
+  actor: "actor";
   affordances: "affordances";
   agent: "agent";
   agents: "agents";
   allow: "allow";
   amount: "amount";
+  app: "app";
+  at: "at";
   attributes: "attributes";
   auth: "auth";
+  available: "available";
   axeReserved: "_axe";
   badges: "badges";
   baseUrl: "baseUrl";
   brand: "brand";
   burst: "burst";
   cacheTtlSeconds: "cacheTtlSeconds";
+  changed: "changed";
   code: "code";
   compare: "compare";
+  confirm: "confirm";
   contact: "contact";
   context: "context";
   continuationToken: "continuationToken";
@@ -845,14 +946,19 @@ const field: Readonly<{
   details: "details";
   disclaimer: "disclaimer";
   display: "display";
+  edit: "edit";
+  effect: "effect";
   email: "email";
   emptyMessage: "emptyMessage";
+  entries: "entries";
   error: "error";
   errorCode: "errorCode";
   examples: "examples";
   expected: "expected";
+  expectedRev: "expectedRev";
   expiresAt: "expiresAt";
   fallback: "fallback";
+  filter: "filter";
   flows: "flows";
   format: "format";
   freshness: "freshness";
@@ -864,6 +970,7 @@ const field: Readonly<{
   idempotencyKey: "idempotencyKey";
   idempotent: "idempotent";
   image: "image";
+  index: "index";
   indexUrl: "indexUrl";
   input: "input";
   instructions: "instructions";
@@ -874,15 +981,21 @@ const field: Readonly<{
   label: "label";
   ladder: "ladder";
   latencyMs: "latencyMs";
+  loaded: "loaded";
   locale: "locale";
   logoUrl: "logoUrl";
   manifestUrl: "manifestUrl";
   max: "max";
+  maxLength: "maxLength";
   message: "message";
   modes: "modes";
+  mutates: "mutates";
   name: "name";
   next: "next";
+  object: "object";
+  objects: "objects";
   onBehalfOf: "onBehalfOf";
+  op: "op";
   output: "output";
   pageSize: "pageSize";
   pagination: "pagination";
@@ -901,33 +1014,42 @@ const field: Readonly<{
   reasons: "reasons";
   replacedBy: "replacedBy";
   requestsPerMinute: "requestsPerMinute";
+  requires: "requires";
   resumeToken: "resumeToken";
   retryable: "retryable";
   retryAfter: "retryAfter";
+  rev: "rev";
   reversible: "reversible";
   risk: "risk";
+  role: "role";
   schema: "schema";
   schemaVersion: "schemaVersion";
   sensitive: "sensitive";
   sessionId: "sessionId";
   since: "since";
   sites: "sites";
+  sort: "sort";
+  state: "state";
   status: "status";
   steps: "steps";
   subtitle: "subtitle";
   suggestedComparison: "suggestedComparison";
   summary: "summary";
   tags: "tags";
+  target: "target";
   tenant: "tenant";
   termsUrl: "termsUrl";
+  text: "text";
   timezone: "timezone";
   title: "title";
   tone: "tone";
+  total: "total";
   ts: "ts";
   updatedAt: "updatedAt";
   url: "url";
   userLoginUrl: "userLoginUrl";
   validUntil: "validUntil";
+  value: "value";
   vendor: "vendor";
   version: "version";
   whatAgentShouldSayToUser: "whatAgentShouldSayToUser";
@@ -1039,6 +1161,23 @@ const link: Readonly<{
 ```
 
 `link` names.
+
+***
+
+<a id="op"></a>
+
+### op
+
+```ts
+const op: Readonly<{
+  click: "CLICK";
+  scrollDown: "SCROLL_DOWN";
+  toggle: "TOGGLE";
+  typeText: "TYPE_TEXT";
+}>;
+```
+
+`op` names.
 
 ***
 
@@ -1274,6 +1413,7 @@ const tool: Readonly<{
 const WIRE: Readonly<{
   api: Readonly<{
      accept: "accept";
+     act: "act";
      action: "action";
      allowCredentials: "allowCredentials";
      allowed: "allowed";
@@ -1283,6 +1423,7 @@ const WIRE: Readonly<{
      axeFetch: "axeFetch";
      axeNext: "axeNext";
      axeNextPages: "axeNextPages";
+     bump: "bump";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
      combineSinks: "combineSinks";
@@ -1294,10 +1435,13 @@ const WIRE: Readonly<{
      cors: "cors";
      createAXE: "createAXE";
      createMcpServer: "createMcpServer";
+     createSurface: "createSurface";
      createTestClient: "createTestClient";
+     currentRev: "currentRev";
      customKind: "customKind";
      describe: "describe";
      discover: "discover";
+     expose: "expose";
      fetchHandler: "fetchHandler";
      formatAuditHtml: "formatAuditHtml";
      formatAuditTable: "formatAuditTable";
@@ -1327,6 +1471,8 @@ const WIRE: Readonly<{
      maxRetryAfterMs: "maxRetryAfterMs";
      maxWaitMs: "maxWaitMs";
      needsInput: "needsInput";
+     observe: "observe";
+     onChange: "onChange";
      onContinue: "onContinue";
      onError: "onError";
      onEvent: "onEvent";
@@ -1339,6 +1485,7 @@ const WIRE: Readonly<{
      poll: "poll";
      pollBudgetMs: "pollBudgetMs";
      present: "present";
+     reconcile: "reconcile";
      register: "register";
      requireCompletion: "requireCompletion";
      requireIdempotencyKey: "requireIdempotencyKey";
@@ -1350,18 +1497,24 @@ const WIRE: Readonly<{
      runConformance: "runConformance";
      samplePayload: "samplePayload";
      secret: "secret";
+     seedRev: "seedRev";
      sendWebResponse: "sendWebResponse";
      serveHttp: "serveHttp";
      serveStdio: "serveStdio";
+     setObjects: "setObjects";
+     setRev: "setRev";
      siteKey: "siteKey";
      state: "state";
      suggestedReason: "suggestedReason";
+     surfaceActions: "surfaceActions";
      toHTML: "toHTML";
      tokenStore: "tokenStore";
      toMarkdown: "toMarkdown";
      toolNameFor: "toolNameFor";
      toWebRequest: "toWebRequest";
      ttlSeconds: "ttlSeconds";
+     unregister: "unregister";
+     useSurface: "useSurface";
      verifySiteKey: "verifySiteKey";
      withMimeTypes: "withMimeTypes";
   }>;
@@ -1391,6 +1544,11 @@ const WIRE: Readonly<{
      status: "status";
      table: "table";
   }>;
+  entryKind: Readonly<{
+     action: "action";
+     collection: "collection";
+     field: "field";
+  }>;
   error: Readonly<{
      conflict: "conflict";
      forbidden: "forbidden";
@@ -1407,21 +1565,27 @@ const WIRE: Readonly<{
      accepts: "accepts";
      action: "action";
      actions: "actions";
+     actor: "actor";
      affordances: "affordances";
      agent: "agent";
      agents: "agents";
      allow: "allow";
      amount: "amount";
+     app: "app";
+     at: "at";
      attributes: "attributes";
      auth: "auth";
+     available: "available";
      axeReserved: "_axe";
      badges: "badges";
      baseUrl: "baseUrl";
      brand: "brand";
      burst: "burst";
      cacheTtlSeconds: "cacheTtlSeconds";
+     changed: "changed";
      code: "code";
      compare: "compare";
+     confirm: "confirm";
      contact: "contact";
      context: "context";
      continuationToken: "continuationToken";
@@ -1436,14 +1600,19 @@ const WIRE: Readonly<{
      details: "details";
      disclaimer: "disclaimer";
      display: "display";
+     edit: "edit";
+     effect: "effect";
      email: "email";
      emptyMessage: "emptyMessage";
+     entries: "entries";
      error: "error";
      errorCode: "errorCode";
      examples: "examples";
      expected: "expected";
+     expectedRev: "expectedRev";
      expiresAt: "expiresAt";
      fallback: "fallback";
+     filter: "filter";
      flows: "flows";
      format: "format";
      freshness: "freshness";
@@ -1455,6 +1624,7 @@ const WIRE: Readonly<{
      idempotencyKey: "idempotencyKey";
      idempotent: "idempotent";
      image: "image";
+     index: "index";
      indexUrl: "indexUrl";
      input: "input";
      instructions: "instructions";
@@ -1465,15 +1635,21 @@ const WIRE: Readonly<{
      label: "label";
      ladder: "ladder";
      latencyMs: "latencyMs";
+     loaded: "loaded";
      locale: "locale";
      logoUrl: "logoUrl";
      manifestUrl: "manifestUrl";
      max: "max";
+     maxLength: "maxLength";
      message: "message";
      modes: "modes";
+     mutates: "mutates";
      name: "name";
      next: "next";
+     object: "object";
+     objects: "objects";
      onBehalfOf: "onBehalfOf";
+     op: "op";
      output: "output";
      pageSize: "pageSize";
      pagination: "pagination";
@@ -1492,33 +1668,42 @@ const WIRE: Readonly<{
      reasons: "reasons";
      replacedBy: "replacedBy";
      requestsPerMinute: "requestsPerMinute";
+     requires: "requires";
      resumeToken: "resumeToken";
      retryable: "retryable";
      retryAfter: "retryAfter";
+     rev: "rev";
      reversible: "reversible";
      risk: "risk";
+     role: "role";
      schema: "schema";
      schemaVersion: "schemaVersion";
      sensitive: "sensitive";
      sessionId: "sessionId";
      since: "since";
      sites: "sites";
+     sort: "sort";
+     state: "state";
      status: "status";
      steps: "steps";
      subtitle: "subtitle";
      suggestedComparison: "suggestedComparison";
      summary: "summary";
      tags: "tags";
+     target: "target";
      tenant: "tenant";
      termsUrl: "termsUrl";
+     text: "text";
      timezone: "timezone";
      title: "title";
      tone: "tone";
+     total: "total";
      ts: "ts";
      updatedAt: "updatedAt";
      url: "url";
      userLoginUrl: "userLoginUrl";
      validUntil: "validUntil";
+     value: "value";
      vendor: "vendor";
      version: "version";
      whatAgentShouldSayToUser: "whatAgentShouldSayToUser";
@@ -1571,6 +1756,12 @@ const WIRE: Readonly<{
   }>;
   link: Readonly<{
      manifestRel: "axe-manifest";
+  }>;
+  op: Readonly<{
+     click: "CLICK";
+     scrollDown: "SCROLL_DOWN";
+     toggle: "TOGGLE";
+     typeText: "TYPE_TEXT";
   }>;
   path: Readonly<{
      actions: "/axe/actions";

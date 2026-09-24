@@ -17,6 +17,10 @@ docs/api/reference/@axe/express.html
 docs/api/reference/@axe/fetch.html
 docs/api/reference/@axe/mcp.html
 docs/api/reference/@axe/next.html
+docs/api/reference/@axe/surface/README.html
+docs/api/reference/@axe/surface/axe.html
+docs/api/reference/@axe/surface/index.html
+docs/api/reference/@axe/surface/react.html
 docs/api/reference/@axe/testing.html
 docs/api/reference/README.html
 docs/api/reference/axe.html
@@ -48,7 +52,9 @@ docs/site.html
 docs/spec/AXE-PROTOCOL.html
 docs/spec/EVENTS.html
 docs/spec/KINDS.html
+docs/spec/SURFACE.html
 docs/spec/VOCABULARY.html
+docs/surface.html
 docs/testing-and-conformance.html
 docs/why-axe.html
 index.html

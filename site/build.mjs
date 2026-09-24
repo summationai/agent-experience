@@ -46,6 +46,7 @@ export const HUB_GROUPS = [
   {
     title: "Design",
     pages: [
+      "docs/surface.md",
       "docs/designing-actions.md",
       "docs/presenting-results.md",
       "docs/requirements-and-kinds.md",
@@ -70,6 +71,7 @@ export const HUB_GROUPS = [
     title: "Reference",
     pages: [
       "spec/AXE-PROTOCOL.md",
+      "spec/SURFACE.md",
       "spec/KINDS.md",
       "spec/EVENTS.md",
       "spec/VOCABULARY.md",
@@ -186,6 +188,7 @@ export async function build({ out = OUT, skipOg = SKIP_OG, log = console.log } =
   }
   const specOrder = [
     "spec/AXE-PROTOCOL.md",
+    "spec/SURFACE.md",
     "spec/KINDS.md",
     "spec/EVENTS.md",
     "spec/VOCABULARY.md",
@@ -203,6 +206,7 @@ export async function build({ out = OUT, skipOg = SKIP_OG, log = console.log } =
       entries: specOrder.map((s) => ({
         title: basename(s, ".md")
           .replace("AXE-PROTOCOL", "Protocol")
+          .replace("SURFACE", "Surface")
           .replace(/^(.)(.*)$/, (m, a, b) => a + b.toLowerCase()),
         source: s,
         children: [],

@@ -142,6 +142,47 @@ Rules for editing:
 | kind     | consentTerms            | `consent.terms`             | `accepts[].kind` | Acknowledgment of a specific policy version and scope.          |
 | kind     | customPrefix            | `x-`                        | `accepts[].kind` | Prefix for site-defined kinds: `x-<org>.<name>`.                |
 
+## Surface: live-state entries
+
+Names used by `@axe/surface` (`spec/SURFACE.md`): an application's registry of its own live controls, observed and acted on under one revision. Surface results reuse the result envelope, statuses, and error codes above.
+
+| Category  | Key         | Name          | Where                                             | Meaning                                                               |
+| --------- | ----------- | ------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
+| entryKind | action      | `action`      | `entries[].kind`                                  | A control that does something when activated: a button, a switch.     |
+| entryKind | field       | `field`       | `entries[].kind`                                  | A value the user can edit: an input, a cell.                          |
+| entryKind | collection  | `collection`  | `entries[].kind`                                  | A list or grid that can load more.                                    |
+| op        | click       | `CLICK`       | act request `op`                                  | Activate an action entry.                                             |
+| op        | toggle      | `TOGGLE`      | act request `op`                                  | Activate a switch-role action entry.                                  |
+| op        | typeText    | `TYPE_TEXT`   | act request `op`                                  | Set a field entry's value.                                            |
+| op        | scrollDown  | `SCROLL_DOWN` | act request `op`                                  | Ask a collection entry to load more.                                  |
+| field     | app         | `app`         | observe `app`                                     | The application name the surface belongs to.                          |
+| field     | rev         | `rev`         | observe `rev`, `entries[].rev`, act output `rev`  | The application's single revision counter.                            |
+| field     | at          | `at`          | observe `at`                                      | When the snapshot was taken.                                          |
+| field     | entries     | `entries`     | observe `entries`                                 | The indexed table of controls.                                        |
+| field     | objects     | `objects`     | observe `objects`                                 | Domain objects the application chooses to show alongside the table.   |
+| field     | index       | `index`       | `entries[].index`                                 | Position among entries that can be acted on now; null otherwise.      |
+| field     | role        | `role`        | `entries[].role`                                  | The control's ARIA-style role: `button`, `switch`, `textbox`, `grid`. |
+| field     | object      | `object`      | `entries[].object`                                | Stable identifier of the domain object the control belongs to.        |
+| field     | state       | `state`       | `entries[].state`                                 | `{ available, reason?, requires?, handoff? }` for action entries.     |
+| field     | available   | `available`   | `entries[].state.available`                       | Whether the control can be activated right now.                       |
+| field     | requires    | `requires`    | `entries[].state.requires`                        | `accepts`-shaped list of kinds that would make the control available. |
+| field     | effect      | `effect`      | `entries[].effect`                                | `{ mutates, idempotent, reversible, risk, confirm?, text? }`.         |
+| field     | mutates     | `mutates`     | `entries[].effect.mutates`                        | Name of the state the action changes.                                 |
+| field     | confirm     | `confirm`     | `entries[].effect.confirm`, act request `confirm` | The action requires explicit confirmation.                            |
+| field     | text        | `text`        | act request `text`, `entries[].effect.text`       | Free text passed to a handler; the prompt for it.                     |
+| field     | edit        | `edit`        | `entries[].edit`                                  | `{ op, maxLength?, readOnly, reason?, schema? }` for field entries.   |
+| field     | maxLength   | `maxLength`   | `entries[].edit.maxLength`                        | Longest accepted text.                                                |
+| field     | value       | `value`       | `entries[].value`                                 | A field entry's current value.                                        |
+| field     | total       | `total`       | `entries[].total`                                 | Items in a collection.                                                |
+| field     | loaded      | `loaded`      | `entries[].loaded`                                | Items currently rendered.                                             |
+| field     | filter      | `filter`      | `entries[].filter`                                | The collection's active filter.                                       |
+| field     | sort        | `sort`        | `entries[].sort`                                  | The collection's active sort.                                         |
+| field     | op          | `op`          | act request `op`                                  | The operation to perform.                                             |
+| field     | target      | `target`      | act request `target`                              | Entry id or index to act on.                                          |
+| field     | expectedRev | `expectedRev` | act request `expectedRev`                         | The revision the agent observed; the act is refused if it moved.      |
+| field     | actor       | `actor`       | act request `actor`, act output `actor`           | Who is acting: `agent`, `user`, or an identity.                       |
+| field     | changed     | `changed`     | act output `changed`                              | Entry ids whose state the act changed.                                |
+
 ## Reason conventions
 
 | Category | Key              | Name                | Where                          | Meaning                                                             |
@@ -354,96 +395,110 @@ Property names inside well-known kind payloads (`spec/KINDS.md`). `Where` names 
 
 Public TypeScript identifiers that the docs refer to. Each must exist with this spelling in a package's exported types.
 
-| Category | Key                    | Name                     | Where                 | Meaning                                                                           |
-| -------- | ---------------------- | ------------------------ | --------------------- | --------------------------------------------------------------------------------- |
-| api      | createAXE              | `createAXE`              | `@axe/core`           | Create a server instance from site configuration.                                 |
-| api      | action                 | `action`                 | `@axe/core`           | Define an action with schemas, metadata, and handlers.                            |
-| api      | register               | `register`               | `@axe/core`           | Add an action to a server.                                                        |
-| api      | describe               | `describe`               | `@axe/core`           | Return the manifest object, optionally for a tenant.                              |
-| api      | fetchHandler           | `fetchHandler`           | `@axe/core`           | Get a `(Request) => Promise<Response>` for the whole protocol surface.            |
-| api      | handler                | `handler`                | `@axe/core`           | The function that runs when an action is invoked.                                 |
-| api      | needsInput             | `needsInput`             | `@axe/core`           | Helper passed to handlers that mints a `needs_input` result.                      |
-| api      | onContinue             | `onContinue`             | `@axe/core`           | Action hook that receives a validated continuation.                               |
-| api      | onResume               | `onResume`               | `@axe/core`           | Action hook that runs after a human handoff.                                      |
-| api      | onPoll                 | `onPoll`                 | `@axe/core`           | Action hook that produces the current result for a `pending` action.              |
-| api      | state                  | `state`                  | `@axe/core`           | Server-side object attached to a token and delivered back to hooks.               |
-| api      | completeHandoff        | `completeHandoff`        | `@axe/core`           | Record that the human finished a handoff, optionally binding identity.            |
-| api      | resolveDisplay         | `resolveDisplay`         | `@axe/core/display`   | Apply `display` pointers to an output and return a `PresentedResult`.             |
-| api      | kinds                  | `kinds`                  | `@axe/core/kinds`     | Typed definitions of every well-known kind.                                       |
-| api      | accept                 | `accept`                 | `@axe/core/kinds`     | Build an `accepts[]` entry from a kind definition.                                |
-| api      | lintAgentText          | `lintAgentText`          | `@axe/core/lint`      | Apply the honesty rules to one string.                                            |
-| api      | lintManifest           | `lintManifest`           | `@axe/core/lint`      | Apply all lint rules to a manifest.                                               |
-| api      | onRequest              | `onRequest`              | `@axe/core`           | Hook called before an action runs; may short-circuit with a result.               |
-| api      | onResult               | `onResult`               | `@axe/core`           | Hook called with every result envelope.                                           |
-| api      | onError                | `onError`                | `@axe/core`           | Hook called when a handler throws.                                                |
-| api      | onEvent                | `onEvent`                | `@axe/core`           | Hook receiving every analytics event; sinks attach here.                          |
-| api      | consoleSink            | `consoleSink`            | `@axe/core/events`    | Event sink that prints one JSON line per event to stdout.                         |
-| api      | jsonlFileSink          | `jsonlFileSink`          | `@axe/core/events`    | Event sink that appends JSON lines to a file.                                     |
-| api      | otelSink               | `otelSink`               | `@axe/core/events`    | Event sink that records OpenTelemetry metrics and spans.                          |
-| api      | tokenStore             | `tokenStore`             | `@axe/core`           | Configuration slot for a `TokenStore` implementation.                             |
-| api      | idempotencyStore       | `idempotencyStore`       | `@axe/core`           | Configuration slot for an `IdempotencyStore` implementation.                      |
-| api      | secret                 | `secret`                 | `@axe/core`           | HMAC secret used to sign tokens.                                                  |
-| api      | cors                   | `cors`                   | `@axe/core`           | Opt-in CORS configuration.                                                        |
-| api      | authenticate           | `authenticate`           | `@axe/core`           | Site-supplied function that turns a request into an `onBehalfOf` identity.        |
-| api      | verifySiteKey          | `verifySiteKey`          | `@axe/core`           | Site-supplied function that validates a `site` mode bearer key.                   |
-| api      | index                  | `index`                  | `@axe/core`           | Configuration for serving a platform index.                                       |
-| api      | discover               | `discover`               | `@axe/client`         | Find a manifest from any URL.                                                     |
-| api      | manifest               | `manifest`               | `@axe/client`         | Return the loaded manifest.                                                       |
-| api      | invoke                 | `invoke`                 | `@axe/client`         | Call an action and return the result envelope.                                    |
-| api      | continue               | `continue`               | `@axe/client`         | Satisfy a `needs_input` requirement.                                              |
-| api      | resume                 | `resume`                 | `@axe/client`         | Resume after a handoff.                                                           |
-| api      | poll                   | `poll`                   | `@axe/client`         | Poll a `pending` result until it settles.                                         |
-| api      | run                    | `run`                    | `@axe/client`         | Drive the whole escalation ladder with registered fulfillers.                     |
-| api      | fulfillers             | `fulfillers`             | `@axe/client`         | Client option: providers keyed by kind.                                           |
-| api      | confirm                | `confirm`                | `@axe/client`         | Client callback invoked before sending a `sensitive` payload.                     |
-| api      | present                | `present`                | `@axe/client/present` | Turn an `ok` result into a `PresentedResult`.                                     |
-| api      | toMarkdown             | `toMarkdown`             | `@axe/client/present` | Render a `PresentedResult` as a Markdown comparison table.                        |
-| api      | toHTML                 | `toHTML`                 | `@axe/client/present` | Render a `PresentedResult` as a self-contained HTML page.                         |
-| api      | createMcpServer        | `createMcpServer`        | `@axe/mcp`            | Derive an MCP server from an AXE server or manifest URL.                          |
-| api      | serveStdio             | `serveStdio`             | `@axe/mcp`            | Connect an MCP server to stdio.                                                   |
-| api      | serveHttp              | `serveHttp`              | `@axe/mcp`            | Get a fetch handler for the Streamable HTTP transport.                            |
-| api      | axeExpress             | `axeExpress`             | `@axe/express`        | Express and Connect middleware.                                                   |
-| api      | axeNext                | `axeNext`                | `@axe/next`           | App Router route handlers.                                                        |
-| api      | axeNextPages           | `axeNextPages`           | `@axe/next`           | Pages API route handler.                                                          |
-| api      | axeFetch               | `axeFetch`               | `@axe/fetch`          | Web-standard fetch handler with context injection.                                |
-| api      | runConformance         | `runConformance`         | `@axe/testing`        | Run the conformance suite against a URL.                                          |
-| api      | runAudit               | `runAudit`               | `@axe/testing`        | Produce an AXE Score report for a URL.                                            |
-| api      | createTestClient       | `createTestClient`       | `@axe/testing`        | In-process client bound to an AXE server for unit tests.                          |
-| api      | checkVocabularyDrift   | `checkVocabularyDrift`   | `@axe/testing`        | The drift test as a function, for use in other repositories.                      |
-| api      | withMimeTypes          | `withMimeTypes`          | `@axe/core/kinds`     | Restrict a document kind to specific MIME types.                                  |
-| api      | customKind             | `customKind`             | `@axe/core/kinds`     | Define a site-specific kind under `x-<org>.`.                                     |
-| api      | suggestedReason        | `suggestedReason`        | `@axe/core/kinds`     | Conventional `reason` string for a kind's namespace.                              |
-| api      | ttlSeconds             | `ttlSeconds`             | `@axe/core`           | Token lifetime option on `needsInput`, `handoff`, and `pending`.                  |
-| api      | requireCompletion      | `requireCompletion`      | `@axe/core`           | Handoff option: refuse resume until `completeHandoff` is called.                  |
-| api      | appendHandoffId        | `appendHandoffId`        | `@axe/core`           | Handoff option: append `axe_handoff` to the URL (default true).                   |
-| api      | completion             | `completion`             | `@axe/core`           | What `completeHandoff` recorded, delivered to `onResume`.                         |
-| api      | identity               | `identity`               | `@axe/core`           | Handler context member: the authenticated identity with `claims`, or null.        |
-| api      | claims                 | `claims`                 | `@axe/core`           | Extra site-defined data on an `Identity`, visible to handlers, never on the wire. |
-| api      | siteKey                | `siteKey`                | `@axe/core`           | Handler context member: what `verifySiteKey` returned for a `site` call.          |
-| api      | requireIdempotencyKey  | `requireIdempotencyKey`  | `@axe/core`           | Config: reject mutating calls without `idempotencyKey` (default true).            |
-| api      | idempotencyTtlSeconds  | `idempotencyTtlSeconds`  | `@axe/core`           | Config: idempotency window (default 86400).                                       |
-| api      | manifestCacheSeconds   | `manifestCacheSeconds`   | `@axe/core`           | Config: `Cache-Control` max-age for the manifest (default 300).                   |
-| api      | allowCredentials       | `allowCredentials`       | `@axe/core`           | CORS option: send `Access-Control-Allow-Credentials`.                             |
-| api      | combineSinks           | `combineSinks`           | `@axe/core/events`    | Fan events out to several sinks, isolating failures.                              |
-| api      | parseUserAgent         | `parseUserAgent`         | `@axe/core/events`    | Parse the recommended `User-Agent` form into an event agent.                      |
-| api      | isOk                   | `isOk`                   | `@axe/client`         | Narrow a result to `ok`.                                                          |
-| api      | isNeedsInput           | `isNeedsInput`           | `@axe/client`         | Narrow a result to `needs_input`.                                                 |
-| api      | isNeedsHuman           | `isNeedsHuman`           | `@axe/client`         | Narrow a result to `needs_human`.                                                 |
-| api      | isPending              | `isPending`              | `@axe/client`         | Narrow a result to `pending`.                                                     |
-| api      | isError                | `isError`                | `@axe/client`         | Narrow a result to `error`.                                                       |
-| api      | allowed                | `allowed`                | `@axe/client`         | Whether `policies.agents` permits this client's vendor.                           |
-| api      | retries                | `retries`                | `@axe/client`         | Client option: retries after `rate_limited` or `unavailable` (default 1).         |
-| api      | maxRetryAfterMs        | `maxRetryAfterMs`        | `@axe/client`         | Client option: longest `Retry-After` honored automatically.                       |
-| api      | maxWaitMs              | `maxWaitMs`              | `@axe/client`         | Poll option: give up after this long.                                             |
-| api      | toolNameFor            | `toolNameFor`            | `@axe/mcp`            | MCP tool name for an action (dots become underscores).                            |
-| api      | formatResult           | `formatResult`           | `@axe/mcp`            | Render a result envelope as MCP tool content.                                     |
-| api      | pollBudgetMs           | `pollBudgetMs`           | `@axe/mcp`            | How long a tool call polls `pending` before returning (default 20000).            |
-| api      | isAxePath              | `isAxePath`              | `@axe/fetch`          | Whether a path is one AXE serves.                                                 |
-| api      | toWebRequest           | `toWebRequest`           | `@axe/express`        | Convert a Node request to a Web `Request`.                                        |
-| api      | sendWebResponse        | `sendWebResponse`        | `@axe/express`        | Write a Web `Response` to a Node response.                                        |
-| api      | invokeAction           | `invokeAction`           | `@axe/testing`        | Invoke an action in-process and return the envelope.                              |
-| api      | samplePayload          | `samplePayload`          | `@axe/testing`        | A valid sample payload for a well-known kind.                                     |
-| api      | formatConformanceTable | `formatConformanceTable` | `@axe/testing`        | Terminal table for a conformance report.                                          |
-| api      | formatAuditTable       | `formatAuditTable`       | `@axe/testing`        | Terminal table for an audit report.                                               |
-| api      | formatAuditHtml        | `formatAuditHtml`        | `@axe/testing`        | Self-contained HTML audit report.                                                 |
-| api      | formatDriftReport      | `formatDriftReport`      | `@axe/testing`        | Human-readable drift report.                                                      |
+| Category | Key                    | Name                     | Where                 | Meaning                                                                            |
+| -------- | ---------------------- | ------------------------ | --------------------- | ---------------------------------------------------------------------------------- |
+| api      | createAXE              | `createAXE`              | `@axe/core`           | Create a server instance from site configuration.                                  |
+| api      | action                 | `action`                 | `@axe/core`           | Define an action with schemas, metadata, and handlers.                             |
+| api      | register               | `register`               | `@axe/core`           | Add an action to a server.                                                         |
+| api      | describe               | `describe`               | `@axe/core`           | Return the manifest object, optionally for a tenant.                               |
+| api      | fetchHandler           | `fetchHandler`           | `@axe/core`           | Get a `(Request) => Promise<Response>` for the whole protocol surface.             |
+| api      | handler                | `handler`                | `@axe/core`           | The function that runs when an action is invoked.                                  |
+| api      | needsInput             | `needsInput`             | `@axe/core`           | Helper passed to handlers that mints a `needs_input` result.                       |
+| api      | onContinue             | `onContinue`             | `@axe/core`           | Action hook that receives a validated continuation.                                |
+| api      | onResume               | `onResume`               | `@axe/core`           | Action hook that runs after a human handoff.                                       |
+| api      | onPoll                 | `onPoll`                 | `@axe/core`           | Action hook that produces the current result for a `pending` action.               |
+| api      | state                  | `state`                  | `@axe/core`           | Server-side object attached to a token and delivered back to hooks.                |
+| api      | completeHandoff        | `completeHandoff`        | `@axe/core`           | Record that the human finished a handoff, optionally binding identity.             |
+| api      | resolveDisplay         | `resolveDisplay`         | `@axe/core/display`   | Apply `display` pointers to an output and return a `PresentedResult`.              |
+| api      | kinds                  | `kinds`                  | `@axe/core/kinds`     | Typed definitions of every well-known kind.                                        |
+| api      | accept                 | `accept`                 | `@axe/core/kinds`     | Build an `accepts[]` entry from a kind definition.                                 |
+| api      | lintAgentText          | `lintAgentText`          | `@axe/core/lint`      | Apply the honesty rules to one string.                                             |
+| api      | lintManifest           | `lintManifest`           | `@axe/core/lint`      | Apply all lint rules to a manifest.                                                |
+| api      | onRequest              | `onRequest`              | `@axe/core`           | Hook called before an action runs; may short-circuit with a result.                |
+| api      | onResult               | `onResult`               | `@axe/core`           | Hook called with every result envelope.                                            |
+| api      | onError                | `onError`                | `@axe/core`           | Hook called when a handler throws.                                                 |
+| api      | onEvent                | `onEvent`                | `@axe/core`           | Hook receiving every analytics event; sinks attach here.                           |
+| api      | consoleSink            | `consoleSink`            | `@axe/core/events`    | Event sink that prints one JSON line per event to stdout.                          |
+| api      | jsonlFileSink          | `jsonlFileSink`          | `@axe/core/events`    | Event sink that appends JSON lines to a file.                                      |
+| api      | otelSink               | `otelSink`               | `@axe/core/events`    | Event sink that records OpenTelemetry metrics and spans.                           |
+| api      | tokenStore             | `tokenStore`             | `@axe/core`           | Configuration slot for a `TokenStore` implementation.                              |
+| api      | idempotencyStore       | `idempotencyStore`       | `@axe/core`           | Configuration slot for an `IdempotencyStore` implementation.                       |
+| api      | secret                 | `secret`                 | `@axe/core`           | HMAC secret used to sign tokens.                                                   |
+| api      | cors                   | `cors`                   | `@axe/core`           | Opt-in CORS configuration.                                                         |
+| api      | authenticate           | `authenticate`           | `@axe/core`           | Site-supplied function that turns a request into an `onBehalfOf` identity.         |
+| api      | verifySiteKey          | `verifySiteKey`          | `@axe/core`           | Site-supplied function that validates a `site` mode bearer key.                    |
+| api      | index                  | `index`                  | `@axe/core`           | Configuration for serving a platform index.                                        |
+| api      | discover               | `discover`               | `@axe/client`         | Find a manifest from any URL.                                                      |
+| api      | manifest               | `manifest`               | `@axe/client`         | Return the loaded manifest.                                                        |
+| api      | invoke                 | `invoke`                 | `@axe/client`         | Call an action and return the result envelope.                                     |
+| api      | continue               | `continue`               | `@axe/client`         | Satisfy a `needs_input` requirement.                                               |
+| api      | resume                 | `resume`                 | `@axe/client`         | Resume after a handoff.                                                            |
+| api      | poll                   | `poll`                   | `@axe/client`         | Poll a `pending` result until it settles.                                          |
+| api      | run                    | `run`                    | `@axe/client`         | Drive the whole escalation ladder with registered fulfillers.                      |
+| api      | fulfillers             | `fulfillers`             | `@axe/client`         | Client option: providers keyed by kind.                                            |
+| api      | confirm                | `confirm`                | `@axe/client`         | Client callback invoked before sending a `sensitive` payload.                      |
+| api      | present                | `present`                | `@axe/client/present` | Turn an `ok` result into a `PresentedResult`.                                      |
+| api      | toMarkdown             | `toMarkdown`             | `@axe/client/present` | Render a `PresentedResult` as a Markdown comparison table.                         |
+| api      | toHTML                 | `toHTML`                 | `@axe/client/present` | Render a `PresentedResult` as a self-contained HTML page.                          |
+| api      | createMcpServer        | `createMcpServer`        | `@axe/mcp`            | Derive an MCP server from an AXE server or manifest URL.                           |
+| api      | serveStdio             | `serveStdio`             | `@axe/mcp`            | Connect an MCP server to stdio.                                                    |
+| api      | serveHttp              | `serveHttp`              | `@axe/mcp`            | Get a fetch handler for the Streamable HTTP transport.                             |
+| api      | axeExpress             | `axeExpress`             | `@axe/express`        | Express and Connect middleware.                                                    |
+| api      | axeNext                | `axeNext`                | `@axe/next`           | App Router route handlers.                                                         |
+| api      | axeNextPages           | `axeNextPages`           | `@axe/next`           | Pages API route handler.                                                           |
+| api      | axeFetch               | `axeFetch`               | `@axe/fetch`          | Web-standard fetch handler with context injection.                                 |
+| api      | runConformance         | `runConformance`         | `@axe/testing`        | Run the conformance suite against a URL.                                           |
+| api      | runAudit               | `runAudit`               | `@axe/testing`        | Produce an AXE Score report for a URL.                                             |
+| api      | createTestClient       | `createTestClient`       | `@axe/testing`        | In-process client bound to an AXE server for unit tests.                           |
+| api      | checkVocabularyDrift   | `checkVocabularyDrift`   | `@axe/testing`        | The drift test as a function, for use in other repositories.                       |
+| api      | createSurface          | `createSurface`          | `@axe/surface`        | Create a surface: the registry, revision, observe, and act.                        |
+| api      | unregister             | `unregister`             | `@axe/surface`        | Remove one entry.                                                                  |
+| api      | reconcile              | `reconcile`              | `@axe/surface`        | Drop entries under a prefix that a re-scan did not keep.                           |
+| api      | bump                   | `bump`                   | `@axe/surface`        | Advance the revision after a change, notifying listeners.                          |
+| api      | seedRev                | `seedRev`                | `@axe/surface`        | Adopt a persisted revision if it is ahead.                                         |
+| api      | setRev                 | `setRev`                 | `@axe/surface`        | Adopt the application's own revision as is.                                        |
+| api      | currentRev             | `currentRev`             | `@axe/surface`        | Read the revision.                                                                 |
+| api      | onChange               | `onChange`               | `@axe/surface`        | Subscribe to revision changes.                                                     |
+| api      | setObjects             | `setObjects`             | `@axe/surface`        | Provide the domain objects included in every snapshot.                             |
+| api      | observe                | `observe`                | `@axe/surface`        | Take an indexed snapshot of the live table.                                        |
+| api      | act                    | `act`                    | `@axe/surface`        | Run one control's own handler under the revision guard; returns a result envelope. |
+| api      | expose                 | `expose`                 | `@axe/surface`        | Publish observe and act on a host object for browser agents.                       |
+| api      | useSurface             | `useSurface`             | `@axe/surface/react`  | React hook that keeps one entry registered while mounted.                          |
+| api      | surfaceActions         | `surfaceActions`         | `@axe/surface/axe`    | Derive AXE actions (observe and act) from a surface.                               |
+| api      | withMimeTypes          | `withMimeTypes`          | `@axe/core/kinds`     | Restrict a document kind to specific MIME types.                                   |
+| api      | customKind             | `customKind`             | `@axe/core/kinds`     | Define a site-specific kind under `x-<org>.`.                                      |
+| api      | suggestedReason        | `suggestedReason`        | `@axe/core/kinds`     | Conventional `reason` string for a kind's namespace.                               |
+| api      | ttlSeconds             | `ttlSeconds`             | `@axe/core`           | Token lifetime option on `needsInput`, `handoff`, and `pending`.                   |
+| api      | requireCompletion      | `requireCompletion`      | `@axe/core`           | Handoff option: refuse resume until `completeHandoff` is called.                   |
+| api      | appendHandoffId        | `appendHandoffId`        | `@axe/core`           | Handoff option: append `axe_handoff` to the URL (default true).                    |
+| api      | completion             | `completion`             | `@axe/core`           | What `completeHandoff` recorded, delivered to `onResume`.                          |
+| api      | identity               | `identity`               | `@axe/core`           | Handler context member: the authenticated identity with `claims`, or null.         |
+| api      | claims                 | `claims`                 | `@axe/core`           | Extra site-defined data on an `Identity`, visible to handlers, never on the wire.  |
+| api      | siteKey                | `siteKey`                | `@axe/core`           | Handler context member: what `verifySiteKey` returned for a `site` call.           |
+| api      | requireIdempotencyKey  | `requireIdempotencyKey`  | `@axe/core`           | Config: reject mutating calls without `idempotencyKey` (default true).             |
+| api      | idempotencyTtlSeconds  | `idempotencyTtlSeconds`  | `@axe/core`           | Config: idempotency window (default 86400).                                        |
+| api      | manifestCacheSeconds   | `manifestCacheSeconds`   | `@axe/core`           | Config: `Cache-Control` max-age for the manifest (default 300).                    |
+| api      | allowCredentials       | `allowCredentials`       | `@axe/core`           | CORS option: send `Access-Control-Allow-Credentials`.                              |
+| api      | combineSinks           | `combineSinks`           | `@axe/core/events`    | Fan events out to several sinks, isolating failures.                               |
+| api      | parseUserAgent         | `parseUserAgent`         | `@axe/core/events`    | Parse the recommended `User-Agent` form into an event agent.                       |
+| api      | isOk                   | `isOk`                   | `@axe/client`         | Narrow a result to `ok`.                                                           |
+| api      | isNeedsInput           | `isNeedsInput`           | `@axe/client`         | Narrow a result to `needs_input`.                                                  |
+| api      | isNeedsHuman           | `isNeedsHuman`           | `@axe/client`         | Narrow a result to `needs_human`.                                                  |
+| api      | isPending              | `isPending`              | `@axe/client`         | Narrow a result to `pending`.                                                      |
+| api      | isError                | `isError`                | `@axe/client`         | Narrow a result to `error`.                                                        |
+| api      | allowed                | `allowed`                | `@axe/client`         | Whether `policies.agents` permits this client's vendor.                            |
+| api      | retries                | `retries`                | `@axe/client`         | Client option: retries after `rate_limited` or `unavailable` (default 1).          |
+| api      | maxRetryAfterMs        | `maxRetryAfterMs`        | `@axe/client`         | Client option: longest `Retry-After` honored automatically.                        |
+| api      | maxWaitMs              | `maxWaitMs`              | `@axe/client`         | Poll option: give up after this long.                                              |
+| api      | toolNameFor            | `toolNameFor`            | `@axe/mcp`            | MCP tool name for an action (dots become underscores).                             |
+| api      | formatResult           | `formatResult`           | `@axe/mcp`            | Render a result envelope as MCP tool content.                                      |
+| api      | pollBudgetMs           | `pollBudgetMs`           | `@axe/mcp`            | How long a tool call polls `pending` before returning (default 20000).             |
+| api      | isAxePath              | `isAxePath`              | `@axe/fetch`          | Whether a path is one AXE serves.                                                  |
+| api      | toWebRequest           | `toWebRequest`           | `@axe/express`        | Convert a Node request to a Web `Request`.                                         |
+| api      | sendWebResponse        | `sendWebResponse`        | `@axe/express`        | Write a Web `Response` to a Node response.                                         |
+| api      | invokeAction           | `invokeAction`           | `@axe/testing`        | Invoke an action in-process and return the envelope.                               |
+| api      | samplePayload          | `samplePayload`          | `@axe/testing`        | A valid sample payload for a well-known kind.                                      |
+| api      | formatConformanceTable | `formatConformanceTable` | `@axe/testing`        | Terminal table for a conformance report.                                           |
+| api      | formatAuditTable       | `formatAuditTable`       | `@axe/testing`        | Terminal table for an audit report.                                                |
+| api      | formatAuditHtml        | `formatAuditHtml`        | `@axe/testing`        | Self-contained HTML audit report.                                                  |
+| api      | formatDriftReport      | `formatDriftReport`      | `@axe/testing`        | Human-readable drift report.                                                       |

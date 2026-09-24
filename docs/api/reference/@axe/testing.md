@@ -777,6 +777,16 @@ root: string;
 
 Repository root containing `spec/`, `docs/`, `packages/`, `README.md`.
 
+<a id="sitepaths"></a>
+
+##### sitePaths?
+
+```ts
+optional sitePaths?: string[];
+```
+
+Site source directories: `.html` files contribute their `<code>` spans, `.js` files their string literals.
+
 ***
 
 <a id="driftreport"></a>
@@ -1496,6 +1506,28 @@ orphanTransactions: string[];
 
 ***
 
+<a id="htmlcodespans"></a>
+
+### htmlCodeSpans()
+
+```ts
+function htmlCodeSpans(html): string[];
+```
+
+`<code>` contents of an HTML file, decoded; build markers and generated blocks are ignored.
+
+#### Parameters
+
+##### html
+
+`string`
+
+#### Returns
+
+`string`[]
+
+***
+
 <a id="inlinecodespans"></a>
 
 ### inlineCodeSpans()
@@ -1574,6 +1606,28 @@ key for mutating actions.
 #### Returns
 
 `Promise`\<[`Result`](client/index.md#result)\<`O`\>\>
+
+***
+
+<a id="jsstringliterals"></a>
+
+### jsStringLiterals()
+
+```ts
+function jsStringLiterals(source): string[];
+```
+
+String literals of a JavaScript file (single, double, and template without expressions).
+
+#### Parameters
+
+##### source
+
+`string`
+
+#### Returns
+
+`string`[]
 
 ***
 

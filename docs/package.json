@@ -16,6 +16,7 @@
     "@axe/fetch": "workspace:*",
     "@axe/mcp": "workspace:*",
     "@axe/next": "workspace:*",
+    "@axe/surface": "workspace:*",
     "@axe/testing": "workspace:*"
   },
   "devDependencies": {

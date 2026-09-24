@@ -149,3 +149,19 @@ If you disagree with something here, open an issue that quotes the entry. Most o
 **TypeDoc output is rendered like any other Markdown, with unresolvable links unwrapped.** TypeDoc links to Node's types and to source lines; sources are disabled (they embedded a commit hash and pointed at the wrong repository), and links to symbols the reference does not contain become plain text so the link checker stays strict for everything else.
 
 **Root README badges are dropped from the site.** They are images from shields.io; the site is offline-complete. The alt text is rendered instead.
+
+## Surface
+
+**Surface is the inside-out half of the protocol, not a replacement for the manifest.** The sumapps trials (a browser-state draft board and a server-state planning grid) showed that hand-written actions beside a human UI drift, and that a static manifest cannot say what can be done right now. Surface generates the agent view from the same registrations the controls use. AXE keeps the outside-in half: discovery, the envelope, kinds, tokens, handoff. `@axe/surface/axe` joins them, so a surface is served as two ordinary actions and every existing tool (MCP, conformance, audit, events) applies unchanged.
+
+**`act` returns the AXE result envelope instead of Surface's own `{ ok, error, reason }` shape.** The port had four refusal strings (`stale`, `unknown-target`, `unavailable`, `invalid-op`). Each already had an AXE code: `conflict`, `not_found`, `unavailable` (as an `error` code), `invalid_input`. One envelope means one client, one presenter, one set of tests. `changed` and `rev` ride in `output` so a stale act is visibly a no-op.
+
+**`effect` is AXE risk metadata.** `undoable` in the original is `reversible` here (the old name is accepted and deprecated); `risk` defaults to `medium` for anything that mutates, matching the manifest default. The `<ns>.act` action's declared risk is the highest of any registered effect, so an audit that reads the manifest is not told a lower number than a control could reach.
+
+**Unavailable controls can say what would unblock them.** Rule 1 (Surface reports, never decides) said nothing about what the agent should do with a reason string. `state.requires` names AXE kinds with an application-owned `fulfill`, and `state.handoff` names the human step. Through the bridge these are `needs_input` and `needs_human`; standalone they ride in `error.details`. This is the "more control to both sides" the integration asked for: the application says exactly what it needs, the agent can supply it without a human, and neither invents anything.
+
+**The revision stays application-owned.** Browser-state apps `bump`; server-state apps `setRev` from the server's counter and keep their own stale check as the second gate. Surface never generates revisions from content hashes, because a hash cannot distinguish "changed and changed back" from "unchanged", and the ledger needs the former.
+
+**`useSurface` replaces in place; React is optional.** Unregister-then-register on every render reorders the table and moves an agent's index. The hook updates the existing entry when deps change and unregisters on unmount. `react` is an optional peer so server-only surfaces carry no React dependency.
+
+**The fantasy-draft and planning apps were not vendored.** They are Summation products with their own backends. The board fixture in `packages/surface/test` mirrors the draft board's row registration exactly (three players, drafting on and off, roster slots, undo), so the two-actor rules are tested against the shape they came from; `sumapps` can switch its import to `@axe/surface` and delete its copy.

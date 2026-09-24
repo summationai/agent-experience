@@ -60,6 +60,7 @@ Open `site/dist/index.html` from disk for the landing page and every doc as a st
 | `@axe/express` | Express and Connect adapter.                                                                              |
 | `@axe/next`    | Next.js App Router and Pages API adapter.                                                                 |
 | `@axe/fetch`   | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                            |
+| `@axe/surface` | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions.    |
 | `@axe/testing` | Conformance suite, AXE audit, drift check, and test helpers.                                              |
 | `axe`          | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`. |
 

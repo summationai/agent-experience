@@ -8,3 +8,4 @@ coverage/
 .DS_Store
 *.log
 .axe-preview/
+site/test/__screenshots__/*.actual.png
