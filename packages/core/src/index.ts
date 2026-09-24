@@ -24,6 +24,7 @@ export type {
 } from "./server";
 export { action, ActionDefinitionError, ACTION_NAME_PATTERN } from "./action";
 export type {
+  ActionProvider,
   ActionSpec,
   RegisteredAction,
   HandlerContext,

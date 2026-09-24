@@ -276,9 +276,33 @@ export interface Surface {
   ): void;
   /** Look up a registered entry. */
   get(id: string): Entry | undefined;
+  /** Every registered entry, in registration order. */
+  entries(): Entry[];
+  /**
+   * A counter that moves on every `register`, `unregister`, `reconcile`, and `reset`, and on nothing
+   * else: a `bump` alone leaves it. Consumers that derive something per entry (the AXE bridge's one
+   * action per control) rebuild when it changes and reuse their work when it has not.
+   */
+  registryVersion(): number;
+  /**
+   * The live availability of one entry as the AXE bridge publishes it ([S-AXE-6]): an action's own
+   * `state` (with `requires` as `accepts` entries), a field's read-only reason, whether a collection
+   * can load more, and the freeze's reason for every kind while frozen. Undefined for an unknown id.
+   */
+  availability(id: string): EntryAvailability | undefined;
   /** Forget everything. Tests. */
   reset(): void;
 }
+
+/** What `availability(id)` returns: the wire shape of an unavailable-with-reason report. */
+export type EntryAvailability =
+  | { available: true }
+  | {
+      available: false;
+      reason: string;
+      requires?: Accept[];
+      handoff?: Omit<Handoff, "resumeToken" | "expiresAt">;
+    };
 
 function nameOf(e: Entry): string {
   return typeof e.name === "function" ? e.name() : e.name;
@@ -329,6 +353,28 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   const log: LedgerEntry[] = [];
   let seq = 0;
   const ledgerMax = Math.max(0, options.ledger?.max ?? 1000);
+  let registryVersion = 0;
+
+  /** One entry's availability, honoring a freeze; shared by `observe()` and `availability()`. */
+  const availabilityOf = (e: Entry, frozen: Frozen | undefined): EntryAvailability => {
+    if (frozen) return { available: false, reason: frozen.reason };
+    if (e.kind === "action") {
+      const s = e.state ?? { available: true };
+      if (s.available) return { available: true };
+      const out: EntryAvailability = { available: false, reason: s.reason || "unavailable" };
+      if (s.requires) out.requires = s.requires.accepts.map(toAccept);
+      if (s.handoff) out.handoff = { ...s.handoff };
+      return out;
+    }
+    if (e.kind === "field") {
+      return e.edit.readOnly
+        ? { available: false, reason: e.edit.reason ?? "read only" }
+        : { available: true };
+    }
+    return typeof e.more === "function"
+      ? { available: true }
+      : { available: false, reason: "cannot load more" };
+  };
 
   const surface: Surface = {
     configure({ app: name }) {
@@ -354,13 +400,17 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         );
       }
       entries.set(entry.id, entry);
+      registryVersion += 1;
     },
     unregister(id) {
-      entries.delete(id);
+      if (entries.delete(id)) registryVersion += 1;
     },
     reconcile(prefix, keep) {
       for (const id of [...entries.keys()])
-        if (id.startsWith(prefix) && !keep.has(id)) entries.delete(id);
+        if (id.startsWith(prefix) && !keep.has(id)) {
+          entries.delete(id);
+          registryVersion += 1;
+        }
     },
     freeze(reason) {
       const hold: Frozen = { reason: String(reason || "busy") };
@@ -410,18 +460,16 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           rev,
         };
         if (e.kind === "action") {
-          const s = e.state ?? { available: true };
-          if (frozen) {
-            // A freeze supersedes the control's own state: nothing is actionable, and there is
-            // nothing to fulfill or hand off until it lifts.
-            row.state = { available: false, reason: frozen.reason };
-          } else if (s.available) {
+          // A freeze supersedes the control's own state: nothing is actionable, and there is
+          // nothing to fulfill or hand off until it lifts.
+          const a = availabilityOf(e, frozen);
+          if (a.available) {
             row.state = { available: true, reason: null };
             row.index = ++i;
           } else {
-            row.state = { available: false, reason: s.reason || "unavailable" };
-            if (s.requires) row.state.requires = s.requires.accepts.map(toAccept);
-            if (s.handoff) row.state.handoff = { ...s.handoff };
+            row.state = { available: false, reason: a.reason };
+            if (a.requires) row.state.requires = a.requires;
+            if (a.handoff) row.state.handoff = a.handoff;
           }
           const f = e.effect;
           row.effect = {
@@ -713,8 +761,15 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       };
     },
     get: (id) => entries.get(id),
+    entries: () => [...entries.values()],
+    registryVersion: () => registryVersion,
+    availability(id) {
+      const e = entries.get(id);
+      return e ? availabilityOf(e, frozenNow()) : undefined;
+    },
     reset() {
       entries.clear();
+      registryVersion += 1;
       listeners.clear();
       freezes.length = 0;
       log.length = 0;

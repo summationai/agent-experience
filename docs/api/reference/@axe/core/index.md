@@ -290,13 +290,38 @@ readonly config: AXEConfig;
 get definitions(): ActionDefinition[];
 ```
 
-Every registered action's wire definition.
+Every action's wire definition: registered ones first, then each provider's, in order.
 
 ###### Returns
 
 [`ActionDefinition`](types.md#actiondefinition)[]
 
 #### Methods
+
+<a id="addprovider"></a>
+
+##### addProvider()
+
+```ts
+addProvider(provider): this;
+```
+
+Add a source of actions that changes while the server runs: a Surface bridge, a registry the
+application rebuilds as its page changes. The provider is consulted after the actions added
+with `register()` whenever actions are enumerated or looked up by name, so the manifest,
+`/axe/state`, and the derived MCP tools reflect the current set on every request. Names must
+still be unique across `register()` and every provider (spec [P-ACT-2]); a collision is an
+`ActionDefinitionError` when the set is next enumerated.
+
+###### Parameters
+
+###### provider
+
+[`ActionProvider`](#actionprovider)
+
+###### Returns
+
+`this`
 
 <a id="completehandoff"></a>
 
@@ -414,7 +439,7 @@ getAction(name):
   | undefined;
 ```
 
-Look up one registered action.
+Look up one action by name, registered or provided.
 
 ###### Parameters
 
@@ -496,6 +521,26 @@ The document served at `/axe/state`, for one caller.
 ###### Returns
 
 `Promise`\<[`LiveState`](types.md#livestate)\>
+
+<a id="onactionschanged"></a>
+
+##### onActionsChanged()
+
+```ts
+onActionsChanged(listener): () => void;
+```
+
+Called when the set of actions changes: after `register()`, `addProvider()`, and when a provider reports a change.
+
+###### Parameters
+
+###### listener
+
+() => `void`
+
+###### Returns
+
+() => `void`
 
 <a id="register"></a>
 
@@ -857,7 +902,7 @@ get(key): Promise<IdempotencyRecord | undefined>;
 
 ###### Implementation of
 
-[`IdempotencyStore`](#idempotencystore-1).[`get`](#get-2)
+[`IdempotencyStore`](#idempotencystore-1).[`get`](#get-3)
 
 <a id="set"></a>
 
@@ -981,7 +1026,7 @@ get(id): Promise<TokenRecord | undefined>;
 
 ###### Implementation of
 
-[`TokenStore`](#tokenstore-1).[`get`](#get-3)
+[`TokenStore`](#tokenstore-1).[`get`](#get-4)
 
 <a id="set-1"></a>
 
@@ -1090,6 +1135,80 @@ Returns the payload when the signature verifies and the token has not expired; o
 `Promise`\<`TokenPayload` \| `undefined`\>
 
 ## Interfaces
+
+<a id="actionprovider"></a>
+
+### ActionProvider
+
+A source of actions that change while the server runs (spec [S-AXE-1]: one action per live
+control). The server consults providers, after the actions registered with `register()`,
+whenever it enumerates actions (the manifest, `/axe/state`, the MCP tool list) or looks one
+up by name (an invocation, a continue, a resume, a poll). Every action a provider returns is
+built with `action()`, so it was linted when it was built; the server checks its `auth` mode
+and its name's uniqueness when it first sees it.
+
+#### Methods
+
+<a id="actions"></a>
+
+##### actions()
+
+```ts
+actions(): readonly RegisteredAction<ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>, ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>, JsonValue>[];
+```
+
+The actions offered right now, in a stable order.
+
+###### Returns
+
+readonly [`RegisteredAction`](#registeredaction)\<`ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>, `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>, [`JsonValue`](types.md#jsonvalue)\>[]
+
+<a id="get-2"></a>
+
+##### get()?
+
+```ts
+optional get(name): 
+  | RegisteredAction<ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>, ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>, JsonValue>
+  | undefined;
+```
+
+One action by name, or undefined. Lets the server invoke without scanning `actions()`;
+without it the server scans, which is fine for a handful of actions and not for hundreds.
+
+###### Parameters
+
+###### name
+
+`string`
+
+###### Returns
+
+  \| [`RegisteredAction`](#registeredaction)\<`ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>, `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>, [`JsonValue`](types.md#jsonvalue)\>
+  \| `undefined`
+
+<a id="onchange"></a>
+
+##### onChange()?
+
+```ts
+optional onChange(listener): () => void;
+```
+
+Subscribe to changes in the set. The server forwards them to its `onActionsChanged`
+listeners; the derived MCP server sends `notifications/tools/list_changed`.
+
+###### Parameters
+
+###### listener
+
+() => `void`
+
+###### Returns
+
+() => `void`
+
+***
 
 <a id="actionspec"></a>
 
@@ -2847,7 +2966,7 @@ acting user. Implement with Redis `SET ... EX` or a table with a TTL index.
 
 #### Methods
 
-<a id="get-2"></a>
+<a id="get-3"></a>
 
 ##### get()
 
@@ -4520,7 +4639,7 @@ delete(id): Promise<void>;
 
 `Promise`\<`void`\>
 
-<a id="get-3"></a>
+<a id="get-4"></a>
 
 ##### get()
 

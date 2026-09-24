@@ -1126,6 +1126,28 @@ act(request, options?): Promise<ActResult>;
 
 `Promise`\<[`ActResult`](#actresult)\>
 
+<a id="availability"></a>
+
+##### availability()
+
+```ts
+availability(id): EntryAvailability | undefined;
+```
+
+The live availability of one entry as the AXE bridge publishes it ([S-AXE-6]): an action's own
+`state` (with `requires` as `accepts` entries), a field's read-only reason, whether a collection
+can load more, and the freeze's reason for every kind while frozen. Undefined for an unknown id.
+
+###### Parameters
+
+###### id
+
+`string`
+
+###### Returns
+
+[`EntryAvailability`](#entryavailability) \| `undefined`
+
 <a id="bump"></a>
 
 ##### bump()
@@ -1177,6 +1199,20 @@ currentRev(): number;
 ###### Returns
 
 `number`
+
+<a id="entries-1"></a>
+
+##### entries()
+
+```ts
+entries(): Entry[];
+```
+
+Every registered entry, in registration order.
+
+###### Returns
+
+[`Entry`](#entry)[]
 
 <a id="expose"></a>
 
@@ -1339,6 +1375,22 @@ register(entry): void;
 
 `void`
 
+<a id="registryversion"></a>
+
+##### registryVersion()
+
+```ts
+registryVersion(): number;
+```
+
+A counter that moves on every `register`, `unregister`, `reconcile`, and `reset`, and on nothing
+else: a `bump` alone leaves it. Consumers that derive something per entry (the AXE bridge's one
+action per control) rebuild when it changes and reuse their work when it has not.
+
+###### Returns
+
+`number`
+
 <a id="reset"></a>
 
 ##### reset()
@@ -1491,7 +1543,7 @@ type ActResult =
 
 ***
 
-<a id="availability"></a>
+<a id="availability-1"></a>
 
 ### Availability
 
@@ -1613,6 +1665,27 @@ type Entry =
   | FieldEntry
   | CollectionEntry;
 ```
+
+***
+
+<a id="entryavailability"></a>
+
+### EntryAvailability
+
+```ts
+type EntryAvailability = 
+  | {
+  available: true;
+}
+  | {
+  available: false;
+  handoff?: Omit<Handoff, "resumeToken" | "expiresAt">;
+  reason: string;
+  requires?: Accept[];
+};
+```
+
+What `availability(id)` returns: the wire shape of an unavailable-with-reason report.
 
 ***
 

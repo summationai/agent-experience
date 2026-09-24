@@ -335,6 +335,8 @@ export interface ResolvedAffordance {
   title: string;
   input: Record<string, unknown>;
   primary: boolean;
+  /** From a dynamic affordance: the revision to present as the request envelope's `expectedRev`. */
+  expectedRev?: Revision;
 }
 
 export interface PresentedAttribute {
@@ -453,12 +455,17 @@ function normalizeDynamic(list: DynamicAffordance[] | undefined): ResolvedAfford
   const out = list
     .filter((a) => a && typeof a.action === "string" && typeof a.title === "string")
     .slice(0, MAX_AFFORDANCES)
-    .map((a) => ({
-      action: a.action,
-      title: a.title,
-      input: { ...(a.input ?? {}) } as Record<string, unknown>,
-      primary: a.primary === true,
-    }));
+    .map((a) => {
+      const out: ResolvedAffordance = {
+        action: a.action,
+        title: a.title,
+        input: { ...(a.input ?? {}) } as Record<string, unknown>,
+        primary: a.primary === true,
+      };
+      if (typeof a.expectedRev === "string" || typeof a.expectedRev === "number")
+        out.expectedRev = a.expectedRev;
+      return out;
+    });
   if (out.filter((a) => a.primary).length > 1) for (const a of out) a.primary = false;
   return out;
 }

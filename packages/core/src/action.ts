@@ -194,6 +194,29 @@ export interface RegisteredAction<
   unresolvedTargets: string[];
 }
 
+/**
+ * A source of actions that change while the server runs (spec [S-AXE-1]: one action per live
+ * control). The server consults providers, after the actions registered with `register()`,
+ * whenever it enumerates actions (the manifest, `/axe/state`, the MCP tool list) or looks one
+ * up by name (an invocation, a continue, a resume, a poll). Every action a provider returns is
+ * built with `action()`, so it was linted when it was built; the server checks its `auth` mode
+ * and its name's uniqueness when it first sees it.
+ */
+export interface ActionProvider {
+  /** The actions offered right now, in a stable order. */
+  actions(): readonly RegisteredAction[];
+  /**
+   * One action by name, or undefined. Lets the server invoke without scanning `actions()`;
+   * without it the server scans, which is fine for a handful of actions and not for hundreds.
+   */
+  get?(name: string): RegisteredAction | undefined;
+  /**
+   * Subscribe to changes in the set. The server forwards them to its `onActionsChanged`
+   * listeners; the derived MCP server sends `notifications/tools/list_changed`.
+   */
+  onChange?(listener: () => void): () => void;
+}
+
 export const ACTION_NAME_PATTERN = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/;
 
 /** Thrown for structural problems in an action definition. The message says what to change. */

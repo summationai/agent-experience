@@ -193,6 +193,8 @@ export interface DynamicAffordance {
   title: string;
   input: Record<string, JsonValue>;
   primary?: boolean;
+  /** The revision the item was observed at; presented as the request envelope's `expectedRev` when the affordance is followed (spec §21). */
+  expectedRev?: Revision;
 }
 
 /** The reserved `_axe` member on an output or item. */

@@ -78,6 +78,9 @@ export const DisplaySchema = z
   })
   .strict();
 
+/** A site revision: an opaque string or number. */
+export const RevisionSchema = z.union([z.string().min(1), z.number()]);
+
 export const AffordanceSchema = z
   .object({
     action: z.string().regex(ACTION_NAME),
@@ -93,6 +96,7 @@ export const DynamicAffordanceSchema = z
     title: z.string().min(1),
     input: z.record(z.string(), JsonValueSchema),
     primary: z.boolean().optional(),
+    expectedRev: RevisionSchema.optional(),
   })
   .strict();
 
@@ -125,9 +129,6 @@ export const AcceptSchema = z
     instructions: z.string().optional(),
   })
   .strict();
-
-/** A site revision: an opaque string or number. */
-export const RevisionSchema = z.union([z.string().min(1), z.number()]);
 
 /** `manifest.live`. */
 export const LiveSchema = z

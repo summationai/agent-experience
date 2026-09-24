@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { RegisteredAction } from "../../core/src/index";
 import { createMcpServer, toolNameFor, formatResult } from "../src/index";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
 import { liveAXE } from "../../core/test/fixtures/live";
@@ -181,6 +183,67 @@ describe("@axe/mcp", () => {
     expect(text(refused)).toContain(
       "A person can do it at https://ember-yoga.example/account/passes.",
     );
+  });
+
+  it("re-derives the tool list from a changing action set and tells the client it changed", async () => {
+    const core = await import("../../core/src/index");
+    const axe = core.createAXE({
+      name: "Grid",
+      description: "A planning grid whose cells register and unregister as the page changes.",
+      baseUrl: "http://localhost:3000",
+      auth: { modes: ["none"] },
+      secret: "0123456789abcdef0123456789abcdef",
+      revision: () => 3,
+    });
+    const cells = new Map<string, RegisteredAction>();
+    const listeners = new Set<() => void>();
+    const cell = (name: string, title: string) =>
+      core.action(name, {
+        title,
+        description: `Approves the ${title} cell of the plan and returns the cell it approved.`,
+        risk: "low",
+        idempotent: true,
+        reversible: true,
+        input: core.z.object({}).strict(),
+        output: core.z.object({ cell: core.z.string() }),
+        handler: async () => ({ cell: name }),
+      }) as unknown as RegisteredAction;
+    cells.set("grid.cell-2026-03", cell("grid.cell-2026-03", "March"));
+    axe.addProvider({
+      actions: () => [...cells.values()],
+      get: (name) => cells.get(name),
+      onChange: (fn) => {
+        listeners.add(fn);
+        return () => void listeners.delete(fn);
+      },
+    });
+    const derived = await createMcpServer(axe);
+    const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+    await derived.server.connect(serverT);
+    const client = new Client({ name: "test", version: "0" });
+    const changed = new Promise<void>((resolve) =>
+      client.setNotificationHandler(ToolListChangedNotificationSchema, () => resolve()),
+    );
+    await client.connect(clientT);
+    expect(client.getServerCapabilities()).toMatchObject({ tools: { listChanged: true } });
+    expect((await client.listTools()).tools.map((t) => t.name)).toContain("grid_cell-2026-03");
+    // The page changes: April appears, March is gone. The next listing shows it, and the client hears.
+    cells.delete("grid.cell-2026-03");
+    cells.set("grid.cell-2026-04", cell("grid.cell-2026-04", "April"));
+    for (const fn of listeners) fn();
+    await changed;
+    const names = (await client.listTools()).tools.map((t) => t.name);
+    expect(names).toContain("grid_cell-2026-04");
+    expect(names).not.toContain("grid_cell-2026-03");
+    // A tool that appeared after the server was created is callable, with an idempotency key supplied.
+    const r = await client.callTool({ name: "grid_cell-2026-04", arguments: { expectedRev: 3 } });
+    expect(r.isError).toBeUndefined();
+    expect((r.structuredContent as { output: { cell: string } }).output.cell).toBe(
+      "grid.cell-2026-04",
+    );
+    const gone = await client.callTool({ name: "grid_cell-2026-03", arguments: {} });
+    expect(gone.isError).toBe(true);
+    expect(text(gone)).toContain("Unknown tool");
   });
 
   it("rejects colliding or reserved tool names", async () => {

@@ -844,6 +844,16 @@ A dynamic affordance returned under `_axe`. `input` values are concrete.
 action: string;
 ```
 
+<a id="expectedrev-1"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the item was observed at; presented as the request envelope's `expectedRev` when the affordance is followed (spec §21).
+
 <a id="input-3"></a>
 
 ##### input
@@ -1880,7 +1890,7 @@ optional timezone?: string;
 optional context?: RequestContext;
 ```
 
-<a id="expectedrev-1"></a>
+<a id="expectedrev-2"></a>
 
 ##### expectedRev?
 
@@ -1914,7 +1924,7 @@ input: I;
 
 #### Properties
 
-<a id="expectedrev-2"></a>
+<a id="expectedrev-3"></a>
 
 ##### expectedRev?
 

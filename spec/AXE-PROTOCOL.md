@@ -464,7 +464,7 @@ Most agent journeys start with a read. The site knows which fields matter for co
 
 ### 14.2 Dynamic affordances
 
-**[P-AFF-4]** An output, and each element of the array at `display.items`, MAY carry a reserved `_axe` member: `{ affordances: [ { action, title, input, primary? } ] }`. In dynamic affordances `input` holds concrete values, not pointers. When an item has `_axe.affordances`, it replaces the static list for that item entirely.
+**[P-AFF-4]** An output, and each element of the array at `display.items`, MAY carry a reserved `_axe` member: `{ affordances: [ { action, title, input, primary?, expectedRev? } ] }`. In dynamic affordances `input` holds concrete values, not pointers. When an item has `_axe.affordances`, it replaces the static list for that item entirely. `expectedRev`, when present, is the revision the item was observed at (§21); an agent that follows the affordance presents it as the request envelope's `expectedRev`, so the follow-up is refused with `conflict` if the item moved in between.
 
 **[P-AFF-5]** `_axe` MUST be removed from `output` and from each item before validating against the `output` schema, and MUST NOT appear in the declared schema ([P-ACT-6]).
 
