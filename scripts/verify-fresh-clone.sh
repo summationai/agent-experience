@@ -25,4 +25,9 @@ pnpm lint
 pnpm -r typecheck
 pnpm -r test
 node scripts/ci-conformance.mjs
+pnpm site:build
+git init -q . && git add -A . >/dev/null 2>&1 && git -c user.email=verify@local -c user.name=verify commit -qm "verify" >/dev/null 2>&1
+pnpm site:build
+git diff --exit-code -- site/dist ':!site/dist/assets/og.png'
+pnpm site:test
 echo "Fresh-clone verification passed in $TMP"
