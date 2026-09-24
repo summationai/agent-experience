@@ -7,11 +7,13 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 echo "Extracting HEAD of $(basename "$ROOT") into $TMP"
 PREFIX="$(git -C "$ROOT" rev-parse --show-prefix)"
+TOPLEVEL="$(git -C "$ROOT" rev-parse --show-toplevel)"
 if [ -n "$PREFIX" ]; then
-  # The project lives in a subdirectory of a larger repository: archive that subtree.
-  git -C "$ROOT" archive --format=tar "HEAD:${PREFIX%/}" | tar -x -C "$TMP"
+  # The project lives in a subdirectory of a larger repository: archive that subtree
+  # from the repository root (git archive resolves pathspecs relative to the cwd).
+  git -C "$TOPLEVEL" archive --format=tar "HEAD:${PREFIX%/}" | tar -x -C "$TMP"
 else
-  git -C "$ROOT" archive --format=tar HEAD | tar -x -C "$TMP"
+  git -C "$TOPLEVEL" archive --format=tar HEAD | tar -x -C "$TMP"
 fi
 cd "$TMP"
 pnpm install --frozen-lockfile
