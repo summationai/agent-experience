@@ -144,6 +144,8 @@ The `onBehalfOf` an agent puts in the request body is ignored. Only what your co
 
 `context` may also return `tenant` for multi-tenant deployments; [Platforms](../platforms.md) covers that.
 
+If `context` reads a session cookie (from `cookies()` or the request headers), the core's request policy protects it: a `POST` carrying a cookie must come from the origin of `baseUrl` or an origin in `requestPolicy.trustedOrigins`, and writes must be `application/json` (spec [P-TRANS-1] and [P-TRANS-2]). The App Router adapter hands the core Next's `Request` unchanged. The Pages adapter keeps the `Content-Type` the browser sent even after Next's body parser has turned a `text/plain` or form body into a string or an object, so those bodies are still refused. Neither adapter compares `Origin` with `Host` or `X-Forwarded-Host`; the site's origin is `baseUrl`. [Auth](../auth.md#cookie-sessions) has the matrix.
+
 ## Edge runtime
 
 `@axe/core` is written against Web-standard `Request`, `Response`, `URL`, and Web Crypto, so `export const runtime = "edge"` in the route file works with `axeNext` as it is. Two things change when you do that:

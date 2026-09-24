@@ -40,6 +40,48 @@ Site output is data. The reference renderers in `@axe/client/present` escape eve
 
 P-HON-3 requires that data returned to an agent be what a human sees at `display.item.url` at the same moment. `axe audit` prints the URLs to compare and, with a browser, fetches each human page and looks for the price and availability values from the agent response. A miss is reported as a question mark, not a deduction, because the check cannot prove parity. Agents are expected to run the same comparison over time.
 
+### Cross-site request forgery
+
+A site that signs its users in with cookies is reachable from every page those users visit. Browsers attach the cookie to requests that another origin's page makes, and send a `POST` with a `text/plain`, form, or multipart body, or none, without a preflight. CORS headers decide whether that page reads the response; the write has already happened.
+
+The runtime refuses these requests before anything runs (spec [P-TRANS-1] to [P-TRANS-4]). A `POST` to a state-changing endpoint must be `application/json`, which a browser will not send cross-origin without your server's consent, or it gets `unsupported`. A `POST` that carries a `Cookie` header must come from the origin of your `baseUrl`, an origin in `trustedOrigins`, or an origin you allow credentialed CORS for, or it gets `forbidden`, the same response for every path. Requests with no `Origin` and no `Sec-Fetch-Site` are server-to-server calls and pass the origin rule. Your origin is taken from configuration, never from `Host` or forwarded headers.
+
+<!-- include: examples/auth/cookie-session.ts#config -->
+```ts
+const axe = createAXE({
+  name: "Fieldstone Outfitters",
+  description:
+    "Track orders and start returns for purchases from Fieldstone Outfitters, an online outdoor-clothing shop. Requires the customer to be signed in.",
+  // The site's own origin for the origin rule comes from here, never from Host or
+  // X-Forwarded-Host.
+  baseUrl: "https://shop.fieldstone.example",
+  auth: {
+    modes: ["none", "user"],
+    userLoginUrl: "https://shop.fieldstone.example/login",
+    // A browser on the shop's pages sends the session cookie; an agent sends a bearer token.
+    authenticate: (request) => {
+      const bearer = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+      if (bearer) return tokens.has(bearer) ? { onBehalfOf: tokens.get(bearer)! } : null;
+      const sid = /(?:^|;\s*)fo_session=([^;]+)/.exec(request.headers.get("cookie") ?? "")?.[1];
+      return sid && sessions.has(sid) ? { onBehalfOf: sessions.get(sid)! } : null;
+    },
+  },
+  // The defaults already require JSON on writes and check Origin on any POST that carries a
+  // Cookie. What a cookie site adds is the list of other origins whose pages may call it with
+  // the shop's cookie: here, the help-center widget on a sibling domain.
+  requestPolicy: {
+    trustedOrigins: ["https://help.fieldstone.example"],
+  },
+  // Credentialed CORS lets the widget read responses. An origin listed here with
+  // allowCredentials is trusted by the request policy as well.
+  cors: { origins: ["https://help.fieldstone.example"], allowCredentials: true },
+  secret: process.env.AXE_SECRET,
+});
+```
+<!-- /include -->
+
+What remains yours: set `SameSite=Lax` or `Strict` on session cookies as a second layer; list every hostname you serve pages from in `trustedOrigins`; keep `GET` handlers free of writes (the rules cover `POST` only); and if your browsers hold ambient credentials other than cookies, set `originCheck` to `always`. [Auth](auth.md#cookie-sessions) has the full matrix and the proxy assumptions.
+
 ### Multi-tenant isolation
 
 On a platform, one runtime serves many tenants. Tokens are bound to the tenant id and idempotency keys are prefixed with it, so a continuation minted for one tenant is `not_found` on another and keys never collide across tenants. Every event carries `tenant`. Your handlers must still confine `onBehalfOf` to the tenant it belongs to; the runtime cannot check that.
@@ -59,6 +101,7 @@ On a platform, one runtime serves many tenants. Tokens are bound to the tenant i
 | Prompt injection from your own text  | Agent-directive patterns rejected when `action` is called; audit hard failure on live manifests                                        | `@axe/core/lint`, `axe audit`              |
 | Unwanted agents                      | `policies.agents` allow and deny lists enforced per request; deny wins                                                                 | `@axe/core`, request pipeline              |
 | Cross-origin browser calls           | CORS off unless `cors` is configured; no CORS headers emitted otherwise                                                                | `@axe/core`, `cors`                        |
+| Cross-site request forgery           | Non-JSON writes refused; cookie-carrying POSTs from untrusted origins refused before any body, identity, or token is read | `@axe/core`, `requestPolicy` |
 | Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                 | `@axe/client/present`, `toHTML`            |
 | Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@axe/core/events`                         |
 | Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
@@ -161,6 +204,7 @@ These are true of v0. The first two are deferred with reasons in [ROADMAP.md](..
 - **Parity is a spot-check.** The audit looks for agent-returned values as text on the human page. Dynamic pages, formatted numbers, and personalized prices defeat it in either direction.
 - **Zod refinements are not enforced on continue.** Stored `accepts` schemas are JSON Schema so they can live in any `TokenStore`, and payloads are validated against that. A refinement on a custom kind's Zod schema is not applied to `/axe/continue`; put the constraint in `onContinue`.
 - **In-memory stores lose everything on restart.** Every open continuation, handoff, and idempotency record disappears and agents receive `not_found`. Use durable stores in production.
+- **The origin rule relies on browsers sending `Origin` or `Sec-Fetch-Site`.** Every current browser sends `Origin` on `POST`. A browser old enough to send neither is treated like a server-to-server caller; the JSON rule and `SameSite` cookies still apply. The rule sees cookies only; other ambient credentials need `originCheck` set to `always`.
 - **`toHTML` allows inline script in its CSP.** The rendered page's Content-Security-Policy meta tag permits inline script and styles so its one static script and stylesheet work without external files. A surface embedding the page should apply its own stricter policy.
 
 ## Reporting

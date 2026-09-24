@@ -131,7 +131,7 @@ Access-Control-Max-Age: 600
 Vary: Origin
 ````
 
-Every other response to a listed origin carries the same allow-origin header and exposes `AXE-Protocol`, `Retry-After`, and `RateLimit-Policy` so a browser client can read them. An origin not in the list gets a response with no CORS headers. With the wildcard as the origins value, credentials are never allowed, per the Fetch standard; set the credentials flag only when browser agents send cookies or `Authorization` headers to a listed origin.
+Every other response to a listed origin carries the same allow-origin header and exposes `AXE-Protocol`, `Retry-After`, and `RateLimit-Policy` so a browser client can read them. An origin not in the list gets a response with no CORS headers. With the wildcard as the origins value, credentials are never allowed, per the Fetch standard; set the credentials flag only when browser agents send cookies or `Authorization` headers to a listed origin. An origin you allow credentialed CORS for is also trusted by the request policy, which refuses cookie-carrying `POST`s from every other origin whether or not CORS headers are sent; see [Auth](auth.md#cookie-sessions).
 
 ## Caching the manifest
 
@@ -407,6 +407,7 @@ Before the manifest is reachable from the public internet:
 - [ ] `robots.txt` carries an `AXE-Manifest` line; `axe conformance` reports no hint warning.
 - [ ] `policies.rateLimit` is declared, and the edge or `onRequest` enforces it.
 - [ ] `cors` is unset unless browser-based agents are expected.
+- [ ] If browsers call AXE with your session cookie, every hostname they load pages from is `baseUrl`'s origin or in `requestPolicy.trustedOrigins`, and the session cookie is `SameSite=Lax` or stricter.
 - [ ] `onError` reaches your APM; `onEvent` reaches a sink you will look at.
 - [ ] No hook and no application log line contains `input`, `output`, or a continuation `payload`.
 - [ ] The handoff landing page calls `completeHandoff`, and a resume works against the deployed URL.

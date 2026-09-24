@@ -331,6 +331,8 @@ Handlers then see the user as `context.onBehalfOf`. The `onBehalfOf` an agent wr
 
 `tenant` is for platforms that serve many shops from one Worker or one Hono app. Resolve it from the request's host in the same callback; [Platforms](../platforms.md) covers the rest.
 
+Because the session helper accepts the `fo_session` cookie, a page on another origin could otherwise make the customer's browser start a return. The core refuses that before it reads the body or runs a handler: a `POST` carrying a cookie must come from the origin of `baseUrl` (or the tenant's) or an origin in `requestPolicy.trustedOrigins`, and writes must be `application/json` (spec [P-TRANS-1] and [P-TRANS-2]). `axeFetch` passes the framework's `Request` through untouched, so the core sees the `Origin`, `Sec-Fetch-Site`, `Cookie`, and `Content-Type` the browser sent. An agent sending a bearer token and no `Origin` is unaffected. [Auth](../auth.md#cookie-sessions) has the matrix.
+
 ## Gotchas
 
 - **Isolates do not share memory.** On Workers, Deno Deploy, and other edge runtimes, the default in-memory token and idempotency stores are per isolate: a continuation token minted on one may be unknown to the next, and an idempotent replay may run twice. Configure `tokenStore` and `idempotencyStore` with KV, Redis, or a database, and set `secret` explicitly so every isolate signs with the same key. [Deploying](../deploying.md) shows the two interfaces.
