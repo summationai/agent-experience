@@ -139,7 +139,11 @@ Two ordering rules follow from how it works:
 - Put it after any middleware whose output you read in `context` (session, auth, tenant resolution) and before your catch-all 404 handler.
 - Do not mount it under a prefix such as `app.use("/agents", ...)`. The manifest must be served at `/.well-known/axe.json` relative to the origin of `baseUrl` ([spec §3.1](../../spec/AXE-PROTOCOL.md#31-manifest-location)), and the middleware routes on the original URL, so a prefix would move the endpoints away from where agents look. If your whole site lives under a path, put that path in `baseUrl`; the middleware then claims the same paths under that prefix.
 
-Body parsing is optional. When `express.json()` has already run, the adapter serializes the parsed body back to JSON; when it has not, the adapter reads the raw request stream itself. Either way the core sees the same bytes and validates them against the action's input schema.
+Body parsing is optional. When no parser has consumed the body, the adapter reads the raw request stream itself; when `express.json()` (or another parser) has, it serializes the parsed value. Either way it keeps every request header as sent, `Content-Type` included, so the core's request policy judges the body the client actually sent: a `text/plain` body that `express.text()` turned into a string is still refused.
+
+### Cookie sessions and CSRF
+
+A session cookie like the one above is sent by the browser on requests from any page, so the core refuses a `POST` that carries a cookie unless its `Origin` is the origin of `baseUrl` or an origin in `requestPolicy.trustedOrigins`, and refuses writes whose body is not `application/json` (spec [P-TRANS-1] and [P-TRANS-2]). Set `baseUrl` to the public origin browsers use; the adapter's `origin` option and the forwarded headers only shape the request URL and are never compared with `Origin`. Agents calling with a bearer token and no `Origin` are unaffected. [Auth](../auth.md#cookie-sessions) has the matrix.
 
 ## Passing your session in
 

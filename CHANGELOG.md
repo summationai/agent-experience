@@ -14,6 +14,13 @@ Initial release of the Body Spray SDK and the `axe/0.1` protocol.
 - `@axe/testing`: conformance suite, AXE audit, vocabulary drift check, test helpers.
 - `axe` CLI: init, validate, inspect, preview, conformance, audit, mcp.
 
+### Request policy (review item 6)
+
+- Protocol §6.4, [P-TRANS-1] to [P-TRANS-4]: a `POST` to a state-changing endpoint (an action that is not `readOnly`, `/axe/continue`, `/axe/resume`) must be `application/json` or `application/*+json`, else `unsupported`; a `POST` carrying ambient credentials from an origin that is neither the site's (from `baseUrl`, never `Host` or forwarded headers) nor trusted is `forbidden`, the same response for every path; requests with neither `Origin` nor `Sec-Fetch-Site` pass the origin rule.
+- `@axe/core`: `createAXE({ requestPolicy: { requireJsonContentType, trustedOrigins, originCheck } })`, applied at the entry of `handle()` before any body, identity, or token is read. Defaults: JSON required on writes; origin checked on any `POST` with a `Cookie` header; origins with credentialed `cors` trusted. Refusals carry `details.reason` `json_required` or `cross_origin_refused`. Pure functions exported (`evaluateRequestPolicy`, `resolveRequestPolicy`, `isJsonContentType`, `isAcceptedOrigin`). Migration: a caller that posts JSON to a mutating action without `Content-Type: application/json` now gets `unsupported`; `@axe/client`, `@axe/mcp`, and the conformance suite already send the header.
+- `@axe/express` and `@axe/next` (Pages): the adapters keep the `Content-Type` the client sent instead of relabeling a parsed body as JSON, and the Express adapter reads the raw stream while it is unread (Express 4 leaves `req.body = {}` on a body its json parser skipped).
+- `@axe/testing`: conformance check `runtime.json-content-type`.
+
 ### Surface
 
 - `spec/SURFACE.md`: the Surface contract (v0.2), ported from the sumapps trials and rewritten on top of the AXE envelope: live controls with `state.reason`, `effect` as AXE risk metadata, one revision per application, refusals as `conflict` / `not_found` / `invalid_input` / `unavailable`, and `requires` (AXE kinds) plus `handoff` on unavailable controls.

@@ -61,9 +61,11 @@ export function axeNextPages(axe: AXE, options: NextPagesAdapterOptions = {}) {
     const method = (req.method ?? "GET").toUpperCase();
     const init: RequestInit = { method, headers };
     if (method !== "GET" && method !== "HEAD") {
-      if (req.body !== undefined) {
+      // Headers are kept as sent, `Content-Type` included. Next's body parser turns text/plain
+      // into a string and form bodies into an object; relabeling either as JSON would hide it
+      // from the core's request policy ([P-TRANS-1]).
+      if (req.body !== undefined && req.readableEnded !== false) {
         init.body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-        headers.set("content-type", "application/json");
       } else {
         init.body = await readStream(req);
       }

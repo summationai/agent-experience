@@ -1845,6 +1845,18 @@ optional onResult?: (ctx, result) => MaybePromise<void>;
 optional policies?: Policies;
 ```
 
+<a id="requestpolicy"></a>
+
+##### requestPolicy?
+
+```ts
+optional requestPolicy?: RequestPolicyConfig;
+```
+
+Content-type and origin rules for POSTs, applied before any body is read (spec [P-TRANS-1] to
+[P-TRANS-4]). Default: JSON required on state-changing endpoints, and a POST carrying a
+`Cookie` header must come from the origin of `baseUrl` or a trusted origin.
+
 <a id="requireidempotencykey"></a>
 
 ##### requireIdempotencyKey?
@@ -3264,6 +3276,56 @@ How long the poll token stays valid. Default 1 hour.
 
 ***
 
+<a id="policycontext"></a>
+
+### PolicyContext
+
+What `evaluateRequestPolicy` needs to know about the request's place in the protocol.
+
+#### Properties
+
+<a id="isreadonly"></a>
+
+##### isReadOnly
+
+```ts
+isReadOnly: (actionName) => boolean;
+```
+
+Whether the named action is declared `readOnly`. An unknown name counts as not read-only.
+
+###### Parameters
+
+###### actionName
+
+`string`
+
+###### Returns
+
+`boolean`
+
+<a id="path"></a>
+
+##### path
+
+```ts
+path: string;
+```
+
+The request path with any `baseUrl` prefix removed.
+
+<a id="siteurls"></a>
+
+##### siteUrls
+
+```ts
+siteUrls: (string | null | undefined)[];
+```
+
+Absolute URLs whose origins are the site's own: `baseUrl`, and the tenant's `baseUrl`.
+
+***
+
 <a id="pollcontext"></a>
 
 ### PollContext
@@ -3719,6 +3781,89 @@ unresolvedTargets: string[];
 ```
 
 Affordance targets not registered at the time this action was; checked at finalization.
+
+***
+
+<a id="requestpolicyconfig"></a>
+
+### RequestPolicyConfig
+
+`createAXE({ requestPolicy })`: how the runtime treats browser-shaped POSTs.
+
+#### Properties
+
+<a id="origincheck"></a>
+
+##### originCheck?
+
+```ts
+optional originCheck?: OriginCheck;
+```
+
+`"cookie"` (default): check `Origin` on a POST that carries a `Cookie` header.
+`"always"`: check it on every POST that names an origin, cookie or not, for sites whose
+browsers hold other ambient credentials (HTTP authentication, client certificates).
+`"off"`: never check it; the site enforces CSRF protection itself, in front of the runtime.
+
+<a id="requirejsoncontenttype"></a>
+
+##### requireJsonContentType?
+
+```ts
+optional requireJsonContentType?: boolean;
+```
+
+Refuse a POST to a state-changing endpoint unless its `Content-Type` is `application/json`
+or `application/*+json`. Default true.
+
+<a id="trustedorigins"></a>
+
+##### trustedOrigins?
+
+```ts
+optional trustedOrigins?: string[];
+```
+
+Origins, besides the origin of `baseUrl` (and of a tenant's `baseUrl`), whose browser
+requests may carry ambient credentials. Exact origins such as `https://app.example`: a
+scheme, a host, and a port when it is not the default. No wildcards, no paths.
+Origins listed in `cors.origins` with `cors.allowCredentials` are trusted as well.
+
+***
+
+<a id="resolvedrequestpolicy"></a>
+
+### ResolvedRequestPolicy
+
+The policy after defaults and validation.
+
+#### Properties
+
+<a id="origincheck-1"></a>
+
+##### originCheck
+
+```ts
+originCheck: OriginCheck;
+```
+
+<a id="requirejsoncontenttype-1"></a>
+
+##### requireJsonContentType
+
+```ts
+requireJsonContentType: boolean;
+```
+
+<a id="trustedorigins-1"></a>
+
+##### trustedOrigins
+
+```ts
+trustedOrigins: ReadonlySet<string>;
+```
+
+Normalized trusted origins, including credentialed CORS origins.
 
 ***
 
@@ -4766,6 +4911,18 @@ type MaybePromise<T> = T | Promise<T>;
 
 ***
 
+<a id="origincheck-2"></a>
+
+### OriginCheck
+
+```ts
+type OriginCheck = "cookie" | "always" | "off";
+```
+
+When the origin rule applies.
+
+***
+
 <a id="resultintent"></a>
 
 ### ResultIntent
@@ -4978,6 +5135,42 @@ Escape one reference token.
 
 ***
 
+<a id="evaluaterequestpolicy"></a>
+
+### evaluateRequestPolicy()
+
+```ts
+function evaluateRequestPolicy(
+   request, 
+   policy, 
+   ctx
+): ErrorBody | undefined;
+```
+
+Apply the policy to one request. Returns the error to send, or undefined when the request
+may proceed. Only POSTs to action, continue, and resume endpoints are ever refused; GET,
+HEAD, and OPTIONS pass untouched.
+
+#### Parameters
+
+##### request
+
+`Request`
+
+##### policy
+
+[`ResolvedRequestPolicy`](#resolvedrequestpolicy)
+
+##### ctx
+
+[`PolicyContext`](#policycontext)
+
+#### Returns
+
+[`ErrorBody`](types.md#errorbody) \| `undefined`
+
+***
+
 <a id="fail-5"></a>
 
 ### fail()
@@ -5060,6 +5253,28 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 
 ***
 
+<a id="hasambientcredentials"></a>
+
+### hasAmbientCredentials()
+
+```ts
+function hasAmbientCredentials(request): boolean;
+```
+
+Whether the request carries credentials a browser attaches without being asked: a `Cookie` header.
+
+#### Parameters
+
+##### request
+
+`Request`
+
+#### Returns
+
+`boolean`
+
+***
+
 <a id="hashjson"></a>
 
 ### hashJson()
@@ -5082,6 +5297,34 @@ SHA-256 of a canonical JSON encoding, base64url. Used to bind tokens and idempot
 
 ***
 
+<a id="isacceptedorigin"></a>
+
+### isAcceptedOrigin()
+
+```ts
+function isAcceptedOrigin(request, accepted): boolean;
+```
+
+Whether a browser request came from an accepted origin. `Origin` decides when present
+(`null` is never accepted); otherwise `Sec-Fetch-Site` of `cross-site` or `same-site` is
+refused; a request with neither header is not from a browser and is accepted.
+
+#### Parameters
+
+##### request
+
+`Request`
+
+##### accepted
+
+`ReadonlySet`\<`string`\>
+
+#### Returns
+
+`boolean`
+
+***
+
 <a id="isintent"></a>
 
 ### isIntent()
@@ -5099,6 +5342,28 @@ function isIntent(value): value is ResultIntent<unknown>;
 #### Returns
 
 `value is ResultIntent<unknown>`
+
+***
+
+<a id="isjsoncontenttype"></a>
+
+### isJsonContentType()
+
+```ts
+function isJsonContentType(value): boolean;
+```
+
+Whether a `Content-Type` value is JSON: `application/json` or `application/<x>+json`, parameters ignored.
+
+#### Parameters
+
+##### value
+
+`string` \| `null` \| `undefined`
+
+#### Returns
+
+`boolean`
 
 ***
 
@@ -5143,6 +5408,28 @@ Ask the agent for something it may hold. See spec §8.
 #### Returns
 
 [`NeedsInputIntent`](#needsinputintent)
+
+***
+
+<a id="normalizeorigin"></a>
+
+### normalizeOrigin()
+
+```ts
+function normalizeOrigin(value): string | null;
+```
+
+The origin of an absolute URL or origin string, lowercased with the default port dropped; null when it has none.
+
+#### Parameters
+
+##### value
+
+`string`
+
+#### Returns
+
+`string` \| `null`
 
 ***
 
@@ -5250,6 +5537,28 @@ or `undefined` when the location does not exist in the schema.
 #### Returns
 
 [`JsonSchema`](types.md#jsonschema) \| `undefined`
+
+***
+
+<a id="resolverequestpolicy"></a>
+
+### resolveRequestPolicy()
+
+```ts
+function resolveRequestPolicy(source): ResolvedRequestPolicy;
+```
+
+Validate and default a `requestPolicy`. Throws on a trusted origin that is not an exact origin.
+
+#### Parameters
+
+##### source
+
+`RequestPolicySource`
+
+#### Returns
+
+[`ResolvedRequestPolicy`](#resolvedrequestpolicy)
 
 ***
 

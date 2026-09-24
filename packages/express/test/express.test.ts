@@ -123,3 +123,204 @@ describe("axeExpress", () => {
     await new Promise<void>((res) => srv.close(() => res()));
   });
 });
+
+describe("axeExpress request policy [P-TRANS-1] [P-TRANS-2]", () => {
+  const SITE = "http://localhost:0";
+  let http: Server;
+  let base: string;
+  const writes: string[] = [];
+
+  beforeAll(async () => {
+    const axe = createAXE({
+      name: "Sunrise Yoga Studio",
+      description:
+        "Book, reschedule, and cancel yoga classes; check schedules and instructor bios for a Ballard studio.",
+      baseUrl: SITE,
+      auth: { modes: ["none", "user"], userLoginUrl: `${SITE}/login` },
+      requestPolicy: { trustedOrigins: ["https://partner.example"] },
+      secret: "0123456789abcdef0123456789abcdef",
+    });
+    axe.register(
+      action("classes.book", {
+        title: "Book a spot",
+        description:
+          "Reserves a spot for the authenticated member using their active class pass and returns the booking id.",
+        risk: "medium",
+        reversible: true,
+        auth: "user",
+        input: z.object({ classId: z.string().describe("Class id") }),
+        output: z.object({ bookingId: z.string() }),
+        handler: async ({ input, context }) => {
+          writes.push(`${context.onBehalfOf}:${input.classId}`);
+          return { bookingId: `b-${input.classId}` };
+        },
+      }),
+    );
+    axe.register(
+      action("classes.search", {
+        title: "Search upcoming classes",
+        description:
+          "Find classes by date. Returns up to 50 results with start times and open spots.",
+        readOnly: true,
+        risk: "none",
+        input: z.object({}),
+        output: z.object({ count: z.number() }),
+        handler: async () => ({ count: 3 }),
+      }),
+    );
+    const app = express();
+    // A typical stack: every body parser a site might already have mounted, so the adapter
+    // sees bodies that were parsed as JSON, text, and form data before it runs.
+    app.use(express.json());
+    app.use(express.text());
+    app.use(express.urlencoded({ extended: false }));
+    app.use(
+      axeExpress(axe, {
+        context: (req) => ({
+          identity: /(?:^|;\s*)sid=member-7\b/.test(req.headers.cookie ?? "")
+            ? { onBehalfOf: "member-7" }
+            : req.headers.authorization === "Bearer partner-token"
+              ? { onBehalfOf: "member-9" }
+              : null,
+        }),
+      }),
+    );
+    await new Promise<void>((resolve) => {
+      http = app.listen(0, () => resolve());
+    });
+    base = `http://127.0.0.1:${(http.address() as { port: number }).port}`;
+  });
+  afterAll(() => new Promise<void>((r) => http.close(() => r())));
+
+  const envelope = (classId: string) =>
+    JSON.stringify({ input: { classId }, idempotencyKey: classId });
+  const post = async (path: string, headers: Record<string, string>, body: string) => {
+    const r = await fetch(`${base}${path}`, { method: "POST", headers, body });
+    return {
+      status: r.status,
+      body: (await r.json()) as { status: string; error?: { code: string } },
+    };
+  };
+
+  const simple: [string, Record<string, string>, string][] = [
+    ["text/plain", { "content-type": "text/plain;charset=UTF-8" }, envelope("c-text")],
+    [
+      "form-encoded",
+      { "content-type": "application/x-www-form-urlencoded" },
+      `${envelope("c-form")}=`,
+    ],
+    [
+      "multipart",
+      { "content-type": "multipart/form-data; boundary=b" },
+      `--b\r\nContent-Disposition: form-data; name="x"\r\n\r\n${envelope("c-multi")}\r\n--b--\r\n`,
+    ],
+  ];
+
+  for (const [label, headers, body] of simple) {
+    it(`a cross-origin ${label} POST with the session cookie is forbidden and nothing runs`, async () => {
+      const r = await post(
+        "/axe/actions/classes.book",
+        { ...headers, origin: "https://evil.example", cookie: "sid=member-7" },
+        body,
+      );
+      expect(r.status).toBe(403);
+      expect(r.body.error?.code).toBe("forbidden");
+      expect(writes).toEqual([]);
+    });
+
+    it(`a ${label} POST without an Origin is refused as unsupported even though a body parser ran`, async () => {
+      const r = await post(
+        "/axe/actions/classes.book",
+        { ...headers, authorization: "Bearer partner-token" },
+        body,
+      );
+      expect(r.status).toBe(400);
+      expect(r.body.error?.code).toBe("unsupported");
+      expect(writes).toEqual([]);
+    });
+  }
+
+  it("a POST with no content type is refused as unsupported", async () => {
+    const r = await fetch(`${base}/axe/actions/classes.book`, {
+      method: "POST",
+      headers: { authorization: "Bearer partner-token" },
+      body: new Blob([envelope("c-none")]),
+    });
+    expect(r.status).toBe(400);
+    expect(writes).toEqual([]);
+  });
+
+  it("an unparsed body behind a parser that set req.body = {} is read from the stream", async () => {
+    // Express 4's json parser assigns `req.body = {}` to a request it skipped. The adapter must
+    // read the real bytes, and keep their real content type, rather than send "{}" as JSON.
+    const app = express();
+    app.use((req, _res, next) => {
+      (req as unknown as { body: unknown }).body = {};
+      next();
+    });
+    app.use(
+      axeExpress(
+        createAXE({
+          name: "Sunrise Yoga Studio",
+          description:
+            "Book, reschedule, and cancel yoga classes; check schedules and instructor bios.",
+          baseUrl: SITE,
+          secret: "0123456789abcdef0123456789abcdef",
+        }).register(
+          action("classes.search", {
+            title: "Search upcoming classes",
+            description:
+              "Find classes by date. Returns up to 50 results with start times and open spots.",
+            readOnly: true,
+            risk: "none",
+            input: z.object({ from: z.string() }),
+            output: z.object({ from: z.string() }),
+            handler: async ({ input }) => ({ from: input.from }),
+          }),
+        ),
+      ),
+    );
+    const srv = await new Promise<Server>((resolve) => {
+      const s = app.listen(0, () => resolve(s));
+    });
+    const port = (srv.address() as { port: number }).port;
+    const r = await fetch(`http://127.0.0.1:${port}/axe/actions/classes.search`, {
+      method: "POST",
+      headers: { "content-type": "application/vnd.axe+json" },
+      body: JSON.stringify({ input: { from: "2026-10-01" } }),
+    });
+    expect(await r.json()).toMatchObject({ status: "ok", output: { from: "2026-10-01" } });
+    await new Promise<void>((res) => srv.close(() => res()));
+  });
+
+  it("same-origin and trusted-origin JSON with the cookie, and bearer JSON without an Origin, run", async () => {
+    const same = await post(
+      "/axe/actions/classes.book",
+      { "content-type": "application/json", origin: SITE, cookie: "sid=member-7" },
+      envelope("c-same"),
+    );
+    const trusted = await post(
+      "/axe/actions/classes.book",
+      {
+        "content-type": "application/json",
+        origin: "https://partner.example",
+        cookie: "sid=member-7",
+      },
+      envelope("c-trusted"),
+    );
+    const bearer = await post(
+      "/axe/actions/classes.book",
+      { "content-type": "application/json", authorization: "Bearer partner-token" },
+      envelope("c-bearer"),
+    );
+    expect([same.body.status, trusted.body.status, bearer.body.status]).toEqual(["ok", "ok", "ok"]);
+    expect(writes).toEqual(["member-7:c-same", "member-7:c-trusted", "member-9:c-bearer"]);
+  });
+
+  it("GETs from a foreign origin with the cookie are unaffected", async () => {
+    const r = await fetch(`${base}/.well-known/axe.json`, {
+      headers: { origin: "https://evil.example", cookie: "sid=member-7" },
+    });
+    expect(r.status).toBe(200);
+  });
+});

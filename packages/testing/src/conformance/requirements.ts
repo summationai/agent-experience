@@ -51,6 +51,17 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
     { test: "@axe/core onRequest can short-circuit with rate_limited and Retry-After is set" },
   ],
   "P-INV-9": [{ check: "runtime.cors" }],
+  "P-TRANS-1": [
+    { check: "runtime.json-content-type" },
+    { test: "@axe/core request policy: state-changing POSTs must be JSON" },
+  ],
+  "P-TRANS-2": [
+    {
+      test: "@axe/core request policy: cross-origin writes with cookies are refused before anything runs",
+    },
+  ],
+  "P-TRANS-3": [{ test: "@axe/core request policy: intended callers keep working" }],
+  "P-TRANS-4": [{ test: "@axe/core request policy: intended callers keep working" }],
   "P-RES-1": [{ check: "runtime.envelope-schema" }],
   "P-RES-2": [{ check: "ladder.needs-human-avoidable" }],
   "P-REQ-1": [{ check: "ladder.needs-input-shape" }],

@@ -22,6 +22,20 @@ export type {
   RevisionContext,
   RevisionProvider,
 } from "./server";
+export {
+  evaluateRequestPolicy,
+  resolveRequestPolicy,
+  isJsonContentType,
+  isAcceptedOrigin,
+  hasAmbientCredentials,
+  normalizeOrigin,
+} from "./request-policy";
+export type {
+  RequestPolicyConfig,
+  ResolvedRequestPolicy,
+  OriginCheck,
+  PolicyContext,
+} from "./request-policy";
 export { action, ActionDefinitionError, ACTION_NAME_PATTERN } from "./action";
 export type {
   ActionProvider,

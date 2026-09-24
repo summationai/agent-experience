@@ -48,7 +48,11 @@ function server() {
 
 async function post(axe: ReturnType<typeof server>, path: string, body: unknown) {
   return axe.handle(
-    new Request(`http://localhost:3000${path}`, { method: "POST", body: JSON.stringify(body) }),
+    new Request(`http://localhost:3000${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
   );
 }
 

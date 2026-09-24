@@ -114,6 +114,10 @@ type WireApi =
   | "idempotencyTtlSeconds"
   | "manifestCacheSeconds"
   | "allowCredentials"
+  | "requestPolicy"
+  | "requireJsonContentType"
+  | "trustedOrigins"
+  | "originCheck"
   | "combineSinks"
   | "parseUserAgent"
   | "isOk"
@@ -125,11 +129,6 @@ type WireApi =
   | "retries"
   | "maxRetryAfterMs"
   | "maxWaitMs"
-  | "trust"
-  | "allowCrossOrigin"
-  | "allowHttp"
-  | "destinationPolicy"
-  | "checkDestination"
   | "toolNameFor"
   | "formatResult"
   | "pollBudgetMs"
@@ -680,7 +679,9 @@ type WireReason =
   | "payment_required"
   | "consent_required"
   | "identity_required"
-  | "document_required";
+  | "document_required"
+  | "cross_origin_refused"
+  | "json_required";
 ```
 
 Union of every `reason` name.
@@ -764,9 +765,7 @@ const api: Readonly<{
   actionNameFor: "actionNameFor";
   addProvider: "addProvider";
   allowCredentials: "allowCredentials";
-  allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
-  allowHttp: "allowHttp";
   appendHandoffId: "appendHandoffId";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
@@ -776,7 +775,6 @@ const api: Readonly<{
   axeNext: "axeNext";
   axeNextPages: "axeNextPages";
   bump: "bump";
-  checkDestination: "checkDestination";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
   combineSinks: "combineSinks";
@@ -797,7 +795,6 @@ const api: Readonly<{
   describe: "describe";
   describeEntry: "describeEntry";
   describeLive: "describeLive";
-  destinationPolicy: "destinationPolicy";
   discover: "discover";
   emit: "emit";
   entries: "entries";
@@ -853,6 +850,7 @@ const api: Readonly<{
   onRequest: "onRequest";
   onResult: "onResult";
   onResume: "onResume";
+  originCheck: "originCheck";
   otelSink: "otelSink";
   parseUserAgent: "parseUserAgent";
   poll: "poll";
@@ -862,9 +860,11 @@ const api: Readonly<{
   register: "register";
   registerGenerated: "registerGenerated";
   registryVersion: "registryVersion";
+  requestPolicy: "requestPolicy";
   requireCompletion: "requireCompletion";
   requireIdempotencyKey: "requireIdempotencyKey";
   requireInputDescriptions: "requireInputDescriptions";
+  requireJsonContentType: "requireJsonContentType";
   resolveDisplay: "resolveDisplay";
   resume: "resume";
   retries: "retries";
@@ -896,7 +896,7 @@ const api: Readonly<{
   toMarkdown: "toMarkdown";
   toolNameFor: "toolNameFor";
   toWebRequest: "toWebRequest";
-  trust: "trust";
+  trustedOrigins: "trustedOrigins";
   ttlSeconds: "ttlSeconds";
   unavailable: "unavailable";
   unregister: "unregister";
@@ -1461,8 +1461,10 @@ const query: Readonly<{
 ```ts
 const reason: Readonly<{
   consentRequired: "consent_required";
+  crossOriginRefused: "cross_origin_refused";
   documentRequired: "document_required";
   identityRequired: "identity_required";
+  jsonRequired: "json_required";
   loginRequired: "login_required";
   paymentRequired: "payment_required";
 }>;
@@ -1569,9 +1571,7 @@ const WIRE: Readonly<{
      actionNameFor: "actionNameFor";
      addProvider: "addProvider";
      allowCredentials: "allowCredentials";
-     allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
-     allowHttp: "allowHttp";
      appendHandoffId: "appendHandoffId";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
@@ -1581,7 +1581,6 @@ const WIRE: Readonly<{
      axeNext: "axeNext";
      axeNextPages: "axeNextPages";
      bump: "bump";
-     checkDestination: "checkDestination";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
      combineSinks: "combineSinks";
@@ -1602,7 +1601,6 @@ const WIRE: Readonly<{
      describe: "describe";
      describeEntry: "describeEntry";
      describeLive: "describeLive";
-     destinationPolicy: "destinationPolicy";
      discover: "discover";
      emit: "emit";
      entries: "entries";
@@ -1658,6 +1656,7 @@ const WIRE: Readonly<{
      onRequest: "onRequest";
      onResult: "onResult";
      onResume: "onResume";
+     originCheck: "originCheck";
      otelSink: "otelSink";
      parseUserAgent: "parseUserAgent";
      poll: "poll";
@@ -1667,9 +1666,11 @@ const WIRE: Readonly<{
      register: "register";
      registerGenerated: "registerGenerated";
      registryVersion: "registryVersion";
+     requestPolicy: "requestPolicy";
      requireCompletion: "requireCompletion";
      requireIdempotencyKey: "requireIdempotencyKey";
      requireInputDescriptions: "requireInputDescriptions";
+     requireJsonContentType: "requireJsonContentType";
      resolveDisplay: "resolveDisplay";
      resume: "resume";
      retries: "retries";
@@ -1701,7 +1702,7 @@ const WIRE: Readonly<{
      toMarkdown: "toMarkdown";
      toolNameFor: "toolNameFor";
      toWebRequest: "toWebRequest";
-     trust: "trust";
+     trustedOrigins: "trustedOrigins";
      ttlSeconds: "ttlSeconds";
      unavailable: "unavailable";
      unregister: "unregister";
@@ -2046,8 +2047,10 @@ const WIRE: Readonly<{
   }>;
   reason: Readonly<{
      consentRequired: "consent_required";
+     crossOriginRefused: "cross_origin_refused";
      documentRequired: "document_required";
      identityRequired: "identity_required";
+     jsonRequired: "json_required";
      loginRequired: "login_required";
      paymentRequired: "payment_required";
   }>;

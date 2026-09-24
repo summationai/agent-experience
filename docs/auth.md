@@ -382,6 +382,98 @@ Issuing keys is your admin UI's job, not the SDK's: generate a long random key, 
 
 Two details about `site` mode and identity. First, after the key verifies, the runtime still calls `authenticate` or the adapter's `context`, so a `site` action can also carry an `onBehalfOf` when a partner forwards a user's credential. If your `authenticate` treats every bearer as a user token, make it return `null` for API keys. Second, `policies.rateLimit` is declared in the manifest but enforced by you, and `site` mode is where per-key limits belong: key the limiter at your edge on the bearer value and return 429 with `Retry-After`. See [Deploying](deploying.md#rate-limiting).
 
+## Cookie sessions
+
+A cookie is an ambient credential: the browser attaches it to every request for your origin, including requests that a page on another origin makes. A page on any site can submit a form or call `fetch` with a `text/plain` body to `https://your-site/axe/actions/returns.start`, and the browser sends it with your customer's session cookie and without asking your server first. CORS decides whether that page may read the response. It does not stop the request, so it does not stop the write.
+
+The runtime refuses such requests before it reads the body, establishes an identity, or loads a token (spec [P-TRANS-1] to [P-TRANS-4]). Two rules, both on by default:
+
+- **JSON only on writes.** A `POST` to an action that is not `readOnly`, to `/axe/continue`, or to `/axe/resume` must send `Content-Type: application/json` (or an `application/*+json` type). Anything else, a missing header included, is refused with `unsupported` (HTTP 400) and `details.reason` set to `json_required`. A browser cannot send a JSON content type to another origin without a CORS preflight, which your server answers.
+- **Same origin for cookies.** A `POST` to any action, continue, or resume that carries a `Cookie` header must come from your own origin, which is the origin of `baseUrl` (or the tenant's `baseUrl`), from an origin in `trustedOrigins`, or from an origin you allow credentialed CORS for. Otherwise it is refused with `forbidden` (HTTP 403) and `details.reason` set to `cross_origin_refused`. The response is the same for every path, action, token, and cookie, so it tells the caller nothing about them.
+
+<!-- include: examples/auth/cookie-session.ts#config -->
+```ts
+const axe = createAXE({
+  name: "Fieldstone Outfitters",
+  description:
+    "Track orders and start returns for purchases from Fieldstone Outfitters, an online outdoor-clothing shop. Requires the customer to be signed in.",
+  // The site's own origin for the origin rule comes from here, never from Host or
+  // X-Forwarded-Host.
+  baseUrl: "https://shop.fieldstone.example",
+  auth: {
+    modes: ["none", "user"],
+    userLoginUrl: "https://shop.fieldstone.example/login",
+    // A browser on the shop's pages sends the session cookie; an agent sends a bearer token.
+    authenticate: (request) => {
+      const bearer = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
+      if (bearer) return tokens.has(bearer) ? { onBehalfOf: tokens.get(bearer)! } : null;
+      const sid = /(?:^|;\s*)fo_session=([^;]+)/.exec(request.headers.get("cookie") ?? "")?.[1];
+      return sid && sessions.has(sid) ? { onBehalfOf: sessions.get(sid)! } : null;
+    },
+  },
+  // The defaults already require JSON on writes and check Origin on any POST that carries a
+  // Cookie. What a cookie site adds is the list of other origins whose pages may call it with
+  // the shop's cookie: here, the help-center widget on a sibling domain.
+  requestPolicy: {
+    trustedOrigins: ["https://help.fieldstone.example"],
+  },
+  // Credentialed CORS lets the widget read responses. An origin listed here with
+  // allowCredentials is trusted by the request policy as well.
+  cors: { origins: ["https://help.fieldstone.example"], allowCredentials: true },
+  secret: process.env.AXE_SECRET,
+});
+```
+<!-- /include -->
+
+What each request gets under the default policy:
+
+| Request                                                                    | Result                                     |
+| -------------------------------------------------------------------------- | ------------------------------------------ |
+| `POST`, cookie, `Origin` is your `baseUrl` origin, JSON                    | Runs                                       |
+| `POST`, cookie, `Origin` in `trustedOrigins` or credentialed `cors`, JSON  | Runs                                       |
+| `POST`, cookie, any other `Origin` (or `Origin: null`), any body type      | `forbidden`                                |
+| `POST`, cookie, no `Origin`, `Sec-Fetch-Site: cross-site` or `same-site`   | `forbidden`                                |
+| `POST`, cookie, no `Origin`, `Sec-Fetch-Site: same-origin`, JSON           | Runs                                       |
+| `POST` to a write, any origin or none, `text/plain`, form, multipart, none | `unsupported`                              |
+| `POST`, bearer token, no `Origin`, JSON                                    | Runs (server to server)                    |
+| `POST`, no cookie, any `Origin`, JSON                                      | Runs (a public site's cross-origin agents) |
+| `POST` to a `readOnly` action, no cookie, any body type                    | Runs                                       |
+| `GET` of the manifest, an action definition, `/axe/state`, or a `pollUrl`  | Never refused by these rules               |
+| `OPTIONS`                                                                  | Never refused by these rules               |
+
+A request with neither `Origin` nor `Sec-Fetch-Site` did not come from a browser page: current browsers send `Origin` on every `POST`. It passes the origin rule, which is what keeps partner systems and agents calling with bearer tokens working. It still has to be JSON.
+
+A public site (`auth` omitted, so `{ modes: ["none"] }`) sets no session cookie, so its callers carry none and the origin rule never applies; a browser agent on another origin can call it with JSON as before. The content-type rule does apply to its writes. If such a site does hand browsers some other cookie that its handlers read, the origin rule protects that cookie too.
+
+### Options
+
+`requestPolicy` has three members:
+
+- `trustedOrigins`: exact origins (`https://help.fieldstone.example`), besides your `baseUrl` origin, whose pages may call you with your cookies. No wildcards and no paths; `createAXE` throws on either. List each hostname you serve pages from if it differs from `baseUrl`, such as the apex domain beside `www`.
+- `requireJsonContentType`: default true. Set it to false only if a caller you cannot change sends JSON without the header, and then only on a site whose writes need no cookie.
+- `originCheck`: `cookie` (default) checks the origin of a `POST` that carries a `Cookie` header. `always` checks every `POST` that names an origin, for sites whose browsers hold other ambient credentials, such as HTTP authentication or client certificates, that the runtime cannot see as a header. `off` disables the rule for sites that enforce their own CSRF protection in front of the runtime.
+
+An origin in `cors.origins` with `allowCredentials` is trusted automatically. Allowing credentialed CORS already lets that origin send a JSON request with your cookies and read the answer, so refusing its simple requests would protect nothing.
+
+### Cookies, proxies, and forwarded headers
+
+Set your session cookie with `SameSite=Lax` (or `Strict`), `Secure`, and `HttpOnly`. `SameSite` stops browsers attaching it to cross-site `POST`s at all, which is a second layer under the request policy. It is not a replacement: a sibling subdomain is the same site, so `SameSite` lets it through, and a cookie you must send cross-site (`SameSite=None`, for an embedded widget) has no such protection.
+
+<!-- include: examples/auth/cookie-session.ts#cookie -->
+```ts
+// The session cookie itself: SameSite=Lax keeps browsers from attaching it to cross-site
+// POSTs at all, which is a second layer under the request policy, not a replacement for it
+// (a sibling subdomain is same-site, and older browsers ignore the attribute).
+function setSessionCookie(res: express.Response, sid: string) {
+  res.cookie("fo_session", sid, { httpOnly: true, secure: true, sameSite: "lax", path: "/" });
+}
+```
+<!-- /include -->
+
+Your origin comes from `baseUrl`, never from the request. The adapters build the request URL from `X-Forwarded-Host`, `X-Forwarded-Proto`, and `Host` so that routing works behind a proxy, but those headers are set by the client or by whichever intermediary is closest, and comparing `Origin` with them would let a request vouch for itself. `Forwarded` and `X-Forwarded-*` are not trusted for this purpose, and there is no option to trust them. A reverse proxy that terminates TLS does not change the browser's `Origin`: a page on `https://shop.fieldstone.example` sends that origin whether your process listens on plain HTTP behind the proxy or not, and it matches `baseUrl`. A proxy that rewrites or strips `Origin` breaks the rule in both directions (stripped, a cross-site request looks like a server call unless `Sec-Fetch-Site` survives); configure it to pass `Origin`, `Sec-Fetch-Site`, `Cookie`, and `Content-Type` through unchanged.
+
+The Express and Next.js Pages adapters keep the `Content-Type` the client sent even when a body parser (`express.json()`, `express.text()`, `express.urlencoded()`, or Next's built-in parser) has already consumed the body, so a `text/plain` body that was parsed into a string is still refused. The App Router and fetch adapters pass the framework's `Request` through untouched.
+
 ## Tenants and auth
 
 On a multi-tenant platform, the `tenant` resolver returns a `TenantInfo` for each request, and its `auth` member can override the manifest's `modes` and `userLoginUrl` for that tenant. The override applies to the manifest served for that tenant and to the login handoff, which sends the human to the tenant's login page rather than the platform's.

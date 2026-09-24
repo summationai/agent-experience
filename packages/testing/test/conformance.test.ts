@@ -70,6 +70,19 @@ describe("conformance suite", () => {
     expect(table).toContain("Conformant.");
   });
 
+  it("runtime.json-content-type passes by default and fails when a text/plain write is accepted", async () => {
+    const statusOf = async (overrides: Parameters<typeof apartmentsAXE>[0]) => {
+      const { axe } = apartmentsAXE(overrides);
+      const report = await runConformance("https://oakridge-rentals.example", {
+        fetch: inProcess(axe),
+        auth: "user:dana",
+      });
+      return report.checks.find((c) => c.id === "runtime.json-content-type")?.status;
+    };
+    expect(await statusOf({})).toBe("pass");
+    expect(await statusOf({ requestPolicy: { requireJsonContentType: false } })).toBe("fail");
+  });
+
   it("skips ladder and mutation checks without credentials or with --no-mutate", async () => {
     const { axe } = apartmentsAXE();
     const report = await runConformance("https://oakridge-rentals.example", {

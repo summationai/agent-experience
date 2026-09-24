@@ -616,6 +616,10 @@ export const reason = /* @__PURE__ */ Object.freeze({
   identityRequired: "identity_required",
   /** Recommended reason string when `accepts` are document kinds. */
   documentRequired: "document_required",
+  /** Emitted by the SDK when a credentialed POST comes from an origin the site does not accept ([P-TRANS-2]). */
+  crossOriginRefused: "cross_origin_refused",
+  /** Emitted by the SDK when a POST to a state-changing endpoint is not `application/json` ([P-TRANS-1]). */
+  jsonRequired: "json_required",
 } as const);
 
 /** `tool` names. */
@@ -934,6 +938,14 @@ export const api = /* @__PURE__ */ Object.freeze({
   manifestCacheSeconds: "manifestCacheSeconds",
   /** CORS option: send `Access-Control-Allow-Credentials`. */
   allowCredentials: "allowCredentials",
+  /** Config: the content-type and origin rules applied to POSTs before anything runs ([P-TRANS-1] to [P-TRANS-4]). */
+  requestPolicy: "requestPolicy",
+  /** Request policy option: refuse non-JSON bodies on state-changing endpoints (default true). */
+  requireJsonContentType: "requireJsonContentType",
+  /** Request policy option: origins besides `baseUrl`'s whose browser requests may carry cookies. */
+  trustedOrigins: "trustedOrigins",
+  /** Request policy option: `cookie` (default), `always`, or `off`; when the origin rule applies. */
+  originCheck: "originCheck",
   /** Fan events out to several sinks, isolating failures. */
   combineSinks: "combineSinks",
   /** Parse the recommended `User-Agent` form into an event agent. */
@@ -1118,7 +1130,7 @@ export type WireField = "app" | "at" | "entries" | "objects" | "index" | "role" 
 /** Union of every `domAttribute` name. */
 export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-surface-object" | "data-surface-reason" | "aria-label" | "aria-disabled" | "aria-readonly";
 /** Union of every `reason` name. */
-export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required";
+export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required" | "cross_origin_refused" | "json_required";
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
@@ -1126,7 +1138,7 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1266,6 +1278,8 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "reason", key: "consentRequired", name: "consent_required" },
   { category: "reason", key: "identityRequired", name: "identity_required" },
   { category: "reason", key: "documentRequired", name: "document_required" },
+  { category: "reason", key: "crossOriginRefused", name: "cross_origin_refused" },
+  { category: "reason", key: "jsonRequired", name: "json_required" },
   { category: "tool", key: "continue", name: "axe_continue" },
   { category: "tool", key: "resume", name: "axe_resume" },
   { category: "tool", key: "manifest", name: "axe_manifest" },
@@ -1544,6 +1558,10 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "idempotencyTtlSeconds", name: "idempotencyTtlSeconds" },
   { category: "api", key: "manifestCacheSeconds", name: "manifestCacheSeconds" },
   { category: "api", key: "allowCredentials", name: "allowCredentials" },
+  { category: "api", key: "requestPolicy", name: "requestPolicy" },
+  { category: "api", key: "requireJsonContentType", name: "requireJsonContentType" },
+  { category: "api", key: "trustedOrigins", name: "trustedOrigins" },
+  { category: "api", key: "originCheck", name: "originCheck" },
   { category: "api", key: "combineSinks", name: "combineSinks" },
   { category: "api", key: "parseUserAgent", name: "parseUserAgent" },
   { category: "api", key: "isOk", name: "isOk" },

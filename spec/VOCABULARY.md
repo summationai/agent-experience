@@ -200,13 +200,15 @@ The DOM mirror ([S-DOM-1] in `spec/SURFACE.md`): attributes a rendered control c
 
 ## Reason conventions
 
-| Category | Key              | Name                | Where                          | Meaning                                                             |
-| -------- | ---------------- | ------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| reason   | loginRequired    | `login_required`    | `needs_human` `handoff.reason` | Emitted by the SDK when a `user` action is called without identity. |
-| reason   | paymentRequired  | `payment_required`  | `needs_input` `reason`         | Recommended reason string when `accepts` are payment kinds.         |
-| reason   | consentRequired  | `consent_required`  | `needs_input` `reason`         | Recommended reason string when `accepts` are consent kinds.         |
-| reason   | identityRequired | `identity_required` | `needs_input` `reason`         | Recommended reason string when `accepts` are identity kinds.        |
-| reason   | documentRequired | `document_required` | `needs_input` `reason`         | Recommended reason string when `accepts` are document kinds.        |
+| Category | Key                | Name                   | Where                                   | Meaning                                                                                                  |
+| -------- | ------------------ | ---------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| reason   | loginRequired      | `login_required`       | `needs_human` `handoff.reason`          | Emitted by the SDK when a `user` action is called without identity.                                      |
+| reason   | paymentRequired    | `payment_required`     | `needs_input` `reason`                  | Recommended reason string when `accepts` are payment kinds.                                              |
+| reason   | consentRequired    | `consent_required`     | `needs_input` `reason`                  | Recommended reason string when `accepts` are consent kinds.                                              |
+| reason   | identityRequired   | `identity_required`    | `needs_input` `reason`                  | Recommended reason string when `accepts` are identity kinds.                                             |
+| reason   | documentRequired   | `document_required`    | `needs_input` `reason`                  | Recommended reason string when `accepts` are document kinds.                                             |
+| reason   | crossOriginRefused | `cross_origin_refused` | `error.details.reason` on `forbidden`   | Emitted by the SDK when a credentialed POST comes from an origin the site does not accept ([P-TRANS-2]). |
+| reason   | jsonRequired       | `json_required`        | `error.details.reason` on `unsupported` | Emitted by the SDK when a POST to a state-changing endpoint is not `application/json` ([P-TRANS-1]).     |
 
 ## MCP tool names
 
@@ -516,6 +518,10 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | idempotencyTtlSeconds  | `idempotencyTtlSeconds`  | `@axe/core`                | Config: idempotency window (default 86400).                                                                         |
 | api      | manifestCacheSeconds   | `manifestCacheSeconds`   | `@axe/core`                | Config: `Cache-Control` max-age for the manifest (default 300).                                                     |
 | api      | allowCredentials       | `allowCredentials`       | `@axe/core`                | CORS option: send `Access-Control-Allow-Credentials`.                                                               |
+| api      | requestPolicy          | `requestPolicy`          | `@axe/core`                | Config: the content-type and origin rules applied to POSTs before anything runs ([P-TRANS-1] to [P-TRANS-4]).       |
+| api      | requireJsonContentType | `requireJsonContentType` | `@axe/core`                | Request policy option: refuse non-JSON bodies on state-changing endpoints (default true).                           |
+| api      | trustedOrigins         | `trustedOrigins`         | `@axe/core`                | Request policy option: origins besides `baseUrl`'s whose browser requests may carry cookies.                        |
+| api      | originCheck            | `originCheck`            | `@axe/core`                | Request policy option: `cookie` (default), `always`, or `off`; when the origin rule applies.                        |
 | api      | combineSinks           | `combineSinks`           | `@axe/core/events`         | Fan events out to several sinks, isolating failures.                                                                |
 | api      | parseUserAgent         | `parseUserAgent`         | `@axe/core/events`         | Parse the recommended `User-Agent` form into an event agent.                                                        |
 | api      | isOk                   | `isOk`                   | `@axe/client`              | Narrow a result to `ok`.                                                                                            |
