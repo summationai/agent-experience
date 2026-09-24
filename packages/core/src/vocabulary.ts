@@ -648,6 +648,8 @@ export const cli = /* @__PURE__ */ Object.freeze({
   audit: "axe audit",
   /** Serve any AXE site as an MCP server over stdio. */
   mcp: "axe mcp",
+  /** Derive actions from an OpenAPI document; files for review. */
+  generate: "axe generate",
 } as const);
 
 /** `payload` names. */
@@ -980,6 +982,28 @@ export const api = /* @__PURE__ */ Object.freeze({
   describeEntry: "describeEntry",
   /** React hook that registers an entry and returns its attributes as props. */
   useSurfaceProps: "useSurfaceProps",
+  /** Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. */
+  fromOpenAPI: "fromOpenAPI",
+  /** Action source: a table of zod-typed functions keyed by action name. */
+  fromFunctions: "fromFunctions",
+  /** Action source: a tRPC router's queries and mutations, read structurally. */
+  fromTRPCRouter: "fromTRPCRouter",
+  /** Register every generated action on a server. */
+  registerGenerated: "registerGenerated",
+  /** One line per generator warning. */
+  formatWarnings: "formatWarnings",
+  /** Convert the common JSON Schema subset to Zod, warning on the rest. */
+  jsonSchemaToZod: "jsonSchemaToZod",
+  /** Policy: risk for candidates whose source did not decide. */
+  defaultRisk: "defaultRisk",
+  /** Policy: leave out actions above this risk. */
+  maxRisk: "maxRisk",
+  /** Policy: leave out actions whose input fields lack descriptions. */
+  requireInputDescriptions: "requireInputDescriptions",
+  /** OpenAPI option: keep operations the document marks deprecated. */
+  includeDeprecated: "includeDeprecated",
+  /** tRPC option: build the router context from the AXE handler context. */
+  createContext: "createContext",
 } as const);
 
 /**
@@ -1064,11 +1088,11 @@ export type WireReason = "login_required" | "payment_required" | "consent_requir
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
-export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp";
+export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1220,6 +1244,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "cli", key: "conformance", name: "axe conformance" },
   { category: "cli", key: "audit", name: "axe audit" },
   { category: "cli", key: "mcp", name: "axe mcp" },
+  { category: "cli", key: "generate", name: "axe generate" },
   { category: "field", key: "protocol", name: "protocol" },
   { category: "field", key: "name", name: "name" },
   { category: "field", key: "description", name: "description" },
@@ -1509,4 +1534,15 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "surfaceSelector", name: "surfaceSelector" },
   { category: "api", key: "describeEntry", name: "describeEntry" },
   { category: "api", key: "useSurfaceProps", name: "useSurfaceProps" },
+  { category: "api", key: "fromOpenAPI", name: "fromOpenAPI" },
+  { category: "api", key: "fromFunctions", name: "fromFunctions" },
+  { category: "api", key: "fromTRPCRouter", name: "fromTRPCRouter" },
+  { category: "api", key: "registerGenerated", name: "registerGenerated" },
+  { category: "api", key: "formatWarnings", name: "formatWarnings" },
+  { category: "api", key: "jsonSchemaToZod", name: "jsonSchemaToZod" },
+  { category: "api", key: "defaultRisk", name: "defaultRisk" },
+  { category: "api", key: "maxRisk", name: "maxRisk" },
+  { category: "api", key: "requireInputDescriptions", name: "requireInputDescriptions" },
+  { category: "api", key: "includeDeprecated", name: "includeDeprecated" },
+  { category: "api", key: "createContext", name: "createContext" },
 ]);

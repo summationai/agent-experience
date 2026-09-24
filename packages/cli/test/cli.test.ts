@@ -11,6 +11,7 @@ import { toWebRequest, sendWebResponse } from "@axe/express";
 import { run } from "../src/index";
 import { affordanceGraph } from "../src/commands/inspect";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
+import { storeDocument } from "../../generate/test/fixtures/store-openapi";
 
 let http: Server;
 let base = "";
@@ -205,6 +206,68 @@ describe("axe CLI", () => {
     expect(html).toContain("axe:select");
     reset();
     expect(await run(["preview", base, "nope.action", "--no-open"], io)).toBe(1);
+  });
+
+  it("generate derives actions from an OpenAPI document, writes a manifest and a starter module", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-generate-"));
+    const doc = join(dir, "openapi.json");
+    writeFileSync(doc, JSON.stringify(storeDocument));
+    reset();
+    const code = await run(
+      ["generate", doc, "--out", join(dir, "axe.json"), "--code", join(dir, "axe.ts")],
+      io,
+    );
+    const text = out.join("\n");
+    expect(code, text + err.join("\n")).toBe(0);
+    expect(text).toContain("6 action(s) generated, 2 left out");
+    expect(text).toContain(
+      "orders.get-by-id — Get an order [read, risk low, auth user]  ← GET /orders/{id}",
+    );
+    expect(text).toContain("✗ missing-description products.list (GET /products) description:");
+    expect(text).toContain("✗ excluded legacy.list-carts (GET /legacy/carts)");
+    expect(text).toMatch(/! lint\/missing-examples \(6\)/);
+    expect(text).toContain("✓ The generated manifest validates against the schema");
+    const manifest = JSON.parse(readFileSync(join(dir, "axe.json"), "utf8")) as {
+      name: string;
+      actions: { name: string }[];
+      auth: { modes: string[] };
+    };
+    expect(manifest.name).toBe("Northwind Outfitters API");
+    expect(manifest.actions.map((a) => a.name)).toHaveLength(6);
+    expect(manifest.auth.modes.sort()).toEqual(["site", "user"]);
+    const module = readFileSync(join(dir, "axe.ts"), "utf8");
+    expect(module).toContain("// TODO GET /products: missing-description");
+    expect(module).toContain('"products.list": { description: "" },');
+    expect(module).toContain('"legacy.list-carts": { exclude: true },');
+    expect(module).toContain("registerGenerated(axe, generated);");
+    // The starter module is a valid axe.ts: point it at the workspace sources and validate it.
+    writeFileSync(
+      join(dir, "axe.ts"),
+      module
+        .replace('from "@axe/core"', `from "${join(__dirname, "../../core/src/index.ts")}"`)
+        .replace(
+          /from "@axe\/generate"/g,
+          `from "${join(__dirname, "../../generate/src/index.ts")}"`,
+        ),
+    );
+    reset();
+    expect(await run(["validate", join(dir, "axe.ts")], io), out.join("\n") + err.join("\n")).toBe(
+      0,
+    );
+    expect(out.join("\n")).toContain("6 action(s)");
+    reset();
+    expect(await run(["generate", doc, "--json"], io)).toBe(0);
+    const parsed = JSON.parse(out.join("\n")) as { valid: boolean; warnings: unknown[] };
+    expect(parsed.valid).toBe(true);
+    expect(parsed.warnings.length).toBeGreaterThan(0);
+    reset();
+    writeFileSync(join(dir, "openapi.yaml"), "openapi: 3.1.0\n");
+    expect(await run(["generate", join(dir, "openapi.yaml")], io)).toBe(1);
+    expect(err.join("\n")).toContain("reads JSON only");
+    reset();
+    writeFileSync(join(dir, "not-openapi.json"), "{}");
+    expect(await run(["generate", join(dir, "not-openapi.json")], io)).toBe(1);
+    expect(err.join("\n")).toContain("does not look like an OpenAPI document");
   });
 
   it("mcp serves the site over stdio to a real MCP client", async () => {

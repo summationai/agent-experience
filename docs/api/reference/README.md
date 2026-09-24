@@ -6,6 +6,7 @@
 - [@axe/core](@axe/core/README.md)
 - [@axe/express](@axe/express.md)
 - [@axe/fetch](@axe/fetch.md)
+- [@axe/generate](@axe/generate.md)
 - [@axe/mcp](@axe/mcp.md)
 - [@axe/next](@axe/next.md)
 - [@axe/surface](@axe/surface/README.md)

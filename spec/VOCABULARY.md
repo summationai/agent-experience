@@ -229,6 +229,7 @@ The DOM mirror ([S-DOM-1] in `spec/SURFACE.md`): attributes a rendered control c
 | cli      | conformance | `axe conformance` | CLI   | Run the conformance suite against a URL.                    |
 | cli      | audit       | `axe audit`       | CLI   | Produce the AXE Score and fix list.                         |
 | cli      | mcp         | `axe mcp`         | CLI   | Serve any AXE site as an MCP server over stdio.             |
+| cli      | generate    | `axe generate`    | CLI   | Derive actions from an OpenAPI document; files for review.  |
 
 ## Fields
 
@@ -539,3 +540,21 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | surfaceSelector        | `surfaceSelector`        | `@axe/surface`             | CSS selector that finds the rendered control for an entry id.                                                       |
 | api      | describeEntry          | `describeEntry`          | `@axe/surface`             | One plain-text line for an entry: name, availability and reason, effect.                                            |
 | api      | useSurfaceProps        | `useSurfaceProps`        | `@axe/surface/react`       | React hook that registers an entry and returns its attributes as props.                                             |
+
+## Generate API
+
+Public identifiers of `@axe/generate`, which derives actions from definitions an application already has (`docs/generating.md`). Kept in their own table so the SDK API table above stays stable.
+
+| Category | Key                      | Name                       | Where           | Meaning                                                                       |
+| -------- | ------------------------ | -------------------------- | --------------- | ----------------------------------------------------------------------------- |
+| api      | fromOpenAPI              | `fromOpenAPI`              | `@axe/generate` | Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. |
+| api      | fromFunctions            | `fromFunctions`            | `@axe/generate` | Action source: a table of zod-typed functions keyed by action name.           |
+| api      | fromTRPCRouter           | `fromTRPCRouter`           | `@axe/generate` | Action source: a tRPC router's queries and mutations, read structurally.      |
+| api      | registerGenerated        | `registerGenerated`        | `@axe/generate` | Register every generated action on a server.                                  |
+| api      | formatWarnings           | `formatWarnings`           | `@axe/generate` | One line per generator warning.                                               |
+| api      | jsonSchemaToZod          | `jsonSchemaToZod`          | `@axe/generate` | Convert the common JSON Schema subset to Zod, warning on the rest.            |
+| api      | defaultRisk              | `defaultRisk`              | `@axe/generate` | Policy: risk for candidates whose source did not decide.                      |
+| api      | maxRisk                  | `maxRisk`                  | `@axe/generate` | Policy: leave out actions above this risk.                                    |
+| api      | requireInputDescriptions | `requireInputDescriptions` | `@axe/generate` | Policy: leave out actions whose input fields lack descriptions.               |
+| api      | includeDeprecated        | `includeDeprecated`        | `@axe/generate` | OpenAPI option: keep operations the document marks deprecated.                |
+| api      | createContext            | `createContext`            | `@axe/generate` | tRPC option: build the router context from the AXE handler context.           |

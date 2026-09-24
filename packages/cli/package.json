@@ -1,7 +1,7 @@
 {
   "name": "axe",
   "version": "0.1.0",
-  "description": "Command-line tool for AXE: init, validate, inspect, preview, conformance, audit, mcp.",
+  "description": "Command-line tool for AXE: init, validate, inspect, preview, conformance, audit, mcp, generate.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,7 +27,8 @@
     "@axe/client": "workspace:*",
     "@axe/mcp": "workspace:*",
     "@axe/testing": "workspace:*",
-    "tsx": "^4.23.15"
+    "tsx": "^4.23.15",
+    "@axe/generate": "workspace:*"
   },
   "repository": {
     "type": "git",

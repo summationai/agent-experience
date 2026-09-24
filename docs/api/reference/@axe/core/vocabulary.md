@@ -137,7 +137,18 @@ type WireApi =
   | "surfaceAttributes"
   | "surfaceSelector"
   | "describeEntry"
-  | "useSurfaceProps";
+  | "useSurfaceProps"
+  | "fromOpenAPI"
+  | "fromFunctions"
+  | "fromTRPCRouter"
+  | "registerGenerated"
+  | "formatWarnings"
+  | "jsonSchemaToZod"
+  | "defaultRisk"
+  | "maxRisk"
+  | "requireInputDescriptions"
+  | "includeDeprecated"
+  | "createContext";
 ```
 
 Union of every `api` name.
@@ -168,7 +179,8 @@ type WireCli =
   | "axe preview"
   | "axe conformance"
   | "axe audit"
-  | "axe mcp";
+  | "axe mcp"
+  | "axe generate";
 ```
 
 Union of every `cli` name.
@@ -751,11 +763,13 @@ const api: Readonly<{
   continue: "continue";
   cors: "cors";
   createAXE: "createAXE";
+  createContext: "createContext";
   createMcpServer: "createMcpServer";
   createSurface: "createSurface";
   createTestClient: "createTestClient";
   currentRev: "currentRev";
   customKind: "customKind";
+  defaultRisk: "defaultRisk";
   describe: "describe";
   describeEntry: "describeEntry";
   describeLive: "describeLive";
@@ -768,12 +782,17 @@ const api: Readonly<{
   formatConformanceTable: "formatConformanceTable";
   formatDriftReport: "formatDriftReport";
   formatResult: "formatResult";
+  formatWarnings: "formatWarnings";
   freeze: "freeze";
+  fromFunctions: "fromFunctions";
+  fromOpenAPI: "fromOpenAPI";
+  fromTRPCRouter: "fromTRPCRouter";
   fulfillers: "fulfillers";
   handler: "handler";
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
   identity: "identity";
+  includeDeprecated: "includeDeprecated";
   index: "index";
   invoke: "invoke";
   invokeAction: "invokeAction";
@@ -784,6 +803,7 @@ const api: Readonly<{
   isOk: "isOk";
   isPending: "isPending";
   jsonlFileSink: "jsonlFileSink";
+  jsonSchemaToZod: "jsonSchemaToZod";
   kinds: "kinds";
   ledger: "ledger";
   lintAgentText: "lintAgentText";
@@ -791,6 +811,7 @@ const api: Readonly<{
   manifest: "manifest";
   manifestCacheSeconds: "manifestCacheSeconds";
   maxRetryAfterMs: "maxRetryAfterMs";
+  maxRisk: "maxRisk";
   maxWaitMs: "maxWaitMs";
   needsInput: "needsInput";
   observe: "observe";
@@ -810,8 +831,10 @@ const api: Readonly<{
   present: "present";
   reconcile: "reconcile";
   register: "register";
+  registerGenerated: "registerGenerated";
   requireCompletion: "requireCompletion";
   requireIdempotencyKey: "requireIdempotencyKey";
+  requireInputDescriptions: "requireInputDescriptions";
   resolveDisplay: "resolveDisplay";
   resume: "resume";
   retries: "retries";
@@ -878,6 +901,7 @@ const authMode: Readonly<{
 const cli: Readonly<{
   audit: "axe audit";
   conformance: "axe conformance";
+  generate: "axe generate";
   init: "axe init";
   inspect: "axe inspect";
   mcp: "axe mcp";
@@ -1527,11 +1551,13 @@ const WIRE: Readonly<{
      continue: "continue";
      cors: "cors";
      createAXE: "createAXE";
+     createContext: "createContext";
      createMcpServer: "createMcpServer";
      createSurface: "createSurface";
      createTestClient: "createTestClient";
      currentRev: "currentRev";
      customKind: "customKind";
+     defaultRisk: "defaultRisk";
      describe: "describe";
      describeEntry: "describeEntry";
      describeLive: "describeLive";
@@ -1544,12 +1570,17 @@ const WIRE: Readonly<{
      formatConformanceTable: "formatConformanceTable";
      formatDriftReport: "formatDriftReport";
      formatResult: "formatResult";
+     formatWarnings: "formatWarnings";
      freeze: "freeze";
+     fromFunctions: "fromFunctions";
+     fromOpenAPI: "fromOpenAPI";
+     fromTRPCRouter: "fromTRPCRouter";
      fulfillers: "fulfillers";
      handler: "handler";
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
      identity: "identity";
+     includeDeprecated: "includeDeprecated";
      index: "index";
      invoke: "invoke";
      invokeAction: "invokeAction";
@@ -1560,6 +1591,7 @@ const WIRE: Readonly<{
      isOk: "isOk";
      isPending: "isPending";
      jsonlFileSink: "jsonlFileSink";
+     jsonSchemaToZod: "jsonSchemaToZod";
      kinds: "kinds";
      ledger: "ledger";
      lintAgentText: "lintAgentText";
@@ -1567,6 +1599,7 @@ const WIRE: Readonly<{
      manifest: "manifest";
      manifestCacheSeconds: "manifestCacheSeconds";
      maxRetryAfterMs: "maxRetryAfterMs";
+     maxRisk: "maxRisk";
      maxWaitMs: "maxWaitMs";
      needsInput: "needsInput";
      observe: "observe";
@@ -1586,8 +1619,10 @@ const WIRE: Readonly<{
      present: "present";
      reconcile: "reconcile";
      register: "register";
+     registerGenerated: "registerGenerated";
      requireCompletion: "requireCompletion";
      requireIdempotencyKey: "requireIdempotencyKey";
+     requireInputDescriptions: "requireInputDescriptions";
      resolveDisplay: "resolveDisplay";
      resume: "resume";
      retries: "retries";
@@ -1632,6 +1667,7 @@ const WIRE: Readonly<{
   cli: Readonly<{
      audit: "axe audit";
      conformance: "axe conformance";
+     generate: "axe generate";
      init: "axe init";
      inspect: "axe inspect";
      mcp: "axe mcp";

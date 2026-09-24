@@ -52,17 +52,18 @@ Open `site/dist/index.html` from disk for the landing page and every doc as a st
 
 ## Packages
 
-| Package        | What it is                                                                                                |
-| -------------- | --------------------------------------------------------------------------------------------------------- |
-| `@axe/core`    | Protocol types, schemas, well-known kinds, and the framework-free server runtime.                         |
-| `@axe/client`  | Agent-side client: discover, invoke, continue, resume, present.                                           |
-| `@axe/mcp`     | Derive an MCP server (stdio or Streamable HTTP) from any AXE site.                                        |
-| `@axe/express` | Express and Connect adapter.                                                                              |
-| `@axe/next`    | Next.js App Router and Pages API adapter.                                                                 |
-| `@axe/fetch`   | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                            |
-| `@axe/surface` | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions.    |
-| `@axe/testing` | Conformance suite, AXE audit, drift check, and test helpers.                                              |
-| `axe`          | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`. |
+| Package         | What it is                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `@axe/core`     | Protocol types, schemas, well-known kinds, and the framework-free server runtime.                                         |
+| `@axe/client`   | Agent-side client: discover, invoke, continue, resume, present.                                                           |
+| `@axe/mcp`      | Derive an MCP server (stdio or Streamable HTTP) from any AXE site.                                                        |
+| `@axe/express`  | Express and Connect adapter.                                                                                              |
+| `@axe/next`     | Next.js App Router and Pages API adapter.                                                                                 |
+| `@axe/fetch`    | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                                            |
+| `@axe/surface`  | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions.                     |
+| `@axe/generate` | Derive actions from an OpenAPI document, a zod-typed function table, or a tRPC router; refuses to invent.                 |
+| `@axe/testing`  | Conformance suite, AXE audit, drift check, and test helpers.                                                              |
+| `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`. |
 
 ## Developing
 

@@ -350,10 +350,13 @@ describe("the escalation ladder", () => {
       ),
     );
     const [body, sig] = first.continuationToken.split(".") as [string, string];
-    const flipped = body.slice(0, -2) + (body.endsWith("A") ? "B" : "A") + body.slice(-1);
+    // Replace the second-to-last character with one that differs from it, so the body always changes.
+    const victim = body[body.length - 2];
+    const flipped = body.slice(0, -2) + (victim === "A" ? "B" : "A") + body.slice(-1);
     for (const token of [
       `${flipped}.${sig}`,
-      `${body}.${sig.slice(0, -1)}x`,
+      // The first signature character is fully significant; the last carries base64url padding bits.
+      `${body}.${sig.startsWith("A") ? "B" : "A"}${sig.slice(1)}`,
       "garbage",
       "",
       `${body}`,

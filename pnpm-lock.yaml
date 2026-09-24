@@ -65,6 +65,9 @@ importers:
       '@axe/fetch':
         specifier: workspace:*
         version: link:../packages/fetch
+      '@axe/generate':
+        specifier: workspace:*
+        version: link:../packages/generate
       '@axe/mcp':
         specifier: workspace:*
         version: link:../packages/mcp
@@ -114,6 +117,9 @@ importers:
       '@axe/core':
         specifier: workspace:*
         version: link:../core
+      '@axe/generate':
+        specifier: workspace:*
+        version: link:../generate
       '@axe/mcp':
         specifier: workspace:*
         version: link:../mcp
@@ -172,6 +178,16 @@ importers:
       hono:
         specifier: ^4.13.8
         version: 4.13.8
+
+  packages/generate:
+    dependencies:
+      '@axe/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@axe/testing':
+        specifier: workspace:*
+        version: link:../testing
 
   packages/mcp:
     dependencies:

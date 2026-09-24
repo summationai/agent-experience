@@ -32,6 +32,13 @@ Initial release of the Body Spray SDK and the `axe/0.1` protocol.
 - `@axe/testing`: six `live.*` conformance checks (skipped without `live`), audit check `actionable.live-state`.
 - `@axe/surface`: a stale act's `details` are `{ expectedRev, currentRev }` (was `{ rev, expectedRev }`); `surfaceActions` reads the envelope's `expectedRev` and accepts `input.expectedRev` as a deprecated fallback; pass `revision: surface.currentRev` to `createAXE`.
 
+### Generate
+
+- `@axe/generate`: derive AXE actions from definitions an application already has, so the manifest follows the definition instead of being written beside it. `fromOpenAPI` maps every OpenAPI 3.x operation to an action (name from the operationId or the method and path, flags and default risk by method, auth from the security requirements, input from parameters plus the JSON request body, output from the 2xx response, an HTTP handler that maps upstream statuses to AXE error codes) with an in-house JSON Schema → Zod converter for the common subset. `fromFunctions` takes a table of zod-typed functions; `fromTRPCRouter` reads a tRPC router structurally, without depending on tRPC. `generate` merges sources, applies per-action overrides and a policy (`exclude`, `include`, `defaultRisk`, `maxRisk`, `requireInputDescriptions`), runs the honesty lints, and returns actions, warnings, and provenance; `registerGenerated` registers the result.
+- Honesty: the generator never invents a description, a risk for a mutation, a display shape, or a human URL. An operation missing one is left out with a warning naming the operation and the field, until an override supplies it.
+- `axe generate <openapi.json> [--base-url] [--out axe.json] [--code axe.ts]`: prints what was generated and why anything was left out, writes a static manifest for review, and emits a starter module with one TODO per gap. JSON input only.
+- Docs: `docs/generating.md`. Vocabulary: `axe generate` and the `@axe/generate` API names.
+
 ### Website
 
 - `site/`: a static marketing and documentation site built from `docs/`, `spec/`, and the root Markdown files. Runs from `file://` with no network; `site/dist/` is committed and reproducible. Landing page with the escalation-ladder demo (real envelopes), the search → present → select demo (real `toHTML()` output), an embedded `axe audit` report, and a docs hub generated from `docs/README.md`. Tests: reproducible build, offline load in Chromium/Firefox/WebKit, link check, demo behavior, responsive screenshots, Lighthouse ≥ 95.
