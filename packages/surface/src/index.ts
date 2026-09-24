@@ -68,6 +68,52 @@ export type SchemaConverter = (schema: never, io: "input") => JsonSchema;
 export interface HandlerReport {
   changed?: string[];
   rev?: number;
+  /**
+   * The application refused the write because its own precondition failed (a conditional write
+   * found a newer revision). `act` returns `conflict` with `details.currentRev`, records a refusal,
+   * and adopts nothing from the report. Throwing a `SurfaceConflict` does the same.
+   */
+  conflict?: { currentRev?: number };
+}
+
+/**
+ * What `act` passes to the handler, a field's `set`, or a collection's `more` as its last argument,
+ * so a server-state handler can carry the precondition into its own write
+ * (`UPDATE ... WHERE revision = $expectedRev`) and refuse with a `SurfaceConflict` when it fails.
+ */
+export interface ActContext {
+  /** The entry id the act resolved to. */
+  id: string;
+  op: Op;
+  /** The revision the agent observed and presented; equal to the surface's revision when the handler starts. */
+  expectedRev: number;
+  actor: string;
+}
+
+/**
+ * Thrown by a handler whose own precondition failed: the backend holds a newer revision than the
+ * one the act presented, so nothing was written. `act` maps it to `conflict` with
+ * `details.currentRev` (when given), records a refusal in the ledger, and moves nothing.
+ */
+export class SurfaceConflict extends Error {
+  /** The backend's revision, when the handler knows it. Reported, never adopted. */
+  readonly currentRev?: number;
+  constructor(
+    message = "The application refused the write: its state changed since the revision the act presented.",
+    options: { currentRev?: number } = {},
+  ) {
+    super(message);
+    this.name = "SurfaceConflict";
+    if (typeof options.currentRev === "number" && Number.isFinite(options.currentRev))
+      this.currentRev = options.currentRev;
+  }
+}
+
+/** A `SurfaceConflict`, including one from another copy of this module (checked by name). */
+function isSurfaceConflict(value: unknown): value is SurfaceConflict {
+  return (
+    value instanceof SurfaceConflict || (value instanceof Error && value.name === "SurfaceConflict")
+  );
 }
 
 /** What a control does, in AXE's terms. `undoable` is accepted as a legacy alias of `reversible`. */
@@ -126,8 +172,12 @@ export interface ActionEntry {
   object?: string;
   state?: Availability;
   effect: Effect;
-  /** The control's own handler. May return a `HandlerReport`. */
-  handler: (actor: string, text?: string) => MaybePromise<HandlerReport | unknown>;
+  /** The control's own handler. May return a `HandlerReport`; `context` carries the presented `expectedRev`. */
+  handler: (
+    actor: string,
+    text: string | undefined,
+    context: ActContext,
+  ) => MaybePromise<HandlerReport | unknown>;
 }
 
 export interface FieldEntry {
@@ -149,8 +199,12 @@ export interface FieldEntry {
          * so `observe()` can publish it; the surface itself stays free of Zod.
          */
         schema?: JsonSchema | SchemaLike;
-        /** The control's own setter. May return a `HandlerReport`. */
-        set: (text: string, actor: string) => MaybePromise<HandlerReport | unknown>;
+        /** The control's own setter. May return a `HandlerReport`; `context` carries the presented `expectedRev`. */
+        set: (
+          text: string,
+          actor: string,
+          context: ActContext,
+        ) => MaybePromise<HandlerReport | unknown>;
       };
 }
 
@@ -165,7 +219,7 @@ export interface CollectionEntry {
   filter?: JsonValue;
   sort?: JsonValue;
   /** Load more. Present makes the collection actionable with `SCROLL_DOWN`. May return a `HandlerReport`. */
-  more?: () => MaybePromise<HandlerReport | unknown>;
+  more?: (context: ActContext) => MaybePromise<HandlerReport | unknown>;
 }
 
 export type Entry = ActionEntry | FieldEntry | CollectionEntry;
@@ -272,6 +326,11 @@ export interface LedgerEntry {
   text?: string;
   /** Entry ids whose state the act moved; empty for a refusal. */
   changed: string[];
+  /**
+   * A revision the handler reported that the surface did not adopt because it is lower than the
+   * revision at completion (a newer one arrived while the handler ran) [S-REV-6].
+   */
+  ignoredRev?: number;
 }
 
 export interface LedgerQuery {
@@ -401,11 +460,16 @@ function isSchemaLike(value: unknown): value is SchemaLike {
 /** A handler's return value, when it is a `HandlerReport`. */
 function reportOf(value: unknown): HandlerReport | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const v = value as { changed?: unknown; rev?: unknown };
+  const v = value as { changed?: unknown; rev?: unknown; conflict?: unknown };
   const out: HandlerReport = {};
   if (Array.isArray(v.changed)) out.changed = v.changed.map(String);
   if (typeof v.rev === "number" && Number.isFinite(v.rev)) out.rev = v.rev;
-  return out.changed || out.rev !== undefined ? out : undefined;
+  if (typeof v.conflict === "object" && v.conflict !== null) {
+    const current = (v.conflict as { currentRev?: unknown }).currentRev;
+    out.conflict =
+      typeof current === "number" && Number.isFinite(current) ? { currentRev: current } : {};
+  }
+  return out.changed || out.rev !== undefined || out.conflict ? out : undefined;
 }
 
 function nameOf(e: Entry): string {
@@ -451,6 +515,28 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   const pinnedMode = options.revision;
   let mode: RevisionMode = pinnedMode ?? "surface";
   let convert = options.toJsonSchema;
+  // Write ordering [S-ACT-9]: acts run one at a time, in the order they were claimed. `queued`
+  // counts acts claimed and not yet settled; `tail` settles when the last of them has. `epoch`
+  // moves on every commit that may have changed state, so an act claimed at a revision before a
+  // commit that left the revision where it was (an app-owned revision that arrives later) is
+  // still refused ([S-ACT-10]).
+  let queued = 0;
+  let tail: Promise<unknown> = Promise.resolve();
+  let epoch = 0;
+  const enqueue = <T>(fn: () => Promise<T>): Promise<T> => {
+    const exec = async (): Promise<T> => {
+      try {
+        return await fn();
+      } finally {
+        queued -= 1;
+      }
+    };
+    queued += 1;
+    // An idle surface starts the act now, within the call, as it always has; a busy one waits.
+    const turn = queued === 1 ? exec() : tail.then(exec);
+    tail = turn.catch(() => undefined);
+    return turn;
+  };
   // JSON Schema renderings of Zod schemas, one conversion per schema object.
   const converted = new WeakMap<SchemaLike, JsonSchema>();
   const jsonSchemaOf = (schema: JsonSchema | SchemaLike): JsonSchema | undefined => {
@@ -685,10 +771,15 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       } = req ?? ({} as ActRequest);
       // The ledger [S-LED-*]: one entry per act, written whether the handler ran or the act was
       // refused. `err` below records the refusal and stamps its seq on the error; `run` records a
-      // handler that threw.
-      const revBefore = rev;
+      // handler that threw. `revBefore` is the revision when the act was last checked: at the
+      // claim for a refusal there, else when the act reached execution [S-LED-5].
+      let revBefore = rev;
       let resolved: string | null = null;
-      const record = (status: LedgerEntry["status"], changed: string[]): number => {
+      const record = (
+        status: LedgerEntry["status"],
+        changed: string[],
+        ignoredRev?: number,
+      ): number => {
         const entry: LedgerEntry = {
           seq: ++seq,
           at: now().toISOString(),
@@ -701,6 +792,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           changed,
         };
         if (text !== undefined) entry.text = text;
+        if (ignoredRev !== undefined) entry.ignoredRev = ignoredRev;
         log.push(entry);
         if (log.length > ledgerMax) log.splice(0, log.length - ledgerMax);
         return entry.seq;
@@ -715,14 +807,6 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         details[WIRE.field.seq] = record(code, []);
         result.error.details = details;
         return result;
-      };
-      const runGuarded = async (fn: () => MaybePromise<unknown>) => {
-        try {
-          return await runner(fn);
-        } catch (e) {
-          record(WIRE.error.internal, []);
-          throw e;
-        }
       };
       if (typeof expectedRev !== "number") {
         return err(
@@ -771,138 +855,222 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           },
         );
       }
-      // [S-ACT-2] The revision guard runs before the target is resolved, so an index observed at an
-      // older revision can never land on the row that slid into its slot.
-      if (expectedRev !== rev) {
-        return err(
+      // [S-ACT-2] The revision guard runs at the claim, before the target is resolved, so an index
+      // observed at an older revision can never land on the row that slid into its slot, and a
+      // stale act is refused without waiting behind acts already in flight.
+      const stale = (): ErrorResult =>
+        err(
           WIRE.error.conflict,
           `The application changed since you observed it (you saw rev ${expectedRev}, it is now ${rev}). Nothing was applied; observe again and choose again.`,
           { retryable: true, details: { expectedRev, currentRev: rev } },
         );
-      }
-      const view = surface.observe();
-      // [S-ACT-7] An index resolves only through the observation at this revision, where only
-      // actionable rows carry one; an unavailable row (index null) can never be reached by number.
-      const row =
-        typeof target === "number"
-          ? view.entries.find((r) => r.index !== null && r.index === target)
-          : view.entries.find((r) => r.id === target);
-      if (!row) {
-        return err(
-          WIRE.error.notFound,
+      if (expectedRev !== rev) return stale();
+      /**
+       * Every check that runs before the handler, in order. Returns the refusal (already
+       * ledgered) or what to invoke. It runs at the claim, so a refusal never waits behind acts in
+       * flight, and again when a queued act reaches execution [S-ACT-9].
+       */
+      const prepare = (
+        claimEpoch?: number,
+      ): ErrorResult | { row: ObservedEntry; invoke: (context: ActContext) => unknown } => {
+        revBefore = rev;
+        resolved = null;
+        // [S-ACT-2] The revision guard runs before the target is resolved, so an index observed at
+        // an older revision can never land on the row that slid into its slot.
+        if (expectedRev !== rev)
+          return err(
+            WIRE.error.conflict,
+            `The application changed since you observed it (you saw rev ${expectedRev}, it is now ${rev}). Nothing was applied; observe again and choose again.`,
+            { retryable: true, details: { expectedRev, currentRev: rev } },
+          );
+        // [S-ACT-10] A predecessor claimed at the same revision committed without moving it (an
+        // app-owned revision the handler did not report): this act was planned on the state that
+        // commit replaced.
+        if (claimEpoch !== undefined && epoch !== claimEpoch)
+          return err(
+            WIRE.error.conflict,
+            `Another act committed at rev ${rev} while yours waited, and the application has not reported its new revision yet. Nothing was applied; observe again and choose again.`,
+            { retryable: true, details: { expectedRev, currentRev: rev } },
+          );
+        const view = surface.observe();
+        // [S-ACT-7] An index resolves only through the observation at this revision, where only
+        // actionable rows carry one; an unavailable row (index null) can never be reached by number.
+        const row =
           typeof target === "number"
-            ? `No entry has index ${target} at rev ${rev}.`
-            : `No entry with id "${target}".`,
-          { details: { rev } },
-        );
-      }
-      const e = entries.get(row.id)!;
-      resolved = row.id;
-      const before = rev;
-      let report: HandlerReport | undefined;
-      const run = async (fn: () => MaybePromise<unknown>) => {
-        report = reportOf(await runGuarded(fn));
-      };
-      // [S-FRZ-3] While frozen, every act is refused with the freeze's reason; no handler runs.
-      if (view.frozen) {
-        return err(
-          WIRE.error.unavailable,
-          `"${row.name}" is not available: ${view.frozen.reason}.`,
-          {
-            retryable: true,
-            details: { rev, reason: view.frozen.reason, frozen: { reason: view.frozen.reason } },
-          },
-        );
-      }
-      if (e.kind === "action") {
-        if (op !== WIRE.op.click && op !== WIRE.op.toggle)
+            ? view.entries.find((r) => r.index !== null && r.index === target)
+            : view.entries.find((r) => r.id === target);
+        if (!row) {
           return err(
-            WIRE.error.invalidInput,
-            `${op} is not valid on a ${e.role}; use ${WIRE.op.click} or ${WIRE.op.toggle}.`,
-          );
-        if (row.state && !row.state.available) {
-          const details: Record<string, JsonValue> = {
-            rev,
-            reason: row.state.reason ?? "unavailable",
-          };
-          if (row.state.requires) details.requires = row.state.requires as unknown as JsonValue;
-          if (row.state.handoff) details.handoff = row.state.handoff as unknown as JsonValue;
-          return err(
-            WIRE.error.unavailable,
-            `"${row.name}" is not available: ${row.state.reason}.`,
-            { retryable: true, details },
+            WIRE.error.notFound,
+            typeof target === "number"
+              ? `No entry has index ${target} at rev ${rev}.`
+              : `No entry with id "${target}".`,
+            { details: { rev } },
           );
         }
-        if (e.effect.confirm && !confirm)
-          return err(WIRE.error.invalidInput, `"${row.name}" requires confirm: true.`, {
-            issues: [
-              {
-                path: `/${WIRE.field.confirm}`,
-                message: "is required for this action",
-                expected: "true",
-              },
-            ],
-          });
-        await run(() => e.handler(actor, text));
-      } else if (e.kind === "field") {
-        if (op !== WIRE.op.typeText)
-          return err(
-            WIRE.error.invalidInput,
-            `${op} is not valid on a ${e.role}; use ${WIRE.op.typeText}.`,
-          );
-        const ed = e.edit;
-        if (ed.readOnly)
+        const e = entries.get(row.id)!;
+        resolved = row.id;
+        // [S-FRZ-3] While frozen, every act is refused with the freeze's reason; no handler runs.
+        if (view.frozen) {
           return err(
             WIRE.error.unavailable,
-            `"${row.name}" is read only: ${ed.reason ?? "read only"}.`,
-            { retryable: false, details: { rev, reason: ed.reason ?? "read only" } },
+            `"${row.name}" is not available: ${view.frozen.reason}.`,
+            {
+              retryable: true,
+              details: { rev, reason: view.frozen.reason, frozen: { reason: view.frozen.reason } },
+            },
           );
-        const t = text ?? "";
-        if (ed.maxLength && t.length > ed.maxLength)
-          return err(WIRE.error.invalidInput, `Text is longer than ${ed.maxLength} characters.`, {
-            issues: [
-              {
-                path: `/${WIRE.field.text}`,
-                message: `must be at most ${ed.maxLength} characters`,
-              },
-            ],
-          });
-        if (ed.schema) {
-          // A Zod schema validates through its own safeParse; a JSON Schema through the SDK's
-          // validator. Neither path imports Zod here.
-          const issues: ValidationIssue[] = isSchemaLike(ed.schema)
-            ? issuesOf(ed.schema.safeParse(t))
-            : validateJsonSchema(ed.schema, t).map((i) => ({
-                ...i,
-                path: `/${WIRE.field.text}${i.path}`,
-              }));
-          if (issues.length)
-            return err(WIRE.error.invalidInput, `Text does not match the field's schema.`, {
-              issues,
+        }
+        if (e.kind === "action") {
+          if (op !== WIRE.op.click && op !== WIRE.op.toggle)
+            return err(
+              WIRE.error.invalidInput,
+              `${op} is not valid on a ${e.role}; use ${WIRE.op.click} or ${WIRE.op.toggle}.`,
+            );
+          if (row.state && !row.state.available) {
+            const details: Record<string, JsonValue> = {
+              rev,
+              reason: row.state.reason ?? "unavailable",
+            };
+            if (row.state.requires) details.requires = row.state.requires as unknown as JsonValue;
+            if (row.state.handoff) details.handoff = row.state.handoff as unknown as JsonValue;
+            return err(
+              WIRE.error.unavailable,
+              `"${row.name}" is not available: ${row.state.reason}.`,
+              { retryable: true, details },
+            );
+          }
+          if (e.effect.confirm && !confirm)
+            return err(WIRE.error.invalidInput, `"${row.name}" requires confirm: true.`, {
+              issues: [
+                {
+                  path: `/${WIRE.field.confirm}`,
+                  message: "is required for this action",
+                  expected: "true",
+                },
+              ],
             });
+          return { row, invoke: (context) => e.handler(actor, text, context) };
         }
-        await run(() => ed.set(t, actor));
-      } else {
+        if (e.kind === "field") {
+          if (op !== WIRE.op.typeText)
+            return err(
+              WIRE.error.invalidInput,
+              `${op} is not valid on a ${e.role}; use ${WIRE.op.typeText}.`,
+            );
+          const ed = e.edit;
+          if (ed.readOnly)
+            return err(
+              WIRE.error.unavailable,
+              `"${row.name}" is read only: ${ed.reason ?? "read only"}.`,
+              { retryable: false, details: { rev, reason: ed.reason ?? "read only" } },
+            );
+          const t = text ?? "";
+          if (ed.maxLength && t.length > ed.maxLength)
+            return err(WIRE.error.invalidInput, `Text is longer than ${ed.maxLength} characters.`, {
+              issues: [
+                {
+                  path: `/${WIRE.field.text}`,
+                  message: `must be at most ${ed.maxLength} characters`,
+                },
+              ],
+            });
+          if (ed.schema) {
+            // A Zod schema validates through its own safeParse; a JSON Schema through the SDK's
+            // validator. Neither path imports Zod here.
+            const issues: ValidationIssue[] = isSchemaLike(ed.schema)
+              ? issuesOf(ed.schema.safeParse(t))
+              : validateJsonSchema(ed.schema, t).map((i) => ({
+                  ...i,
+                  path: `/${WIRE.field.text}${i.path}`,
+                }));
+            if (issues.length)
+              return err(WIRE.error.invalidInput, `Text does not match the field's schema.`, {
+                issues,
+              });
+          }
+          return { row, invoke: (context) => ed.set(t, actor, context) };
+        }
         if (op !== WIRE.op.scrollDown)
           return err(
             WIRE.error.invalidInput,
             `${op} is not valid on a collection; use ${WIRE.op.scrollDown}.`,
           );
-        if (typeof e.more !== "function")
+        const more = e.more;
+        if (typeof more !== "function")
           return err(WIRE.error.unavailable, `"${row.name}" cannot load more.`, {
             details: { rev },
           });
-        await run(() => e.more!());
-      }
-      // [S-ACT-1] What changed is what the handler reported; when it reported nothing, the
-      // entry itself if the revision moved during the handler, else nothing. A reported `rev`
-      // is the application's revision after the change, adopted before the result is built.
-      if (report?.rev !== undefined) surface.setRev(report.rev);
-      const changed = report?.changed ?? (rev !== before ? [row.id] : []);
-      return {
-        status: WIRE.status.ok,
-        output: { rev, id: row.id, actor, changed, seq: record(WIRE.status.ok, changed) },
+        return { row, invoke: (context) => more(context) };
       };
+      const claimed = prepare();
+      if ("status" in claimed) return claimed;
+      // [S-ACT-9] The claim holds this revision; the act waits for every act claimed before it.
+      // An idle surface runs it now, with nothing in between; a queued act is checked again.
+      const claimEpoch = epoch;
+      const idle = queued === 0;
+      return enqueue(async (): Promise<ActResult> => {
+        const ready = idle ? claimed : prepare(claimEpoch);
+        if ("status" in ready) return ready;
+        const { row } = ready;
+        const before = rev;
+        revBefore = rev;
+        const context: ActContext = { id: row.id, op, expectedRev, actor };
+        let report: HandlerReport | undefined;
+        let refused: { currentRev?: number } | undefined;
+        try {
+          report = reportOf(await runner(() => ready.invoke(context) as MaybePromise<unknown>));
+          if (report?.conflict) refused = { ...report.conflict };
+        } catch (e) {
+          // [S-ACT-11] The application's own precondition failed: a refusal, not a failure.
+          if (!isSurfaceConflict(e)) {
+            // A handler that threw may have written something; acts claimed at this revision
+            // before it are refused rather than assumed safe.
+            epoch += 1;
+            record(WIRE.error.internal, []);
+            throw e;
+          }
+          refused = {};
+          if (typeof e.currentRev === "number") refused.currentRev = e.currentRev;
+        }
+        // [S-ACT-11] The handler refused under its own precondition: `conflict`, a refusal in the
+        // ledger, and nothing from the report adopted.
+        if (refused) {
+          const currentRev = refused.currentRev ?? rev;
+          return err(
+            WIRE.error.conflict,
+            `The application refused "${row.name}": its state changed since rev ${expectedRev}${refused.currentRev !== undefined ? ` (it is at rev ${refused.currentRev})` : ""}. Nothing was applied; observe again and choose again.`,
+            { retryable: true, details: { expectedRev, currentRev } },
+          );
+        }
+        // [S-ACT-1] What changed is what the handler reported; when it reported nothing, the
+        // entry itself if the revision moved during the handler, else nothing. A reported `rev`
+        // is the application's revision after the change, adopted before the result is built,
+        // unless a newer revision arrived while the handler ran [S-REV-6].
+        let ignoredRev: number | undefined;
+        if (report?.rev !== undefined) {
+          if (report.rev < rev) ignoredRev = report.rev;
+          else surface.setRev(report.rev);
+        }
+        const changed = report?.changed ?? (rev !== before ? [row.id] : []);
+        // [S-ACT-10] A commit that may have changed state closes the claims taken before it at this
+        // revision. It provably changed nothing only when the revision stayed put and either the
+        // handler said so (`changed: []`) or the surface owns the revision (a change would have
+        // bumped it).
+        const mayHaveChanged =
+          changed.length > 0 || rev !== before || (mode === "app" && report?.changed === undefined);
+        if (mayHaveChanged) epoch += 1;
+        return {
+          status: WIRE.status.ok,
+          output: {
+            rev,
+            id: row.id,
+            actor,
+            changed,
+            seq: record(WIRE.status.ok, changed, ignoredRev),
+          },
+        };
+      });
     },
     ledger({ since, actor: who, limit } = {}) {
       let out: LedgerEntry[] = log;

@@ -153,6 +153,8 @@ type WireApi =
   | "attributesFor"
   | "revisionMode"
   | "SURFACE_ATTRIBUTES"
+  | "SurfaceConflict"
+  | "ActContext"
   | "toJsonSchema"
   | "fromOpenAPI"
   | "fromFunctions"
@@ -314,6 +316,8 @@ type WireField =
   | "revAfter"
   | "limit"
   | "frozen"
+  | "ignoredRev"
+  | "conflict"
   | "protocol"
   | "name"
   | "description"
@@ -761,6 +765,7 @@ Union of every `tool` name.
 const api: Readonly<{
   accept: "accept";
   act: "act";
+  actContext: "ActContext";
   action: "action";
   actionNameFor: "actionNameFor";
   addProvider: "addProvider";
@@ -888,6 +893,7 @@ const api: Readonly<{
   surfaceActions: "surfaceActions";
   surfaceAttributeNames: "SURFACE_ATTRIBUTES";
   surfaceAttributes: "surfaceAttributes";
+  surfaceConflict: "SurfaceConflict";
   surfaceSelector: "surfaceSelector";
   thaw: "thaw";
   toHTML: "toHTML";
@@ -1105,6 +1111,7 @@ const field: Readonly<{
   format: "format";
   freshness: "freshness";
   frozen: "frozen";
+  handlerConflict: "conflict";
   handoff: "handoff";
   handoffStatus: "handoffStatus";
   humanFallbackUrl: "humanFallbackUrl";
@@ -1112,6 +1119,7 @@ const field: Readonly<{
   id: "id";
   idempotencyKey: "idempotencyKey";
   idempotent: "idempotent";
+  ignoredRev: "ignoredRev";
   image: "image";
   index: "index";
   indexUrl: "indexUrl";
@@ -1567,6 +1575,7 @@ const WIRE: Readonly<{
   api: Readonly<{
      accept: "accept";
      act: "act";
+     actContext: "ActContext";
      action: "action";
      actionNameFor: "actionNameFor";
      addProvider: "addProvider";
@@ -1694,6 +1703,7 @@ const WIRE: Readonly<{
      surfaceActions: "surfaceActions";
      surfaceAttributeNames: "SURFACE_ATTRIBUTES";
      surfaceAttributes: "surfaceAttributes";
+     surfaceConflict: "SurfaceConflict";
      surfaceSelector: "surfaceSelector";
      thaw: "thaw";
      toHTML: "toHTML";
@@ -1823,6 +1833,7 @@ const WIRE: Readonly<{
      format: "format";
      freshness: "freshness";
      frozen: "frozen";
+     handlerConflict: "conflict";
      handoff: "handoff";
      handoffStatus: "handoffStatus";
      humanFallbackUrl: "humanFallbackUrl";
@@ -1830,6 +1841,7 @@ const WIRE: Readonly<{
      id: "id";
      idempotencyKey: "idempotencyKey";
      idempotent: "idempotent";
+     ignoredRev: "ignoredRev";
      image: "image";
      index: "index";
      indexUrl: "indexUrl";

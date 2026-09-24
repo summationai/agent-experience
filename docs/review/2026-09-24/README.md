@@ -11,7 +11,7 @@ The engineering and product review of branch `herz/surface-integration` at `e563
 | 5 | Authorization and privacy boundary for the Surface bridge | 1 | [05-surface-authorization.md](05-surface-authorization.md) | pending |
 | 6 | Cookie-authenticated integration with CSRF protection | 1 | [06-csrf.md](06-csrf.md) | done |
 | 7 | Site-key principals resolved consistently | 1 | [07-site-principals.md](07-site-principals.md) | pending |
-| 8 | State preconditions meaningful at the write boundary | 1 | [08-write-preconditions.md](08-write-preconditions.md) | pending |
+| 8 | State preconditions meaningful at the write boundary | 1 | [08-write-preconditions.md](08-write-preconditions.md) | done |
 | 9 | MCP HTTP lifecycle and request identity | 2 | [09-mcp-http.md](09-mcp-http.md) | pending |
 | 10 | Remote capability freshness and stable retries | 2 | [10-mcp-freshness.md](10-mcp-freshness.md) | pending |
 | 11 | Mounted React behavior | 2 | [11-react-lifecycle.md](11-react-lifecycle.md) | pending |

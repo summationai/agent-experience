@@ -92,6 +92,7 @@ const LedgerEntrySchema = z.object({
   status: z.string(),
   text: z.string().optional(),
   changed: z.array(z.string()),
+  ignoredRev: z.number().int().optional(),
 });
 
 const ActOutputSchema = z.object({
@@ -473,6 +474,9 @@ export function surfaceActions(
       availability,
       handler: async ({ input, context, emit, expectedRev, needsInput, handoff, fail }) => {
         const args = input as { text?: string; confirm?: true };
+        // The envelope's expectedRev, already checked by the server ([P-LIVE-3]), is the act's own:
+        // the surface checks it again at the claim and when the act reaches execution, and hands it
+        // to the handler for its conditional write ([S-AXE-4], [S-ACT-9], [S-ACT-11]).
         const request: ActRequest = {
           op,
           target: e.id,
