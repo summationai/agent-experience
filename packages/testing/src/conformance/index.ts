@@ -29,7 +29,7 @@ import {
   validateAffordanceBinding,
 } from "@axe/core/display";
 import { lintManifest, isBareQuerySearch } from "@axe/core/lint";
-import { WELL_KNOWN_KINDS, isCustomKind, kindJsonSchema } from "@axe/core/kinds";
+import { WELL_KNOWN_KINDS, isCustomKind, kindJsonSchema, suggestedReason } from "@axe/core/kinds";
 import { getPointer } from "@axe/core";
 import * as WIRE from "@axe/core/vocabulary";
 import { samplePayload } from "../helpers";
@@ -383,7 +383,7 @@ async function discovery(r: Runner): Promise<void> {
     const robots = await r.request(`${origin}/robots.txt`);
     if (robots.ok) {
       const text = await robots.text();
-      if (new RegExp(`^${WIRE.robots.manifest}:\\s*\\S+`, "im").test(text)) hint = "robots";
+      if (new RegExp(`^(${WIRE.robots.manifest}|${WIRE.robots.index}):\\s*\\S+`, "im").test(text)) hint = "robots";
     }
   } catch {
     // ignore

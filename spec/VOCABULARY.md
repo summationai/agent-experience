@@ -298,6 +298,57 @@ Every JSON property name on the wire. `Where` uses dotted paths from the enclosi
 | field    | errorCode                | `errorCode`                | `event.errorCode`                                                                                                  | `error.code` when `status` is `error`.                                             |
 | field    | tenant                   | `tenant`                   | `event.tenant`                                                                                                     | Tenant id on multi-tenant platforms.                                               |
 
+## Kind payload fields
+
+Property names inside well-known kind payloads (`spec/KINDS.md`). `Where` names the kinds that carry the field.
+
+| Category | Key | Name | Where | Meaning |
+| -------- | --- | ---- | ----- | ------- |
+| payload | token | `token` | `payment.card` | PSP-issued single-use or network token. |
+| payload | provider | `provider` | `payment.card` | Payment service provider identifier. |
+| payload | brand | `brand` | `payment.card` | Card network, lowercase. (Also `manifest.brand`, listed under fields.) |
+| payload | last4 | `last4` | `payment.card`, `identity.ssn-last-4` | Last four digits. |
+| payload | expMonth | `expMonth` | `payment.card` | Expiry month, 1–12. |
+| payload | expYear | `expYear` | `payment.card` | Four-digit expiry year. |
+| payload | billingPostalCode | `billingPostalCode` | `payment.card` | Billing postal code. |
+| payload | accountHolderName | `accountHolderName` | `payment.ach-debit` | Name on the bank account. |
+| payload | routingNumber | `routingNumber` | `payment.ach-debit` | ABA routing number. |
+| payload | accountNumber | `accountNumber` | `payment.ach-debit` | Bank account number. |
+| payload | accountType | `accountType` | `payment.ach-debit` | `checking` or `savings`. |
+| payload | authorizedAt | `authorizedAt` | `payment.ach-debit` | When the user authorized the debit. |
+| payload | authorizationText | `authorizationText` | `payment.ach-debit` | The exact authorization text the user agreed to. |
+| payload | referenceNumber | `referenceNumber` | `payment.wire-confirmation` | Bank reference, IMAD, or OMAD. |
+| payload | sentAt | `sentAt` | `payment.wire-confirmation` | When the wire was sent. |
+| payload | bankName | `bankName` | `payment.wire-confirmation` | Sending bank. |
+| payload | companyName | `companyName` | `payment.invoice` | Company to invoice. |
+| payload | billingEmail | `billingEmail` | `payment.invoice` | Accounts-payable email. |
+| payload | purchaseOrderNumber | `purchaseOrderNumber` | `payment.invoice` | Purchase order reference. |
+| payload | netTermsDays | `netTermsDays` | `payment.invoice` | Requested payment terms in days. |
+| payload | taxId | `taxId` | `payment.invoice` | VAT or EIN. |
+| payload | documentType | `documentType` | `identity.government-id` | `passport`, `drivers-license`, `national-id`, or `residence-permit`. |
+| payload | documentNumber | `documentNumber` | `identity.government-id` | Document number. |
+| payload | issuingCountry | `issuingCountry` | `identity.government-id` | ISO 3166-1 alpha-2 country. |
+| payload | fullName | `fullName` | `identity.government-id` | Name as printed on the document. |
+| payload | dateOfBirth | `dateOfBirth` | `identity.government-id`, `identity.date-of-birth` | Date of birth. |
+| payload | expiresOn | `expiresOn` | `identity.government-id` | Document expiry date. |
+| payload | mimeType | `mimeType` | `document.url`, `document.base64` | MIME type of the document. |
+| payload | filename | `filename` | `document.url`, `document.base64` | File name. |
+| payload | sizeBytes | `sizeBytes` | `document.url` | Size in bytes. |
+| payload | contentBase64 | `contentBase64` | `document.base64` | Base64-encoded content. |
+| payload | phone | `phone` | `contact.phone` | E.164 phone number. |
+| payload | canReceiveSms | `canReceiveSms` | `contact.phone` | Whether the number receives SMS. |
+| payload | line1 | `line1` | `contact.address` | Address line 1. |
+| payload | line2 | `line2` | `contact.address` | Address line 2. |
+| payload | city | `city` | `contact.address` | City. |
+| payload | region | `region` | `contact.address` | State, province, or prefecture. |
+| payload | postalCode | `postalCode` | `contact.address` | Postal code. |
+| payload | country | `country` | `contact.address` | ISO 3166-1 alpha-2 country. |
+| payload | policyUrl | `policyUrl` | `consent.terms` | The policy document agreed to. |
+| payload | policyVersion | `policyVersion` | `consent.terms` | Exact version identifier or date. |
+| payload | scope | `scope` | `consent.terms` | What the consent covers. |
+| payload | acceptedAt | `acceptedAt` | `consent.terms` | When consent was given. |
+| payload | acceptedBy | `acceptedBy` | `consent.terms` | Who consented, when the site requires it. |
+
 ## SDK API
 
 Public TypeScript identifiers that the docs refer to. Each must exist with this spelling in a package's exported types.

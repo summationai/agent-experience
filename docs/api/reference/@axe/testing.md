@@ -6,7 +6,7 @@
 
 ### AuditCategory
 
-Defined in: [testing/src/audit/index.ts:27](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L27)
+Defined in: [testing/src/audit/index.ts:27](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L27)
 
 #### Properties
 
@@ -16,7 +16,7 @@ Defined in: [testing/src/audit/index.ts:27](https://github.com/summationai/code/
 checks: AuditCheck[];
 ```
 
-Defined in: [testing/src/audit/index.ts:32](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L32)
+Defined in: [testing/src/audit/index.ts:32](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L32)
 
 ##### id
 
@@ -24,7 +24,7 @@ Defined in: [testing/src/audit/index.ts:32](https://github.com/summationai/code/
 id: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:28](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L28)
+Defined in: [testing/src/audit/index.ts:28](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L28)
 
 ##### max
 
@@ -32,7 +32,7 @@ Defined in: [testing/src/audit/index.ts:28](https://github.com/summationai/code/
 max: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:30](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L30)
+Defined in: [testing/src/audit/index.ts:30](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L30)
 
 ##### score
 
@@ -40,7 +40,7 @@ Defined in: [testing/src/audit/index.ts:30](https://github.com/summationai/code/
 score: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:31](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L31)
+Defined in: [testing/src/audit/index.ts:31](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L31)
 
 ##### title
 
@@ -48,13 +48,13 @@ Defined in: [testing/src/audit/index.ts:31](https://github.com/summationai/code/
 title: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:29](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L29)
+Defined in: [testing/src/audit/index.ts:29](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L29)
 
 ***
 
 ### AuditCheck
 
-Defined in: [testing/src/audit/index.ts:15](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L15)
+Defined in: [testing/src/audit/index.ts:15](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L15)
 
 #### Properties
 
@@ -64,7 +64,7 @@ Defined in: [testing/src/audit/index.ts:15](https://github.com/summationai/code/
 category: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:17](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L17)
+Defined in: [testing/src/audit/index.ts:17](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L17)
 
 ##### detail
 
@@ -72,7 +72,7 @@ Defined in: [testing/src/audit/index.ts:17](https://github.com/summationai/code/
 detail: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:23](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L23)
+Defined in: [testing/src/audit/index.ts:23](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L23)
 
 ##### docs
 
@@ -80,7 +80,7 @@ Defined in: [testing/src/audit/index.ts:23](https://github.com/summationai/code/
 docs: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:24](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L24)
+Defined in: [testing/src/audit/index.ts:24](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L24)
 
 ##### earned
 
@@ -88,7 +88,7 @@ Defined in: [testing/src/audit/index.ts:24](https://github.com/summationai/code/
 earned: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:21](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L21)
+Defined in: [testing/src/audit/index.ts:21](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L21)
 
 Fraction earned, 0..1.
 
@@ -98,7 +98,7 @@ Fraction earned, 0..1.
 id: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:16](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L16)
+Defined in: [testing/src/audit/index.ts:16](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L16)
 
 ##### status
 
@@ -106,7 +106,7 @@ Defined in: [testing/src/audit/index.ts:16](https://github.com/summationai/code/
 status: "pass" | "fail" | "skip" | "partial";
 ```
 
-Defined in: [testing/src/audit/index.ts:22](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L22)
+Defined in: [testing/src/audit/index.ts:22](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L22)
 
 ##### title
 
@@ -114,7 +114,7 @@ Defined in: [testing/src/audit/index.ts:22](https://github.com/summationai/code/
 title: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:18](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L18)
+Defined in: [testing/src/audit/index.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L18)
 
 ##### weight
 
@@ -122,13 +122,13 @@ Defined in: [testing/src/audit/index.ts:18](https://github.com/summationai/code/
 weight: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:19](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L19)
+Defined in: [testing/src/audit/index.ts:19](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L19)
 
 ***
 
 ### AuditFix
 
-Defined in: [testing/src/audit/index.ts:35](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L35)
+Defined in: [testing/src/audit/index.ts:35](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L35)
 
 #### Properties
 
@@ -138,7 +138,7 @@ Defined in: [testing/src/audit/index.ts:35](https://github.com/summationai/code/
 category: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:38](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L38)
+Defined in: [testing/src/audit/index.ts:38](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L38)
 
 ##### check
 
@@ -146,7 +146,7 @@ Defined in: [testing/src/audit/index.ts:38](https://github.com/summationai/code/
 check: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:36](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L36)
+Defined in: [testing/src/audit/index.ts:36](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L36)
 
 ##### detail
 
@@ -154,7 +154,7 @@ Defined in: [testing/src/audit/index.ts:36](https://github.com/summationai/code/
 detail: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:41](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L41)
+Defined in: [testing/src/audit/index.ts:41](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L41)
 
 ##### docs
 
@@ -162,7 +162,7 @@ Defined in: [testing/src/audit/index.ts:41](https://github.com/summationai/code/
 docs: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:42](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L42)
+Defined in: [testing/src/audit/index.ts:42](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L42)
 
 ##### points
 
@@ -170,7 +170,7 @@ Defined in: [testing/src/audit/index.ts:42](https://github.com/summationai/code/
 points: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:40](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L40)
+Defined in: [testing/src/audit/index.ts:40](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L40)
 
 Points recoverable.
 
@@ -180,13 +180,13 @@ Points recoverable.
 title: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:37](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L37)
+Defined in: [testing/src/audit/index.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L37)
 
 ***
 
 ### AuditOptions
 
-Defined in: [testing/src/audit/index.ts:66](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L66)
+Defined in: [testing/src/audit/index.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L66)
 
 #### Extends
 
@@ -200,7 +200,7 @@ Defined in: [testing/src/audit/index.ts:66](https://github.com/summationai/code/
 optional auth?: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:83](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L83)
+Defined in: [testing/src/conformance/index.ts:83](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L83)
 
 Bearer token for `user` or `site` actions, so the ladder can be exercised.
 
@@ -214,7 +214,7 @@ Bearer token for `user` or `site` actions, so the ladder can be exercised.
 optional browser?: boolean;
 ```
 
-Defined in: [testing/src/audit/index.ts:68](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L68)
+Defined in: [testing/src/audit/index.ts:68](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L68)
 
 Fetch each parity URL and look for the agent-facing price/availability values on the page.
 
@@ -224,7 +224,7 @@ Fetch each parity URL and look for the agent-facing price/availability values on
 optional fetch?: (input, init?) => Promise<Response>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L81)
+Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L81)
 
 ###### Parameters
 
@@ -250,7 +250,7 @@ Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai
 optional headers?: Record<string, string>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L84)
+Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L84)
 
 ###### Inherited from
 
@@ -262,7 +262,7 @@ Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai
 optional ladder?: object;
 ```
 
-Defined in: [testing/src/conformance/index.ts:92](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L92)
+Defined in: [testing/src/conformance/index.ts:92](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L92)
 
 Explicit action + input known to return `needs_input`, when examples do not.
 
@@ -288,7 +288,7 @@ input: JsonValue;
 optional minScore?: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:70](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L70)
+Defined in: [testing/src/audit/index.ts:70](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L70)
 
 Fail below this score (used by the CLI exit code).
 
@@ -298,7 +298,7 @@ Fail below this score (used by the CLI exit code).
 optional noMutate?: boolean;
 ```
 
-Defined in: [testing/src/conformance/index.ts:86](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L86)
+Defined in: [testing/src/conformance/index.ts:86](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L86)
 
 Skip checks that call mutating actions.
 
@@ -312,7 +312,7 @@ Skip checks that call mutating actions.
 optional timeoutMs?: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:90](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L90)
+Defined in: [testing/src/conformance/index.ts:90](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L90)
 
 Per-request timeout. Default 15000 ms.
 
@@ -326,7 +326,7 @@ Per-request timeout. Default 15000 ms.
 optional vendor?: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:88](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L88)
+Defined in: [testing/src/conformance/index.ts:88](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L88)
 
 Vendor to present in `context.agent`.
 
@@ -338,7 +338,7 @@ Vendor to present in `context.agent`.
 
 ### AuditReport
 
-Defined in: [testing/src/audit/index.ts:55](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L55)
+Defined in: [testing/src/audit/index.ts:55](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L55)
 
 #### Properties
 
@@ -348,7 +348,7 @@ Defined in: [testing/src/audit/index.ts:55](https://github.com/summationai/code/
 categories: AuditCategory[];
 ```
 
-Defined in: [testing/src/audit/index.ts:58](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L58)
+Defined in: [testing/src/audit/index.ts:58](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L58)
 
 ##### conformance
 
@@ -356,7 +356,7 @@ Defined in: [testing/src/audit/index.ts:58](https://github.com/summationai/code/
 conformance: ConformanceReport;
 ```
 
-Defined in: [testing/src/audit/index.ts:62](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L62)
+Defined in: [testing/src/audit/index.ts:62](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L62)
 
 ##### fixes
 
@@ -364,7 +364,7 @@ Defined in: [testing/src/audit/index.ts:62](https://github.com/summationai/code/
 fixes: AuditFix[];
 ```
 
-Defined in: [testing/src/audit/index.ts:59](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L59)
+Defined in: [testing/src/audit/index.ts:59](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L59)
 
 ##### generatedAt
 
@@ -372,7 +372,7 @@ Defined in: [testing/src/audit/index.ts:59](https://github.com/summationai/code/
 generatedAt: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:63](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L63)
+Defined in: [testing/src/audit/index.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L63)
 
 ##### hardFailure
 
@@ -380,7 +380,7 @@ Defined in: [testing/src/audit/index.ts:63](https://github.com/summationai/code/
 hardFailure: string | null;
 ```
 
-Defined in: [testing/src/audit/index.ts:61](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L61)
+Defined in: [testing/src/audit/index.ts:61](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L61)
 
 ##### parity
 
@@ -388,7 +388,7 @@ Defined in: [testing/src/audit/index.ts:61](https://github.com/summationai/code/
 parity: object;
 ```
 
-Defined in: [testing/src/audit/index.ts:60](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L60)
+Defined in: [testing/src/audit/index.ts:60](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L60)
 
 ###### checked
 
@@ -414,7 +414,7 @@ targets: ParityTarget[];
 score: number;
 ```
 
-Defined in: [testing/src/audit/index.ts:57](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L57)
+Defined in: [testing/src/audit/index.ts:57](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L57)
 
 ##### url
 
@@ -422,13 +422,13 @@ Defined in: [testing/src/audit/index.ts:57](https://github.com/summationai/code/
 url: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:56](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L56)
+Defined in: [testing/src/audit/index.ts:56](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L56)
 
 ***
 
 ### AxeLike
 
-Defined in: [testing/src/helpers.ts:11](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L11)
+Defined in: [testing/src/helpers.ts:11](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L11)
 
 The subset of an `AXE` instance the helpers need.
 
@@ -440,7 +440,7 @@ The subset of an `AXE` instance the helpers need.
 describe(): Manifest;
 ```
 
-Defined in: [testing/src/helpers.ts:16](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L16)
+Defined in: [testing/src/helpers.ts:16](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L16)
 
 ###### Returns
 
@@ -452,7 +452,7 @@ Defined in: [testing/src/helpers.ts:16](https://github.com/summationai/code/blob
 handle(request, adapter?): Promise<Response>;
 ```
 
-Defined in: [testing/src/helpers.ts:12](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L12)
+Defined in: [testing/src/helpers.ts:12](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L12)
 
 ###### Parameters
 
@@ -477,7 +477,7 @@ Defined in: [testing/src/helpers.ts:12](https://github.com/summationai/code/blob
 
 ### Check
 
-Defined in: [testing/src/conformance/index.ts:39](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L39)
+Defined in: [testing/src/conformance/index.ts:39](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L39)
 
 #### Properties
 
@@ -487,7 +487,7 @@ Defined in: [testing/src/conformance/index.ts:39](https://github.com/summationai
 detail: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:45](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L45)
+Defined in: [testing/src/conformance/index.ts:45](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L45)
 
 ##### docs
 
@@ -495,7 +495,7 @@ Defined in: [testing/src/conformance/index.ts:45](https://github.com/summationai
 docs: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:47](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L47)
+Defined in: [testing/src/conformance/index.ts:47](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L47)
 
 Doc section that explains the fix.
 
@@ -505,7 +505,7 @@ Doc section that explains the fix.
 id: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:40](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L40)
+Defined in: [testing/src/conformance/index.ts:40](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L40)
 
 ##### requirements
 
@@ -513,7 +513,7 @@ Defined in: [testing/src/conformance/index.ts:40](https://github.com/summationai
 requirements: string[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:44](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L44)
+Defined in: [testing/src/conformance/index.ts:44](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L44)
 
 Spec requirement ids this check verifies.
 
@@ -523,7 +523,7 @@ Spec requirement ids this check verifies.
 status: CheckStatus;
 ```
 
-Defined in: [testing/src/conformance/index.ts:42](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L42)
+Defined in: [testing/src/conformance/index.ts:42](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L42)
 
 ##### title
 
@@ -531,13 +531,13 @@ Defined in: [testing/src/conformance/index.ts:42](https://github.com/summationai
 title: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:41](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L41)
+Defined in: [testing/src/conformance/index.ts:41](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L41)
 
 ***
 
 ### ConformanceOptions
 
-Defined in: [testing/src/conformance/index.ts:80](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L80)
+Defined in: [testing/src/conformance/index.ts:80](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L80)
 
 #### Extended by
 
@@ -551,7 +551,7 @@ Defined in: [testing/src/conformance/index.ts:80](https://github.com/summationai
 optional auth?: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:83](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L83)
+Defined in: [testing/src/conformance/index.ts:83](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L83)
 
 Bearer token for `user` or `site` actions, so the ladder can be exercised.
 
@@ -561,7 +561,7 @@ Bearer token for `user` or `site` actions, so the ladder can be exercised.
 optional fetch?: (input, init?) => Promise<Response>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L81)
+Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L81)
 
 ###### Parameters
 
@@ -583,7 +583,7 @@ Defined in: [testing/src/conformance/index.ts:81](https://github.com/summationai
 optional headers?: Record<string, string>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L84)
+Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L84)
 
 ##### ladder?
 
@@ -591,7 +591,7 @@ Defined in: [testing/src/conformance/index.ts:84](https://github.com/summationai
 optional ladder?: object;
 ```
 
-Defined in: [testing/src/conformance/index.ts:92](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L92)
+Defined in: [testing/src/conformance/index.ts:92](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L92)
 
 Explicit action + input known to return `needs_input`, when examples do not.
 
@@ -613,7 +613,7 @@ input: JsonValue;
 optional noMutate?: boolean;
 ```
 
-Defined in: [testing/src/conformance/index.ts:86](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L86)
+Defined in: [testing/src/conformance/index.ts:86](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L86)
 
 Skip checks that call mutating actions.
 
@@ -623,7 +623,7 @@ Skip checks that call mutating actions.
 optional timeoutMs?: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:90](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L90)
+Defined in: [testing/src/conformance/index.ts:90](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L90)
 
 Per-request timeout. Default 15000 ms.
 
@@ -633,7 +633,7 @@ Per-request timeout. Default 15000 ms.
 optional vendor?: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:88](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L88)
+Defined in: [testing/src/conformance/index.ts:88](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L88)
 
 Vendor to present in `context.agent`.
 
@@ -641,7 +641,7 @@ Vendor to present in `context.agent`.
 
 ### ConformanceReport
 
-Defined in: [testing/src/conformance/index.ts:50](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L50)
+Defined in: [testing/src/conformance/index.ts:50](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L50)
 
 #### Properties
 
@@ -651,7 +651,7 @@ Defined in: [testing/src/conformance/index.ts:50](https://github.com/summationai
 checks: Check[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:54](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L54)
+Defined in: [testing/src/conformance/index.ts:54](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L54)
 
 ##### failed
 
@@ -659,7 +659,7 @@ Defined in: [testing/src/conformance/index.ts:54](https://github.com/summationai
 failed: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:56](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L56)
+Defined in: [testing/src/conformance/index.ts:56](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L56)
 
 ##### manifest
 
@@ -667,7 +667,7 @@ Defined in: [testing/src/conformance/index.ts:56](https://github.com/summationai
 manifest: Manifest | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:53](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L53)
+Defined in: [testing/src/conformance/index.ts:53](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L53)
 
 ##### manifestUrl
 
@@ -675,7 +675,7 @@ Defined in: [testing/src/conformance/index.ts:53](https://github.com/summationai
 manifestUrl: string | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:52](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L52)
+Defined in: [testing/src/conformance/index.ts:52](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L52)
 
 ##### observations
 
@@ -683,7 +683,7 @@ Defined in: [testing/src/conformance/index.ts:52](https://github.com/summationai
 observations: Observations;
 ```
 
-Defined in: [testing/src/conformance/index.ts:62](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L62)
+Defined in: [testing/src/conformance/index.ts:62](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L62)
 
 Observations the audit reuses.
 
@@ -693,7 +693,7 @@ Observations the audit reuses.
 ok: boolean;
 ```
 
-Defined in: [testing/src/conformance/index.ts:60](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L60)
+Defined in: [testing/src/conformance/index.ts:60](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L60)
 
 True when no check failed.
 
@@ -703,7 +703,7 @@ True when no check failed.
 passed: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:55](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L55)
+Defined in: [testing/src/conformance/index.ts:55](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L55)
 
 ##### skipped
 
@@ -711,7 +711,7 @@ Defined in: [testing/src/conformance/index.ts:55](https://github.com/summationai
 skipped: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:58](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L58)
+Defined in: [testing/src/conformance/index.ts:58](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L58)
 
 ##### url
 
@@ -719,7 +719,7 @@ Defined in: [testing/src/conformance/index.ts:58](https://github.com/summationai
 url: string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:51](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L51)
+Defined in: [testing/src/conformance/index.ts:51](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L51)
 
 ##### warnings
 
@@ -727,13 +727,13 @@ Defined in: [testing/src/conformance/index.ts:51](https://github.com/summationai
 warnings: number;
 ```
 
-Defined in: [testing/src/conformance/index.ts:57](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L57)
+Defined in: [testing/src/conformance/index.ts:57](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L57)
 
 ***
 
 ### DriftOptions
 
-Defined in: [testing/src/drift.ts:12](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L12)
+Defined in: [testing/src/drift.ts:12](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L12)
 
 #### Properties
 
@@ -743,7 +743,7 @@ Defined in: [testing/src/drift.ts:12](https://github.com/summationai/code/blob/0
 optional allowlistPath?: string;
 ```
 
-Defined in: [testing/src/drift.ts:16](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L16)
+Defined in: [testing/src/drift.ts:16](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L16)
 
 Path to the allowlist JSON, relative to root. Default `spec/drift-allowlist.json`.
 
@@ -753,7 +753,7 @@ Path to the allowlist JSON, relative to root. Default `spec/drift-allowlist.json
 optional docPaths?: string[];
 ```
 
-Defined in: [testing/src/drift.ts:20](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L20)
+Defined in: [testing/src/drift.ts:20](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L20)
 
 Doc directories to scan. Default `spec`, `docs`, and `README.md`; `docs/api` is skipped.
 
@@ -763,7 +763,7 @@ Doc directories to scan. Default `spec`, `docs`, and `README.md`; `docs/api` is 
 optional maxAllowlist?: number;
 ```
 
-Defined in: [testing/src/drift.ts:18](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L18)
+Defined in: [testing/src/drift.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L18)
 
 Maximum allowlist entries before the check fails. Default 15.
 
@@ -773,7 +773,7 @@ Maximum allowlist entries before the check fails. Default 15.
 root: string;
 ```
 
-Defined in: [testing/src/drift.ts:14](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L14)
+Defined in: [testing/src/drift.ts:14](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L14)
 
 Repository root containing `spec/`, `docs/`, `packages/`, `README.md`.
 
@@ -781,7 +781,7 @@ Repository root containing `spec/`, `docs/`, `packages/`, `README.md`.
 
 ### DriftReport
 
-Defined in: [testing/src/drift.ts:23](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L23)
+Defined in: [testing/src/drift.ts:23](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L23)
 
 #### Properties
 
@@ -791,7 +791,7 @@ Defined in: [testing/src/drift.ts:23](https://github.com/summationai/code/blob/0
 allowlist: string[];
 ```
 
-Defined in: [testing/src/drift.ts:34](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L34)
+Defined in: [testing/src/drift.ts:34](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L34)
 
 ##### literals
 
@@ -799,7 +799,7 @@ Defined in: [testing/src/drift.ts:34](https://github.com/summationai/code/blob/0
 literals: object[];
 ```
 
-Defined in: [testing/src/drift.ts:33](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L33)
+Defined in: [testing/src/drift.ts:33](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L33)
 
 Source files with literal wire names that should use WIRE.
 
@@ -821,7 +821,7 @@ literal: string;
 missingFromTypes: string[];
 ```
 
-Defined in: [testing/src/drift.ts:31](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L31)
+Defined in: [testing/src/drift.ts:31](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L31)
 
 `field`/`api` entries missing from every public .d.ts.
 
@@ -831,7 +831,7 @@ Defined in: [testing/src/drift.ts:31](https://github.com/summationai/code/blob/0
 ok: boolean;
 ```
 
-Defined in: [testing/src/drift.ts:35](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L35)
+Defined in: [testing/src/drift.ts:35](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L35)
 
 ##### unknown
 
@@ -839,7 +839,7 @@ Defined in: [testing/src/drift.ts:35](https://github.com/summationai/code/blob/0
 unknown: Record<string, string[]>;
 ```
 
-Defined in: [testing/src/drift.ts:25](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L25)
+Defined in: [testing/src/drift.ts:25](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L25)
 
 Tokens that look like wire names but are not in the vocabulary: token → files.
 
@@ -849,7 +849,7 @@ Tokens that look like wire names but are not in the vocabulary: token → files.
 unmentioned: string[];
 ```
 
-Defined in: [testing/src/drift.ts:27](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L27)
+Defined in: [testing/src/drift.ts:27](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L27)
 
 Vocabulary entries never mentioned in any doc.
 
@@ -859,7 +859,7 @@ Vocabulary entries never mentioned in any doc.
 unused: string[];
 ```
 
-Defined in: [testing/src/drift.ts:29](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L29)
+Defined in: [testing/src/drift.ts:29](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L29)
 
 Vocabulary entries never used in any source file.
 
@@ -867,7 +867,7 @@ Vocabulary entries never used in any source file.
 
 ### Observations
 
-Defined in: [testing/src/conformance/index.ts:65](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L65)
+Defined in: [testing/src/conformance/index.ts:65](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L65)
 
 #### Properties
 
@@ -877,7 +877,7 @@ Defined in: [testing/src/conformance/index.ts:65](https://github.com/summationai
 calls: object[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:71](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L71)
+Defined in: [testing/src/conformance/index.ts:71](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L71)
 
 Actions called live and whether each returned a non-error status.
 
@@ -899,7 +899,7 @@ status: string;
 hintFound: "header" | "robots" | "link" | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:77](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L77)
+Defined in: [testing/src/conformance/index.ts:77](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L77)
 
 ##### idempotencyReplayWorked
 
@@ -907,7 +907,7 @@ Defined in: [testing/src/conformance/index.ts:77](https://github.com/summationai
 idempotencyReplayWorked: boolean | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:75](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L75)
+Defined in: [testing/src/conformance/index.ts:75](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L75)
 
 Whether a mutating action with a usable idempotency path was found.
 
@@ -917,7 +917,7 @@ Whether a mutating action with a usable idempotency path was found.
 needsHuman: object[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:69](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L69)
+Defined in: [testing/src/conformance/index.ts:69](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L69)
 
 Every `needs_human` seen.
 
@@ -939,7 +939,7 @@ reason: string;
 needsInput: object[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:67](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L67)
+Defined in: [testing/src/conformance/index.ts:67](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L67)
 
 Every `needs_input` seen, with the action that produced it.
 
@@ -961,7 +961,7 @@ result: NeedsInputResult;
 outputs: object[];
 ```
 
-Defined in: [testing/src/conformance/index.ts:73](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L73)
+Defined in: [testing/src/conformance/index.ts:73](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L73)
 
 Per-action outputs from live example runs, for display and parity checks.
 
@@ -983,13 +983,13 @@ output: unknown;
 tokenTamperRejected: boolean | null;
 ```
 
-Defined in: [testing/src/conformance/index.ts:76](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L76)
+Defined in: [testing/src/conformance/index.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L76)
 
 ***
 
 ### ParityTarget
 
-Defined in: [testing/src/audit/index.ts:45](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L45)
+Defined in: [testing/src/audit/index.ts:45](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L45)
 
 #### Properties
 
@@ -999,7 +999,7 @@ Defined in: [testing/src/audit/index.ts:45](https://github.com/summationai/code/
 action: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:46](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L46)
+Defined in: [testing/src/audit/index.ts:46](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L46)
 
 ##### expect
 
@@ -1007,7 +1007,7 @@ Defined in: [testing/src/audit/index.ts:46](https://github.com/summationai/code/
 expect: Record<string, string>;
 ```
 
-Defined in: [testing/src/audit/index.ts:50](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L50)
+Defined in: [testing/src/audit/index.ts:50](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L50)
 
 Values an auditor should find on the human page.
 
@@ -1017,7 +1017,7 @@ Values an auditor should find on the human page.
 optional found?: Record<string, boolean>;
 ```
 
-Defined in: [testing/src/audit/index.ts:52](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L52)
+Defined in: [testing/src/audit/index.ts:52](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L52)
 
 Filled in with `--browser`.
 
@@ -1027,7 +1027,7 @@ Filled in with `--browser`.
 itemId: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:47](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L47)
+Defined in: [testing/src/audit/index.ts:47](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L47)
 
 ##### url
 
@@ -1035,13 +1035,13 @@ Defined in: [testing/src/audit/index.ts:47](https://github.com/summationai/code/
 url: string;
 ```
 
-Defined in: [testing/src/audit/index.ts:48](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L48)
+Defined in: [testing/src/audit/index.ts:48](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L48)
 
 ***
 
 ### TestClientOptions
 
-Defined in: [testing/src/helpers.ts:19](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L19)
+Defined in: [testing/src/helpers.ts:19](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L19)
 
 #### Extends
 
@@ -1161,7 +1161,7 @@ optional identity?:
   | null;
 ```
 
-Defined in: [testing/src/helpers.ts:21](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L21)
+Defined in: [testing/src/helpers.ts:21](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L21)
 
 Act as this user without going through your `authenticate` function.
 
@@ -1247,7 +1247,7 @@ ClientOptions.timezone
 type CheckStatus = "pass" | "fail" | "warn" | "skip";
 ```
 
-Defined in: [testing/src/conformance/index.ts:37](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L37)
+Defined in: [testing/src/conformance/index.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L37)
 
 ***
 
@@ -1263,7 +1263,7 @@ type Coverage =
 };
 ```
 
-Defined in: [testing/src/conformance/requirements.ts:6](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/requirements.ts#L6)
+Defined in: [testing/src/conformance/requirements.ts:6](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/requirements.ts#L6)
 
 Where every numbered requirement in spec/AXE-PROTOCOL.md is verified: by a conformance
 check id (runs against any URL) or by a named test in a package. A test asserts that
@@ -1277,7 +1277,7 @@ every `[P-...]` identifier in the spec appears here.
 const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>>;
 ```
 
-Defined in: [testing/src/conformance/requirements.ts:8](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/requirements.ts#L8)
+Defined in: [testing/src/conformance/requirements.ts:8](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/requirements.ts#L8)
 
 ***
 
@@ -1287,7 +1287,7 @@ Defined in: [testing/src/conformance/requirements.ts:8](https://github.com/summa
 const SAMPLE_PAYLOADS: Readonly<Record<string, JsonValue>>;
 ```
 
-Defined in: [testing/src/helpers.ts:66](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L66)
+Defined in: [testing/src/helpers.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L66)
 
 A valid sample payload for every well-known kind, for exercising `/axe/continue` in tests and conformance.
 
@@ -1299,7 +1299,7 @@ A valid sample payload for every well-known kind, for exercising `/axe/continue`
 const WEIGHTS: Weights;
 ```
 
-Defined in: [testing/src/audit/index.ts:79](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L79)
+Defined in: [testing/src/audit/index.ts:79](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L79)
 
 ***
 
@@ -1309,7 +1309,7 @@ Defined in: [testing/src/audit/index.ts:79](https://github.com/summationai/code/
 const WELL_KNOWN_KIND_NAMES: readonly string[];
 ```
 
-Defined in: [testing/src/helpers.ts:133](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L133)
+Defined in: [testing/src/helpers.ts:133](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L133)
 
 Names of every well-known kind.
 
@@ -1321,7 +1321,7 @@ Names of every well-known kind.
 function checkVocabularyDrift(options): DriftReport;
 ```
 
-Defined in: [testing/src/drift.ts:111](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L111)
+Defined in: [testing/src/drift.ts:111](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L111)
 
 #### Parameters
 
@@ -1341,7 +1341,7 @@ Defined in: [testing/src/drift.ts:111](https://github.com/summationai/code/blob/
 function createTestClient(axe, options?): AXEClient;
 ```
 
-Defined in: [testing/src/helpers.ts:28](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L28)
+Defined in: [testing/src/helpers.ts:28](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L28)
 
 An `AXEClient` bound to an in-process server: no network, no port. Pass `identity`
 to act as a signed-in user.
@@ -1368,7 +1368,7 @@ to act as a signed-in user.
 function formatAuditHtml(report): string;
 ```
 
-Defined in: [testing/src/audit/format.ts:76](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/format.ts#L76)
+Defined in: [testing/src/audit/format.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/format.ts#L76)
 
 Self-contained HTML report suitable for attaching to a pull request.
 
@@ -1390,7 +1390,7 @@ Self-contained HTML report suitable for attaching to a pull request.
 function formatAuditTable(report, options?): string;
 ```
 
-Defined in: [testing/src/audit/format.ts:8](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/format.ts#L8)
+Defined in: [testing/src/audit/format.ts:8](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/format.ts#L8)
 
 Terminal table.
 
@@ -1418,7 +1418,7 @@ Terminal table.
 function formatConformanceTable(report, options?): string;
 ```
 
-Defined in: [testing/src/conformance/index.ts:1741](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L1741)
+Defined in: [testing/src/conformance/index.ts:1741](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L1741)
 
 Plain-text table for terminals.
 
@@ -1446,7 +1446,7 @@ Plain-text table for terminals.
 function formatDriftReport(r): string;
 ```
 
-Defined in: [testing/src/drift.ts:229](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L229)
+Defined in: [testing/src/drift.ts:229](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L229)
 
 Human-readable summary.
 
@@ -1468,7 +1468,7 @@ Human-readable summary.
 function graphConnectivity(m): object;
 ```
 
-Defined in: [testing/src/audit/index.ts:123](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L123)
+Defined in: [testing/src/audit/index.ts:123](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L123)
 
 Actions reachable from a read action or from another action's affordances.
 
@@ -1502,7 +1502,7 @@ orphanTransactions: string[];
 function inlineCodeSpans(markdown): string[];
 ```
 
-Defined in: [testing/src/drift.ts:52](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L52)
+Defined in: [testing/src/drift.ts:52](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L52)
 
 Inline code spans, with fenced blocks removed first.
 
@@ -1529,7 +1529,7 @@ function invokeAction<O>(
 ): Promise<Result<O>>;
 ```
 
-Defined in: [testing/src/helpers.ts:39](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L39)
+Defined in: [testing/src/helpers.ts:39](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L39)
 
 Invoke one action in-process and return the raw result envelope. Adds an idempotency
 key for mutating actions.
@@ -1583,7 +1583,7 @@ key for mutating actions.
 function runAudit(url, options?): Promise<AuditReport>;
 ```
 
-Defined in: [testing/src/audit/index.ts:177](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/audit/index.ts#L177)
+Defined in: [testing/src/audit/index.ts:177](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/audit/index.ts#L177)
 
 Run the audit. Runs the conformance suite first and reuses its observations.
 
@@ -1609,7 +1609,7 @@ Run the audit. Runs the conformance suite first and reuses its observations.
 function runConformance(url, options?): Promise<ConformanceReport>;
 ```
 
-Defined in: [testing/src/conformance/index.ts:1711](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/conformance/index.ts#L1711)
+Defined in: [testing/src/conformance/index.ts:1711](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/conformance/index.ts#L1711)
 
 Run the conformance suite against a site.
 
@@ -1635,7 +1635,7 @@ Run the conformance suite against a site.
 function samplePayload(kind): JsonValue | undefined;
 ```
 
-Defined in: [testing/src/helpers.ts:128](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/helpers.ts#L128)
+Defined in: [testing/src/helpers.ts:128](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/helpers.ts#L128)
 
 Sample payload for a kind, or undefined for custom kinds.
 
@@ -1657,7 +1657,7 @@ Sample payload for a kind, or undefined for custom kinds.
 function wireLikeNames(span): object[];
 ```
 
-Defined in: [testing/src/drift.ts:73](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/testing/src/drift.ts#L73)
+Defined in: [testing/src/drift.ts:73](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/testing/src/drift.ts#L73)
 
 Classify a code span. Returns the names that must exist in the vocabulary, or an empty
 list when the span is not wire-like (example data, prose, TypeScript types).

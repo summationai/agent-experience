@@ -6,7 +6,7 @@
 
 ### ExpressAdapterOptions
 
-Defined in: [packages/express/src/index.ts:18](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L18)
+Defined in: [packages/express/src/index.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L18)
 
 #### Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/express/src/index.ts:18](https://github.com/summationai/co
 optional context?: (req, res) => MaybePromise<AdapterContext | undefined>;
 ```
 
-Defined in: [packages/express/src/index.ts:20](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L20)
+Defined in: [packages/express/src/index.ts:20](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L20)
 
 Inject the framework's session or tenant into AXE. Return `identity: null` for anonymous requests.
 
@@ -40,7 +40,7 @@ Inject the framework's session or tenant into AXE. Return `identity: null` for a
 optional origin?: string;
 ```
 
-Defined in: [packages/express/src/index.ts:22](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L22)
+Defined in: [packages/express/src/index.ts:22](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L22)
 
 Override the public origin when the app sits behind a proxy that does not set `Host`/`X-Forwarded-*`.
 
@@ -48,7 +48,7 @@ Override the public origin when the app sits behind a proxy that does not set `H
 
 ### NodeRequestLike
 
-Defined in: [packages/express/src/index.ts:12](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L12)
+Defined in: [packages/express/src/index.ts:12](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L12)
 
 A Node request as Express and Connect present it: `originalUrl` and a possibly pre-parsed `body`.
 
@@ -89,7 +89,7 @@ IncomingMessage.aborted
 optional body?: unknown;
 ```
 
-Defined in: [packages/express/src/index.ts:14](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L14)
+Defined in: [packages/express/src/index.ts:14](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L14)
 
 ##### closed
 
@@ -367,7 +367,7 @@ IncomingMessage.method
 optional originalUrl?: string;
 ```
 
-Defined in: [packages/express/src/index.ts:13](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L13)
+Defined in: [packages/express/src/index.ts:13](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L13)
 
 ##### protocol?
 
@@ -375,7 +375,7 @@ Defined in: [packages/express/src/index.ts:13](https://github.com/summationai/co
 optional protocol?: string;
 ```
 
-Defined in: [packages/express/src/index.ts:15](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L15)
+Defined in: [packages/express/src/index.ts:15](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L15)
 
 ##### rawHeaders
 
@@ -4450,7 +4450,7 @@ IncomingMessage.wrap
 function axeExpress(axe, options?): (req, res, next) => void;
 ```
 
-Defined in: [packages/express/src/index.ts:66](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L66)
+Defined in: [packages/express/src/index.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L66)
 
 Express/Connect middleware that serves every AXE path. Mount at the app root.
 
@@ -4476,7 +4476,7 @@ Express/Connect middleware that serves every AXE path. Mount at the app root.
 function sendWebResponse(res, response): Promise<void>;
 ```
 
-Defined in: [packages/express/src/index.ts:58](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L58)
+Defined in: [packages/express/src/index.ts:58](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L58)
 
 Write a Web `Response` to a Node response. Exported for other Node adapters.
 
@@ -4502,7 +4502,7 @@ Write a Web `Response` to a Node response. Exported for other Node adapters.
 function toWebRequest(req, origin?): Promise<Request>;
 ```
 
-Defined in: [packages/express/src/index.ts:26](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/express/src/index.ts#L26)
+Defined in: [packages/express/src/index.ts:26](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/express/src/index.ts#L26)
 
 Build a Web `Request` from a Node request. Exported for other Node adapters.
 

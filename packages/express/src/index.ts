@@ -7,6 +7,7 @@
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AXE, AdapterContext, MaybePromise } from "@axe/core";
+import * as WIRE from "@axe/core/vocabulary";
 
 /** A Node request as Express and Connect present it: `originalUrl` and a possibly pre-parsed `body`. */
 export interface NodeRequestLike extends IncomingMessage {
@@ -84,10 +85,13 @@ export function axeExpress(axe: AXE, options: ExpressAdapterOptions = {}) {
   };
 }
 
+const WELL_KNOWN_PREFIX = WIRE.path.manifest.replace(/\.json$/, "");
+const AXE_ROOT = `/${WIRE.path.actions.split("/")[1]}`;
+
 function isAxePath(path: string, axe: AXE): boolean {
   const prefix = new URL(axe.config.baseUrl).pathname.replace(/\/$/, "");
   const p = prefix && path.startsWith(prefix + "/") ? path.slice(prefix.length) : path;
-  return p.startsWith("/.well-known/axe") || p === "/axe" || p.startsWith("/axe/");
+  return p.startsWith(WELL_KNOWN_PREFIX) || p === AXE_ROOT || p.startsWith(`${AXE_ROOT}/`);
 }
 
 function headerValue(req: IncomingMessage, name: string): string | undefined {

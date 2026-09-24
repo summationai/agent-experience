@@ -100,7 +100,7 @@ import { axe } from "../../../axe";
 
 export const { GET, POST, OPTIONS } = axeNext(axe);
 `,
-    note: "Also create app/.well-known/axe.json/route.ts with the same three exports, or add a rewrite from /.well-known/axe.json to /axe/manifest in next.config.",
+    note: `Also create app${WIRE.path.manifest}/route.ts with the same three exports, or add a rewrite from ${WIRE.path.manifest} to ${WIRE.path.manifestAlias} in next.config.`,
   },
   fetch: {
     file: "server.ts",
@@ -111,8 +111,8 @@ import { axe } from "./axe";
 
 const app = new Hono();
 const handler = axeFetch(axe);
-app.all("/axe/*", (c) => handler(c.req.raw));
-app.get("/.well-known/axe.json", (c) => handler(c.req.raw));
+app.all("${WIRE.path.actions.split("/").slice(0, 2).join("/")}/*", (c) => handler(c.req.raw));
+app.get("${WIRE.path.manifest}", (c) => handler(c.req.raw));
 app.get("/", (c) => c.text("Sunrise Yoga Studio"));
 
 serve({ fetch: app.fetch, port: 3000 }, () => console.log("Listening on http://localhost:3000"));

@@ -70,7 +70,14 @@ const KIND = new RegExp(`^(${KIND_NAMESPACES.join("|")})\\.[a-z][a-z0-9-]*$`);
  * Classify a code span. Returns the names that must exist in the vocabulary, or an empty
  * list when the span is not wire-like (example data, prose, TypeScript types).
  */
-export function wireLikeNames(span: string): { name: string; categories: string[] }[] {
+export interface WireLikeName {
+  name: string;
+  categories: string[];
+  /** For snake_case tokens: only a near-miss of a vocabulary name is an error (site-specific codes are legitimate). */
+  nearMissOnly?: boolean;
+}
+
+export function wireLikeNames(span: string): WireLikeName[] {
   const s = span.replace(/[,;:.]+$/, "");
   if (PATH.test(s)) {
     const path = s
@@ -80,14 +87,14 @@ export function wireLikeNames(span: string): { name: string; categories: string[
     return [{ name: path, categories: ["path"] }];
   }
   if (HEADER.test(s)) return [{ name: s, categories: ["header", "robots"] }];
-  if (TOOL.test(s)) return [{ name: s, categories: ["tool"] }];
+  if (TOOL.test(s)) return [{ name: s, categories: ["tool", "query"] }];
   const cli = CLI.exec(s);
   if (cli) return [{ name: `axe ${cli[1]}`, categories: ["cli"] }];
   if (KIND.test(s)) return [{ name: s, categories: ["kind"] }];
   if (s.startsWith("x-")) return [];
   if (/^axe\/\d+\.\d+$/.test(s)) return [{ name: s, categories: ["protocol"] }];
   if (SNAKE.test(s))
-    return [{ name: s, categories: ["status", "error", "ladder", "reason", "query"] }];
+    return [{ name: s, categories: ["status", "error", "ladder", "reason", "query"], nearMissOnly: true }];
   // Dotted field paths: `display.item.url`, `policies.rateLimit`, `accepts[].kind`, `manifest.auth.modes`
   if (
     /^[a-z][A-Za-z0-9]*(\[\])?(\.[a-z_][A-Za-z0-9_]*(\[\])?)+$/.test(s) &&
@@ -98,7 +105,7 @@ export function wireLikeNames(span: string): { name: string; categories: string[
     !s.startsWith("crypto.")
   ) {
     const segs = s.split(".").map((x) => x.replace(/\[\]$/, ""));
-    const out: { name: string; categories: string[] }[] = [];
+    const out: WireLikeName[] = [];
     for (const seg of segs)
       if (CAMEL.test(seg) || seg === "_axe") out.push({ name: seg, categories: ["field", "api"] });
     return out;
@@ -158,11 +165,13 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
         )
           mentioned.add(name);
       }
-      for (const { name, categories } of wireLikeNames(span)) {
+      for (const { name, categories, nearMissOnly } of wireLikeNames(span)) {
         if (allowed.has(name) || allowed.has(span)) continue;
         const cats = byName.get(name);
         if (cats && [...cats].some((c) => categories.includes(c))) continue;
         if (cats && categories.includes("field")) continue;
+        if (categories.includes("path") && pathCovered(name, entries)) continue;
+        if (nearMissOnly && !isNearMiss(name, entries, categories)) continue;
         (unknown[name] ??= []).push(rel);
       }
     }
@@ -174,16 +183,18 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
     join(root, "packages"),
     (f) => /\/src\/.*\.ts$/.test(f) && !f.endsWith("vocabulary.ts") && !f.endsWith(".d.ts"),
   );
-  const srcText = srcFiles.map((f) => ({ rel: relative(root, f), text: readFileSync(f, "utf8") }));
+  const srcText = srcFiles.map((f) => ({ rel: relative(root, f), text: stripComments(readFileSync(f, "utf8")) }));
   const allSrc = srcText.map((s) => s.text).join("\n");
   const unused: string[] = [];
   for (const e of entries) {
     const viaConstant = new RegExp(`\\b${e.category}\\.${e.key}\\b`).test(allSrc);
     const viaIdentifier =
-      (e.category === "field" || e.category === "api") &&
+      (e.category === "field" || e.category === "api" || e.category === "payload") &&
       new RegExp(`\\b${escapeRe(e.name)}\\b`).test(allSrc);
     const viaLiteral = new RegExp(`["'\`]${escapeRe(e.name)}["'\`]`).test(allSrc);
-    if (!viaConstant && !viaIdentifier && !viaLiteral)
+    // Enumerations are consumed whole (`z.enum(Object.values(WIRE.risk))`), which uses every member.
+    const viaCategory = new RegExp(`\\bWIRE\\.${e.category}\\b(?!\\.)`).test(allSrc);
+    if (!viaConstant && !viaIdentifier && !viaLiteral && !viaCategory)
       unused.push(`${e.category}.${e.key} (${e.name})`);
   }
 
@@ -193,7 +204,7 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
   const missingFromTypes: string[] = [];
   if (dtsFiles.length > 0) {
     for (const e of entries) {
-      if (e.category !== "field" && e.category !== "api") continue;
+      if (e.category !== "field" && e.category !== "api" && e.category !== "payload") continue;
       if (!new RegExp(`\\b${escapeRe(e.name)}\\b`).test(dtsAll))
         missingFromTypes.push(`${e.category}.${e.key} (${e.name})`);
     }
@@ -219,6 +230,35 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
     literals.length === 0 &&
     allowlist.length < (options.maxAllowlist ?? 15);
   return { unknown, unmentioned, unused, missingFromTypes, literals, allowlist, ok };
+}
+
+/** A path token is covered when a vocabulary path is a prefix of it (`/axe/actions/x.y`) or it is a prefix of one (`/axe/`). */
+function pathCovered(token: string, entries: { category: string; name: string }[]): boolean {
+  return entries.some((e) => e.category === "path" && (token === e.name || token.startsWith(e.name + "/") || e.name.startsWith(token)));
+}
+
+/** Levenshtein distance, for near-miss detection of snake_case codes. */
+export function editDistance(a: string, b: string): number {
+  const dp: number[] = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = dp[0]!;
+    dp[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = dp[j]!;
+      dp[j] = Math.min(dp[j]! + 1, dp[j - 1]! + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return dp[b.length]!;
+}
+
+function isNearMiss(token: string, entries: { category: string; name: string }[], categories: string[]): boolean {
+  return entries.some((e) => categories.includes(e.category) && e.name !== token && editDistance(e.name, token) <= 2);
+}
+
+/** Remove line and block comments so documentation text is not mistaken for code. */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
 }
 
 function escapeRe(s: string): string {

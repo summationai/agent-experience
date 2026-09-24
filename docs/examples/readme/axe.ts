@@ -1,3 +1,4 @@
+// #region shown
 import { createAXE, action, z } from "@axe/core";
 
 export const axe = createAXE({
@@ -21,6 +22,7 @@ axe.register(
 );
 
 export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
+// #endregion shown
 
 // #region support
 async function findClasses(from: string) {

@@ -380,6 +380,27 @@ export function accept(
   return entry;
 }
 
+/**
+ * The conventional `reason` string for a requirement whose kinds share a namespace:
+ * `payment_required`, `identity_required`, `document_required`, `consent_required`.
+ * Returns undefined for contact kinds and custom kinds, which take site-specific reasons.
+ */
+export function suggestedReason(kindName: string): string | undefined {
+  const namespace = kindName.split(".")[0];
+  switch (namespace) {
+    case "payment":
+      return WIRE.reason.paymentRequired;
+    case "identity":
+      return WIRE.reason.identityRequired;
+    case "document":
+      return WIRE.reason.documentRequired;
+    case "consent":
+      return WIRE.reason.consentRequired;
+    default:
+      return undefined;
+  }
+}
+
 /** JSON Schema for a kind's payload, as it appears on the wire. */
 export function kindJsonSchema(kind: KindDefinition): JsonSchema {
   return toJsonSchema(kind.schema, "input");

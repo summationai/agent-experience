@@ -8,7 +8,7 @@ AXE is an open, HTTP-native protocol and a TypeScript SDK that let any organizat
 
 > **Status: v0.** The protocol is `axe/0.1` and may change before 1.0. Every change is recorded in [CHANGELOG.md](CHANGELOG.md) and reasoned about in [DECISIONS.md](DECISIONS.md).
 
-<!-- include: examples/readme/axe.ts -->
+<!-- include: examples/readme/axe.ts#shown -->
 ```ts
 import { createAXE, action, z } from "@axe/core";
 
@@ -33,10 +33,6 @@ axe.register(
 );
 
 export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
-
-async function findClasses(from: string) {
-  return [{ id: "c_101", title: "Morning Vinyasa", startsAt: `${from}T14:00:00Z` }];
-}
 ```
 <!-- /include -->
 

@@ -9,6 +9,7 @@
  * ```
  */
 import type { AXE, AdapterContext, MaybePromise } from "@axe/core";
+import * as WIRE from "@axe/core/vocabulary";
 
 export interface FetchAdapterOptions<Env = unknown> {
   /** Inject the platform's session or tenant. Receives the request and whatever extra argument the platform passes (Workers `env`, Hono `Context`). */
@@ -25,8 +26,9 @@ export function axeFetch<Env = unknown>(axe: AXE, options: FetchAdapterOptions<E
 }
 
 /** Whether a URL path is one AXE serves, so routers can delegate only those. */
+const WELL_KNOWN_PREFIX = WIRE.path.manifest.replace(/\.json$/, "");
+const AXE_ROOT = `/${WIRE.path.actions.split("/")[1]}`;
+
 export function isAxePath(pathname: string): boolean {
-  return (
-    pathname.startsWith("/.well-known/axe") || pathname === "/axe" || pathname.startsWith("/axe/")
-  );
+  return pathname.startsWith(WELL_KNOWN_PREFIX) || pathname === AXE_ROOT || pathname.startsWith(`${AXE_ROOT}/`);
 }

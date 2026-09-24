@@ -6,7 +6,7 @@
 
 ### LintIssue
 
-Defined in: [packages/core/src/lint.ts:10](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L10)
+Defined in: [packages/core/src/lint.ts:10](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L10)
 
 #### Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/core/src/lint.ts:10](https://github.com/summationai/code/b
 docs: string;
 ```
 
-Defined in: [packages/core/src/lint.ts:20](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L20)
+Defined in: [packages/core/src/lint.ts:20](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L20)
 
 The doc section that explains the fix.
 
@@ -26,7 +26,7 @@ The doc section that explains the fix.
 optional excerpt?: string;
 ```
 
-Defined in: [packages/core/src/lint.ts:18](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L18)
+Defined in: [packages/core/src/lint.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L18)
 
 The offending text or value, when applicable.
 
@@ -36,7 +36,7 @@ The offending text or value, when applicable.
 location: string;
 ```
 
-Defined in: [packages/core/src/lint.ts:15](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L15)
+Defined in: [packages/core/src/lint.ts:15](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L15)
 
 Where the problem is: an action name and field, or a manifest field.
 
@@ -46,7 +46,7 @@ Where the problem is: an action name and field, or a manifest field.
 message: string;
 ```
 
-Defined in: [packages/core/src/lint.ts:16](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L16)
+Defined in: [packages/core/src/lint.ts:16](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L16)
 
 ##### rule
 
@@ -54,7 +54,7 @@ Defined in: [packages/core/src/lint.ts:16](https://github.com/summationai/code/b
 rule: LintRule;
 ```
 
-Defined in: [packages/core/src/lint.ts:12](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L12)
+Defined in: [packages/core/src/lint.ts:12](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L12)
 
 Stable rule identifier.
 
@@ -64,13 +64,13 @@ Stable rule identifier.
 severity: LintSeverity;
 ```
 
-Defined in: [packages/core/src/lint.ts:13](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L13)
+Defined in: [packages/core/src/lint.ts:13](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L13)
 
 ***
 
 ### LintTextOptions
 
-Defined in: [packages/core/src/lint.ts:82](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L82)
+Defined in: [packages/core/src/lint.ts:82](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L82)
 
 #### Properties
 
@@ -80,7 +80,7 @@ Defined in: [packages/core/src/lint.ts:82](https://github.com/summationai/code/b
 optional checkLength?: boolean;
 ```
 
-Defined in: [packages/core/src/lint.ts:86](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L86)
+Defined in: [packages/core/src/lint.ts:86](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L86)
 
 Apply the 40–400 character rule (for `description` fields).
 
@@ -90,7 +90,7 @@ Apply the 40–400 character rule (for `description` fields).
 optional location?: string;
 ```
 
-Defined in: [packages/core/src/lint.ts:84](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L84)
+Defined in: [packages/core/src/lint.ts:84](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L84)
 
 Dotted location for the report, e.g. `units.search.description`.
 
@@ -116,7 +116,7 @@ type LintRule =
   | "risk-none-on-mutation";
 ```
 
-Defined in: [packages/core/src/lint.ts:23](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L23)
+Defined in: [packages/core/src/lint.ts:23](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L23)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [packages/core/src/lint.ts:23](https://github.com/summationai/code/b
 type LintSeverity = "error" | "warning";
 ```
 
-Defined in: [packages/core/src/lint.ts:8](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L8)
+Defined in: [packages/core/src/lint.ts:8](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L8)
 
 ## Variables
 
@@ -136,7 +136,7 @@ Defined in: [packages/core/src/lint.ts:8](https://github.com/summationai/code/bl
 const AGENT_DIRECTIVE_PATTERNS: readonly RegExp[];
 ```
 
-Defined in: [packages/core/src/lint.ts:45](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L45)
+Defined in: [packages/core/src/lint.ts:45](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L45)
 
 Imperatives aimed at the agent. Each pattern is a prompt-injection shape seen in
 the wild, generalized. Matching any of these is a hard failure.
@@ -149,7 +149,7 @@ the wild, generalized. Matching any of these is a hard failure.
 const PERSUASION_PATTERNS: readonly RegExp[];
 ```
 
-Defined in: [packages/core/src/lint.ts:61](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L61)
+Defined in: [packages/core/src/lint.ts:61](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L61)
 
 Superlatives and comparative marketing claims. Reported, not fatal.
 
@@ -161,7 +161,7 @@ Superlatives and comparative marketing claims. Reported, not fatal.
 function agentReadText(action): object[];
 ```
 
-Defined in: [packages/core/src/lint.ts:170](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L170)
+Defined in: [packages/core/src/lint.ts:170](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L170)
 
 Every agent-read text field of an action, as (location, text) pairs.
 
@@ -183,7 +183,7 @@ Every agent-read text field of an action, as (location, text) pairs.
 function hasLintErrors(issues): boolean;
 ```
 
-Defined in: [packages/core/src/lint.ts:393](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L393)
+Defined in: [packages/core/src/lint.ts:393](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L393)
 
 True when any issue is an error.
 
@@ -205,7 +205,7 @@ readonly [`LintIssue`](#lintissue)[]
 function isBareQuerySearch(input): boolean;
 ```
 
-Defined in: [packages/core/src/lint.ts:210](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L210)
+Defined in: [packages/core/src/lint.ts:210](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L210)
 
 Whether an input schema is a "search box": its only property is free text.
 
@@ -227,7 +227,7 @@ Whether an input schema is a "search box": its only property is free text.
 function lintAction(action): LintIssue[];
 ```
 
-Defined in: [packages/core/src/lint.ts:240](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L240)
+Defined in: [packages/core/src/lint.ts:240](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L240)
 
 Apply every lint rule to one action.
 
@@ -249,7 +249,7 @@ Apply every lint rule to one action.
 function lintAgentText(text, options?): LintIssue[];
 ```
 
-Defined in: [packages/core/src/lint.ts:93](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L93)
+Defined in: [packages/core/src/lint.ts:93](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L93)
 
 Apply the honesty rules to one agent-read string.
 Returns `agent-directive` errors, `persuasion` warnings, and optionally `description-length`.
@@ -276,7 +276,7 @@ Returns `agent-directive` errors, `persuasion` warnings, and optionally `descrip
 function lintManifest(manifest): LintIssue[];
 ```
 
-Defined in: [packages/core/src/lint.ts:369](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/lint.ts#L369)
+Defined in: [packages/core/src/lint.ts:369](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/lint.ts#L369)
 
 Apply every lint rule to a manifest.
 

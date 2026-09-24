@@ -8,6 +8,7 @@ import {
   customKind,
   withMimeTypes,
   isValidKindName,
+  suggestedReason,
 } from "../src/kinds";
 import { z } from "zod";
 import { toJsonSchema } from "../src/zod-json-schema";
@@ -185,6 +186,15 @@ describe("kinds", () => {
         .success,
     ).toBe(true);
     expect(() => withMimeTypes(kinds.contact.email as never, ["x"])).toThrow(/no mimeType/);
+  });
+
+  it("suggests conventional reasons by namespace", () => {
+    expect(suggestedReason("payment.card")).toBe("payment_required");
+    expect(suggestedReason("identity.ssn-last-4")).toBe("identity_required");
+    expect(suggestedReason("document.url")).toBe("document_required");
+    expect(suggestedReason("consent.terms")).toBe("consent_required");
+    expect(suggestedReason("contact.email")).toBeUndefined();
+    expect(suggestedReason("x-acme.thing")).toBeUndefined();
   });
 
   it("structural equality ignores annotations [P-HON-5]", () => {

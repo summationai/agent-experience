@@ -530,6 +530,98 @@ export const field = /* @__PURE__ */ Object.freeze({
   tenant: "tenant",
 } as const);
 
+/** `payload` names. */
+export const payload = /* @__PURE__ */ Object.freeze({
+  /** PSP-issued single-use or network token. */
+  token: "token",
+  /** Payment service provider identifier. */
+  provider: "provider",
+  /** Card network, lowercase. (Also `manifest.brand`, listed under fields.) */
+  brand: "brand",
+  /** Last four digits. */
+  last4: "last4",
+  /** Expiry month, 1–12. */
+  expMonth: "expMonth",
+  /** Four-digit expiry year. */
+  expYear: "expYear",
+  /** Billing postal code. */
+  billingPostalCode: "billingPostalCode",
+  /** Name on the bank account. */
+  accountHolderName: "accountHolderName",
+  /** ABA routing number. */
+  routingNumber: "routingNumber",
+  /** Bank account number. */
+  accountNumber: "accountNumber",
+  /** `checking` or `savings`. */
+  accountType: "accountType",
+  /** When the user authorized the debit. */
+  authorizedAt: "authorizedAt",
+  /** The exact authorization text the user agreed to. */
+  authorizationText: "authorizationText",
+  /** Bank reference, IMAD, or OMAD. */
+  referenceNumber: "referenceNumber",
+  /** When the wire was sent. */
+  sentAt: "sentAt",
+  /** Sending bank. */
+  bankName: "bankName",
+  /** Company to invoice. */
+  companyName: "companyName",
+  /** Accounts-payable email. */
+  billingEmail: "billingEmail",
+  /** Purchase order reference. */
+  purchaseOrderNumber: "purchaseOrderNumber",
+  /** Requested payment terms in days. */
+  netTermsDays: "netTermsDays",
+  /** VAT or EIN. */
+  taxId: "taxId",
+  /** `passport`, `drivers-license`, `national-id`, or `residence-permit`. */
+  documentType: "documentType",
+  /** Document number. */
+  documentNumber: "documentNumber",
+  /** ISO 3166-1 alpha-2 country. */
+  issuingCountry: "issuingCountry",
+  /** Name as printed on the document. */
+  fullName: "fullName",
+  /** Date of birth. */
+  dateOfBirth: "dateOfBirth",
+  /** Document expiry date. */
+  expiresOn: "expiresOn",
+  /** MIME type of the document. */
+  mimeType: "mimeType",
+  /** File name. */
+  filename: "filename",
+  /** Size in bytes. */
+  sizeBytes: "sizeBytes",
+  /** Base64-encoded content. */
+  contentBase64: "contentBase64",
+  /** E.164 phone number. */
+  phone: "phone",
+  /** Whether the number receives SMS. */
+  canReceiveSms: "canReceiveSms",
+  /** Address line 1. */
+  line1: "line1",
+  /** Address line 2. */
+  line2: "line2",
+  /** City. */
+  city: "city",
+  /** State, province, or prefecture. */
+  region: "region",
+  /** Postal code. */
+  postalCode: "postalCode",
+  /** ISO 3166-1 alpha-2 country. */
+  country: "country",
+  /** The policy document agreed to. */
+  policyUrl: "policyUrl",
+  /** Exact version identifier or date. */
+  policyVersion: "policyVersion",
+  /** What the consent covers. */
+  scope: "scope",
+  /** When consent was given. */
+  acceptedAt: "acceptedAt",
+  /** Who consented, when the site requires it. */
+  acceptedBy: "acceptedBy",
+} as const);
+
 /** `api` names. */
 export const api = /* @__PURE__ */ Object.freeze({
   /** Create a server instance from site configuration. */
@@ -669,6 +761,7 @@ export const WIRE = /* @__PURE__ */ Object.freeze({
   tool,
   cli,
   field,
+  payload,
   api,
 } as const);
 
@@ -715,6 +808,8 @@ export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_pol
 export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp";
 /** Union of every `field` name. */
 export type WireField = "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
+/** Union of every `payload` name. */
+export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
 export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift";
 
@@ -941,6 +1036,50 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "ladder", name: "ladder" },
   { category: "field", key: "errorCode", name: "errorCode" },
   { category: "field", key: "tenant", name: "tenant" },
+  { category: "payload", key: "token", name: "token" },
+  { category: "payload", key: "provider", name: "provider" },
+  { category: "payload", key: "brand", name: "brand" },
+  { category: "payload", key: "last4", name: "last4" },
+  { category: "payload", key: "expMonth", name: "expMonth" },
+  { category: "payload", key: "expYear", name: "expYear" },
+  { category: "payload", key: "billingPostalCode", name: "billingPostalCode" },
+  { category: "payload", key: "accountHolderName", name: "accountHolderName" },
+  { category: "payload", key: "routingNumber", name: "routingNumber" },
+  { category: "payload", key: "accountNumber", name: "accountNumber" },
+  { category: "payload", key: "accountType", name: "accountType" },
+  { category: "payload", key: "authorizedAt", name: "authorizedAt" },
+  { category: "payload", key: "authorizationText", name: "authorizationText" },
+  { category: "payload", key: "referenceNumber", name: "referenceNumber" },
+  { category: "payload", key: "sentAt", name: "sentAt" },
+  { category: "payload", key: "bankName", name: "bankName" },
+  { category: "payload", key: "companyName", name: "companyName" },
+  { category: "payload", key: "billingEmail", name: "billingEmail" },
+  { category: "payload", key: "purchaseOrderNumber", name: "purchaseOrderNumber" },
+  { category: "payload", key: "netTermsDays", name: "netTermsDays" },
+  { category: "payload", key: "taxId", name: "taxId" },
+  { category: "payload", key: "documentType", name: "documentType" },
+  { category: "payload", key: "documentNumber", name: "documentNumber" },
+  { category: "payload", key: "issuingCountry", name: "issuingCountry" },
+  { category: "payload", key: "fullName", name: "fullName" },
+  { category: "payload", key: "dateOfBirth", name: "dateOfBirth" },
+  { category: "payload", key: "expiresOn", name: "expiresOn" },
+  { category: "payload", key: "mimeType", name: "mimeType" },
+  { category: "payload", key: "filename", name: "filename" },
+  { category: "payload", key: "sizeBytes", name: "sizeBytes" },
+  { category: "payload", key: "contentBase64", name: "contentBase64" },
+  { category: "payload", key: "phone", name: "phone" },
+  { category: "payload", key: "canReceiveSms", name: "canReceiveSms" },
+  { category: "payload", key: "line1", name: "line1" },
+  { category: "payload", key: "line2", name: "line2" },
+  { category: "payload", key: "city", name: "city" },
+  { category: "payload", key: "region", name: "region" },
+  { category: "payload", key: "postalCode", name: "postalCode" },
+  { category: "payload", key: "country", name: "country" },
+  { category: "payload", key: "policyUrl", name: "policyUrl" },
+  { category: "payload", key: "policyVersion", name: "policyVersion" },
+  { category: "payload", key: "scope", name: "scope" },
+  { category: "payload", key: "acceptedAt", name: "acceptedAt" },
+  { category: "payload", key: "acceptedBy", name: "acceptedBy" },
   { category: "api", key: "createAXE", name: "createAXE" },
   { category: "api", key: "action", name: "action" },
   { category: "api", key: "register", name: "register" },

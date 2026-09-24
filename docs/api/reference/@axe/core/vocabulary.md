@@ -10,7 +10,7 @@
 type Wire = typeof WIRE;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:675](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L675)
+Defined in: [packages/core/src/vocabulary.ts:675](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L675)
 
 ***
 
@@ -74,7 +74,7 @@ type WireApi =
   | "checkVocabularyDrift";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:719](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L719)
+Defined in: [packages/core/src/vocabulary.ts:719](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L719)
 
 Union of every `api` name.
 
@@ -86,7 +86,7 @@ Union of every `api` name.
 type WireAuthMode = "none" | "site" | "user";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:697](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L697)
+Defined in: [packages/core/src/vocabulary.ts:697](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L697)
 
 Union of every `authMode` name.
 
@@ -105,7 +105,7 @@ type WireCli =
   | "axe mcp";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:715](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L715)
+Defined in: [packages/core/src/vocabulary.ts:715](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L715)
 
 Union of every `cli` name.
 
@@ -117,7 +117,7 @@ Union of every `cli` name.
 type WireCompare = "higher-better" | "lower-better" | "neutral";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:703](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L703)
+Defined in: [packages/core/src/vocabulary.ts:703](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L703)
 
 Union of every `compare` name.
 
@@ -129,7 +129,7 @@ Union of every `compare` name.
 type WireDisplayKind = "list" | "item" | "table" | "status" | "document";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:699](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L699)
+Defined in: [packages/core/src/vocabulary.ts:699](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L699)
 
 Union of every `displayKind` name.
 
@@ -150,7 +150,7 @@ type WireError =
   | "unsupported";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:691](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L691)
+Defined in: [packages/core/src/vocabulary.ts:691](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L691)
 
 Union of every `error` name.
 
@@ -280,7 +280,7 @@ type WireField =
   | "tenant";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:717](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L717)
+Defined in: [packages/core/src/vocabulary.ts:717](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L717)
 
 Union of every `field` name.
 
@@ -302,7 +302,7 @@ type WireFormat =
   | "list";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:701](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L701)
+Defined in: [packages/core/src/vocabulary.ts:701](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L701)
 
 Union of every `format` name.
 
@@ -321,7 +321,7 @@ type WireHeader =
   | "Content-Type";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:681](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L681)
+Defined in: [packages/core/src/vocabulary.ts:681](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L681)
 
 Union of every `header` name.
 
@@ -347,7 +347,7 @@ type WireKind =
   | "x-";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:709](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L709)
+Defined in: [packages/core/src/vocabulary.ts:709](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L709)
 
 Union of every `kind` name.
 
@@ -366,7 +366,7 @@ type WireLadder =
   | "error";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:693](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L693)
+Defined in: [packages/core/src/vocabulary.ts:693](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L693)
 
 Union of every `ladder` name.
 
@@ -378,7 +378,7 @@ Union of every `ladder` name.
 type WireLink = "axe-manifest";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:683](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L683)
+Defined in: [packages/core/src/vocabulary.ts:683](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L683)
 
 Union of every `link` name.
 
@@ -397,7 +397,7 @@ type WirePath =
   | "/axe/poll";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:679](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L679)
+Defined in: [packages/core/src/vocabulary.ts:679](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L679)
 
 Union of every `path` name.
 
@@ -409,7 +409,7 @@ Union of every `path` name.
 type WirePeriod = "once" | "hour" | "day" | "month" | "year";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:705](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L705)
+Defined in: [packages/core/src/vocabulary.ts:705](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L705)
 
 Union of every `period` name.
 
@@ -421,7 +421,7 @@ Union of every `period` name.
 type WireProtocol = "axe/0.1";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:677](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L677)
+Defined in: [packages/core/src/vocabulary.ts:677](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L677)
 
 Union of every `protocol` name.
 
@@ -433,7 +433,7 @@ Union of every `protocol` name.
 type WireQuery = "axe_handoff";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:687](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L687)
+Defined in: [packages/core/src/vocabulary.ts:687](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L687)
 
 Union of every `query` name.
 
@@ -450,7 +450,7 @@ type WireReason =
   | "document_required";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:711](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L711)
+Defined in: [packages/core/src/vocabulary.ts:711](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L711)
 
 Union of every `reason` name.
 
@@ -462,7 +462,7 @@ Union of every `reason` name.
 type WireRisk = "none" | "low" | "medium" | "high";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:695](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L695)
+Defined in: [packages/core/src/vocabulary.ts:695](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L695)
 
 Union of every `risk` name.
 
@@ -474,7 +474,7 @@ Union of every `risk` name.
 type WireRobots = "AXE-Manifest" | "AXE-Index";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:685](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L685)
+Defined in: [packages/core/src/vocabulary.ts:685](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L685)
 
 Union of every `robots` name.
 
@@ -486,7 +486,7 @@ Union of every `robots` name.
 type WireStatus = "ok" | "needs_input" | "needs_human" | "pending" | "error";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:689](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L689)
+Defined in: [packages/core/src/vocabulary.ts:689](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L689)
 
 Union of every `status` name.
 
@@ -498,7 +498,7 @@ Union of every `status` name.
 type WireTone = "formal" | "neutral" | "casual";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:707](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L707)
+Defined in: [packages/core/src/vocabulary.ts:707](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L707)
 
 Union of every `tone` name.
 
@@ -510,7 +510,7 @@ Union of every `tone` name.
 type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:713](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L713)
+Defined in: [packages/core/src/vocabulary.ts:713](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L713)
 
 Union of every `tool` name.
 
@@ -577,7 +577,7 @@ const api: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:534](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L534)
+Defined in: [packages/core/src/vocabulary.ts:534](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L534)
 
 `api` names.
 
@@ -593,7 +593,7 @@ const authMode: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:136](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L136)
+Defined in: [packages/core/src/vocabulary.ts:136](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L136)
 
 `authMode` names.
 
@@ -613,7 +613,7 @@ const cli: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:276](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L276)
+Defined in: [packages/core/src/vocabulary.ts:276](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L276)
 
 `cli` names.
 
@@ -629,7 +629,7 @@ const compare: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:184](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L184)
+Defined in: [packages/core/src/vocabulary.ts:184](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L184)
 
 `compare` names.
 
@@ -647,7 +647,7 @@ const displayKind: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:146](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L146)
+Defined in: [packages/core/src/vocabulary.ts:146](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L146)
 
 `displayKind` names.
 
@@ -669,7 +669,7 @@ const error: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:84](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L84)
+Defined in: [packages/core/src/vocabulary.ts:84](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L84)
 
 `error` names.
 
@@ -800,7 +800,7 @@ const field: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:294](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L294)
+Defined in: [packages/core/src/vocabulary.ts:294](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L294)
 
 `field` names.
 
@@ -823,7 +823,7 @@ const format: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:160](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L160)
+Defined in: [packages/core/src/vocabulary.ts:160](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L160)
 
 `format` names.
 
@@ -843,7 +843,7 @@ const header: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:32](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L32)
+Defined in: [packages/core/src/vocabulary.ts:32](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L32)
 
 `header` names.
 
@@ -870,7 +870,7 @@ const kind: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:218](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L218)
+Defined in: [packages/core/src/vocabulary.ts:218](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L218)
 
 `kind` names.
 
@@ -890,7 +890,7 @@ const ladder: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:106](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L106)
+Defined in: [packages/core/src/vocabulary.ts:106](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L106)
 
 `ladder` names.
 
@@ -904,7 +904,7 @@ const link: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:50](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L50)
+Defined in: [packages/core/src/vocabulary.ts:50](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L50)
 
 `link` names.
 
@@ -924,7 +924,7 @@ const path: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:14](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L14)
+Defined in: [packages/core/src/vocabulary.ts:14](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L14)
 
 `path` names.
 
@@ -942,7 +942,7 @@ const period: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:194](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L194)
+Defined in: [packages/core/src/vocabulary.ts:194](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L194)
 
 `period` names.
 
@@ -956,7 +956,7 @@ const protocol: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:8](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L8)
+Defined in: [packages/core/src/vocabulary.ts:8](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L8)
 
 `protocol` names.
 
@@ -970,7 +970,7 @@ const query: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:64](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L64)
+Defined in: [packages/core/src/vocabulary.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L64)
 
 `query` names.
 
@@ -988,7 +988,7 @@ const reason: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:250](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L250)
+Defined in: [packages/core/src/vocabulary.ts:250](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L250)
 
 `reason` names.
 
@@ -1005,7 +1005,7 @@ const risk: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:124](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L124)
+Defined in: [packages/core/src/vocabulary.ts:124](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L124)
 
 `risk` names.
 
@@ -1020,7 +1020,7 @@ const robots: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:56](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L56)
+Defined in: [packages/core/src/vocabulary.ts:56](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L56)
 
 `robots` names.
 
@@ -1038,7 +1038,7 @@ const status: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:70](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L70)
+Defined in: [packages/core/src/vocabulary.ts:70](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L70)
 
 `status` names.
 
@@ -1054,7 +1054,7 @@ const tone: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:208](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L208)
+Defined in: [packages/core/src/vocabulary.ts:208](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L208)
 
 `tone` names.
 
@@ -1071,7 +1071,7 @@ const tool: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:264](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L264)
+Defined in: [packages/core/src/vocabulary.ts:264](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L264)
 
 `tool` names.
 
@@ -1403,7 +1403,7 @@ const WIRE: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:650](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L650)
+Defined in: [packages/core/src/vocabulary.ts:650](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L650)
 
 Every wire-level name in the AXE protocol, grouped by category.
 Use these constants instead of string literals for paths, headers, statuses,
@@ -1421,6 +1421,6 @@ const WIRE_ENTRIES: ReadonlyArray<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:722](https://github.com/summationai/code/blob/02cb36fc6a443fe13de153801955d7b8a000acdf/axe/packages/core/src/vocabulary.ts#L722)
+Defined in: [packages/core/src/vocabulary.ts:722](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L722)
 
 All entries as a flat list, for tooling.
