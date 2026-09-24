@@ -1,0 +1,5 @@
+[
+  { "token": "package.json", "reason": "npm file name, not a wire field" },
+  { "token": "axe.ts", "reason": "the integrator's source file, not a wire name" },
+  { "token": "userId", "reason": "example session field in adapter docs" }
+]

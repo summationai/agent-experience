@@ -78,6 +78,16 @@
         "types": "./dist/schemas.d.cts",
         "default": "./dist/schemas.cjs"
       }
+    },
+    "./types": {
+      "import": {
+        "types": "./dist/types.d.ts",
+        "default": "./dist/types.js"
+      },
+      "require": {
+        "types": "./dist/types.d.cts",
+        "default": "./dist/types.cjs"
+      }
     }
   },
   "files": [
@@ -123,6 +133,9 @@
       ],
       "schemas": [
         "./dist/schemas.d.ts"
+      ],
+      "types": [
+        "./dist/types.d.ts"
       ]
     }
   }

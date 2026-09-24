@@ -10,5 +10,6 @@ export default defineConfig(
     display: "src/display.ts",
     lint: "src/lint.ts",
     schemas: "src/schemas.ts",
+    types: "src/types.ts",
   }),
 );

@@ -47,22 +47,24 @@ export function renderVocabularyTs(entries) {
     byCat.get(e.category).push(e);
   }
   let out = `// GENERATED FILE. Do not edit.\n// Source: spec/VOCABULARY.md. Regenerate with \`pnpm gen:vocabulary\`.\n\n`;
-  out += `/**\n * Every wire-level name in the AXE protocol, grouped by category.\n * Use these constants instead of string literals for paths, headers, statuses,\n * error codes, ladder values, kinds, MCP tool names, and CLI command names.\n */\n`;
-  out += `export const WIRE = Object.freeze({\n`;
+  out += `// Each category is its own export so bundlers can drop the ones a package does not use.\n// \`import * as WIRE from "@axe/core/vocabulary"\` and \`import { WIRE }\` both read as WIRE.<category>.<key>.\n\n`;
   for (const [cat, list] of byCat) {
-    out += `  ${cat}: Object.freeze({\n`;
+    out += `/** \`${cat}\` names. */\nexport const ${cat} = /* @__PURE__ */ Object.freeze({\n`;
     for (const e of list) {
-      out += `    /** ${e.meaning.replace(/\*\//g, "* /")} */\n    ${e.key}: ${JSON.stringify(e.name)},\n`;
+      out += `  /** ${e.meaning.replace(/\*\//g, "* /")} */\n  ${e.key}: ${JSON.stringify(e.name)},\n`;
     }
-    out += `  }),\n`;
+    out += `} as const);\n\n`;
   }
+  out += `/**\n * Every wire-level name in the AXE protocol, grouped by category.\n * Use these constants instead of string literals for paths, headers, statuses,\n * error codes, ladder values, kinds, MCP tool names, and CLI command names.\n */\n`;
+  out += `export const WIRE = /* @__PURE__ */ Object.freeze({\n`;
+  for (const cat of byCat.keys()) out += `  ${cat},\n`;
   out += `} as const);\n\n`;
   out += `export type Wire = typeof WIRE;\n`;
   for (const [cat, list] of byCat) {
     const typeName = cat[0].toUpperCase() + cat.slice(1);
     out += `/** Union of every \`${cat}\` name. */\nexport type Wire${typeName} = ${list.map((e) => JSON.stringify(e.name)).join(" | ")};\n`;
   }
-  out += `\n/** All entries as a flat list, for tooling. */\nexport const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = Object.freeze([\n`;
+  out += `\n/** All entries as a flat list, for tooling. */\nexport const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([\n`;
   for (const e of entries)
     out += `  { category: ${JSON.stringify(e.category)}, key: ${JSON.stringify(e.key)}, name: ${JSON.stringify(e.name)} },\n`;
   out += `]);\n`;

@@ -159,6 +159,7 @@ Rules for editing:
 | tool     | continue | `axe_continue` | MCP server | Satisfy a `needs_input` requirement with a chosen `kind` and `payload`.                 |
 | tool     | resume   | `axe_resume`   | MCP server | Resume after a human handoff with a `resumeToken`.                                      |
 | tool     | manifest | `axe_manifest` | MCP server | Return the site's manifest so the model can read descriptions and the affordance graph. |
+| tool     | poll     | `axe_poll`     | MCP server | Poll a `pending` result's `pollUrl` until it settles.                                   |
 
 ## CLI commands
 

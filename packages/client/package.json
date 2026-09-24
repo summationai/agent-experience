@@ -60,5 +60,8 @@
         "./dist/present.d.ts"
       ]
     }
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   }
 }

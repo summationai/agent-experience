@@ -1,0 +1,162 @@
+{
+  "categories": {
+    "discoverable": { "title": "Discoverable", "max": 20 },
+    "describable": { "title": "Describable", "max": 25 },
+    "presentable": { "title": "Presentable", "max": 15 },
+    "actionable": { "title": "Actionable", "max": 20 },
+    "trustworthy": { "title": "Trustworthy", "max": 20 }
+  },
+  "checks": {
+    "discoverable.well-known": {
+      "weight": 6,
+      "title": "Manifest served at /.well-known/axe.json",
+      "docs": "docs/deploying.md#discovery"
+    },
+    "discoverable.schema": {
+      "weight": 5,
+      "title": "Manifest validates against the schema",
+      "docs": "docs/concepts.md#manifest"
+    },
+    "discoverable.protocol-header": {
+      "weight": 3,
+      "title": "AXE-Protocol header on responses",
+      "docs": "docs/deploying.md#discovery"
+    },
+    "discoverable.hint": {
+      "weight": 3,
+      "title": "robots.txt directive, link tag, or header points at the manifest",
+      "docs": "docs/deploying.md#discovery"
+    },
+    "discoverable.cacheable": {
+      "weight": 2,
+      "title": "Manifest is cacheable for at least 60 seconds",
+      "docs": "docs/deploying.md#caching-the-manifest"
+    },
+    "discoverable.index": {
+      "weight": 1,
+      "title": "Platform index valid when referenced",
+      "docs": "docs/platforms.md"
+    },
+
+    "describable.description-length": {
+      "weight": 6,
+      "title": "Every description is 40–400 characters and states what, returns, commits",
+      "docs": "docs/designing-actions.md#writing-descriptions"
+    },
+    "describable.examples-present": {
+      "weight": 5,
+      "title": "Every action has examples",
+      "docs": "docs/designing-actions.md#examples"
+    },
+    "describable.examples-validate": {
+      "weight": 3,
+      "title": "Examples validate against schemas",
+      "docs": "docs/designing-actions.md#examples"
+    },
+    "describable.input-descriptions": {
+      "weight": 5,
+      "title": "Every input field has a description",
+      "docs": "docs/designing-actions.md#writing-descriptions"
+    },
+    "describable.structured-filters": {
+      "weight": 3,
+      "title": "Search inputs expose structured filters",
+      "docs": "docs/designing-actions.md#designing-read-actions"
+    },
+    "describable.deprecations": {
+      "weight": 3,
+      "title": "Deprecated actions name a replacement",
+      "docs": "docs/designing-actions.md#deprecating-actions"
+    },
+
+    "presentable.display-present": {
+      "weight": 5,
+      "title": "Read actions returning lists declare display",
+      "docs": "docs/presenting-results.md"
+    },
+    "presentable.pointers-resolve": {
+      "weight": 4,
+      "title": "Display pointers resolve against example and live outputs",
+      "docs": "docs/presenting-results.md#annotating-an-output-schema"
+    },
+    "presentable.url": {
+      "weight": 3,
+      "title": "Displayed items link to a human page",
+      "docs": "docs/presenting-results.md#url-and-disclaimer"
+    },
+    "presentable.disclaimer": {
+      "weight": 2,
+      "title": "Displays carry a disclaimer",
+      "docs": "docs/presenting-results.md#url-and-disclaimer"
+    },
+    "presentable.images-https": {
+      "weight": 1,
+      "title": "Example images are absolute HTTPS URLs",
+      "docs": "docs/presenting-results.md"
+    },
+
+    "actionable.graph-connected": {
+      "weight": 6,
+      "title": "Affordance graph is connected: reads lead somewhere, transactions are reachable",
+      "docs": "docs/presenting-results.md#affordances"
+    },
+    "actionable.truthful-metadata": {
+      "weight": 4,
+      "title": "readOnly, idempotent, reversible, risk declared truthfully",
+      "docs": "docs/designing-actions.md#choosing-risk"
+    },
+    "actionable.idempotency": {
+      "weight": 4,
+      "title": "Idempotency replay works",
+      "docs": "docs/concepts.md#idempotency"
+    },
+    "actionable.needs-input-first": {
+      "weight": 3,
+      "title": "Requirements use needs_input with well-known kinds before needs_human",
+      "docs": "docs/designing-actions.md#designing-requirements"
+    },
+    "actionable.handoff-rate": {
+      "weight": 3,
+      "title": "Low needs_human rate on example runs",
+      "docs": "docs/human-handoff.md"
+    },
+
+    "trustworthy.no-agent-directives": {
+      "weight": 6,
+      "title": "No instructions aimed at the agent in agent-read text",
+      "docs": "docs/audit.md#honesty-rules"
+    },
+    "trustworthy.no-persuasion": {
+      "weight": 4,
+      "title": "No superlatives or comparative claims",
+      "docs": "docs/audit.md#honesty-rules"
+    },
+    "trustworthy.rate-limit": {
+      "weight": 2,
+      "title": "Rate limit declared and advertised",
+      "docs": "docs/deploying.md#rate-limiting"
+    },
+    "trustworthy.terms": {
+      "weight": 2,
+      "title": "policies.termsUrl present",
+      "docs": "docs/concepts.md#manifest"
+    },
+    "trustworthy.contact": {
+      "weight": 2,
+      "title": "contact present",
+      "docs": "docs/concepts.md#manifest"
+    },
+    "trustworthy.human-fallback": {
+      "weight": 2,
+      "title": "humanFallbackUrl present and reachable",
+      "docs": "docs/concepts.md#manifest"
+    },
+    "trustworthy.https": { "weight": 1, "title": "HTTPS only", "docs": "docs/security.md" },
+    "trustworthy.tokens": {
+      "weight": 1,
+      "title": "Tampered tokens rejected; no fake kinds",
+      "docs": "docs/security.md"
+    }
+  },
+  "hardFailures": ["trustworthy.no-agent-directives"]
+}

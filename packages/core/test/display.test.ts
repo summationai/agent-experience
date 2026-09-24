@@ -298,7 +298,7 @@ describe("affordance validation [P-AFF-1] [P-AFF-2]", () => {
 });
 
 describe("resolveDisplay [P-AFF-3] [P-AFF-4] [P-DISP-6]", () => {
-  it("materializes items with price, attributes, badges, url, images, and static affordances", () => {
+  it("resolveDisplay binds partial inputs: items with price, attributes, badges, url, images, and static affordances [P-AFF-3]", () => {
     const { axe } = apartmentsAXE();
     const def = axe.describe().actions.find((a) => a.name === "units.search")!;
     const presented = resolveDisplay(def, { units: UNITS, nextCursor: null }, { name: "Oakridge" });
@@ -347,7 +347,7 @@ describe("resolveDisplay [P-AFF-3] [P-AFF-4] [P-DISP-6]", () => {
     expect("_axe" in (presented.output as { units: object[] }).units[0]!).toBe(false);
   });
 
-  it("dynamic _axe.affordances replace static ones for that item only and are stripped from raw", () => {
+  it("dynamic _axe.affordances replace static ones for that item only; resolveDisplay tolerates affordance spam [P-AFF-4] [P-AFF-6]", () => {
     const { axe } = apartmentsAXE();
     const def = axe.describe().actions.find((a) => a.name === "units.search")!;
     const withDynamic = [
