@@ -150,6 +150,12 @@ type WireApi =
   | "revisionMode"
   | "SURFACE_ATTRIBUTES"
   | "toJsonSchema"
+  | "scopedSurfaces"
+  | "authFor"
+  | "redactEvent"
+  | "idleMs"
+  | "onEvict"
+  | "keyFor"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -308,6 +314,7 @@ type WireField =
   | "ledgerSeq"
   | "revBefore"
   | "revAfter"
+  | "textHash"
   | "limit"
   | "frozen"
   | "protocol"
@@ -763,6 +770,7 @@ const api: Readonly<{
   appendHandoffId: "appendHandoffId";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
+  authFor: "authFor";
   availability: "availability";
   axeExpress: "axeExpress";
   axeFetch: "axeFetch";
@@ -811,6 +819,7 @@ const api: Readonly<{
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
   identity: "identity";
+  idleMs: "idleMs";
   includeDeprecated: "includeDeprecated";
   index: "index";
   invoke: "invoke";
@@ -823,6 +832,7 @@ const api: Readonly<{
   isPending: "isPending";
   jsonlFileSink: "jsonlFileSink";
   jsonSchemaToZod: "jsonSchemaToZod";
+  keyFor: "keyFor";
   kinds: "kinds";
   ledger: "ledger";
   lintAgentText: "lintAgentText";
@@ -840,6 +850,7 @@ const api: Readonly<{
   onContinue: "onContinue";
   onError: "onError";
   onEvent: "onEvent";
+  onEvict: "onEvict";
   onPoll: "onPoll";
   onRequest: "onRequest";
   onResult: "onResult";
@@ -850,6 +861,7 @@ const api: Readonly<{
   pollBudgetMs: "pollBudgetMs";
   present: "present";
   reconcile: "reconcile";
+  redactEvent: "redactEvent";
   register: "register";
   registerGenerated: "registerGenerated";
   registryVersion: "registryVersion";
@@ -865,6 +877,7 @@ const api: Readonly<{
   runAudit: "runAudit";
   runConformance: "runConformance";
   samplePayload: "samplePayload";
+  scopedSurfaces: "scopedSurfaces";
   secret: "secret";
   seedRev: "seedRev";
   sendWebResponse: "sendWebResponse";
@@ -1179,6 +1192,7 @@ const field: Readonly<{
   tenant: "tenant";
   termsUrl: "termsUrl";
   text: "text";
+  textHash: "textHash";
   timezone: "timezone";
   title: "title";
   tone: "tone";
@@ -1563,6 +1577,7 @@ const WIRE: Readonly<{
      appendHandoffId: "appendHandoffId";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
+     authFor: "authFor";
      availability: "availability";
      axeExpress: "axeExpress";
      axeFetch: "axeFetch";
@@ -1611,6 +1626,7 @@ const WIRE: Readonly<{
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
      identity: "identity";
+     idleMs: "idleMs";
      includeDeprecated: "includeDeprecated";
      index: "index";
      invoke: "invoke";
@@ -1623,6 +1639,7 @@ const WIRE: Readonly<{
      isPending: "isPending";
      jsonlFileSink: "jsonlFileSink";
      jsonSchemaToZod: "jsonSchemaToZod";
+     keyFor: "keyFor";
      kinds: "kinds";
      ledger: "ledger";
      lintAgentText: "lintAgentText";
@@ -1640,6 +1657,7 @@ const WIRE: Readonly<{
      onContinue: "onContinue";
      onError: "onError";
      onEvent: "onEvent";
+     onEvict: "onEvict";
      onPoll: "onPoll";
      onRequest: "onRequest";
      onResult: "onResult";
@@ -1650,6 +1668,7 @@ const WIRE: Readonly<{
      pollBudgetMs: "pollBudgetMs";
      present: "present";
      reconcile: "reconcile";
+     redactEvent: "redactEvent";
      register: "register";
      registerGenerated: "registerGenerated";
      registryVersion: "registryVersion";
@@ -1665,6 +1684,7 @@ const WIRE: Readonly<{
      runAudit: "runAudit";
      runConformance: "runConformance";
      samplePayload: "samplePayload";
+     scopedSurfaces: "scopedSurfaces";
      secret: "secret";
      seedRev: "seedRev";
      sendWebResponse: "sendWebResponse";
@@ -1891,6 +1911,7 @@ const WIRE: Readonly<{
      tenant: "tenant";
      termsUrl: "termsUrl";
      text: "text";
+     textHash: "textHash";
      timezone: "timezone";
      title: "title";
      tone: "tone";
