@@ -125,6 +125,11 @@ type WireApi =
   | "retries"
   | "maxRetryAfterMs"
   | "maxWaitMs"
+  | "trust"
+  | "allowCrossOrigin"
+  | "allowHttp"
+  | "destinationPolicy"
+  | "checkDestination"
   | "toolNameFor"
   | "formatResult"
   | "pollBudgetMs"
@@ -759,7 +764,9 @@ const api: Readonly<{
   actionNameFor: "actionNameFor";
   addProvider: "addProvider";
   allowCredentials: "allowCredentials";
+  allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
+  allowHttp: "allowHttp";
   appendHandoffId: "appendHandoffId";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
@@ -769,6 +776,7 @@ const api: Readonly<{
   axeNext: "axeNext";
   axeNextPages: "axeNextPages";
   bump: "bump";
+  checkDestination: "checkDestination";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
   combineSinks: "combineSinks";
@@ -789,6 +797,7 @@ const api: Readonly<{
   describe: "describe";
   describeEntry: "describeEntry";
   describeLive: "describeLive";
+  destinationPolicy: "destinationPolicy";
   discover: "discover";
   emit: "emit";
   entries: "entries";
@@ -887,6 +896,7 @@ const api: Readonly<{
   toMarkdown: "toMarkdown";
   toolNameFor: "toolNameFor";
   toWebRequest: "toWebRequest";
+  trust: "trust";
   ttlSeconds: "ttlSeconds";
   unavailable: "unavailable";
   unregister: "unregister";
@@ -1559,7 +1569,9 @@ const WIRE: Readonly<{
      actionNameFor: "actionNameFor";
      addProvider: "addProvider";
      allowCredentials: "allowCredentials";
+     allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
+     allowHttp: "allowHttp";
      appendHandoffId: "appendHandoffId";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
@@ -1569,6 +1581,7 @@ const WIRE: Readonly<{
      axeNext: "axeNext";
      axeNextPages: "axeNextPages";
      bump: "bump";
+     checkDestination: "checkDestination";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
      combineSinks: "combineSinks";
@@ -1589,6 +1602,7 @@ const WIRE: Readonly<{
      describe: "describe";
      describeEntry: "describeEntry";
      describeLive: "describeLive";
+     destinationPolicy: "destinationPolicy";
      discover: "discover";
      emit: "emit";
      entries: "entries";
@@ -1687,6 +1701,7 @@ const WIRE: Readonly<{
      toMarkdown: "toMarkdown";
      toolNameFor: "toolNameFor";
      toWebRequest: "toWebRequest";
+     trust: "trust";
      ttlSeconds: "ttlSeconds";
      unavailable: "unavailable";
      unregister: "unregister";

@@ -6,7 +6,7 @@ The engineering and product review of branch `herz/surface-integration` at `e563
 | --- | --- | --- | --- | --- |
 | 1 | Tenant and principal binding for every token endpoint | 1 | [01-token-binding.md](01-token-binding.md) | pending |
 | 2 | Atomic idempotency and token consumption; operation lifecycle | 1 | [02-operation-lifecycle.md](02-operation-lifecycle.md) | pending |
-| 3 | Client credentials and network destinations bound to trust boundaries | 1 | [03-client-trust.md](03-client-trust.md) | pending |
+| 3 | Client credentials and network destinations bound to trust boundaries | 1 | [03-client-trust.md](03-client-trust.md) | done |
 | 4 | Terminal poll results authorized before return | 1 | [04-poll-authorization.md](04-poll-authorization.md) | pending |
 | 5 | Authorization and privacy boundary for the Surface bridge | 1 | [05-surface-authorization.md](05-surface-authorization.md) | pending |
 | 6 | Cookie-authenticated integration with CSRF protection | 1 | [06-csrf.md](06-csrf.md) | pending |

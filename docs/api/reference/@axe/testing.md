@@ -1093,7 +1093,8 @@ ClientOptions.agent
 optional auth?: string | (() => MaybePromise<string | undefined>);
 ```
 
-Bearer token, or a function returning one, sent in `Authorization`.
+Bearer token, or a function returning one, sent in `Authorization` to origins in the
+credential audience only (see `trust`).
 
 ###### Inherited from
 
@@ -1163,7 +1164,8 @@ ClientOptions.fulfillers
 optional headers?: Record<string, string>;
 ```
 
-Extra headers on every request.
+Extra headers. Treated as credentials: sent only to origins in the credential audience
+(the discovery origin plus `trust.origins`), never on a cross-origin redirect.
 
 ###### Inherited from
 
@@ -1257,6 +1259,22 @@ optional timezone?: string;
 
 ```ts
 ClientOptions.timezone
+```
+
+<a id="trust"></a>
+
+##### trust?
+
+```ts
+optional trust?: TrustOptions;
+```
+
+Which destinations the client may contact and which receive credentials. See `TrustOptions`.
+
+###### Inherited from
+
+```ts
+ClientOptions.trust
 ```
 
 ## Type Aliases
