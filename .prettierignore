@@ -8,3 +8,4 @@ spec/schemas
 CHANGELOG.md
 .changeset
 docs/images
+packages/core/src/vocabulary.ts

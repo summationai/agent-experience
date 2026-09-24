@@ -1,1 +1,86 @@
-export const PACKAGE_NAME = "@axe/core";
+/**
+ * @axe/core: protocol types, schemas, well-known kinds, and the framework-free
+ * server runtime.
+ *
+ * ```ts
+ * import { createAXE, action, z } from "@axe/core";
+ * ```
+ */
+export { z } from "zod";
+export { createAXE, AXE } from "./server";
+export type {
+  AXEConfig,
+  AuthConfig,
+  CorsConfig,
+  IndexConfig,
+  Identity,
+  SiteKeyVerdict,
+  HookContext,
+  AdapterContext,
+  Endpoint,
+} from "./server";
+export { action, ActionDefinitionError, ACTION_NAME_PATTERN } from "./action";
+export type {
+  ActionSpec,
+  RegisteredAction,
+  HandlerContext,
+  ContinueContext,
+  ResumeContext,
+  PollContext,
+  HandlerReturn,
+  ResultHelpers,
+  TenantInfo,
+  MaybePromise,
+} from "./action";
+export { ok, needsInput, handoff, pending, fail, AXEError, isIntent } from "./results";
+export type {
+  ResultIntent,
+  OkIntent,
+  NeedsInputIntent,
+  HandoffIntent,
+  PendingIntent,
+  ErrorIntent,
+  FailOptions,
+} from "./results";
+export { MemoryTokenStore, TokenSigner, hashJson, canonicalJson } from "./tokens";
+export type { TokenStore, TokenRecord, TokenType } from "./tokens";
+export { MemoryIdempotencyStore, DEFAULT_IDEMPOTENCY_TTL_SECONDS } from "./idempotency";
+export type { IdempotencyStore, IdempotencyRecord } from "./idempotency";
+export { DisplayValidationError, resolveDisplay, stripReserved, MAX_AFFORDANCES } from "./display";
+export type {
+  PresentedResult,
+  PresentedItem,
+  PresentedAttribute,
+  PresentedPrice,
+  ResolvedAffordance,
+} from "./display";
+export { getPointer, parsePointer, escapeToken, resolvePointerInSchema } from "./pointer";
+export { validateJsonSchema, schemasStructurallyEqual, deepEqual } from "./json-schema";
+export { toJsonSchema, isZodSchema } from "./zod-json-schema";
+export {
+  kinds,
+  accept,
+  customKind,
+  withMimeTypes,
+  wellKnownKind,
+  isCustomKind,
+  isValidKindName,
+  WELL_KNOWN_KINDS,
+  kindJsonSchema,
+} from "./kinds";
+export type { KindDefinition, AcceptInput } from "./kinds";
+export {
+  lintAgentText,
+  lintAction,
+  lintManifest,
+  hasLintErrors,
+  agentReadText,
+  isBareQuerySearch,
+  AGENT_DIRECTIVE_PATTERNS,
+  PERSUASION_PATTERNS,
+} from "./lint";
+export type { LintIssue, LintRule, LintSeverity, LintTextOptions } from "./lint";
+export { consoleSink, jsonlFileSink, otelSink, combineSinks, parseUserAgent } from "./events";
+export type { EventSink, MeterLike, TracerLike } from "./events";
+export { WIRE, WIRE_ENTRIES } from "./vocabulary";
+export type * from "./types";
