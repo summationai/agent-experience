@@ -63,7 +63,7 @@ describe("client protocol behavior", () => {
       { maxWaitMs: 50 },
     );
     expect(isPending(r)).toBe(true);
-    expect(polls).toBeLessThanOrEqual(1);
+    expect(polls).toBe(1);
   });
 
   it("treats tokens as opaque strings [P-TOK-1]", async () => {

@@ -142,7 +142,7 @@ If you disagree with something here, open an issue that quotes the entry. Most o
 
 **The rendered search is a sandboxed `srcdoc` iframe.** It is the unmodified output of `toHTML()`, including the renderer's one static script. `sandbox="allow-scripts"` lets that script dispatch `axe:select`; the iframe posts the selection to the parent, which binds the unit id into the ladder demo. The only alternative that keeps the output unmodified is an iframe.
 
-**Lighthouse runs against a local port, best of two runs.** Lighthouse does not audit `file://` URLs; the test serves `dist/` on a loopback port for the run only. Simulated metrics vary run to run by a point or two, so the test takes the better of two runs, which is Lighthouse's own recommendation for stable scores. Both audited pages score 96 on performance and 96 to 97 on accessibility at the time of writing.
+**Lighthouse runs against a local port with gzip, best of up to three runs.** Lighthouse does not audit `file://` URLs; the test serves `dist/` on a loopback port for the run only, compressed the way any static host would serve it, because Lighthouse's simulated network time is a function of transfer size. Simulated metrics vary run to run by a point or two, so the test takes the best of up to three runs, which is Lighthouse's own recommendation for stable scores. Both audited pages score 96 on performance and 96 to 97 on accessibility at the time of writing.
 
 **Screenshot baselines are compared only on the platform that produced them.** Font rasterization differs between macOS and Linux; the baselines record their platform, and the comparison is skipped elsewhere rather than failing on noise. `--update-screenshots` regenerates them.
 

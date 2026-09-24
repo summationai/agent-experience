@@ -356,9 +356,9 @@ export class AXEClient {
     let current: Result<O> = pendingResult as Result<O>;
     while (isPending(current)) {
       options.onPending?.(current);
-      const wait = Math.min(current.retryAfter * 1000, Math.max(0, deadline - Date.now()));
-      if (Date.now() + wait > deadline) return current;
-      await sleep(wait, options.signal);
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return current;
+      await sleep(Math.min(current.retryAfter * 1000, remaining), options.signal);
       current = await this.get<O>(current.pollUrl, options.signal);
     }
     return current;

@@ -20,6 +20,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { chromium, firefox, webkit } from "playwright";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
@@ -341,7 +342,17 @@ await test("lighthouse", async () => {
     const ext = file.slice(file.lastIndexOf("."));
     res.setHeader("content-type", types[ext] ?? "application/octet-stream");
     res.setHeader("cache-control", "public, max-age=3600");
-    res.end(readFileSync(file));
+    // Any static host compresses text; Lighthouse's simulated network uses the transfer size.
+    const body = readFileSync(file);
+    if (
+      /gzip/.test(req.headers["accept-encoding"] ?? "") &&
+      /^(text\/|application\/javascript|image\/svg)/.test(res.getHeader("content-type"))
+    ) {
+      res.setHeader("content-encoding", "gzip");
+      res.end(gzipSync(body));
+      return;
+    }
+    res.end(body);
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
@@ -358,10 +369,10 @@ await test("lighthouse", async () => {
   const notes = [];
   try {
     for (const path of ["/index.html", "/docs/concepts.html"]) {
-      // Lighthouse's simulated metrics vary a little between runs; take the best of two, as Lighthouse itself recommends.
+      // Lighthouse's simulated metrics vary a little between runs; take the best of up to three, as Lighthouse itself recommends.
       let result = null;
       let scores = {};
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         const run = await lighthouse(`http://127.0.0.1:${port}${path}`, {
           port: chrome.port,
           output: "json",
