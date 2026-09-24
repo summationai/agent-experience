@@ -260,8 +260,9 @@ If `userLoginUrl` is not configured and no identity is established, the SDK retu
 Resume tokens share a design with continuation tokens (spec §12):
 
 - **Signed.** HMAC-SHA256 with your `secret`. A token whose signature does not verify is `not_found`.
-- **Bound.** The payload carries the action name, a hash of the original input, the acting user if any, and the tenant. A token presented under a different identity is `not_found`, not `forbidden`, so the response does not confirm the token exists.
-- **Single-use.** Once a resume returns any status other than `error`, the token is consumed. A second resume is `conflict`.
+- **Bound.** The payload carries the action name, a hash of the original input, the acting principal if any, and the tenant. A token presented under a different identity or on another tenant is `not_found`, not `forbidden`, so the response does not confirm the token exists. The `login_required` handoff is the one exception, by design: it is minted anonymously and runs as the user your login page records; the resume must come from an anonymous caller or from that user.
+- **Single-use.** Once a resume returns any status other than `error`, the token is consumed and `onResume` never runs for it again. A second resume returns the original envelope, so an agent that lost the response recovers it.
+- **Completion is checked.** `completeHandoff` returns `false` when the handoff belongs to another tenant (pass the tenant id as `tenant` on a platform), when the resume token was already used, when `onBehalfOf` differs from the user a user-bound handoff belongs to, or when a login handoff was already completed by someone else.
 - **Expiring.** Twenty-four hours by default. Set a ttlSeconds option on `handoff` to change it; keep it at least an hour, since a human has to travel, sign, or wait for a review.
 - **Stateless on the wire.** `state` is never encoded in the token. It lives in the `TokenStore` under the token's id and is delivered to `onResume`. The human's browser sees the handoff id in the URL, never the signed token.
 
@@ -289,8 +290,9 @@ export class RedisTokenStore implements TokenStore {
     return raw === null ? undefined : (JSON.parse(raw) as TokenRecord);
   }
 
-  // The runtime passes the remaining lifetime on every write, including the write that marks
-  // a token consumed, so the key expires exactly when the token does.
+  // The runtime passes the remaining lifetime on every write (the mint, and completeHandoff's
+  // update), so the key expires exactly when the token does. Whether the token was used lives in
+  // the IdempotencyStore, whose claims are atomic.
   async set(id: string, record: TokenRecord, ttlSeconds: number): Promise<void> {
     await this.redis.set(
       this.prefix + id,

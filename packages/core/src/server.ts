@@ -48,10 +48,15 @@ import type { AcceptInput } from "./kinds";
 import { isValidKindName } from "./kinds";
 import {
   DEFAULT_IDEMPOTENCY_TTL_SECONDS,
+  DEFAULT_OPERATION_LEASE_SECONDS,
   MemoryIdempotencyStore,
   idempotencyStorageKey,
+  isClaimStore,
+  tokenOperationKey,
 } from "./idempotency";
 import type { IdempotencyStore } from "./idempotency";
+import { parsePrincipal, principalOf } from "./principal";
+import type { SiteKeyContext } from "./principal";
 import { validateJsonSchema } from "./json-schema";
 import type { HandoffIntent, ResultIntent } from "./results";
 import {
@@ -66,14 +71,14 @@ import {
   unavailable,
 } from "./results";
 import { AGENT_DIRECTIVE_PATTERNS } from "./lint";
-import { MemoryTokenStore, TokenSigner, hashJson, loadToken, mintToken } from "./tokens";
+import { MemoryTokenStore, TokenSigner, hashJson, loadToken, mintToken, randomId } from "./tokens";
 import { evaluateRequestPolicy, resolveRequestPolicy } from "./request-policy";
 import type { RequestPolicyConfig, ResolvedRequestPolicy } from "./request-policy";
 import type { TokenRecord, TokenStore } from "./tokens";
 import { isZodSchema, toJsonSchema, zodIssuesToValidationIssues } from "./zod-json-schema";
 import { WIRE } from "./vocabulary";
 
-export type { TenantInfo };
+export type { TenantInfo, SiteKeyContext };
 
 /** The identity an adapter or `authenticate` establishes for the acting user. */
 export interface Identity {
@@ -82,7 +87,11 @@ export interface Identity {
   claims?: Record<string, JsonValue>;
 }
 
-/** What a `verifySiteKey` function may return: `true`, `false`, or an allowlist of actions. */
+/**
+ * What a `verifySiteKey` function may return: `true`, `false`, or an object naming the key's
+ * stable `id` and, optionally, an allowlist of actions. Without an `id` the runtime scopes the key
+ * by a keyed hash of the key itself (see `SiteKeyContext`).
+ */
 export type SiteKeyVerdict = boolean | { id?: string; actions?: string[] };
 
 export interface AuthConfig {
@@ -129,6 +138,13 @@ export interface RevisionContext {
   /** The request being served; null when the manifest is described outside a request. */
   request: Request | null;
   tenant: TenantInfo | null;
+  /**
+   * The user the runtime established for this request, once it has: on an action call, a continue,
+   * a resume, a poll, and `/axe/state`. Absent for the manifest and before authentication.
+   */
+  identity?: Identity | null;
+  /** The verified site key, when the call is a `site` call or a follow-up of one ([P-TOK-7]). */
+  siteKey?: SiteKeyContext | null;
 }
 
 /**
@@ -156,6 +172,12 @@ export interface AXEConfig {
   idempotencyStore?: IdempotencyStore;
   /** Default 86400 (24 hours). */
   idempotencyTtlSeconds?: number;
+  /**
+   * How long an operation claim holds before a retry of the same operation may take it over, in
+   * seconds. Default 60. Set it above your slowest handler: a retry that arrives after the lease
+   * runs the handler again (docs/deploying.md, "Operations, claims, and crashes").
+   */
+  operationLeaseSeconds?: number;
   /** Reject mutating calls without `idempotencyKey`. Default true. */
   requireIdempotencyKey?: boolean;
   cors?: CorsConfig;
@@ -236,6 +258,11 @@ export class AXE {
   /** Provider actions whose `auth` mode and affordance targets have been checked. */
   private readonly vetted = new WeakSet<RegisteredAction>();
   private readonly changeListeners = new Set<() => void>();
+  /** The principal resolved for each request in flight, for the revision provider's context. */
+  private readonly callers = new WeakMap<
+    Request,
+    { identity: Identity | null; siteKey: SiteKeyContext | null }
+  >();
   private readonly signer: TokenSigner;
   private readonly tokens: TokenStore;
   private readonly idempotency: IdempotencyStore;
@@ -293,6 +320,11 @@ export class AXE {
     }
     this.signer = new TokenSigner(secret);
     this.tokens = config.tokenStore ?? new MemoryTokenStore();
+    if (config.idempotencyStore && !isClaimStore(config.idempotencyStore)) {
+      throw new Error(
+        'createAXE: `idempotencyStore` must implement get, claim, complete, and release. A get/set store cannot claim an operation atomically; see docs/deploying.md, "Migrating a store".',
+      );
+    }
     this.idempotency = config.idempotencyStore ?? new MemoryIdempotencyStore();
     const sinks = config.onEvent
       ? Array.isArray(config.onEvent)
@@ -576,8 +608,19 @@ export class AXE {
     const rev = await this.currentRevision(request, tenant);
     if (rev !== undefined) state.rev = rev;
     for (const a of this.allActions()) {
+      let siteKey: SiteKeyContext | null = null;
+      if (a.spec.availability && a.definition.auth === WIRE.authMode.site && request) {
+        const v = await this.verifySite(request, a.name);
+        if (v.kind === "ok") siteKey = v.siteKey;
+      }
       state.actions[a.name] = a.spec.availability
-        ? ((await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? {
+        ? ((await this.availabilityOf(a, {
+            action: a.name,
+            identity,
+            tenant,
+            request,
+            siteKey,
+          })) ?? {
             available: false,
             reason: "unavailable",
           })
@@ -593,7 +636,8 @@ export class AXE {
   ): Promise<Revision | undefined> {
     if (!this.config.revision) return undefined;
     try {
-      const rev = await this.config.revision({ request, tenant });
+      const caller = request ? this.callers.get(request) : undefined;
+      const rev = await this.config.revision({ request, tenant, ...(caller ?? {}) });
       if (isRevision(rev)) return rev;
       throw new Error(
         `revision() returned ${JSON.stringify(rev)}; a revision is a non-empty string or a finite number.`,
@@ -708,14 +752,28 @@ export class AXE {
 
   /**
    * Record that the human finished a handoff. Call this from the page at the handoff
-   * `url` (read the `axe_handoff` query parameter). Returns false when the id is unknown.
+   * `url` (read the `axe_handoff` query parameter). Returns false, and records nothing, when the id
+   * is unknown or expired, the handoff was minted for another tenant than `tenant`, the resume
+   * token was already used, `onBehalfOf` differs from the user the handoff is bound to, or a login
+   * handoff was already completed by a different user ([P-TOK-6]).
    */
   async completeHandoff(
     handoffId: string,
-    completion: { onBehalfOf?: string; data?: JsonValue } = {},
+    completion: { onBehalfOf?: string; data?: JsonValue; tenant?: string | null } = {},
   ): Promise<boolean> {
     const record = await this.tokens.get(handoffId);
-    if (!record || record.type !== "resume") return false;
+    if (!record || record.type !== "resume" || record.expiresAt <= Date.now()) return false;
+    if ((record.tenant ?? null) !== (completion.tenant ?? null)) return false;
+    if (await this.idempotency.get(tokenOperationKey("resume", record.tenant, record.id)))
+      return false;
+    if (record.login) {
+      const prior = record.completion?.onBehalfOf;
+      if (prior !== undefined && prior !== completion.onBehalfOf) return false;
+    } else {
+      const bound = parsePrincipal(record.principal).user;
+      if (bound !== null && completion.onBehalfOf !== undefined && completion.onBehalfOf !== bound)
+        return false;
+    }
     record.completion = omitUndefined({
       at: new Date().toISOString(),
       onBehalfOf: completion.onBehalfOf,
@@ -771,6 +829,7 @@ export class AXE {
     if (path === WIRE.path.state && this.hasLive()) {
       if (method !== "GET") return this.methodNotAllowed(request, "GET, OPTIONS");
       const identity = await this.establishIdentity(request, adapter);
+      this.callers.set(request, { identity, siteKey: null });
       const state = await this.liveState(identity, tenant, request);
       return this.json(request, state, 200, {
         "Cache-Control": "no-store",
@@ -936,9 +995,12 @@ export class AXE {
   private send(request: Request, result: Result): Response {
     if (result.status === WIRE.status.error) {
       const extra: Record<string, string> = {};
+      const ra = result.error.details?.["retryAfter"];
       if (result.error.code === WIRE.error.rateLimited) {
-        const ra = result.error.details?.["retryAfter"];
         extra[WIRE.header.retryAfter] = String(typeof ra === "number" ? ra : 60);
+      } else if (typeof ra === "number") {
+        // An operation in progress ([P-OP-2]) says when to retry, like a rate limit does.
+        extra[WIRE.header.retryAfter] = String(ra);
       }
       return this.json(request, result, HTTP_STATUS[result.error.code], extra);
     }
@@ -1169,7 +1231,7 @@ export class AXE {
     intent: ResultIntent,
     a: RegisteredAction,
     hookCtx: HookContext,
-    binding: { inputHash: string; onBehalfOf: string | null; tenant: string | null },
+    binding: { inputHash: string; principal: string | null; tenant: string | null },
     baseUrl: string,
   ): Promise<Result> {
     const directive = this.directiveIn(intent);
@@ -1309,7 +1371,7 @@ export class AXE {
   private async mintHandoff(
     intent: HandoffIntent,
     actionName: string,
-    binding: { inputHash: string; onBehalfOf: string | null; tenant: string | null },
+    binding: { inputHash: string; principal: string | null; tenant: string | null },
     login?: TokenRecord["login"],
   ): Promise<Handoff> {
     const ttl = intent.ttlSeconds ?? RESUME_TTL;
@@ -1341,13 +1403,141 @@ export class AXE {
     return handoffWire;
   }
 
-  private async consume(record: TokenRecord): Promise<void> {
-    record.consumedAt = Date.now();
-    await this.tokens.set(
-      record.id,
-      record,
-      Math.max(1, Math.ceil((record.expiresAt - Date.now()) / 1000)),
+  /**
+   * Claim one operation ([P-OP-1]): `run` when this request holds the claim and must settle it,
+   * `replay` with the stored envelope for the same operation, `conflict` when the key was used for
+   * a different one, and `busy` while another request holds the claim (answered with a retryable
+   * `conflict`, or `pending` on a poll).
+   */
+  private async claimOperation(
+    key: string,
+    fingerprint: string,
+    reuseMessage: string,
+  ): Promise<
+    | { kind: "run"; owner: string; fingerprint: string; operationId: string }
+    | { kind: "replay" | "conflict"; result: Result }
+    | { kind: "busy"; retryAfter: number; result: Result }
+  > {
+    const owner = randomId();
+    const leaseSeconds = this.config.operationLeaseSeconds ?? DEFAULT_OPERATION_LEASE_SECONDS;
+    const got = await this.idempotency.claim(key, {
+      fingerprint,
+      owner,
+      leaseSeconds,
+      ttlSeconds: this.config.idempotencyTtlSeconds ?? DEFAULT_IDEMPOTENCY_TTL_SECONDS,
+    });
+    const conflict = (): Result => ({
+      status: WIRE.status.error,
+      error: fail(WIRE.error.conflict, reuseMessage).error,
+    });
+    if (got.outcome === "acquired")
+      return { kind: "run", owner, fingerprint, operationId: await hashJson(key) };
+    if (got.outcome === "completed")
+      return got.record.fingerprint === fingerprint
+        ? { kind: "replay", result: got.record.result }
+        : { kind: "conflict", result: conflict() };
+    if (got.fingerprint !== fingerprint) return { kind: "conflict", result: conflict() };
+    const retryAfter = Math.min(
+      5,
+      Math.max(1, Math.ceil((got.leaseExpiresAt - Date.now()) / 1000)),
     );
+    return {
+      kind: "busy",
+      retryAfter,
+      result: {
+        status: WIRE.status.error,
+        error: fail(
+          WIRE.error.conflict,
+          "The same request is still being processed. Retry after the delay to receive its result.",
+          { retryable: true, details: { operationStatus: "in_progress", retryAfter } },
+        ).error,
+      },
+    };
+  }
+
+  /**
+   * Settle a claim this request holds ([P-OP-3]): store a non-error result for replay, and release
+   * the claim on an `error` so the operation may be retried. `storeErrors` keeps a terminal error
+   * (a poll's). A lost lease is reported to `onError`; the result still goes to this caller.
+   */
+  private async settleOperation(
+    hookCtx: HookContext,
+    key: string,
+    claim: { owner: string; fingerprint: string },
+    result: Result,
+    storeErrors = false,
+  ): Promise<void> {
+    if (result.status === WIRE.status.error && !storeErrors) {
+      await this.idempotency.release(key, claim.owner);
+      return;
+    }
+    const stored = await this.idempotency.complete(
+      key,
+      claim.owner,
+      { fingerprint: claim.fingerprint, result, createdAt: Date.now() },
+      this.config.idempotencyTtlSeconds ?? DEFAULT_IDEMPOTENCY_TTL_SECONDS,
+    );
+    if (!stored) {
+      try {
+        await this.config.onError?.(
+          hookCtx,
+          new Error(
+            `The operation claim for "${hookCtx.action}" expired before the result was stored, and another request took it over. Raise operationLeaseSeconds above the handler's running time.`,
+          ),
+        );
+      } catch (e) {
+        console.error("[axe] onError hook failed", e);
+      }
+    }
+  }
+
+  /**
+   * Verify a site key for `action` ([P-AUTH-2], [P-TOK-7]): `missing` without a bearer key or a
+   * `verifySiteKey`, `invalid` when it returns false, `forbidden` when its allowlist leaves the
+   * action out, otherwise the key's principal id.
+   */
+  private async verifySite(
+    request: Request,
+    action: string,
+  ): Promise<
+    { kind: "missing" | "invalid" | "forbidden" } | { kind: "ok"; siteKey: SiteKeyContext }
+  > {
+    const verify = this.config.auth.verifySiteKey;
+    const key = this.bearer(request);
+    if (!verify || !key) return { kind: "missing" };
+    const verdict = await verify(key, request);
+    if (!verdict) return { kind: "invalid" };
+    const described = typeof verdict === "object" ? verdict : {};
+    if (described.actions && !described.actions.includes(action)) return { kind: "forbidden" };
+    const siteKey: SiteKeyContext = described.id
+      ? { id: described.id }
+      : { id: `key-${await this.signer.keyedHash("axe-site-key", key)}`, derived: true };
+    if (described.actions) siteKey.actions = described.actions;
+    return { kind: "ok", siteKey };
+  }
+
+  /**
+   * The one authorization check for a token's follow-up ([P-TOK-6]): the request must resolve to
+   * exactly the principal the token was minted for: the same site key (verified again, so a revoked
+   * or narrowed key stops working) and the same user, or none. The tenant was checked by
+   * `loadToken`. Undefined means refuse with the same `not_found` as an unknown token.
+   */
+  private async authorizeToken(
+    record: TokenRecord,
+    request: Request,
+    adapter: AdapterContext,
+  ): Promise<{ identity: Identity | null; siteKey: SiteKeyContext | null } | undefined> {
+    const want = parsePrincipal(record.principal);
+    let siteKey: SiteKeyContext | null = null;
+    if (want.site !== null) {
+      const v = await this.verifySite(request, record.action);
+      if (v.kind !== "ok" || v.siteKey.id !== want.site) return undefined;
+      siteKey = v.siteKey;
+    }
+    const identity = await this.establishIdentity(request, adapter);
+    if ((identity?.onBehalfOf ?? null) !== want.user) return undefined;
+    this.callers.set(request, { identity, siteKey });
+    return { identity, siteKey };
   }
 
   private tenantBaseUrl(tenant: TenantInfo | null): string {
@@ -1457,8 +1647,10 @@ export class AXE {
 
   /**
    * The stored envelope for a retried `idempotencyKey` whose action no longer exists. The principal
-   * is the identity `authenticate` or the adapter establishes; a `site`-keyed replay cannot be
-   * recovered without the definition and is answered `not_found` like any other unknown name.
+   * is resolved as for any call ([P-TOK-7]): the user `authenticate` or the adapter establishes,
+   * with the site key when one verifies (its allowlist, when it has one, must still name the
+   * action). Both the combined and the user-only scope are looked up, since the definition that
+   * said whether the action was `site` is gone. Nothing is claimed.
    */
   private async replayForUnknown(
     name: string,
@@ -1471,16 +1663,19 @@ export class AXE {
     if (typeof key !== "string" || key.length === 0 || key.length > 256 || !("input" in body))
       return undefined;
     const identity = await this.establishIdentity(request, adapter);
-    const storageKey = idempotencyStorageKey({
-      tenant: tenant?.id ?? null,
-      action: name,
-      onBehalfOf: identity?.onBehalfOf ?? null,
-      key,
-    });
-    const prior = await this.idempotency.get(storageKey);
-    if (!prior || prior.inputHash !== (await hashJson(body["input"] as JsonValue)))
-      return undefined;
-    return prior.result;
+    const site = await this.verifySite(request, name);
+    const principals = [
+      ...(site.kind === "ok" ? [principalOf(identity?.onBehalfOf, site.siteKey.id)] : []),
+      principalOf(identity?.onBehalfOf, null),
+    ];
+    const fingerprint = await hashJson(body["input"] as JsonValue);
+    for (const principal of principals) {
+      const prior = await this.idempotency.get(
+        idempotencyStorageKey({ tenant: tenant?.id ?? null, action: name, principal, key }),
+      );
+      if (prior) return prior.fingerprint === fingerprint ? prior.result : undefined;
+    }
+    return undefined;
   }
 
   /** `expectedRev` from a request body: a revision, undefined when absent, or false when malformed. */
@@ -1514,14 +1709,12 @@ export class AXE {
       kind: null,
     });
 
-    // Auth
+    // Auth: the site key first for a `site` action, then the user ([P-TOK-7]).
     let identity: Identity | null = presetIdentity ?? null;
-    let siteKey: { id?: string; actions?: string[] } | null = null;
-    if (!identity && def.auth !== WIRE.authMode.site)
-      identity = await this.establishIdentity(request, adapter);
+    let siteKey: SiteKeyContext | null = null;
     if (def.auth === WIRE.authMode.site) {
-      const key = this.bearer(request);
-      if (!key)
+      const v = await this.verifySite(request, a.name);
+      if (v.kind === "missing")
         return err({
           status: WIRE.status.error,
           error: fail(
@@ -1529,21 +1722,20 @@ export class AXE {
             `Action "${a.name}" requires site authentication: send Authorization: Bearer <api-key>.`,
           ).error,
         });
-      const verdict = await this.config.auth.verifySiteKey!(key, request);
-      if (verdict === false)
+      if (v.kind === "invalid")
         return err({
           status: WIRE.status.error,
           error: fail(WIRE.error.unauthorized, "The API key is not valid.").error,
         });
-      if (typeof verdict === "object") siteKey = verdict;
-      if (typeof verdict === "object" && verdict.actions && !verdict.actions.includes(a.name)) {
+      if (v.kind === "forbidden")
         return err({
           status: WIRE.status.error,
           error: fail(WIRE.error.forbidden, `This API key may not call "${a.name}".`).error,
         });
-      }
-      if (!identity) identity = await this.establishIdentity(request, adapter);
+      if (v.kind === "ok") siteKey = v.siteKey;
     }
+    if (!identity) identity = await this.establishIdentity(request, adapter);
+    this.callers.set(request, { identity, siteKey });
     const inputParsed = a.spec.input.safeParse(rawInput);
     if (!inputParsed.success) {
       return err({
@@ -1557,9 +1749,10 @@ export class AXE {
     }
     const input = inputParsed.data as JsonValue;
     const inputHash = await hashJson(input);
-    // Tokens and idempotency keys are scoped to the acting principal: the user, or the site key.
-    const principal = identity?.onBehalfOf ?? (siteKey?.id ? `site:${siteKey.id}` : null);
-    const binding = { inputHash, onBehalfOf: principal, tenant: tenant?.id ?? null };
+    // Tokens, idempotency keys, and operation claims are scoped to the acting principal: the site
+    // key, the user, or both ([P-TOK-6], [P-TOK-7]).
+    const principal = principalOf(identity?.onBehalfOf, siteKey?.id);
+    const binding = { inputHash, principal, tenant: tenant?.id ?? null };
 
     // Idempotency key presence is checked before any handoff so the agent learns about it immediately.
     let key: string | undefined;
@@ -1642,40 +1835,40 @@ export class AXE {
       : context;
     hookCtx.context = authedContext;
 
-    // Idempotency replay
+    // Claim the operation ([P-IDEM-2], [P-OP-1]): exactly one request with this key runs; a retry
+    // is answered from the stored envelope, or told to wait while the first is still running.
     let storageKey: string | undefined;
+    let claim: { owner: string; fingerprint: string; operationId: string } | undefined;
     if (key !== undefined) {
       storageKey = idempotencyStorageKey({
         tenant: binding.tenant,
         action: a.name,
-        onBehalfOf: binding.onBehalfOf,
+        principal: binding.principal,
         key,
       });
-      const prior = await this.idempotency.get(storageKey);
-      if (prior) {
-        if (prior.inputHash !== inputHash) {
-          return err({
-            status: WIRE.status.error,
-            error: fail(
-              WIRE.error.conflict,
-              "This idempotencyKey was already used with different input. Use a new key for a new request (spec [P-IDEM-3]).",
-            ).error,
-          });
-        }
-        return {
-          result: prior.result,
-          ladder: ladderFor(prior.result),
-          kind: kindFor(prior.result),
-        };
-      }
+      const c = await this.claimOperation(
+        storageKey,
+        inputHash,
+        "This idempotencyKey was already used with different input. Use a new key for a new request (spec [P-IDEM-3]).",
+      );
+      if (c.kind === "replay")
+        return { result: c.result, ladder: ladderFor(c.result), kind: kindFor(c.result) };
+      if (c.kind !== "run") return err(c.result);
+      claim = c;
     }
+    const refuse = async (result: Result) => {
+      if (claim && storageKey) await this.idempotency.release(storageKey, claim.owner);
+      return err(result);
+    };
 
     // The state the agent saw: refused before the handler runs, after the replay lookup so a
-    // retried request is answered from the stored envelope ([P-LIVE-3], [P-LIVE-4]).
+    // retried request is answered from the stored envelope ([P-LIVE-3], [P-LIVE-4]). A stale
+    // request releases its claim, so the key may be retried once the agent has re-read the state.
     const stale = await this.staleCheck(expectedRev, request, tenant);
-    if (stale) return err(stale);
+    if (stale) return refuse(stale);
     const availability =
-      (await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? null;
+      (await this.availabilityOf(a, { action: a.name, identity, tenant, request, siteKey })) ??
+      null;
 
     // onRequest hook may short-circuit.
     let intent: ResultIntent | undefined;
@@ -1684,7 +1877,10 @@ export class AXE {
       if (isIntent(short)) intent = short;
     } catch (e) {
       if (e instanceof AXEError) intent = e.intent;
-      else throw e;
+      else {
+        if (claim && storageKey) await this.idempotency.release(storageKey, claim.owner);
+        throw e;
+      }
     }
     if (!intent) {
       intent = await this.runHandler(hookCtx, () =>
@@ -1696,6 +1892,7 @@ export class AXE {
           identity,
           siteKey,
           action: a.name,
+          ...(claim ? { operationId: claim.operationId } : {}),
           emit: this.emitterFor(a.name, tenant),
           availability,
           ...(expectedRev !== undefined ? { expectedRev } : {}),
@@ -1703,14 +1900,14 @@ export class AXE {
         }),
       );
     }
-    const result = await this.materialize(intent, a, hookCtx, binding, this.tenantBaseUrl(tenant));
-    if (storageKey && result.status !== WIRE.status.error) {
-      await this.idempotency.set(
-        storageKey,
-        { inputHash, result, createdAt: Date.now() },
-        this.config.idempotencyTtlSeconds ?? DEFAULT_IDEMPOTENCY_TTL_SECONDS,
-      );
+    let result: Result;
+    try {
+      result = await this.materialize(intent, a, hookCtx, binding, this.tenantBaseUrl(tenant));
+    } catch (e) {
+      if (claim && storageKey) await this.idempotency.release(storageKey, claim.owner);
+      throw e;
     }
+    if (claim && storageKey) await this.settleOperation(hookCtx, storageKey, claim, result);
     return { result, ladder: ladderFor(result), kind: kindFor(result) };
   }
 
@@ -1742,35 +1939,21 @@ export class AXE {
     }
     const expectedRev = this.readExpectedRev(read.body);
     if (expectedRev === false) return finish(badExpectedRev());
-    const loaded = await loadToken(this.signer, this.tokens, continuationToken, "continuation");
-    if (loaded.kind === "invalid")
-      return finish({
-        status: WIRE.status.error,
-        error: fail(
-          WIRE.error.notFound,
-          "Unknown or expired continuation token. Call the action again to get a new one.",
-        ).error,
-      });
-    if (loaded.kind === "consumed")
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.conflict, "This continuation token was already used.").error,
-      });
+    // Signature, binding, tenant, and principal are checked before anything about the token is
+    // revealed; every failure is the same not_found ([P-TOK-3], [P-TOK-6]).
+    const loaded = await loadToken(
+      this.signer,
+      this.tokens,
+      continuationToken,
+      "continuation",
+      tenant?.id ?? null,
+    );
+    if (loaded.kind === "invalid") return finish(unknownToken("continuation"));
     const record = loaded.record;
+    const auth = await this.authorizeToken(record, request, adapter);
+    if (!auth) return finish(unknownToken("continuation"));
+    const { identity, siteKey } = auth;
     hookCtx.action = record.action;
-    const a = this.getAction(record.action);
-    if (!a)
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, `Action "${record.action}" is no longer available.`).error,
-      });
-    const identity = await this.establishIdentity(request, adapter);
-    if (record.onBehalfOf && identity?.onBehalfOf !== record.onBehalfOf) {
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, "Unknown or expired continuation token.").error,
-      });
-    }
     const entry = record.accepts?.find((e) => e.kind === kind);
     if (!entry) {
       return finish(
@@ -1819,17 +2002,33 @@ export class AXE {
         kind,
       );
     }
+    // One use of the token ([P-REQ-9], [P-OP-1]): the same kind and payload again is answered from
+    // the stored envelope; anything else after a success is conflict.
+    const opKey = tokenOperationKey("continue", record.tenant, record.id);
+    const claim = await this.claimOperation(
+      opKey,
+      await hashJson({ kind, payload: payload as JsonValue }),
+      "This continuation token was already used with a different kind or payload.",
+    );
+    if (claim.kind !== "run") return finish(claim.result, kind);
+    const a = this.getAction(record.action);
+    const refuse = async (result: Result) => {
+      await this.idempotency.release(opKey, claim.owner);
+      return finish(result, kind);
+    };
+    if (!a)
+      return refuse({
+        status: WIRE.status.error,
+        error: fail(WIRE.error.notFound, `Action "${record.action}" is no longer available.`).error,
+      });
     if (!a.spec.onContinue) {
-      return finish(
-        {
-          status: WIRE.status.error,
-          error: fail(
-            WIRE.error.internal,
-            `Action "${a.name}" offered requirements but defines no onContinue. The site has been notified.`,
-          ).error,
-        },
-        kind,
-      );
+      return refuse({
+        status: WIRE.status.error,
+        error: fail(
+          WIRE.error.internal,
+          `Action "${a.name}" offered requirements but defines no onContinue. The site has been notified.`,
+        ).error,
+      });
     }
     const authedContext: RequestContext = identity
       ? { ...context, onBehalfOf: identity.onBehalfOf }
@@ -1837,7 +2036,7 @@ export class AXE {
     hookCtx.context = authedContext;
     // A stale observation is refused before the hook runs and does not consume the token.
     const stale = await this.staleCheck(expectedRev, request, tenant);
-    if (stale) return finish(stale, kind);
+    if (stale) return refuse(stale);
     const intent = await this.runHandler(hookCtx, () =>
       a.spec.onContinue!({
         kind,
@@ -1847,8 +2046,9 @@ export class AXE {
         request,
         tenant,
         identity,
-        siteKey: null,
+        siteKey,
         action: a.name,
+        operationId: claim.operationId,
         emit: this.emitterFor(a.name, tenant),
         availability: null,
         ...(expectedRev !== undefined ? { expectedRev } : {}),
@@ -1859,10 +2059,10 @@ export class AXE {
       intent,
       a,
       hookCtx,
-      { inputHash: record.inputHash, onBehalfOf: record.onBehalfOf, tenant: record.tenant },
+      { inputHash: record.inputHash, principal: record.principal, tenant: record.tenant },
       this.tenantBaseUrl(tenant),
     );
-    if (result.status !== WIRE.status.error) await this.consume(record);
+    await this.settleOperation(hookCtx, opKey, claim, result);
     return finish(result, kind);
   }
 
@@ -1888,32 +2088,33 @@ export class AXE {
       });
     const expectedRev = this.readExpectedRev(read.body);
     if (expectedRev === false) return finish(badExpectedRev());
-    const loaded = await loadToken(this.signer, this.tokens, resumeToken, "resume");
-    if (loaded.kind === "invalid")
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, "Unknown or expired resume token.").error,
-      });
-    if (loaded.kind === "consumed")
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.conflict, "This resume token was already used.").error,
-      });
+    const loaded = await loadToken(
+      this.signer,
+      this.tokens,
+      resumeToken,
+      "resume",
+      tenant?.id ?? null,
+    );
+    if (loaded.kind === "invalid") return finish(unknownToken("resume"));
     const record = loaded.record;
-    hookCtx.action = record.action;
-    const a = this.getAction(record.action);
-    if (!a)
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, `Action "${record.action}" is no longer available.`).error,
-      });
-    const identity = await this.establishIdentity(request, adapter);
-    if (record.onBehalfOf && identity?.onBehalfOf !== record.onBehalfOf) {
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, "Unknown or expired resume token.").error,
-      });
+    // A login handoff is the one identity transition ([P-AUTH-4], [P-TOK-6]): minted anonymously,
+    // it runs as the user the site recorded with completeHandoff. The caller must be anonymous or
+    // that same user. Every other resume token requires the principal it was minted for.
+    let auth: { identity: Identity | null; siteKey: SiteKeyContext | null } | undefined;
+    if (record.login) {
+      const caller = await this.establishIdentity(request, adapter);
+      const who = record.completion?.onBehalfOf;
+      auth =
+        !caller || (who !== undefined && caller.onBehalfOf === who)
+          ? { identity: caller, siteKey: null }
+          : undefined;
+      if (auth) this.callers.set(request, auth);
+    } else {
+      auth = await this.authorizeToken(record, request, adapter);
     }
+    if (!auth) return finish(unknownToken("resume"));
+    const { identity, siteKey } = auth;
+    hookCtx.action = record.action;
     if (record.requireCompletion && !record.completion) {
       return finish({
         status: WIRE.status.error,
@@ -1924,16 +2125,34 @@ export class AXE {
         ).error,
       });
     }
+    if (record.login && !record.completion?.onBehalfOf)
+      return finish({
+        status: WIRE.status.error,
+        error: fail(WIRE.error.conflict, "Sign-in has not completed yet.", {
+          retryable: true,
+          details: { handoffStatus: "open" },
+        }).error,
+      });
+    // One use of the token ([P-HAND-6], [P-OP-1]): a repeat is answered from the stored envelope.
+    const opKey = tokenOperationKey("resume", record.tenant, record.id);
+    const claim = await this.claimOperation(
+      opKey,
+      await hashJson({}),
+      "This resume token was already used.",
+    );
+    if (claim.kind !== "run") return finish(claim.result);
+    const refuse = async (result: Result) => {
+      await this.idempotency.release(opKey, claim.owner);
+      return finish(result);
+    };
+    const a = this.getAction(record.action);
+    if (!a)
+      return refuse({
+        status: WIRE.status.error,
+        error: fail(WIRE.error.notFound, `Action "${record.action}" is no longer available.`).error,
+      });
     if (record.login) {
-      const who = record.completion?.onBehalfOf;
-      if (!who)
-        return finish({
-          status: WIRE.status.error,
-          error: fail(WIRE.error.conflict, "Sign-in has not completed yet.", {
-            retryable: true,
-            details: { handoffStatus: "open" },
-          }).error,
-        });
+      const who = record.completion!.onBehalfOf!;
       // The action has not run yet, so the revision the agent observed on the original call still
       // stands unless the resume presents a fresher one.
       const outcome = await this.invokeAction(
@@ -1948,11 +2167,11 @@ export class AXE {
         { onBehalfOf: who },
         expectedRev ?? record.login.expectedRev,
       );
-      if (outcome.result.status !== WIRE.status.error) await this.consume(record);
+      await this.settleOperation(hookCtx, opKey, claim, outcome.result);
       return finish(outcome.result);
     }
     if (!a.spec.onResume) {
-      return finish({
+      return refuse({
         status: WIRE.status.error,
         error: fail(
           WIRE.error.internal,
@@ -1965,7 +2184,7 @@ export class AXE {
       : context;
     hookCtx.context = authedContext;
     const stale = await this.staleCheck(expectedRev, request, tenant);
-    if (stale) return finish(stale);
+    if (stale) return refuse(stale);
     const intent = await this.runHandler(hookCtx, () =>
       a.spec.onResume!({
         state: record.state as JsonValue,
@@ -1974,8 +2193,9 @@ export class AXE {
         request,
         tenant,
         identity,
-        siteKey: null,
+        siteKey,
         action: a.name,
+        operationId: claim.operationId,
         emit: this.emitterFor(a.name, tenant),
         availability: null,
         ...(expectedRev !== undefined ? { expectedRev } : {}),
@@ -1986,10 +2206,10 @@ export class AXE {
       intent,
       a,
       hookCtx,
-      { inputHash: record.inputHash, onBehalfOf: record.onBehalfOf, tenant: record.tenant },
+      { inputHash: record.inputHash, principal: record.principal, tenant: record.tenant },
       this.tenantBaseUrl(tenant),
     );
-    if (result.status !== WIRE.status.error) await this.consume(record);
+    await this.settleOperation(hookCtx, opKey, claim, result);
     return finish(result);
   }
 
@@ -2010,68 +2230,76 @@ export class AXE {
         result.status === WIRE.status.pending ? WIRE.ladder.pending : ladderFor(result),
         null,
       );
-    const loaded = await loadToken(this.signer, this.tokens, token, "poll");
-    if (loaded.kind === "invalid")
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, "Unknown or expired poll token.").error,
-      });
+    const loaded = await loadToken(this.signer, this.tokens, token, "poll", tenant?.id ?? null);
+    if (loaded.kind === "invalid") return finish(unknownToken("poll"));
     const record = loaded.record;
+    // Authorized before anything is returned, the terminal result included ([P-POLL-1]).
+    const auth = await this.authorizeToken(record, request, adapter);
+    if (!auth) return finish(unknownToken("poll"));
+    const { identity, siteKey } = auth;
     hookCtx.action = record.action;
-    if (record.terminal) return finish(record.terminal);
+    if (identity) hookCtx.context = { onBehalfOf: identity.onBehalfOf };
+    const pendingAgain = (retryAfter: number): Result => ({
+      status: WIRE.status.pending,
+      pollUrl: `${this.tenantBaseUrl(tenant)}${WIRE.path.poll}/${encodeURIComponent(token)}`,
+      retryAfter: Math.max(1, Math.round(retryAfter)),
+      expiresAt: new Date(record.expiresAt).toISOString(),
+    });
+    // One onPoll at a time per token; the first terminal result is stored and returned to every
+    // later poll ([P-PEND-2], [P-POLL-2]).
+    const opKey = tokenOperationKey("poll", record.tenant, record.id);
+    const claim = await this.claimOperation(opKey, "poll", "");
+    if (claim.kind === "busy") return finish(pendingAgain(claim.retryAfter));
+    if (claim.kind !== "run") return finish(claim.result);
     const a = this.getAction(record.action);
-    if (!a?.spec.onPoll)
+    if (!a?.spec.onPoll) {
+      await this.idempotency.release(opKey, claim.owner);
       return finish({
         status: WIRE.status.error,
         error: fail(WIRE.error.notFound, `Action "${record.action}" is no longer available.`).error,
-      });
-    const identity = await this.establishIdentity(request, adapter);
-    if (record.onBehalfOf && identity?.onBehalfOf !== record.onBehalfOf) {
-      return finish({
-        status: WIRE.status.error,
-        error: fail(WIRE.error.notFound, "Unknown or expired poll token.").error,
       });
     }
     const intent = await this.runHandler(hookCtx, () =>
       a.spec.onPoll!({
         state: record.state as JsonValue,
-        context,
+        context: hookCtx.context,
         request,
         tenant,
         identity,
-        siteKey: null,
+        siteKey,
         action: a.name,
+        operationId: claim.operationId,
         emit: this.emitterFor(a.name, tenant),
         availability: null,
         ...helpers,
       }),
     );
-    let result: Result;
     if (intent[INTENT] === "pending") {
-      result = {
-        status: WIRE.status.pending,
-        pollUrl: `${this.tenantBaseUrl(tenant)}${WIRE.path.poll}/${encodeURIComponent(token)}`,
-        retryAfter: Math.max(1, Math.round(intent.retryAfter ?? 5)),
-        expiresAt: new Date(record.expiresAt).toISOString(),
-      };
-    } else {
-      result = await this.materialize(
-        intent,
-        a,
-        hookCtx,
-        { inputHash: record.inputHash, onBehalfOf: record.onBehalfOf, tenant: record.tenant },
-        this.tenantBaseUrl(tenant),
-      );
-      record.terminal = result;
-      record.consumedAt = Date.now();
-      await this.tokens.set(
-        record.id,
-        record,
-        this.config.idempotencyTtlSeconds ?? DEFAULT_IDEMPOTENCY_TTL_SECONDS,
-      );
+      await this.idempotency.release(opKey, claim.owner);
+      return finish(pendingAgain(intent.retryAfter ?? 5));
     }
+    const result = await this.materialize(
+      intent,
+      a,
+      hookCtx,
+      { inputHash: record.inputHash, principal: record.principal, tenant: record.tenant },
+      this.tenantBaseUrl(tenant),
+    );
+    // A terminal error is terminal too: it is stored like any other result.
+    await this.settleOperation(hookCtx, opKey, claim, result, true);
     return finish(result);
   }
+}
+
+/** The one answer to every token that cannot be used by this caller here ([P-TOK-3], [P-TOK-6]). */
+function unknownToken(type: "continuation" | "resume" | "poll"): Result {
+  const message =
+    type === "continuation"
+      ? "Unknown or expired continuation token. Call the action again to get a new one."
+      : type === "resume"
+        ? "Unknown or expired resume token."
+        : "Unknown or expired poll token.";
+  return { status: WIRE.status.error, error: fail(WIRE.error.notFound, message).error };
 }
 
 function badExpectedRev(): Result {

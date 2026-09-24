@@ -167,6 +167,9 @@ type WireApi =
   | "idleMs"
   | "onEvict"
   | "keyFor"
+  | "SqliteIdempotencyStore"
+  | "operationLeaseSeconds"
+  | "operationId"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -442,6 +445,7 @@ type WireField =
   | "details"
   | "issues"
   | "handoffStatus"
+  | "operationStatus"
   | "expected"
   | "schemaVersion"
   | "ts"
@@ -875,6 +879,8 @@ const api: Readonly<{
   onRequest: "onRequest";
   onResult: "onResult";
   onResume: "onResume";
+  operationId: "operationId";
+  operationLeaseSeconds: "operationLeaseSeconds";
   originCheck: "originCheck";
   otelSink: "otelSink";
   parseUserAgent: "parseUserAgent";
@@ -909,6 +915,7 @@ const api: Readonly<{
   setObjects: "setObjects";
   setRev: "setRev";
   siteKey: "siteKey";
+  sqliteIdempotencyStore: "SqliteIdempotencyStore";
   state: "state";
   stateToMarkdown: "stateToMarkdown";
   suggestedReason: "suggestedReason";
@@ -1173,6 +1180,7 @@ const field: Readonly<{
   objects: "objects";
   onBehalfOf: "onBehalfOf";
   op: "op";
+  operationStatus: "operationStatus";
   output: "output";
   pageSize: "pageSize";
   pagination: "pagination";
@@ -1697,6 +1705,8 @@ const WIRE: Readonly<{
      onRequest: "onRequest";
      onResult: "onResult";
      onResume: "onResume";
+     operationId: "operationId";
+     operationLeaseSeconds: "operationLeaseSeconds";
      originCheck: "originCheck";
      otelSink: "otelSink";
      parseUserAgent: "parseUserAgent";
@@ -1731,6 +1741,7 @@ const WIRE: Readonly<{
      setObjects: "setObjects";
      setRev: "setRev";
      siteKey: "siteKey";
+     sqliteIdempotencyStore: "SqliteIdempotencyStore";
      state: "state";
      stateToMarkdown: "stateToMarkdown";
      suggestedReason: "suggestedReason";
@@ -1907,6 +1918,7 @@ const WIRE: Readonly<{
      objects: "objects";
      onBehalfOf: "onBehalfOf";
      op: "op";
+     operationStatus: "operationStatus";
      output: "output";
      pageSize: "pageSize";
      pagination: "pagination";

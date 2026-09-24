@@ -3,10 +3,12 @@
  * `TokenStore` that holds server-side state. See spec §12.
  *
  * Token format: `base64url(payload).base64url(hmacSha256(payload))`.
- * The payload binds type, id, action, input hash, acting user, tenant, and expiry.
- * `state` never enters the token; it lives in the store under the token id.
+ * The payload binds type, id, action, input hash, acting principal, tenant, and expiry.
+ * `state` never enters the token; it lives in the store under the token id. Whether a token has
+ * been used, and the envelope its use produced, live in the `IdempotencyStore` as an operation
+ * claim (spec §12.2), not here.
  */
-import type { Accept, Handoff, JsonValue, RequestContext, Result, Revision } from "./types";
+import type { Accept, Handoff, JsonValue, RequestContext, Revision } from "./types";
 
 export type TokenType = "continuation" | "resume" | "poll";
 
@@ -26,7 +28,12 @@ export interface TokenRecord {
   type: TokenType;
   action: string;
   inputHash: string;
-  onBehalfOf: string | null;
+  /**
+   * The acting principal the token is bound to, as `principalOf` encodes it (`user:<id>`,
+   * `site:<id>`, or both), or null for an anonymous call. Every endpoint that accepts the token
+   * requires the same principal ([P-TOK-6]).
+   */
+  principal: string | null;
   tenant: string | null;
   expiresAt: number;
   /** Site-provided state for `onContinue` / `onResume` / `onPoll`. */
@@ -47,15 +54,13 @@ export interface TokenRecord {
   requireCompletion?: boolean;
   /** Resume only: recorded by `completeHandoff`. */
   completion?: { at: string; onBehalfOf?: string; data?: JsonValue };
-  /** Set once the token has been used. */
-  consumedAt?: number;
-  /** Poll only: the terminal result once produced. */
-  terminal?: Result;
 }
 
 /**
  * Storage for token records. Implement with Redis, a KV store, or a database for
- * multi-instance deployments. The in-memory implementation is the default.
+ * multi-instance deployments. The in-memory implementation is the default. Records are written
+ * when a token is minted and when `completeHandoff` records a completion; single use is enforced
+ * by an operation claim in the `IdempotencyStore`, so this store needs no atomic operation.
  */
 export interface TokenStore {
   get(id: string): Promise<TokenRecord | undefined>;
@@ -146,6 +151,19 @@ export class TokenSigner {
     }
   }
 
+  /**
+   * A keyed hash of `value` (HMAC-SHA256 under the secret, base64url). Used for a site key's
+   * principal id when `verifySiteKey` returns no id, so the raw key is never stored.
+   */
+  async keyedHash(label: string, value: string): Promise<string> {
+    const sig = await crypto.subtle.sign(
+      "HMAC",
+      await hmacKey(this.secret),
+      encoder.encode(`${label}\n${value}`),
+    );
+    return base64UrlEncode(new Uint8Array(sig));
+  }
+
   async sign(payload: TokenPayload): Promise<string> {
     const body = base64UrlEncode(encoder.encode(JSON.stringify(payload)));
     const sig = await crypto.subtle.sign("HMAC", await hmacKey(this.secret), encoder.encode(body));
@@ -187,7 +205,7 @@ export interface MintOptions {
   type: TokenType;
   action: string;
   inputHash: string;
-  onBehalfOf: string | null;
+  principal: string | null;
   tenant: string | null;
   ttlSeconds: number;
   state: JsonValue | undefined;
@@ -207,7 +225,7 @@ export async function mintToken(
     id,
     a: options.action,
     h: options.inputHash,
-    u: options.onBehalfOf,
+    u: options.principal,
     n: options.tenant,
     e: expiresAt,
   });
@@ -216,7 +234,7 @@ export async function mintToken(
     type: options.type,
     action: options.action,
     inputHash: options.inputHash,
-    onBehalfOf: options.onBehalfOf,
+    principal: options.principal,
     tenant: options.tenant,
     expiresAt,
     state: options.state,
@@ -227,36 +245,33 @@ export async function mintToken(
 }
 
 /**
- * Verify a token and load its record, checking that the record matches the binding in the token.
- * Returns `{ kind: "invalid" }` for tampered/expired/unknown, `{ kind: "consumed" }` for used tokens.
+ * Verify a token and load its record, checking that the record matches the binding in the token
+ * and that the token was minted for the tenant serving this request ([P-TOK-6]). Every failure is
+ * `{ kind: "invalid" }`, so a caller answers all of them with the same `not_found`. The acting
+ * principal is checked by the server, which has to resolve it from the request first.
  */
 export async function loadToken(
   signer: TokenSigner,
   store: TokenStore,
   token: string,
   type: TokenType,
-): Promise<
-  | { kind: "ok"; record: TokenRecord }
-  | { kind: "invalid" }
-  | { kind: "consumed"; record: TokenRecord }
-> {
+  tenant: string | null,
+): Promise<{ kind: "ok"; record: TokenRecord } | { kind: "invalid" }> {
   const payload = await signer.verify(token, type);
   if (!payload) return { kind: "invalid" };
+  if ((payload.n ?? null) !== tenant) return { kind: "invalid" };
   const record = await store.get(payload.id);
   if (
     !record ||
     record.type !== type ||
     record.action !== payload.a ||
-    record.inputHash !== payload.h
+    record.inputHash !== payload.h ||
+    record.expiresAt !== payload.e
   ) {
     return { kind: "invalid" };
   }
-  if (
-    (record.onBehalfOf ?? null) !== (payload.u ?? null) ||
-    (record.tenant ?? null) !== (payload.n ?? null)
-  ) {
+  if ((record.principal ?? null) !== (payload.u ?? null) || (record.tenant ?? null) !== tenant) {
     return { kind: "invalid" };
   }
-  if (record.consumedAt !== undefined && type !== "poll") return { kind: "consumed", record };
   return { kind: "ok", record };
 }

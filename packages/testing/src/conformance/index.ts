@@ -149,11 +149,12 @@ class Runner {
     this.checks.push({ id, title, status, requirements, detail, docs });
   }
 
-  async request(path: string, init: RequestInit = {}): Promise<Response> {
+  async request(path: string, init: RequestInit = {}, anonymous = false): Promise<Response> {
     const headers = new Headers(init.headers ?? {});
     headers.set("Accept", "application/json");
     for (const [k, v] of Object.entries(this.options.headers ?? {})) headers.set(k, v);
-    if (this.options.auth && !headers.has(WIRE.header.authorization))
+    if (anonymous) headers.delete(WIRE.header.authorization);
+    else if (this.options.auth && !headers.has(WIRE.header.authorization))
       headers.set(WIRE.header.authorization, `Bearer ${this.options.auth}`);
     if (init.body && !headers.has(WIRE.header.contentType))
       headers.set(WIRE.header.contentType, "application/json");
@@ -171,12 +172,17 @@ class Runner {
     path: string,
     body: unknown,
     extraHeaders: Record<string, string> = {},
+    anonymous = false,
   ): Promise<{ res: Response; json: unknown }> {
-    const res = await this.request(path, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers: extraHeaders,
-    });
+    const res = await this.request(
+      path,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: extraHeaders,
+      },
+      anonymous,
+    );
     const text = await res.text();
     let json: unknown = null;
     try {
@@ -1352,12 +1358,17 @@ async function ladder(r: Runner): Promise<void> {
         ["P-REQ-8"],
       ],
       ["ladder.continue-valid", "continue with a valid payload → non-error", ["P-REQ-7"]],
-      ["ladder.continue-replay", "Consumed continuation token → conflict", ["P-REQ-9"]],
+      ["ladder.continue-replay", "Repeated continuation → original envelope", ["P-REQ-9"]],
       ["ladder.fallback-resume", "fallback handoff resumes", ["P-REQ-6", "P-HAND-4"]],
-      ["ladder.resume-replay", "Consumed resume token → conflict", ["P-HAND-6"]],
+      ["ladder.resume-replay", "Repeated resume → original envelope", ["P-HAND-6"]],
       ["ladder.handoff-shape", "Handoff has every member", ["P-HAND-1"]],
       ["ladder.token-ttl", "Token lifetimes within recommended bounds", ["P-TOK-5"]],
       ["runtime.token-tamper", "Tampered token → not_found", ["P-TOK-3"]],
+      [
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        ["P-TOK-6"],
+      ],
       ["ladder.fake-kinds", "No custom kind duplicates a well-known kind", ["P-HON-5"]],
       ["ladder.consent-scope", "Consent requirements reference version and scope", ["P-HON-6"]],
       [
@@ -1486,11 +1497,16 @@ async function ladder(r: Runner): Promise<void> {
         ["P-REQ-8"],
       ],
       ["ladder.continue-valid", "continue with a valid payload → non-error", ["P-REQ-7"]],
-      ["ladder.continue-replay", "Consumed continuation token → conflict", ["P-REQ-9"]],
+      ["ladder.continue-replay", "Repeated continuation → original envelope", ["P-REQ-9"]],
       ["ladder.fallback-resume", "fallback handoff resumes", ["P-REQ-6", "P-HAND-4"]],
-      ["ladder.resume-replay", "Consumed resume token → conflict", ["P-HAND-6"]],
+      ["ladder.resume-replay", "Repeated resume → original envelope", ["P-HAND-6"]],
       ["ladder.token-ttl", "Token lifetimes within recommended bounds", ["P-TOK-5"]],
       ["runtime.token-tamper", "Tampered token → not_found", ["P-TOK-3"]],
+      [
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        ["P-TOK-6"],
+      ],
       ["ladder.fake-kinds", "No custom kind duplicates a well-known kind", ["P-HON-5"]],
       ["ladder.consent-scope", "Consent requirements reference version and scope", ["P-HON-6"]],
     ] as [string, string, string[]][]) {
@@ -1642,6 +1658,43 @@ async function ladder(r: Runner): Promise<void> {
         DOCS.ladder,
       );
   }
+  // The same token without the credentials it was minted with. The kind is not offered, so an
+  // authorized request is invalid_input and nothing runs either way ([P-TOK-6]).
+  {
+    if (!r.options.auth) {
+      r.add(
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        "skip",
+        ["P-TOK-6"],
+        "No --auth: the token was minted anonymously and is not bound to a principal.",
+        DOCS.auth,
+      );
+    } else {
+      const { json } = await r.post(
+        WIRE.path.continue,
+        {
+          continuationToken: ni.continuationToken,
+          kind: "x-axe-conformance.not-offered",
+          payload: {},
+        },
+        {},
+        true,
+      );
+      const code = errorCode(isResult(json) ? json : null);
+      const bound = target.auth !== WIRE.authMode.none;
+      r.add(
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        code === WIRE.error.notFound ? "pass" : bound ? "fail" : "warn",
+        ["P-TOK-6"],
+        code === WIRE.error.notFound
+          ? `${target.name}: refused as an unknown token`
+          : `${target.name}: anonymous presentation got ${code ?? "a non-error"}${bound ? "" : " (the action is auth none; the server may not have bound the token to the credential)"}`,
+        DOCS.auth,
+      );
+    }
+  }
   // Valid payload.
   const payload = samplePayload(entry!.kind);
   if (payload === undefined) {
@@ -1655,7 +1708,7 @@ async function ladder(r: Runner): Promise<void> {
     );
     r.add(
       "ladder.continue-replay",
-      "Consumed continuation token → conflict",
+      "Repeated continuation → original envelope",
       "skip",
       ["P-REQ-9"],
       "Depends on a successful continue.",
@@ -1684,13 +1737,16 @@ async function ladder(r: Runner): Promise<void> {
       payload,
     });
     const c2 = errorCode(isResult(j2) ? j2 : null);
+    const same = JSON.stringify(j2) === JSON.stringify(json);
     r.add(
       "ladder.continue-replay",
-      "Consumed continuation token → conflict",
-      good ? (c2 === WIRE.error.conflict ? "pass" : "fail") : "skip",
-      ["P-REQ-9"],
+      "Repeated continuation → original envelope",
+      good ? (same ? "pass" : "fail") : "skip",
+      ["P-REQ-9", "P-OP-1"],
       good
-        ? `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}`
+        ? same
+          ? "the same kind and payload returned the original envelope"
+          : `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}, not the original envelope`
         : "Depends on a successful continue.",
       DOCS.ladder,
     );
@@ -1708,7 +1764,7 @@ async function ladder(r: Runner): Promise<void> {
     );
     r.add(
       "ladder.resume-replay",
-      "Consumed resume token → conflict",
+      "Repeated resume → original envelope",
       "skip",
       ["P-HAND-6"],
       "No fallback handoff.",
@@ -1751,18 +1807,21 @@ async function ladder(r: Runner): Promise<void> {
         resumeToken: fresh.fallback.resumeToken,
       });
       const c2 = errorCode(isResult(j2) ? j2 : null);
+      const same = JSON.stringify(j2) === JSON.stringify(json);
       r.add(
         "ladder.resume-replay",
-        "Consumed resume token → conflict",
-        c2 === WIRE.error.conflict ? "pass" : "fail",
-        ["P-HAND-6"],
-        `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}`,
+        "Repeated resume → original envelope",
+        same ? "pass" : "fail",
+        ["P-HAND-6", "P-OP-1"],
+        same
+          ? "a repeated resume returned the original envelope"
+          : `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}, not the original envelope`,
         DOCS.handoff,
       );
     } else {
       r.add(
         "ladder.resume-replay",
-        "Consumed resume token → conflict",
+        "Repeated resume → original envelope",
         "skip",
         ["P-HAND-6"],
         "Depends on a successful resume.",

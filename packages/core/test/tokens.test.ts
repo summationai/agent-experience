@@ -22,7 +22,7 @@ describe("tokens [P-TOK-2] [P-TOK-4]", () => {
       type: "continuation",
       action: "a.b",
       inputHash: "h",
-      onBehalfOf: "u1",
+      principal: "user:u1",
       tenant: null,
       ttlSeconds: 60,
       state: { secret: "server-only" },
@@ -35,13 +35,15 @@ describe("tokens [P-TOK-2] [P-TOK-4]", () => {
     >;
     expect(Object.keys(payload).sort()).toEqual(["a", "e", "h", "id", "n", "t", "u"]);
     expect(JSON.stringify(payload)).not.toContain("server-only");
-    const loaded = await loadToken(signer, store, minted.token, "continuation");
+    const loaded = await loadToken(signer, store, minted.token, "continuation", null);
     expect(loaded.kind).toBe("ok");
     if (loaded.kind === "ok") expect(loaded.record.state).toEqual({ secret: "server-only" });
     // A record whose binding was altered server-side no longer matches the token.
-    minted.record.onBehalfOf = "u2";
+    minted.record.principal = "user:u2";
     await store.set(minted.record.id, minted.record, 60);
-    expect((await loadToken(signer, store, minted.token, "continuation")).kind).toBe("invalid");
+    expect((await loadToken(signer, store, minted.token, "continuation", null)).kind).toBe(
+      "invalid",
+    );
     // Different secret → invalid.
     expect(
       (
@@ -50,6 +52,7 @@ describe("tokens [P-TOK-2] [P-TOK-4]", () => {
           store,
           minted.token,
           "continuation",
+          null,
         )
       ).kind,
     ).toBe("invalid");

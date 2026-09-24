@@ -455,10 +455,10 @@ Expect agents to need a human for a custom kind more often than for a well-known
 
 The agent posts `{ continuationToken, kind, payload }`. The server:
 
-1. Verifies the token's signature, expiry, and binding, and re-establishes the acting identity. A tampered, expired, or wrong-user token is `not_found`; the response does not say which.
+1. Verifies the token's signature, expiry, binding, and tenant, and re-establishes the acting principal: the same user, the same site key (verified again), or none, exactly as when the token was minted. A tampered, expired, wrong-tenant, or wrong-principal token is `not_found`; the response does not say which.
 2. Rejects a `kind` that is not in the original `accepts` with `invalid_input`; `issues` names `/kind` and lists the accepted kinds under `expected`.
 3. Validates `payload` against that entry's stored JSON Schema. On failure it returns `invalid_input` with `issues`, each `path` a JSON Pointer prefixed with `/payload`, and **does not consume the token**. Agents fix their own mistakes and retry with the same token.
-4. Runs your `onContinue`. Any status other than `error` consumes the token. A second `/axe/continue` with the same token returns `conflict`.
+4. Claims the token, then runs your `onContinue`. Any status other than `error` consumes the token and stores the envelope. A second `/axe/continue` with the same token, kind, and payload returns that envelope without running `onContinue` again (a lost response is recoverable); with a different kind or payload it returns `conflict`. While the first is still running, a second gets a retryable `conflict` with `operationStatus` set to `in_progress`.
 
 The validator is the SDK's own JSON Schema validator, running against the schema stored with the token, because a `TokenStore` backed by Redis can hold JSON but not Zod. Consequently the contract is the JSON-Schema-expressible subset of your Zod schema: types, `required`, `enum`, `pattern`, `format`, string lengths, numeric bounds. Zod refinements are not enforced on continue. Anything a refinement would have checked belongs in `onContinue`, returning `fail` with `issues`, as the transcript size check above does. The reasoning is in [DECISIONS.md](../DECISIONS.md).
 
@@ -542,8 +542,8 @@ Carry what you have learned forward in `state`; each new `needsInput` gets its o
 - **The SDK never logs a payload and never puts one in an event.** Events carry the kind, the status, and the ladder position; the event type has no field a payload could occupy.
 - **Your handler must not log it either.** Pass a `payment.card` token straight to your PSP; pass ACH details to the processor and keep the authorization record it returns; store the fact that identity was verified, not the document number.
 - **Short lifetime.** Continuation tokens expire in 15 minutes by default. Shorten it with the ttlSeconds option on `needsInput` when every entry is sensitive; there is no reason for a card token to be presentable for longer than the agent needs to confirm with its user.
-- **Single use.** A consumed token is `conflict`; a stolen token that has already been used is worthless.
-- **Bound.** The token is tied to the action, the input hash, the acting user, and the tenant. Presenting it under a different identity is `not_found`.
+- **Single use.** A consumed token runs nothing again: the same payload gets the original envelope, a different one `conflict`.
+- **Bound.** The token is tied to the action, the input hash, the acting principal, and the tenant. Presenting it under a different identity, or anonymously when it was minted for someone, is `not_found`. A token minted anonymously is a bearer credential: whoever holds it and the exact payload can read the stored envelope.
 - **HTTPS only.** Tokens are bearer credentials and payloads are credentials. Serve `baseUrl` over HTTPS and nothing else.
 - **Store only what the process needs.** Retention is a policy question; state it in `policies.dataRetention` so agents can relay it.
 

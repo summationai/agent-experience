@@ -158,7 +158,7 @@ Return `null` for an expired or malformed token, not an error. The runtime then 
 
 Both examples also set claims on the identity (roles in one, an email in the other). Handlers receive the whole identity as `identity`, so `claims` on `identity` carries roles or an email without a second lookup; `context.onBehalfOf` stays the one field that is also scoped into tokens and idempotency keys. Claims never go on the wire, never appear in events, and are not stored with tokens: a continuation or resume re-establishes the identity from the request.
 
-Identity is established again on `/axe/continue`, `/axe/resume`, and poll. A token minted for one user and presented with another user's credentials, or anonymously, returns `not_found`, the same as an unknown token, so the response confirms nothing about the token's existence.
+Identity is established again on `/axe/continue`, `/axe/resume`, and poll, and must match the principal the token was minted for (spec P-TOK-6): the same user, the same site key, or none. A token minted for one user and presented with another user's credentials, or anonymously, returns `not_found`, the same as an unknown token, whether the token is open, used, or holds a finished poll result, so the response confirms nothing about the token's existence. The reverse holds too: a token minted anonymously is refused when presented with a user's credentials, because the follow-up would otherwise run as someone the original call was not. The one transition is the login handoff below.
 
 ## user mode: pass-through
 
@@ -274,15 +274,6 @@ const keysBySha256 = new Map<string, ApiKeyRecord>([
 ]);
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
-
-// The runtime does not pass the verdict's `id` to handlers in v0, so a handler that needs
-// to know which partner is calling resolves it from the same bearer key.
-function partnerFromRequest(request: Request): ApiKeyRecord {
-  const key = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const record = keysBySha256.get(sha256(key));
-  if (!record) throw new Error("verifySiteKey admitted a key that is no longer in the table");
-  return record;
-}
 ```
 <!-- /include -->
 
@@ -371,16 +362,20 @@ axe.register(
         output: { orderNumber: "PO-88214", expectedShipDate: "2026-10-02" },
       },
     ],
-    handler: async ({ input, request }) =>
-      warehouse.placeOrder(partnerFromRequest(request).id, input.lines, input.poReference),
+    // `siteKey.id` is the id verifySiteKey returned for this request's key. The same key, verified
+    // again, is required to continue, resume, or poll anything this call starts.
+    handler: async ({ input, siteKey }) =>
+      warehouse.placeOrder(siteKey!.id, input.lines, input.poReference),
   }),
 );
 ```
 <!-- /include -->
 
-Issuing keys is your admin UI's job, not the SDK's: generate a long random key, show it once, store its hash, let the partner name and revoke it. When `verifySiteKey` returns an object, handlers receive it as `siteKey`, so `siteKey.id` identifies the partner without a second lookup, and the runtime scopes idempotency keys and tokens to that id when no user identity is present, so two partners reusing the same `idempotencyKey` never collide. The example still resolves the partner from the request to show that either approach works.
+Issuing keys is your admin UI's job, not the SDK's: generate a long random key, show it once, store its hash, let the partner name and revoke it. Handlers of a `site` action receive `siteKey`, and so do `onContinue`, `onResume`, and `onPoll` for anything a `site` call started, so `siteKey.id` identifies the partner without a second lookup. Return an `id` from `verifySiteKey`: it is the principal the runtime scopes tokens, idempotency keys, and stored results to (spec P-TOK-7). When it returns `true`, or an object without `id`, the runtime uses a keyed hash of the presented key (HMAC-SHA256 under your `secret`) as the id and sets `siteKey.derived`, so two partners with bare `true` verdicts never share a scope and the raw key is never stored; rotating the key, or the `secret`, then changes the id and orphans that key's open tokens.
 
-Two details about `site` mode and identity. First, after the key verifies, the runtime still calls `authenticate` or the adapter's `context`, so a `site` action can also carry an `onBehalfOf` when a partner forwards a user's credential. If your `authenticate` treats every bearer as a user token, make it return `null` for API keys. Second, `policies.rateLimit` is declared in the manifest but enforced by you, and `site` mode is where per-key limits belong: key the limiter at your edge on the bearer value and return 429 with `Retry-After`. See [Deploying](deploying.md#rate-limiting).
+Every follow-up calls `verifySiteKey` again with the key the request presents. A continuation, resume, or poll works only with a key that verifies to the same id and whose allowlist, if it has one, still names the action; another partner's key, a revoked key, or a narrowed key gets `not_found`, like an unknown token. Availability hooks receive the verified `siteKey` too, and so does the `revision` provider, so both can answer per partner.
+
+Two details about `site` mode and identity. First, after the key verifies, the runtime still calls `authenticate` or the adapter's `context`, so a `site` action can also carry an `onBehalfOf` when a partner forwards a user's credential. The principal is then both, the partner and the user, and every follow-up must present the same key and the same user. If your `authenticate` treats every bearer as a user token, make it return `null` for API keys, or every `site` call will also carry the key as a user. Second, `policies.rateLimit` is declared in the manifest but enforced by you, and `site` mode is where per-key limits belong: key the limiter at your edge on the bearer value and return 429 with `Retry-After`. See [Deploying](deploying.md#rate-limiting).
 
 ## Cookie sessions
 
@@ -478,7 +473,7 @@ The Express and Next.js Pages adapters keep the `Content-Type` the client sent e
 
 On a multi-tenant platform, the `tenant` resolver returns a `TenantInfo` for each request, and its `auth` member can override the manifest's `modes` and `userLoginUrl` for that tenant. The override applies to the manifest served for that tenant and to the login handoff, which sends the human to the tenant's login page rather than the platform's.
 
-`authenticate` and `verifySiteKey` are configured once for the platform. Your `authenticate` function can resolve the tenant from the request's host when sessions are per tenant; handlers receive `tenant` alongside `context` and should authorize `onBehalfOf` within it. Tokens and idempotency keys are already scoped by tenant, so a continuation minted on one tenant cannot be presented on another. [Platforms](platforms.md) covers the resolver and the index.
+`authenticate` and `verifySiteKey` are configured once for the platform. Your `authenticate` function can resolve the tenant from the request's host when sessions are per tenant; handlers receive `tenant` alongside `context` and should authorize `onBehalfOf` within it. Tokens and idempotency keys are already scoped by tenant: a continuation, resume, or poll token minted on one tenant is `not_found` on another, even for a user id that exists on both. On the handoff landing page, pass the tenant id to `completeHandoff` as `tenant`; a handoff minted for another tenant returns `false`. [Platforms](platforms.md) covers the resolver and the index.
 
 ## The v1 OAuth path
 
