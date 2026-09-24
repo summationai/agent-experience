@@ -340,7 +340,10 @@ completeHandoff(handoffId, completion?): Promise<boolean>;
 ```
 
 Record that the human finished a handoff. Call this from the page at the handoff
-`url` (read the `axe_handoff` query parameter). Returns false when the id is unknown.
+`url` (read the `axe_handoff` query parameter). Returns false, and records nothing, when the id
+is unknown or expired, the handoff was minted for another tenant than `tenant`, the resume
+token was already used, `onBehalfOf` differs from the user the handoff is bound to, or a login
+handoff was already completed by a different user ([P-TOK-6]).
 
 ###### Parameters
 
@@ -357,6 +360,10 @@ Record that the human finished a handoff. Call this from the page at the handoff
 ###### onBehalfOf?
 
 `string`
+
+###### tenant?
+
+`string` \| `null`
 
 ###### Returns
 
@@ -852,7 +859,9 @@ Error.prepareStackTrace
 
 ### MemoryIdempotencyStore
 
-In-memory `IdempotencyStore`. Suitable for a single process.
+In-memory `IdempotencyStore`. Every method runs without awaiting between its read and its write,
+so claims are atomic among all runtimes in one process that share the instance. Nothing survives
+a restart and nothing is shared with another process.
 
 #### Implements
 
@@ -865,8 +874,18 @@ In-memory `IdempotencyStore`. Suitable for a single process.
 ##### Constructor
 
 ```ts
-new MemoryIdempotencyStore(): MemoryIdempotencyStore;
+new MemoryIdempotencyStore(options?): MemoryIdempotencyStore;
 ```
+
+`now` is the clock for leases and expiry, injectable for tests.
+
+###### Parameters
+
+###### options?
+
+###### now?
+
+() => `number`
 
 ###### Returns
 
@@ -884,11 +903,85 @@ new MemoryIdempotencyStore(): MemoryIdempotencyStore;
 get size(): number;
 ```
 
+Number of live records, completed or in progress, for tests.
+
 ###### Returns
 
 `number`
 
 #### Methods
+
+<a id="claim"></a>
+
+##### claim()
+
+```ts
+claim(key, request): Promise<ClaimOutcome>;
+```
+
+Atomically: when `key` is absent or expired, record an in-progress claim and return `acquired`.
+When it holds an in-progress claim whose lease has passed and whose fingerprint equals the
+request's, take it over and return `acquired`. Otherwise return what is there.
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### request
+
+[`ClaimRequest`](#claimrequest)
+
+###### Returns
+
+`Promise`\<[`ClaimOutcome`](#claimoutcome)\>
+
+###### Implementation of
+
+[`IdempotencyStore`](#idempotencystore-1).[`claim`](#claim-1)
+
+<a id="complete"></a>
+
+##### complete()
+
+```ts
+complete(
+   key, 
+   owner, 
+   record, 
+   ttlSeconds
+): Promise<boolean>;
+```
+
+Record the result of the claim `owner` holds, kept for `ttlSeconds`. Returns false, and stores
+nothing, when `owner` no longer holds the claim (its lease was taken over).
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### owner
+
+`string`
+
+###### record
+
+[`IdempotencyRecord`](#idempotencyrecord)
+
+###### ttlSeconds
+
+`number`
+
+###### Returns
+
+`Promise`\<`boolean`\>
+
+###### Implementation of
+
+[`IdempotencyStore`](#idempotencystore-1).[`complete`](#complete-1)
 
 <a id="get"></a>
 
@@ -897,6 +990,8 @@ get size(): number;
 ```ts
 get(key): Promise<IdempotencyRecord | undefined>;
 ```
+
+The completed record under `key`, or undefined when there is none, it expired, or it is still in progress.
 
 ###### Parameters
 
@@ -912,17 +1007,15 @@ get(key): Promise<IdempotencyRecord | undefined>;
 
 [`IdempotencyStore`](#idempotencystore-1).[`get`](#get-3)
 
-<a id="set"></a>
+<a id="release"></a>
 
-##### set()
+##### release()
 
 ```ts
-set(
-   key, 
-   record, 
-   ttlSeconds
-): Promise<void>;
+release(key, owner): Promise<void>;
 ```
+
+Drop the in-progress claim `owner` holds, so the key can be used again. A no-op otherwise.
 
 ###### Parameters
 
@@ -930,13 +1023,9 @@ set(
 
 `string`
 
-###### record
+###### owner
 
-[`IdempotencyRecord`](#idempotencyrecord)
-
-###### ttlSeconds
-
-`number`
+`string`
 
 ###### Returns
 
@@ -944,7 +1033,7 @@ set(
 
 ###### Implementation of
 
-[`IdempotencyStore`](#idempotencystore-1).[`set`](#set-2)
+[`IdempotencyStore`](#idempotencystore-1).[`release`](#release-1)
 
 ***
 
@@ -1036,7 +1125,7 @@ get(id): Promise<TokenRecord | undefined>;
 
 [`TokenStore`](#tokenstore-1).[`get`](#get-4)
 
-<a id="set-1"></a>
+<a id="set"></a>
 
 ##### set()
 
@@ -1068,7 +1157,7 @@ set(
 
 ###### Implementation of
 
-[`TokenStore`](#tokenstore-1).[`set`](#set-3)
+[`TokenStore`](#tokenstore-1).[`set`](#set-1)
 
 ***
 
@@ -1099,6 +1188,31 @@ new TokenSigner(secret): TokenSigner;
 [`TokenSigner`](#tokensigner)
 
 #### Methods
+
+<a id="keyedhash"></a>
+
+##### keyedHash()
+
+```ts
+keyedHash(label, value): Promise<string>;
+```
+
+A keyed hash of `value` (HMAC-SHA256 under the secret, base64url). Used for a site key's
+principal id when `verifySiteKey` returns no id, so the raw key is never stored.
+
+###### Parameters
+
+###### label
+
+`string`
+
+###### value
+
+`string`
+
+###### Returns
+
+`Promise`\<`string`\>
 
 <a id="sign"></a>
 
@@ -1619,6 +1733,17 @@ request: Request | null;
 
 The request being served; null when the manifest is described outside a request.
 
+<a id="sitekey"></a>
+
+##### siteKey?
+
+```ts
+optional siteKey?: SiteKeyContext | null;
+```
+
+The verified site key when the action is a `site` action and the request carries a key that
+may call it ([P-TOK-7]); null or absent otherwise, and always absent in the manifest's view.
+
 <a id="tenant-1"></a>
 
 ##### tenant
@@ -1837,6 +1962,18 @@ optional onResult?: (ctx, result) => MaybePromise<void>;
 
 [`MaybePromise`](#maybepromise)\<`void`\>
 
+<a id="operationleaseseconds"></a>
+
+##### operationLeaseSeconds?
+
+```ts
+optional operationLeaseSeconds?: number;
+```
+
+How long an operation claim holds before a retry of the same operation may take it over, in
+seconds. Default 60. Set it above your slowest handler: a retry that arrives after the lease
+runs the handler again (docs/deploying.md, "Operations, claims, and crashes").
+
 <a id="policies"></a>
 
 ##### policies?
@@ -1912,6 +2049,54 @@ optional tokenStore?: TokenStore;
 ```ts
 optional updatedAt?: string;
 ```
+
+***
+
+<a id="claimrequest"></a>
+
+### ClaimRequest
+
+What `claim` is asked to record.
+
+#### Properties
+
+<a id="fingerprint"></a>
+
+##### fingerprint
+
+```ts
+fingerprint: string;
+```
+
+<a id="leaseseconds"></a>
+
+##### leaseSeconds
+
+```ts
+leaseSeconds: number;
+```
+
+How long the claim holds before another caller with the same fingerprint may take it over.
+
+<a id="owner"></a>
+
+##### owner
+
+```ts
+owner: string;
+```
+
+A random id for this attempt; `complete` and `release` are fenced on it.
+
+<a id="ttlseconds"></a>
+
+##### ttlSeconds
+
+```ts
+ttlSeconds: number;
+```
+
+How long the key is remembered at all (the idempotency window).
 
 ***
 
@@ -2166,6 +2351,26 @@ Explicitly mark a value as the action's output. Returning the plain value is equ
 BaseContext.ok
 ```
 
+<a id="operationid"></a>
+
+##### operationId?
+
+```ts
+optional operationId?: string;
+```
+
+A stable id for this operation, the same on every retry of it and on every instance: derived
+from the scoped `idempotencyKey` for an action call, and from the token for a continue, resume,
+or poll. Pass it to a downstream system as its idempotency key, or store it under a unique
+constraint in the same transaction as the business change, so a handler that runs again after
+a crash does not apply the change twice. Absent for a read-only call without a key.
+
+###### Inherited from
+
+```ts
+BaseContext.operationId
+```
+
 <a id="payload"></a>
 
 ##### payload
@@ -2218,20 +2423,17 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
-<a id="sitekey"></a>
+<a id="sitekey-1"></a>
 
 ##### siteKey
 
 ```ts
-siteKey: 
-  | {
-  actions?: string[];
-  id?: string;
-}
-  | null;
+siteKey: SiteKeyContext | null;
 ```
 
-For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+For a `site` action, and for a continue, resume, or poll of a token minted by one: the verified
+key's principal id and allowlist. `id` is what `verifySiteKey` returned, or a keyed hash of the
+key when it returned none. Null when no site key is part of the call.
 
 ###### Inherited from
 
@@ -2656,6 +2858,26 @@ Explicitly mark a value as the action's output. Returning the plain value is equ
 BaseContext.ok
 ```
 
+<a id="operationid-1"></a>
+
+##### operationId?
+
+```ts
+optional operationId?: string;
+```
+
+A stable id for this operation, the same on every retry of it and on every instance: derived
+from the scoped `idempotencyKey` for an action call, and from the token for a continue, resume,
+or poll. Pass it to a downstream system as its idempotency key, or store it under a unique
+constraint in the same transaction as the business change, so a handler that runs again after
+a crash does not apply the change twice. Absent for a read-only call without a key.
+
+###### Inherited from
+
+```ts
+BaseContext.operationId
+```
+
 <a id="pending-1"></a>
 
 ##### pending
@@ -2698,20 +2920,17 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
-<a id="sitekey-1"></a>
+<a id="sitekey-2"></a>
 
 ##### siteKey
 
 ```ts
-siteKey: 
-  | {
-  actions?: string[];
-  id?: string;
-}
-  | null;
+siteKey: SiteKeyContext | null;
 ```
 
-For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+For a `site` action, and for a continue, resume, or poll of a token minted by one: the verified
+key's principal id and allowlist. `id` is what `verifySiteKey` returned, or a keyed hash of the
+key when it returned none. Null when no site key is part of the call.
 
 ###### Inherited from
 
@@ -2855,7 +3074,7 @@ optional state?: JsonValue;
 
 Server-side state delivered to `onResume`. Must be JSON-serializable.
 
-<a id="ttlseconds"></a>
+<a id="ttlseconds-1"></a>
 
 ##### ttlSeconds?
 
@@ -2939,6 +3158,8 @@ tenant: TenantInfo | null;
 
 ### IdempotencyRecord
 
+A completed operation: the fingerprint it ran with and the envelope it produced.
+
 #### Properties
 
 <a id="createdat"></a>
@@ -2949,13 +3170,18 @@ tenant: TenantInfo | null;
 createdAt: number;
 ```
 
-<a id="inputhash"></a>
+Epoch milliseconds when the operation completed.
 
-##### inputHash
+<a id="fingerprint-1"></a>
+
+##### fingerprint
 
 ```ts
-inputHash: string;
+fingerprint: string;
 ```
+
+Hash of what makes a retry the same operation: the canonical `input` for an action call, the
+`kind` and `payload` for a continuation. A claim with another fingerprint is a conflict.
 
 <a id="result"></a>
 
@@ -2971,10 +3197,77 @@ result: Result;
 
 ### IdempotencyStore
 
-Storage for idempotency records. Keys are already scoped by tenant, action, and
-acting user. Implement with Redis `SET ... EX` or a table with a TTL index.
+Storage for operation claims. Keys arrive already scoped by operation type, tenant, action, and
+acting principal. Every method must be atomic with respect to every other caller sharing the
+store, across processes: a `get` followed by a `set` is not a claim. See `MemoryIdempotencyStore`
+(one process) and `SqliteIdempotencyStore` in `@axe/core/node` (a shared SQLite file, and the
+SQL to port to another database).
 
 #### Methods
+
+<a id="claim-1"></a>
+
+##### claim()
+
+```ts
+claim(key, request): Promise<ClaimOutcome>;
+```
+
+Atomically: when `key` is absent or expired, record an in-progress claim and return `acquired`.
+When it holds an in-progress claim whose lease has passed and whose fingerprint equals the
+request's, take it over and return `acquired`. Otherwise return what is there.
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### request
+
+[`ClaimRequest`](#claimrequest)
+
+###### Returns
+
+`Promise`\<[`ClaimOutcome`](#claimoutcome)\>
+
+<a id="complete-1"></a>
+
+##### complete()
+
+```ts
+complete(
+   key, 
+   owner, 
+   record, 
+   ttlSeconds
+): Promise<boolean>;
+```
+
+Record the result of the claim `owner` holds, kept for `ttlSeconds`. Returns false, and stores
+nothing, when `owner` no longer holds the claim (its lease was taken over).
+
+###### Parameters
+
+###### key
+
+`string`
+
+###### owner
+
+`string`
+
+###### record
+
+[`IdempotencyRecord`](#idempotencyrecord)
+
+###### ttlSeconds
+
+`number`
+
+###### Returns
+
+`Promise`\<`boolean`\>
 
 <a id="get-3"></a>
 
@@ -2983,6 +3276,8 @@ acting user. Implement with Redis `SET ... EX` or a table with a TTL index.
 ```ts
 get(key): Promise<IdempotencyRecord | undefined>;
 ```
+
+The completed record under `key`, or undefined when there is none, it expired, or it is still in progress.
 
 ###### Parameters
 
@@ -2994,17 +3289,15 @@ get(key): Promise<IdempotencyRecord | undefined>;
 
 `Promise`\<[`IdempotencyRecord`](#idempotencyrecord) \| `undefined`\>
 
-<a id="set-2"></a>
+<a id="release-1"></a>
 
-##### set()
+##### release()
 
 ```ts
-set(
-   key, 
-   record, 
-   ttlSeconds
-): Promise<void>;
+release(key, owner): Promise<void>;
 ```
+
+Drop the in-progress claim `owner` holds, so the key can be used again. A no-op otherwise.
 
 ###### Parameters
 
@@ -3012,13 +3305,9 @@ set(
 
 `string`
 
-###### record
+###### owner
 
-[`IdempotencyRecord`](#idempotencyrecord)
-
-###### ttlSeconds
-
-`number`
+`string`
 
 ###### Returns
 
@@ -3166,7 +3455,7 @@ optional state?: JsonValue;
 
 Server-side state delivered to `onContinue`. Must be JSON-serializable.
 
-<a id="ttlseconds-1"></a>
+<a id="ttlseconds-2"></a>
 
 ##### ttlSeconds?
 
@@ -3252,7 +3541,7 @@ optional state?: JsonValue;
 
 Server-side state delivered to `onPoll`.
 
-<a id="ttlseconds-2"></a>
+<a id="ttlseconds-3"></a>
 
 ##### ttlSeconds?
 
@@ -3505,6 +3794,26 @@ Explicitly mark a value as the action's output. Returning the plain value is equ
 BaseContext.ok
 ```
 
+<a id="operationid-2"></a>
+
+##### operationId?
+
+```ts
+optional operationId?: string;
+```
+
+A stable id for this operation, the same on every retry of it and on every instance: derived
+from the scoped `idempotencyKey` for an action call, and from the token for a continue, resume,
+or poll. Pass it to a downstream system as its idempotency key, or store it under a unique
+constraint in the same transaction as the business change, so a handler that runs again after
+a crash does not apply the change twice. Absent for a read-only call without a key.
+
+###### Inherited from
+
+```ts
+BaseContext.operationId
+```
+
 <a id="pending-2"></a>
 
 ##### pending
@@ -3547,20 +3856,17 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
-<a id="sitekey-2"></a>
+<a id="sitekey-3"></a>
 
 ##### siteKey
 
 ```ts
-siteKey: 
-  | {
-  actions?: string[];
-  id?: string;
-}
-  | null;
+siteKey: SiteKeyContext | null;
 ```
 
-For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+For a `site` action, and for a continue, resume, or poll of a token minted by one: the verified
+key's principal id and allowlist. `id` is what `verifySiteKey` returned, or a keyed hash of the
+key when it returned none. Null when no site key is part of the call.
 
 ###### Inherited from
 
@@ -4155,6 +4461,26 @@ Explicitly mark a value as the action's output. Returning the plain value is equ
 BaseContext.ok
 ```
 
+<a id="operationid-3"></a>
+
+##### operationId?
+
+```ts
+optional operationId?: string;
+```
+
+A stable id for this operation, the same on every retry of it and on every instance: derived
+from the scoped `idempotencyKey` for an action call, and from the token for a continue, resume,
+or poll. Pass it to a downstream system as its idempotency key, or store it under a unique
+constraint in the same transaction as the business change, so a handler that runs again after
+a crash does not apply the change twice. Absent for a read-only call without a key.
+
+###### Inherited from
+
+```ts
+BaseContext.operationId
+```
+
 <a id="pending-4"></a>
 
 ##### pending
@@ -4197,20 +4523,17 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
-<a id="sitekey-3"></a>
+<a id="sitekey-4"></a>
 
 ##### siteKey
 
 ```ts
-siteKey: 
-  | {
-  actions?: string[];
-  id?: string;
-}
-  | null;
+siteKey: SiteKeyContext | null;
 ```
 
-For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+For a `site` action, and for a continue, resume, or poll of a token minted by one: the verified
+key's principal id and allowlist. `id` is what `verifySiteKey` returned, or a keyed hash of the
+key when it returned none. Null when no site key is part of the call.
 
 ###### Inherited from
 
@@ -4312,6 +4635,17 @@ Passed to the `revision` provider.
 
 #### Properties
 
+<a id="identity-7"></a>
+
+##### identity?
+
+```ts
+optional identity?: Identity | null;
+```
+
+The user the runtime established for this request, once it has: on an action call, a continue,
+a resume, a poll, and `/axe/state`. Absent for the manifest and before authentication.
+
 <a id="request-6"></a>
 
 ##### request
@@ -4322,6 +4656,16 @@ request: Request | null;
 
 The request being served; null when the manifest is described outside a request.
 
+<a id="sitekey-5"></a>
+
+##### siteKey?
+
+```ts
+optional siteKey?: SiteKeyContext | null;
+```
+
+The verified site key, when the call is a `site` call or a follow-up of one ([P-TOK-7]).
+
 <a id="tenant-8"></a>
 
 ##### tenant
@@ -4329,6 +4673,48 @@ The request being served; null when the manifest is described outside a request.
 ```ts
 tenant: TenantInfo | null;
 ```
+
+***
+
+<a id="sitekeycontext"></a>
+
+### SiteKeyContext
+
+What a `site` call resolved to: the key's stable id, and the actions it may call when limited.
+
+#### Properties
+
+<a id="actions-1"></a>
+
+##### actions?
+
+```ts
+optional actions?: string[];
+```
+
+The allowlist `verifySiteKey` returned, when it limited the key.
+
+<a id="derived"></a>
+
+##### derived?
+
+```ts
+optional derived?: true;
+```
+
+True when `id` is the keyed hash because `verifySiteKey` returned no id.
+
+<a id="id"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+The id `verifySiteKey` returned; when it returned `true` or an object without `id`, a keyed
+hash of the presented key (HMAC-SHA256 under the server `secret`), so two unrelated keys never
+share a scope and the raw key is never stored.
 
 ***
 
@@ -4388,7 +4774,7 @@ optional description?: string;
 optional humanFallbackUrl?: string;
 ```
 
-<a id="id"></a>
+<a id="id-1"></a>
 
 ##### id
 
@@ -4486,16 +4872,6 @@ optional data?: JsonValue;
 optional onBehalfOf?: string;
 ```
 
-<a id="consumedat"></a>
-
-##### consumedAt?
-
-```ts
-optional consumedAt?: number;
-```
-
-Set once the token has been used.
-
 <a id="expiresat"></a>
 
 ##### expiresAt
@@ -4514,7 +4890,7 @@ optional handoff?: Handoff;
 
 Resume only: the handoff as sent, so it can be re-served while open.
 
-<a id="id-1"></a>
+<a id="id-2"></a>
 
 ##### id
 
@@ -4522,7 +4898,7 @@ Resume only: the handoff as sent, so it can be re-served while open.
 id: string;
 ```
 
-<a id="inputhash-1"></a>
+<a id="inputhash"></a>
 
 ##### inputHash
 
@@ -4566,13 +4942,17 @@ optional idempotencyKey?: string;
 input: JsonValue;
 ```
 
-<a id="onbehalfof-1"></a>
+<a id="principal"></a>
 
-##### onBehalfOf
+##### principal
 
 ```ts
-onBehalfOf: string | null;
+principal: string | null;
 ```
+
+The acting principal the token is bound to, as `principalOf` encodes it (`user:<id>`,
+`site:<id>`, or both), or null for an anonymous call. Every endpoint that accepts the token
+requires the same principal ([P-TOK-6]).
 
 <a id="requirecompletion-1"></a>
 
@@ -4602,16 +4982,6 @@ Site-provided state for `onContinue` / `onResume` / `onPoll`.
 tenant: string | null;
 ```
 
-<a id="terminal"></a>
-
-##### terminal?
-
-```ts
-optional terminal?: Result;
-```
-
-Poll only: the terminal result once produced.
-
 <a id="type"></a>
 
 ##### type
@@ -4627,7 +4997,9 @@ type: TokenType;
 ### TokenStore
 
 Storage for token records. Implement with Redis, a KV store, or a database for
-multi-instance deployments. The in-memory implementation is the default.
+multi-instance deployments. The in-memory implementation is the default. Records are written
+when a token is minted and when `completeHandoff` records a completion; single use is enforced
+by an operation claim in the `IdempotencyStore`, so this store needs no atomic operation.
 
 #### Methods
 
@@ -4667,7 +5039,7 @@ get(id): Promise<TokenRecord | undefined>;
 
 `Promise`\<[`TokenRecord`](#tokenrecord) \| `undefined`\>
 
-<a id="set-3"></a>
+<a id="set-1"></a>
 
 ##### set()
 
@@ -4719,6 +5091,30 @@ type AvailabilityInput =
 What an action's `availability` hook returns: available, or unavailable with a reason in the
 site's own words and, optionally, the kinds that would make it available (`requires`, with Zod or
 JSON Schemas) and a step only a human can take (`handoff`).
+
+***
+
+<a id="claimoutcome"></a>
+
+### ClaimOutcome
+
+```ts
+type ClaimOutcome = 
+  | {
+  outcome: "acquired";
+}
+  | {
+  fingerprint: string;
+  leaseExpiresAt: number;
+  outcome: "in_progress";
+}
+  | {
+  outcome: "completed";
+  record: IdempotencyRecord;
+};
+```
+
+The answer to `claim`.
 
 ***
 
@@ -4823,7 +5219,9 @@ type SiteKeyVerdict =
 };
 ```
 
-What a `verifySiteKey` function may return: `true`, `false`, or an allowlist of actions.
+What a `verifySiteKey` function may return: `true`, `false`, or an object naming the key's
+stable `id` and, optionally, an allowlist of actions. Without an `id` the runtime scopes the key
+by a keyed hash of the key itself (see `SiteKeyContext`).
 
 ***
 
@@ -4856,6 +5254,18 @@ const DEFAULT_IDEMPOTENCY_TTL_SECONDS: number;
 ```
 
 Default idempotency window: 24 hours.
+
+***
+
+<a id="default_operation_lease_seconds"></a>
+
+### DEFAULT\_OPERATION\_LEASE\_SECONDS
+
+```ts
+const DEFAULT_OPERATION_LEASE_SECONDS: 60 = 60;
+```
+
+Default operation lease: how long a claim holds before a retry may take it over.
 
 ***
 
