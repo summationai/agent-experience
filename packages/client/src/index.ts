@@ -99,10 +99,18 @@ export interface ConfirmRequest {
 
 export interface ClientOptions {
   fetch?: FetchLike;
-  /** Extra headers on every request. */
+  /**
+   * Extra headers. Treated as credentials: sent only to origins in the credential audience
+   * (the discovery origin plus `trust.origins`), never on a cross-origin redirect.
+   */
   headers?: Record<string, string>;
-  /** Bearer token, or a function returning one, sent in `Authorization`. */
+  /**
+   * Bearer token, or a function returning one, sent in `Authorization` to origins in the
+   * credential audience only (see `trust`).
+   */
   auth?: string | (() => MaybePromise<string | undefined>);
+  /** Which destinations the client may contact and which receive credentials. See `TrustOptions`. */
+  trust?: TrustOptions;
   /** Sent as `context.agent` and as the `User-Agent` when possible. */
   agent?: AgentIdentification;
   locale?: string;
@@ -166,18 +174,238 @@ export class AXEClientError extends Error {
 }
 
 // ---------------------------------------------------------------------------
+// Destination policy
+// ---------------------------------------------------------------------------
+
+/** Which request a destination check is for. */
+export type DestinationKind = "discovery" | "action" | "continue" | "resume" | "state" | "poll";
+
+/** What `trust.destinationPolicy` receives for every outbound request, redirects included. */
+export interface DestinationRequest {
+  url: string;
+  kind: DestinationKind;
+  /** Whether the client will attach `auth` and `headers` to this request. */
+  credentialed: boolean;
+  /** Set when this request follows a redirect: the URL that redirected. */
+  redirectedFrom?: string;
+}
+
+/**
+ * Where the client may send requests and credentials. The anchor is the origin you discovered
+ * from (`discover(url)`, `AXEClient.discover(url)`), or the `baseUrl` origin of a manifest you
+ * hand to `new AXEClient` yourself. The credential audience is the anchor plus `origins`.
+ */
+export interface TrustOptions {
+  /**
+   * More origins (`https://api.example`; a path is ignored) that may be contacted with
+   * credentials: a manifest `baseUrl`, `live.url`, `pollUrl`, or discovery hint on another origin.
+   */
+  origins?: string[];
+  /**
+   * Contact other https origins named by the site (baseUrl, live.url, pollUrl, discovery hints),
+   * without `auth` or `headers`. Loopback and private-range host names stay refused. Default false.
+   */
+  allowCrossOrigin?: boolean;
+  /**
+   * Plain http. `"localhost"` (default): only for `localhost`, `127.x.x.x`, and `[::1]` origins in
+   * the credential audience. `false`: https everywhere. `true`: http anywhere (a private network
+   * you control). An https-to-http redirect is refused whatever this says.
+   */
+  allowHttp?: boolean | "localhost";
+  /**
+   * Called for every outbound URL, redirects included, after the built-in checks pass. Return false
+   * to refuse. Use it to bind the client to your own network policy. It sees URLs, not resolved
+   * addresses: it does not stop DNS rebinding. See docs/security.md.
+   */
+  destinationPolicy?: (request: DestinationRequest) => MaybePromise<boolean>;
+}
+
+/** The built-in part of the destination check for one URL. */
+export interface DestinationDecision {
+  allowed: boolean;
+  /** Whether `auth` and `headers` would be sent. */
+  credentialed: boolean;
+  reason?: string;
+}
+
+/** Thrown when the destination policy refuses a request. Nothing was sent to `url`. */
+export class AXETrustError extends AXEClientError {
+  readonly url: string;
+  readonly kind: DestinationKind;
+  constructor(message: string, url: string, kind: DestinationKind) {
+    super(message);
+    this.name = "AXETrustError";
+    this.url = url;
+    this.kind = kind;
+  }
+}
+
+interface Policy {
+  audience: Set<string>;
+  crossOrigin: boolean;
+  http: boolean | "localhost";
+  hook: TrustOptions["destinationPolicy"];
+}
+
+const LOOPBACK = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/i;
+
+function makePolicy(anchor: string, trust: TrustOptions = {}): Policy {
+  const audience = new Set([anchor]);
+  for (const o of trust.origins ?? []) {
+    try {
+      audience.add(new URL(o).origin);
+    } catch (e) {
+      throw new AXEClientError(`trust.origins entry "${o}" is not a URL.`, e);
+    }
+  }
+  return {
+    audience,
+    crossOrigin: trust.allowCrossOrigin === true,
+    http: trust.allowHttp ?? "localhost",
+    hook: trust.destinationPolicy,
+  };
+}
+
+/** Loopback, link-local, private, and local-only names, by syntax. Not a defence against DNS. */
+function isPrivateHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === "localhost" || /\.(localhost|local|internal)$/.test(h)) return true;
+  const v4 = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
+  if (v4) {
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127)
+    );
+  }
+  if (h.startsWith("[")) return /^\[(::1?|f[cd]|fe[89ab]|::ffff:)/.test(h);
+  return false;
+}
+
+function decide(p: Policy, u: URL): DestinationDecision {
+  const no = (reason: string): DestinationDecision => ({
+    allowed: false,
+    credentialed: false,
+    reason,
+  });
+  if (u.protocol !== "https:" && u.protocol !== "http:")
+    return no(`${u.protocol} URLs are refused`);
+  if (u.username || u.password) return no("URLs with embedded credentials are refused");
+  const trusted = p.audience.has(u.origin);
+  if (
+    u.protocol === "http:" &&
+    !(p.http === true || (p.http === "localhost" && trusted && LOOPBACK.test(u.hostname)))
+  ) {
+    return no(
+      `plain http is refused; https is required except for a loopback origin you authorized (trust.allowHttp)`,
+    );
+  }
+  if (trusted) return { allowed: true, credentialed: true };
+  if (p.crossOrigin && !isPrivateHost(u.hostname)) return { allowed: true, credentialed: false };
+  return no(
+    `${u.origin} is not an authorized origin (authorized: ${[...p.audience].join(", ")}); add it to trust.origins`,
+  );
+}
+
+const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+
+/**
+ * Every request the package makes goes through here. Redirects are followed by hand
+ * (`redirect: "manual"`), each hop checked again; credentials go only to the audience and never
+ * past a redirect to another origin; an https-to-http redirect is refused.
+ */
+async function send(
+  f: FetchLike,
+  p: Policy,
+  kind: DestinationKind,
+  url: string,
+  init: { method: string; body?: string; signal?: AbortSignal | undefined },
+  base: Record<string, string>,
+  credentials: () => Promise<Record<string, string>>,
+): Promise<Response> {
+  let current: URL;
+  try {
+    current = new URL(url);
+  } catch (e) {
+    throw new AXEClientError(`${url} is not a URL.`, e);
+  }
+  const first = current.origin;
+  let { method, body } = init;
+  let from: string | undefined;
+  for (let hop = 0; hop <= 5; hop++) {
+    const refuse = (why: string) =>
+      new AXETrustError(
+        `Refused ${kind} request to ${current.href}${from ? ` (redirected from ${from})` : ""}: ${why}.`,
+        current.href,
+        kind,
+      );
+    const d = decide(p, current);
+    if (!d.allowed) throw refuse(d.reason!);
+    const credentialed = d.credentialed && current.origin === first;
+    if (p.hook) {
+      const req: DestinationRequest = { url: current.href, kind, credentialed };
+      if (from) req.redirectedFrom = from;
+      if (!(await p.hook(req))) throw refuse("trust.destinationPolicy returned false");
+    }
+    const ri: RequestInit = {
+      method,
+      headers: credentialed ? { ...base, ...(await credentials()) } : base,
+      redirect: "manual",
+    };
+    if (body !== undefined) ri.body = body;
+    if (init.signal) ri.signal = init.signal;
+    let res: Response;
+    try {
+      res = await f(current.href, ri);
+    } catch (e) {
+      throw new AXEClientError(`Request to ${current.href} failed.`, e);
+    }
+    if (res.type === "opaqueredirect")
+      throw refuse("it redirected and the runtime hides the target, so it cannot be checked");
+    if (res.redirected && res.url && new URL(res.url).origin !== current.origin)
+      throw refuse(`the fetch implementation followed a redirect to ${res.url} itself`);
+    const location = REDIRECT_STATUSES.includes(res.status) ? res.headers.get("location") : null;
+    if (!location) return res;
+    const next = new URL(location, current);
+    if (current.protocol === "https:" && next.protocol !== "https:")
+      throw refuse(`it redirected to ${next.href}, a downgrade from https`);
+    if (res.status === 303 || (method === "POST" && res.status < 307)) {
+      method = "GET";
+      body = undefined;
+    }
+    from = current.href;
+    current = next;
+  }
+  throw new AXEClientError(`Too many redirects from ${url}.`);
+}
+
+/** The origin each manifest returned by `discover()` was discovered from. */
+const discoveredFrom = new WeakMap<object, string>();
+
+// ---------------------------------------------------------------------------
 // Discovery
 // ---------------------------------------------------------------------------
 
 export interface DiscoverOptions {
   fetch?: FetchLike;
+  /** Sent only to the discovery origin and `trust.origins`, like `ClientOptions.headers`. */
   headers?: Record<string, string>;
+  /** Which origins discovery may follow a header or link hint to. See `TrustOptions`. */
+  trust?: TrustOptions;
 }
 
 /**
  * Find a manifest starting from any URL: `/.well-known/axe.json`, `/axe/manifest`, the
  * `AXE-Manifest` response header, then a `<link rel="axe-manifest">` in the page. Returns
- * the manifest and where it was found.
+ * the manifest and where it was found. A hint or redirect to another origin is followed only
+ * when `trust` authorizes it. The returned manifest remembers the discovery origin, so
+ * `new AXEClient(manifest)` anchors its credentials there, not at the manifest's `baseUrl`.
  */
 export async function discover(
   url: string,
@@ -188,37 +416,57 @@ export async function discover(
   via: "well-known" | "alias" | "header" | "link";
 }> {
   const f = options.fetch ?? fetch;
-  const origin = new URL(url);
-  const headers = { Accept: "application/json", ...(options.headers ?? {}) };
+  let origin: URL;
+  try {
+    origin = new URL(url);
+  } catch (e) {
+    throw new AXEClientError(`${url} is not a URL.`, e);
+  }
+  const policy = makePolicy(origin.origin, options.trust);
+  const start = decide(policy, origin);
+  if (!start.allowed)
+    throw new AXETrustError(`Refused discovery at ${url}: ${start.reason}.`, url, "discovery");
+  const creds = async () => ({ ...(options.headers ?? {}) });
+  const refused: string[] = [];
+  const get = (u: string, accept: string) =>
+    send(f, policy, "discovery", u, { method: "GET" }, { Accept: accept }, creds);
+  const found = (
+    manifest: Manifest,
+    manifestUrl: string,
+    via: "well-known" | "alias" | "header" | "link",
+  ) => {
+    discoveredFrom.set(manifest, origin.origin);
+    return { manifest, manifestUrl, via };
+  };
   const tryJson = async (u: string): Promise<Manifest | undefined> => {
     try {
-      const res = await f(u, { headers });
+      const res = await get(u, "application/json");
       if (!res.ok) return undefined;
       const body = (await res.json()) as unknown;
       return looksLikeManifest(body) ? body : undefined;
-    } catch {
+    } catch (e) {
+      if (e instanceof AXETrustError) refused.push(e.message);
       return undefined;
     }
   };
   const wk = new URL(WIRE.path.manifest, origin.origin).toString();
   const m1 = await tryJson(wk);
-  if (m1) return { manifest: m1, manifestUrl: wk, via: "well-known" };
+  if (m1) return found(m1, wk, "well-known");
   const alias = new URL(WIRE.path.manifestAlias, origin.origin).toString();
   const m2 = await tryJson(alias);
-  if (m2) return { manifest: m2, manifestUrl: alias, via: "alias" };
-  let page: Response | undefined;
+  if (m2) return found(m2, alias, "alias");
+  let page: Response;
   try {
-    page = await f(url, {
-      headers: { Accept: "text/html,application/json", ...(options.headers ?? {}) },
-    });
+    page = await get(url, "text/html,application/json");
   } catch (e) {
+    if (e instanceof AXETrustError) throw e;
     throw new AXEClientError(`Could not reach ${url} while discovering an AXE manifest.`, e);
   }
   const header = page.headers.get(WIRE.header.manifest);
   if (header) {
     const hu = new URL(header, url).toString();
     const m3 = await tryJson(hu);
-    if (m3) return { manifest: m3, manifestUrl: hu, via: "header" };
+    if (m3) return found(m3, hu, "header");
   }
   const ct = page.headers.get("content-type") ?? "";
   if (ct.includes("text/html")) {
@@ -227,11 +475,11 @@ export async function discover(
     if (href) {
       const lu = new URL(href, url).toString();
       const m4 = await tryJson(lu);
-      if (m4) return { manifest: m4, manifestUrl: lu, via: "link" };
+      if (m4) return found(m4, lu, "link");
     }
   }
   throw new AXEClientError(
-    `No AXE manifest found for ${url}. Tried ${WIRE.path.manifest}, ${WIRE.path.manifestAlias}, the ${WIRE.header.manifest} header, and a <link rel="${WIRE.link.manifestRel}"> tag.`,
+    `No AXE manifest found for ${url}. Tried ${WIRE.path.manifest}, ${WIRE.path.manifestAlias}, the ${WIRE.header.manifest} header, and a <link rel="${WIRE.link.manifestRel}"> tag.${refused.length ? ` Refused by the destination policy: ${refused.join(" ")}` : ""}`,
   );
 }
 
@@ -268,22 +516,66 @@ export function findLinkHref(html: string): string | undefined {
 export class AXEClient {
   private readonly f: FetchLike;
   private readonly base: string;
+  private readonly policy: Policy;
 
+  /**
+   * Build a client from a manifest. Credentials are anchored at the origin `discover()` found the
+   * manifest on, or, for a manifest you obtained yourself, at its `baseUrl` origin: the client
+   * trusts a manifest you hand it. Add origins with `trust.origins`.
+   */
   constructor(
     private readonly manifestDoc: Manifest,
     private readonly options: ClientOptions = {},
   ) {
     this.f = options.fetch ?? fetch;
     this.base = manifestDoc.baseUrl.replace(/\/$/, "");
+    let anchor = discoveredFrom.get(manifestDoc);
+    if (!anchor) {
+      try {
+        anchor = new URL(manifestDoc.baseUrl).origin;
+      } catch (e) {
+        throw new AXEClientError(
+          `The manifest's baseUrl "${manifestDoc.baseUrl}" is not a URL.`,
+          e,
+        );
+      }
+    }
+    this.policy = makePolicy(anchor, options.trust);
   }
 
-  /** Discover and construct in one step. */
+  /**
+   * Discover and construct in one step. Throws `AXETrustError` when the manifest's `baseUrl` is on
+   * an origin `trust` does not authorize: a manifest cannot redirect your credentials elsewhere.
+   */
   static async discover(url: string, options: ClientOptions = {}): Promise<AXEClient> {
     const discoverOpts: DiscoverOptions = {};
     if (options.fetch) discoverOpts.fetch = options.fetch;
     if (options.headers) discoverOpts.headers = options.headers;
-    const { manifest } = await discover(url, discoverOpts);
-    return new AXEClient(manifest, options);
+    if (options.trust) discoverOpts.trust = options.trust;
+    const { manifest, manifestUrl } = await discover(url, discoverOpts);
+    const client = new AXEClient(manifest, options);
+    const d = client.checkDestination(manifest.baseUrl);
+    if (!d.allowed) {
+      throw new AXETrustError(
+        `The manifest at ${manifestUrl} names baseUrl ${manifest.baseUrl}, which this client may not contact: ${d.reason}.`,
+        manifest.baseUrl,
+        "action",
+      );
+    }
+    return client;
+  }
+
+  /**
+   * Whether the destination policy lets this client contact `url`, and with credentials. Checks
+   * scheme and origin only; `trust.destinationPolicy` runs at request time. Useful before
+   * showing or opening a URL a site returned, such as a handoff `url`.
+   */
+  checkDestination(url: string): DestinationDecision {
+    try {
+      return decide(this.policy, new URL(url));
+    } catch {
+      return { allowed: false, credentialed: false, reason: `${url} is not a URL` };
+    }
   }
 
   /** The manifest this client was built from. */
@@ -307,14 +599,7 @@ export class AXEClient {
    */
   async state(options: { signal?: AbortSignal } = {}): Promise<LiveState> {
     const url = this.manifestDoc.live?.url ?? `${this.base}${WIRE.path.state}`;
-    const init: RequestInit = { method: "GET", headers: await this.headers() };
-    if (options.signal) init.signal = options.signal;
-    let res: Response;
-    try {
-      res = await this.f(url, init);
-    } catch (e) {
-      throw new AXEClientError(`Request to ${url} failed.`, e);
-    }
+    const res = await this.send("state", url, "GET", undefined, options.signal);
     let body: unknown;
     try {
       body = await res.json();
@@ -363,7 +648,8 @@ export class AXEClient {
     if (def && !def.readOnly) body["idempotencyKey"] = options.idempotencyKey ?? randomKey();
     else if (options.idempotencyKey) body["idempotencyKey"] = options.idempotencyKey;
     if (options.expectedRev !== undefined) body["expectedRev"] = options.expectedRev;
-    return this.post<O>(
+    return this.request<O>(
+      "action",
       `${this.base}${WIRE.path.actions}/${encodeURIComponent(name)}`,
       body,
       options.signal,
@@ -384,7 +670,7 @@ export class AXEClient {
       context: this.context(options.context),
     };
     if (options.expectedRev !== undefined) body["expectedRev"] = options.expectedRev;
-    return this.post<O>(`${this.base}${WIRE.path.continue}`, body, options.signal);
+    return this.request<O>("continue", `${this.base}${WIRE.path.continue}`, body, options.signal);
   }
 
   /** Resume after a human handoff. */
@@ -394,7 +680,7 @@ export class AXEClient {
   ): Promise<Result<O>> {
     const body: Record<string, unknown> = { resumeToken, context: this.context(options.context) };
     if (options.expectedRev !== undefined) body["expectedRev"] = options.expectedRev;
-    return this.post<O>(`${this.base}${WIRE.path.resume}`, body, options.signal);
+    return this.request<O>("resume", `${this.base}${WIRE.path.resume}`, body, options.signal);
   }
 
   /** Poll a `pending` result until it settles or `maxWaitMs` passes (then the last `pending` is returned). */
@@ -409,7 +695,7 @@ export class AXEClient {
       const remaining = deadline - Date.now();
       if (remaining <= 0) return current;
       await sleep(Math.min(current.retryAfter * 1000, remaining), options.signal);
-      current = await this.get<O>(current.pollUrl, options.signal);
+      current = await this.request<O>("poll", current.pollUrl, undefined, options.signal);
     }
     return current;
   }
@@ -532,70 +818,77 @@ export class AXEClient {
     return ctx;
   }
 
-  private async headers(): Promise<Record<string, string>> {
+  /** Headers every request carries. Nothing here identifies the user. */
+  private baseHeaders(): Record<string, string> {
     const h: Record<string, string> = {
       [WIRE.header.contentType]: "application/json",
       Accept: "application/json",
       [WIRE.header.protocol]: WIRE.protocol.version,
-      ...(this.options.headers ?? {}),
     };
     const a = this.options.agent;
     if (a && typeof document === "undefined") {
       h[WIRE.header.userAgent] =
         `${a.name}/${a.version ?? "0"} (${a.contact ? `+${a.contact}; ` : ""}${WIRE.protocol.version})`;
     }
+    return h;
+  }
+
+  /** `headers` and `Authorization`: sent only to the credential audience. */
+  private async credentials(): Promise<Record<string, string>> {
+    const h: Record<string, string> = { ...(this.options.headers ?? {}) };
     const token =
       typeof this.options.auth === "function" ? await this.options.auth() : this.options.auth;
     if (token) h[WIRE.header.authorization] = `Bearer ${token}`;
     return h;
   }
 
-  private async post<O>(url: string, body: unknown, signal?: AbortSignal): Promise<Result<O>> {
-    const init: RequestInit = {
-      method: "POST",
-      headers: await this.headers(),
-      body: JSON.stringify(body),
-    };
+  private send(
+    kind: DestinationKind,
+    url: string,
+    method: string,
+    body: string | undefined,
+    signal: AbortSignal | undefined,
+  ): Promise<Response> {
+    const init: { method: string; body?: string; signal?: AbortSignal } = { method };
+    if (body !== undefined) init.body = body;
     if (signal) init.signal = signal;
-    return this.request<O>(url, init);
+    return send(this.f, this.policy, kind, url, init, this.baseHeaders(), () => this.credentials());
   }
 
-  private async get<O>(url: string, signal?: AbortSignal): Promise<Result<O>> {
-    const init: RequestInit = { method: "GET", headers: await this.headers() };
-    if (signal) init.signal = signal;
-    return this.request<O>(url, init);
-  }
-
-  private async request<O>(url: string, init: RequestInit, attempt = 0): Promise<Result<O>> {
-    let res: Response;
+  /** POST `body` as JSON, or GET when `body` is undefined; parse the envelope; retry once on 429/503. */
+  private async request<O>(
+    kind: DestinationKind,
+    url: string,
+    body: unknown,
+    signal?: AbortSignal,
+    attempt = 0,
+  ): Promise<Result<O>> {
+    const json = body === undefined ? undefined : JSON.stringify(body);
+    const res = await this.send(kind, url, json === undefined ? "GET" : "POST", json, signal);
+    let parsed: unknown;
     try {
-      res = await this.f(url, init);
-    } catch (e) {
-      throw new AXEClientError(`Request to ${url} failed.`, e);
-    }
-    let body: unknown;
-    try {
-      body = await res.json();
+      parsed = await res.json();
     } catch (e) {
       throw new AXEClientError(`Response from ${url} (HTTP ${res.status}) was not JSON.`, e);
     }
-    if (!isResult(body)) {
+    if (!isResult(parsed)) {
       throw new AXEClientError(
         `Response from ${url} (HTTP ${res.status}) is not an AXE result envelope.`,
       );
     }
     const retryable =
-      isError(body) &&
-      (body.error.code === WIRE.error.rateLimited || body.error.code === WIRE.error.unavailable);
+      isError(parsed) &&
+      (parsed.error.code === WIRE.error.rateLimited ||
+        parsed.error.code === WIRE.error.unavailable);
     if (retryable && attempt < (this.options.retries ?? 1)) {
       const ra = Number(res.headers.get(WIRE.header.retryAfter));
       const waitMs = Number.isFinite(ra) && ra > 0 ? ra * 1000 : 1000;
       if (waitMs <= (this.options.maxRetryAfterMs ?? 30_000)) {
-        await sleep(waitMs, init.signal ?? undefined);
-        return this.request<O>(url, init, attempt + 1);
+        await sleep(waitMs, signal);
+        return this.request<O>(kind, url, body, signal, attempt + 1);
       }
     }
-    return body as Result<O>;
+    return parsed as Result<O>;
   }
 }
 
