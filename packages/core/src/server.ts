@@ -32,6 +32,7 @@ import type {
   Revision,
 } from "./types";
 import type {
+  ActionProvider,
   AvailabilityContext,
   RegisteredAction,
   TenantInfo,
@@ -221,6 +222,11 @@ function majorOf(version: string): string | undefined {
 /** The server. Create one with `createAXE()`. */
 export class AXE {
   private readonly actions = new Map<string, RegisteredAction>();
+  /** Dynamic sources of actions, consulted after `actions` (spec [S-AXE-1]). */
+  private readonly providers: ActionProvider[] = [];
+  /** Provider actions whose `auth` mode and affordance targets have been checked. */
+  private readonly vetted = new WeakSet<RegisteredAction>();
+  private readonly changeListeners = new Set<() => void>();
   private readonly signer: TokenSigner;
   private readonly tokens: TokenStore;
   private readonly idempotency: IdempotencyStore;
@@ -312,7 +318,7 @@ export class AXE {
   register<I extends z.ZodType, O extends z.ZodType, S extends JsonValue>(
     registered: RegisteredAction<I, O, S>,
   ): this {
-    if (this.actions.has(registered.name)) {
+    if (this.getAction(registered.name)) {
       throw new ActionDefinitionError(
         registered.name,
         "is already registered. Action names must be unique (spec [P-ACT-2]).",
@@ -341,17 +347,102 @@ export class AXE {
     }
     this.actions.set(registered.name, registered as unknown as RegisteredAction);
     this.finalized = false;
+    this.notifyChanged();
     return this;
   }
 
-  /** Every registered action's wire definition. */
-  get definitions(): ActionDefinition[] {
-    return [...this.actions.values()].map((a) => a.definition);
+  /**
+   * Add a source of actions that changes while the server runs: a Surface bridge, a registry the
+   * application rebuilds as its page changes. The provider is consulted after the actions added
+   * with `register()` whenever actions are enumerated or looked up by name, so the manifest,
+   * `/axe/state`, and the derived MCP tools reflect the current set on every request. Names must
+   * still be unique across `register()` and every provider (spec [P-ACT-2]); a collision is an
+   * `ActionDefinitionError` when the set is next enumerated.
+   */
+  addProvider(provider: ActionProvider): this {
+    this.providers.push(provider);
+    provider.onChange?.(() => this.notifyChanged());
+    this.notifyChanged();
+    return this;
   }
 
-  /** Look up one registered action. */
+  /** Called when the set of actions changes: after `register()`, `addProvider()`, and when a provider reports a change. */
+  onActionsChanged(listener: () => void): () => void {
+    this.changeListeners.add(listener);
+    return () => void this.changeListeners.delete(listener);
+  }
+
+  private notifyChanged(): void {
+    for (const fn of this.changeListeners) {
+      try {
+        fn();
+      } catch (e) {
+        console.error("[axe] onActionsChanged listener failed", e);
+      }
+    }
+  }
+
+  /** Every action's wire definition: registered ones first, then each provider's, in order. */
+  get definitions(): ActionDefinition[] {
+    return this.allActions().map((a) => a.definition);
+  }
+
+  /** Look up one action by name, registered or provided. */
   getAction(name: string): RegisteredAction | undefined {
-    return this.actions.get(name);
+    const own = this.actions.get(name);
+    if (own) return own;
+    for (const p of this.providers) {
+      const a = p.get ? p.get(name) : p.actions().find((x) => x.name === name);
+      if (a) {
+        this.vet(a);
+        return a;
+      }
+    }
+    return undefined;
+  }
+
+  /** The current set: registered actions in registration order, then each provider's actions. */
+  private allActions(): RegisteredAction[] {
+    if (this.providers.length === 0) return [...this.actions.values()];
+    const out = [...this.actions.values()];
+    const seen = new Map<string, RegisteredAction>(this.actions);
+    for (const p of this.providers) {
+      for (const a of p.actions()) {
+        const prior = seen.get(a.name);
+        if (prior && prior !== a) {
+          throw new ActionDefinitionError(
+            a.name,
+            "is provided more than once, or collides with a registered action. Action names must be unique (spec [P-ACT-2]).",
+          );
+        }
+        if (prior) continue;
+        this.vet(a);
+        seen.set(a.name, a);
+        out.push(a);
+      }
+    }
+    return out;
+  }
+
+  /** Registration-time checks for a provided action, once per action object. */
+  private vet(a: RegisteredAction): void {
+    if (this.vetted.has(a)) return;
+    if (!this.config.auth.modes.includes(a.definition.auth)) {
+      throw new ActionDefinitionError(
+        a.name,
+        `auth "${a.definition.auth}" is not in manifest auth.modes [${this.config.auth.modes.join(", ")}] (spec [P-AUTH-1]).`,
+      );
+    }
+    for (const [i, aff] of (a.definition.affordances ?? []).entries()) {
+      const target = this.actions.get(aff.action);
+      if (!target)
+        throw new ActionDefinitionError(
+          a.name,
+          `affordance targets "${aff.action}", which is not a registered action. Provided actions may only point at actions added with register() (spec [P-AFF-1]).`,
+        );
+      validateAffordanceBinding(a.name, i, aff, target.definition.input);
+    }
+    this.vetted.add(a);
   }
 
   /**
@@ -369,7 +460,7 @@ export class AXE {
       }
       if (
         a.definition.deprecated?.replacedBy &&
-        !this.actions.has(a.definition.deprecated.replacedBy)
+        !this.getAction(a.definition.deprecated.replacedBy)
       ) {
         throw new ActionDefinitionError(
           a.name,
@@ -379,7 +470,7 @@ export class AXE {
     }
     for (const flow of this.config.flows ?? []) {
       for (const step of flow.steps) {
-        if (!this.actions.has(step))
+        if (!this.getAction(step))
           throw new Error(
             `createAXE: flow "${flow.name}" step "${step}" is not a registered action.`,
           );
@@ -421,7 +512,7 @@ export class AXE {
   /** Whether the site publishes live state: a `revision` provider or any action with `availability`. */
   hasLive(): boolean {
     if (this.config.revision) return true;
-    for (const a of this.actions.values()) if (a.spec.availability) return true;
+    for (const a of this.allActions()) if (a.spec.availability) return true;
     return false;
   }
 
@@ -440,7 +531,7 @@ export class AXE {
     const rev = await this.currentRevision(request, t);
     if (rev !== undefined) m.live = { ...m.live, rev };
     const actions: ActionDefinition[] = [];
-    for (const a of this.actions.values()) {
+    for (const a of this.allActions()) {
       if (!a.spec.availability) {
         actions.push(a.definition);
         continue;
@@ -466,7 +557,7 @@ export class AXE {
     const state: LiveState = { actions: {} };
     const rev = await this.currentRevision(request, tenant);
     if (rev !== undefined) state.rev = rev;
-    for (const a of this.actions.values()) {
+    for (const a of this.allActions()) {
       state.actions[a.name] = a.spec.availability
         ? ((await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? {
             available: false,
@@ -684,7 +775,7 @@ export class AXE {
     if (path.startsWith(actionsPrefix)) {
       const name = decodeURIComponent(path.slice(actionsPrefix.length));
       if (method === "GET") {
-        const a = this.actions.get(name);
+        const a = this.getAction(name);
         if (!a)
           return this.respond(
             request,
@@ -1249,12 +1340,27 @@ export class AXE {
   ): Promise<Response> {
     const startedAt = performance.now();
     const proto = this.protocolError(request);
-    const a = this.actions.get(name);
+    const a = this.getAction(name);
     const read = await this.readBody(request);
     const context = this.sanitizeContext("body" in read ? read.body["context"] : undefined);
     const hookCtx = this.hook("action", name, request, context, tenant);
     if (proto) return this.runHooksAndFinish(hookCtx, proto, startedAt, WIRE.ladder.error, null);
-    if (!a)
+    if (!a) {
+      // An action that is gone may be gone because its own last invocation removed it (a Surface
+      // row that leaves the board when drafted). A retry of that attempt is the same attempt
+      // ([P-IDEM-2]): answer it from the idempotency store before saying the name is unknown.
+      const replay =
+        "body" in read
+          ? await this.replayForUnknown(name, read.body, request, adapter, tenant)
+          : undefined;
+      if (replay)
+        return this.runHooksAndFinish(
+          hookCtx,
+          replay,
+          startedAt,
+          ladderFor(replay),
+          kindFor(replay),
+        );
       return this.runHooksAndFinish(
         hookCtx,
         {
@@ -1268,6 +1374,7 @@ export class AXE {
         WIRE.ladder.error,
         null,
       );
+    }
     if ("error" in read)
       return this.runHooksAndFinish(hookCtx, read.error, startedAt, WIRE.ladder.error, null);
     const body = read.body;
@@ -1320,6 +1427,34 @@ export class AXE {
       expectedRev,
     );
     return this.runHooksAndFinish(hookCtx, outcome.result, startedAt, outcome.ladder, outcome.kind);
+  }
+
+  /**
+   * The stored envelope for a retried `idempotencyKey` whose action no longer exists. The principal
+   * is the identity `authenticate` or the adapter establishes; a `site`-keyed replay cannot be
+   * recovered without the definition and is answered `not_found` like any other unknown name.
+   */
+  private async replayForUnknown(
+    name: string,
+    body: Record<string, unknown>,
+    request: Request,
+    adapter: AdapterContext,
+    tenant: TenantInfo | null,
+  ): Promise<Result | undefined> {
+    const key = body["idempotencyKey"];
+    if (typeof key !== "string" || key.length === 0 || key.length > 256 || !("input" in body))
+      return undefined;
+    const identity = await this.establishIdentity(request, adapter);
+    const storageKey = idempotencyStorageKey({
+      tenant: tenant?.id ?? null,
+      action: name,
+      onBehalfOf: identity?.onBehalfOf ?? null,
+      key,
+    });
+    const prior = await this.idempotency.get(storageKey);
+    if (!prior || prior.inputHash !== (await hashJson(body["input"] as JsonValue)))
+      return undefined;
+    return prior.result;
   }
 
   /** `expectedRev` from a request body: a revision, undefined when absent, or false when malformed. */
@@ -1597,7 +1732,7 @@ export class AXE {
       });
     const record = loaded.record;
     hookCtx.action = record.action;
-    const a = this.actions.get(record.action);
+    const a = this.getAction(record.action);
     if (!a)
       return finish({
         status: WIRE.status.error,
@@ -1740,7 +1875,7 @@ export class AXE {
       });
     const record = loaded.record;
     hookCtx.action = record.action;
-    const a = this.actions.get(record.action);
+    const a = this.getAction(record.action);
     if (!a)
       return finish({
         status: WIRE.status.error,
@@ -1858,7 +1993,7 @@ export class AXE {
     const record = loaded.record;
     hookCtx.action = record.action;
     if (record.terminal) return finish(record.terminal);
-    const a = this.actions.get(record.action);
+    const a = this.getAction(record.action);
     if (!a?.spec.onPoll)
       return finish({
         status: WIRE.status.error,

@@ -69,7 +69,7 @@ A request event says that an action was called and how it went. It cannot say wh
 {
   "schemaVersion": 1,
   "ts": "2026-09-23T18:41:12.204Z",
-  "action": "board.act",
+  "action": "board.pick-me-gibbs",
   "event": "surface.act",
   "status": "ok",
   "errorCode": null,

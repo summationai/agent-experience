@@ -54,7 +54,7 @@ An agent that has read something sends the revision it read at as `expectedRev` 
 
 Nothing was applied: the check runs before the handler, before `onContinue` and `onResume`, and before a login handoff is minted. A stale continue or resume does not consume its token. The agent reads again and decides again; `retryable` is true because the same request may well succeed once the agent has seen the new state.
 
-`/axe/continue` and `/axe/resume` accept `expectedRev` with the same meaning. The client's `run()` tracks it through the ladder for you: pass `expectedRev` once and each continuation carries the `rev` of the result it continues from.
+`/axe/continue` and `/axe/resume` accept `expectedRev` with the same meaning. The client's `run()` tracks it through the ladder for you: pass `expectedRev` once and each continuation carries the `rev` of the result it continues from. A dynamic affordance may carry `expectedRev` as well: the revision the item was observed at, to present when following it ([P-AFF-4]).
 
 ### Idempotency and revisions together
 
@@ -209,7 +209,7 @@ export async function summarize(client: AXEClient): Promise<string> {
 
 ## Surface
 
-[Surface](surface.md) already keeps one revision per application and refuses stale acts. Served through AXE, make that revision the site's: the protocol's stale check then runs before the handler, every envelope carries `rev`, and the revision the agent observed travels as the envelope's `expectedRev` instead of inside the action's `input`.
+[Surface](surface.md) already keeps one revision per application and refuses stale acts. Served through AXE, every control is its own action with the control's live state as its `availability`, so `/axe/state` answers per control. Make the surface's revision the site's: the protocol's stale check then runs before the handler, every envelope carries `rev`, and the revision the agent observed travels as the envelope's `expectedRev`; the per-row affordances that `observe` returns carry it as `expectedRev` too.
 
 <!-- include: examples/live-state/surface.ts#serve -->
 ```ts
@@ -232,7 +232,8 @@ export const axe = createAXE({
   revision: surface.currentRev,
 });
 
-for (const a of surfaceActions(surface, { namespace: "board" })) axe.register(a);
+// Every entry is its own action, with the entry's live state as its availability.
+axe.addProvider(surfaceActions(surface, { namespace: "board" }));
 ```
 <!-- /include -->
 

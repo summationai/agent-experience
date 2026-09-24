@@ -1,34 +1,57 @@
 /**
- * @axe/surface/axe: the seam between Surface and AXE. A surface becomes three AXE actions:
- * `<ns>.observe` (read-only, with display and per-entry affordances), `<ns>.act` (mutating,
- * revision-guarded), and `<ns>.ledger` (read-only: what has been done and refused). Refusals map
- * onto the escalation ladder: an unavailable control that declares `requires` becomes
- * `needs_input`; one that declares a `handoff` becomes `needs_human`; a stale revision is
- * `conflict`. Every act, run or refused, is also emitted as an action event (`surface.act`) on
- * the server's `onActionEvent` sinks, with the actor and the ledger `seq`.
+ * @axe/surface/axe: the seam between Surface and AXE. Every entry on the surface becomes its own
+ * AXE action, named `<ns>.<slug>` after the entry id, with the entry's `name` as its title, its
+ * `effect` as its risk metadata, and its live `state` as its `availability`; beside them stand
+ * `<ns>.observe` (read-only, the indexed table with an affordance per actionable row) and
+ * `<ns>.ledger` (read-only: what has been done and refused). Refusals map onto the escalation
+ * ladder: an unavailable control that declares `requires` becomes `needs_input`; one that declares
+ * a `handoff` becomes `needs_human`; a stale revision is `conflict`. Every act, run or refused, is
+ * also emitted as an action event (`surface.act`) on the server's `onActionEvent` sinks, with the
+ * actor and the ledger `seq`.
  *
- * The revision the agent observed travels as the request envelope's `expectedRev` (protocol §21);
- * pass `revision: surface.currentRev` to `createAXE` so the server checks it and stamps `rev` on
- * every envelope. `input.expectedRev` is still accepted for one release and is deprecated.
+ * The set of actions follows the registry: `surfaceActions()` returns an `ActionProvider` for
+ * `axe.addProvider()`, consulted whenever the manifest, `/axe/state`, or the MCP tool list is
+ * rendered, so rows that register and unregister as the page changes appear and disappear on the
+ * next request. The revision the agent observed travels as the request envelope's `expectedRev`
+ * (protocol §21); pass `revision: surface.currentRev` to `createAXE` so the server checks it and
+ * stamps `rev` on every envelope.
  */
-import { action, z } from "@axe/core";
-import type { RegisteredAction } from "@axe/core";
-import type { AXEActionEventInput, JsonValue } from "@axe/core/types";
+import { action, isZodSchema, z } from "@axe/core";
+import type { ActionProvider, AvailabilityInput, RegisteredAction } from "@axe/core";
+import type { AXEActionEventInput, JsonValue, Risk } from "@axe/core/types";
 import * as WIRE from "@axe/core/vocabulary";
-import type { ActRequest, ActResult, Surface } from "./index";
+import type { ActRequest, ActResult, Entry, Op, Surface } from "./index";
 
 /** Action event name for every act that goes through the bridge. */
 export const SURFACE_ACT_EVENT = "surface.act";
 
 export interface SurfaceActionsOptions {
-  /** Action namespace. Default `surface`, giving `surface.observe`, `surface.act`, and `surface.ledger`. */
+  /** Action namespace. Default `surface`, giving `surface.observe`, `surface.ledger`, and `surface.<slug>` per entry. */
   namespace?: string;
   /** Actor recorded for acts that arrive through AXE. Default: the authenticated `onBehalfOf`, else `agent`. */
   actor?: (context: { onBehalfOf?: string }) => string;
   /** How the application runs handlers (for example React's `flushSync`). */
   run?: (fn: () => unknown) => unknown;
-  /** Risk to declare for `act`. Default `medium`; declare `high` when the surface can move money or sign. */
-  risk?: "low" | "medium" | "high";
+  /** Metadata declared for field entries, which carry no `effect` of their own. Default `risk: "medium"`, `reversible: false`. */
+  fields?: { risk?: Exclude<Risk, "none">; reversible?: boolean };
+  /**
+   * Called when an entry cannot be published as an action (its text fails the honesty lint, for
+   * example). The entry stays in `<ns>.observe`; it has no action of its own. Default: `console.warn`, once per entry.
+   */
+  onError?: (error: unknown, entryId: string) => void;
+}
+
+/** What `surfaceActions()` returns: an `ActionProvider` for `axe.addProvider()`, plus the name map. */
+export interface SurfaceBridge extends ActionProvider {
+  /** The AXE action name for an entry id, `<ns>.<slug>` ([S-AXE-7]). Stable for the life of the bridge. */
+  actionNameFor(entryId: string): string;
+  /** The entry id an action name resolves to, or undefined when the bridge never issued it. */
+  entryIdFor(actionName: string): string | undefined;
+  /** `<ns>.observe`, `<ns>.ledger`, then one action per registered entry, in registration order. */
+  actions(): readonly RegisteredAction[];
+  get(name: string): RegisteredAction | undefined;
+  /** Fires when entries were registered or unregistered since the last revision move; a `bump` alone does not fire it. */
+  onChange(listener: () => void): () => void;
 }
 
 const ObservedEntrySchema = z.object({
@@ -69,19 +92,109 @@ const LedgerEntrySchema = z.object({
   changed: z.array(z.string()),
 });
 
-/** Build the three AXE actions for a surface. Register all of them with `axe.register()`. */
+const ActOutputSchema = z.object({
+  rev: z.number().int(),
+  id: z.string(),
+  actor: z.string(),
+  changed: z.array(z.string()),
+  seq: z.number().int(),
+});
+
+/** Slugs the bridge keeps for its own actions; an entry whose id slugs to one of them gets a hash suffix. */
+const RESERVED_SLUGS = new Set(["observe", "ledger", "act"]);
+
+/**
+ * The plain slug of an entry id ([S-AXE-7]): lowercase; every run of characters outside `a-z0-9`
+ * becomes one hyphen; leading and trailing hyphens are dropped; a slug that is empty or starts with
+ * a digit is prefixed with `e-` so it fits the action-name grammar ([P-ACT-1]).
+ */
+export function entrySlug(entryId: string): string {
+  const s = entryId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!s) return "e";
+  return /^[a-z]/.test(s) ? s : `e-${s}`;
+}
+
+/** FNV-1a (32-bit) of a string, base 36: the suffix that separates two ids with the same plain slug. */
+function shortHash(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+}
+
+function nameOf(e: Entry): string {
+  return typeof e.name === "function" ? e.name() : e.name;
+}
+
+function opFor(e: Entry): Op {
+  if (e.kind === "action") return e.role === "switch" ? WIRE.op.toggle : WIRE.op.click;
+  if (e.kind === "field") return WIRE.op.typeText;
+  return WIRE.op.scrollDown;
+}
+
+const MAX_DESCRIPTION = 400;
+
+/** Keep a composed description inside [P-ACT-7]'s bounds whatever the entry name's length. */
+function clampDescription(text: string): string {
+  return text.length <= MAX_DESCRIPTION ? text : `${text.slice(0, MAX_DESCRIPTION - 1)}…`;
+}
+
+/** The revision as the surface counts it: numbers as they are, numeric strings converted, anything else left for the surface to refuse. */
+function toSurfaceRev(rev: string | number | undefined): number | undefined {
+  if (typeof rev === "string" && /^-?\d+$/.test(rev)) return Number(rev);
+  return rev as number | undefined;
+}
+
+/**
+ * Derive the AXE actions for a surface: `<ns>.observe`, `<ns>.ledger`, and one action per entry.
+ * Hand the result to `axe.addProvider()`; the set follows the registry from then on.
+ */
 export function surfaceActions(
   surface: Surface,
   options: SurfaceActionsOptions = {},
-): RegisteredAction[] {
+): SurfaceBridge {
   const ns = options.namespace ?? "surface";
   const observeName = `${ns}.observe`;
-  const actName = `${ns}.act`;
   const ledgerName = `${ns}.ledger`;
   const actorFor = options.actor ?? ((ctx) => ctx.onBehalfOf ?? "agent");
   const runOpts = options.run ? { run: options.run } : {};
+  const fieldRisk = options.fields?.risk ?? WIRE.risk.medium;
+  const fieldReversible = options.fields?.reversible ?? false;
+  const onError =
+    options.onError ??
+    ((error: unknown, entryId: string) =>
+      console.warn(
+        `[axe/surface] entry "${entryId}" is not published as an action: ${error instanceof Error ? error.message : String(error)}`,
+      ));
 
-  /** Run one act and emit it as an action event, whether it ran or was refused [S-LED-6]. */
+  // ---------------------------------------------------------------------------------------------
+  // Names [S-AXE-7]: a sticky, bidirectional map. An id keeps its slug for the life of the bridge,
+  // so an action name never comes to mean a different control, and a row that leaves and returns
+  // gets its name back.
+  // ---------------------------------------------------------------------------------------------
+  const slugById = new Map<string, string>();
+  const idBySlug = new Map<string, string>();
+  const slugFor = (id: string): string => {
+    const known = slugById.get(id);
+    if (known) return known;
+    const plain = entrySlug(id);
+    let slug = plain;
+    if (RESERVED_SLUGS.has(slug) || idBySlug.has(slug)) slug = `${plain}-${shortHash(id)}`;
+    for (let n = 2; idBySlug.has(slug); n++) slug = `${plain}-${shortHash(id)}-${n}`;
+    slugById.set(id, slug);
+    idBySlug.set(slug, id);
+    return slug;
+  };
+  const actionNameFor = (id: string): string => `${ns}.${slugFor(id)}`;
+  const entryIdFor = (name: string): string | undefined =>
+    name.startsWith(`${ns}.`) ? idBySlug.get(name.slice(ns.length + 1)) : undefined;
+
+  /** Run one act and emit it as an action event, whether it ran or was refused [S-AXE-5]. */
   const perform = async (
     request: ActRequest,
     emit: (event: AXEActionEventInput) => void,
@@ -110,6 +223,29 @@ export function surfaceActions(
     return result;
   };
 
+  type Fail = Parameters<RegisteredAction["spec"]["handler"]>[0]["fail"];
+
+  /** Re-act at the current revision after a continue or a resume [S-AXE-2]. */
+  const again = async (
+    saved: ActRequest,
+    context: { onBehalfOf?: string },
+    emit: (event: AXEActionEventInput) => void,
+    fail: Fail,
+  ) => {
+    const result = await perform(
+      { ...saved, expectedRev: surface.currentRev(), actor: actorFor(context) },
+      emit,
+    );
+    if (result.status === WIRE.status.ok) return result.output;
+    return fail(result.error.code, result.error.message, {
+      retryable: result.error.retryable,
+      details: (result.error.details ?? {}) as Record<string, JsonValue>,
+    });
+  };
+
+  // ---------------------------------------------------------------------------------------------
+  // The read side: the table and the ledger, unchanged by churn.
+  // ---------------------------------------------------------------------------------------------
   const ObserveOutput = z.object({
     protocol: z.string(),
     app: z.string(),
@@ -123,11 +259,25 @@ export function surfaceActions(
   const observe = action(observeName, {
     title: "Observe the application",
     description:
-      "Returns the application's live table of controls under one revision: what can be done right now (indexed), what cannot and why, current field values, and the domain objects behind them. Read this before acting and pass its rev to act.",
+      "Returns the application's live table of controls under one revision: what can be done right now (indexed), what cannot and why, current field values, and the domain objects behind them. Each actionable row names its own action; pass the rev as expectedRev when calling it.",
     readOnly: true,
     risk: "none",
     input: z.object({}).strict(),
     output: ObserveOutput,
+    examples: [
+      {
+        input: {},
+        output: {
+          protocol: WIRE.protocol.version,
+          app: "app",
+          rev: 0,
+          at: "2026-01-01T00:00:00.000Z",
+          entries: [],
+          objects: {},
+          ledgerSeq: 0,
+        },
+      },
+    ],
     display: {
       kind: "list",
       items: "/entries",
@@ -149,146 +299,26 @@ export function surfaceActions(
         "The table is a snapshot at the given rev. An act with an older rev is refused and applies nothing.",
     },
     handler: async () => {
+      ensure();
       const view = surface.observe();
-      // Dynamic affordances: every actionable row leads to act with its id and op pre-bound.
+      // Dynamic affordances [S-AXE-1]: every actionable row leads to its own action, with the
+      // revision it was observed at as the envelope's expectedRev.
       const entries = view.entries.map((row) => {
         if (row.index === null) return row;
-        const op =
-          row.kind === "action"
-            ? row.role === "switch"
-              ? WIRE.op.toggle
-              : WIRE.op.click
-            : row.kind === "field"
-              ? WIRE.op.typeText
-              : WIRE.op.scrollDown;
+        const name = actionNameFor(row.id);
+        if (!byName.has(name)) return row;
         return {
           ...row,
           _axe: {
             affordances: [
-              {
-                action: actName,
-                title: row.name,
-                input: { target: row.id, op, expectedRev: view.rev },
-                primary: true,
-              },
+              { action: name, title: row.name, input: {}, expectedRev: view.rev, primary: true },
             ],
           },
         };
       });
       return { ...view, entries } as unknown as z.infer<typeof ObserveOutput>;
     },
-  });
-
-  const act = action(actName, {
-    title: "Act on a control",
-    description:
-      "Runs one control's own handler, exactly as a click or a keystroke would, guarded by the revision you observed. Refused with conflict when the application changed since your observation; nothing is applied. Pass the entry id as target, the op for its kind, text for fields, and confirm for actions that require it.",
-    risk: options.risk ?? "medium",
-    idempotent: false,
-    reversible: false,
-    input: z
-      .object({
-        target: z
-          .union([z.string(), z.number().int()])
-          .describe("Entry id from observe (preferred) or its index"),
-        op: z
-          .enum([WIRE.op.click, WIRE.op.toggle, WIRE.op.typeText, WIRE.op.scrollDown])
-          .describe("Operation for the entry's kind"),
-        text: z.string().optional().describe("Text for a field, or free text an action asks for"),
-        expectedRev: z
-          .number()
-          .int()
-          .optional()
-          .describe(
-            "Deprecated: send the rev from the observation as the request envelope's expectedRev instead",
-          ),
-        confirm: z
-          .boolean()
-          .optional()
-          .describe("Required true for actions whose effect declares confirm"),
-      })
-      .strict(),
-    output: z.object({
-      rev: z.number().int(),
-      id: z.string(),
-      actor: z.string(),
-      changed: z.array(z.string()),
-      seq: z.number().int(),
-    }),
-    humanHandoff: { reasons: ["unavailable"] },
-    handler: async ({ input, context, emit, expectedRev, needsInput, handoff, fail }) => {
-      // The envelope's expectedRev is first-class; input.expectedRev is the deprecated path.
-      const seen = expectedRev ?? input.expectedRev;
-      const request: ActRequest = {
-        op: input.op,
-        target: input.target,
-        expectedRev: (typeof seen === "string" && /^-?\d+$/.test(seen)
-          ? Number(seen)
-          : seen) as number,
-        actor: actorFor(context),
-      };
-      if (input.text !== undefined) request.text = input.text;
-      if (input.confirm !== undefined) request.confirm = input.confirm;
-      const result = await perform(request, emit);
-      if (result.status === WIRE.status.ok) return result.output;
-      const details = result.error.details ?? {};
-      // Ask the agent first: the control declared kinds that would make it available.
-      const entry = typeof input.target === "string" ? surface.get(input.target) : undefined;
-      const state = entry?.kind === "action" ? entry.state : undefined;
-      if (result.error.code === WIRE.error.unavailable && state && !state.available) {
-        if (state.requires) {
-          const spec = state.requires;
-          return needsInput({
-            reason: "unavailable",
-            message: `${result.error.message} Provide one of the following to continue.`,
-            accepts: spec.accepts,
-            state: { request: request as unknown as JsonValue },
-            ...(state.handoff
-              ? {
-                  fallback: handoff({
-                    ...state.handoff,
-                    state: { request: request as unknown as JsonValue },
-                  }),
-                }
-              : {}),
-          });
-        }
-        if (state.handoff)
-          return handoff({ ...state.handoff, state: { request: request as unknown as JsonValue } });
-      }
-      return fail(result.error.code, result.error.message, {
-        retryable: result.error.retryable,
-        details: details as Record<string, JsonValue>,
-      });
-    },
-    onContinue: async ({ kind, payload, state, context, emit, fail }) => {
-      const saved = (state as unknown as { request: ActRequest }).request;
-      const entry = typeof saved.target === "string" ? surface.get(saved.target) : undefined;
-      const availability = entry?.kind === "action" ? entry.state : undefined;
-      if (!availability || availability.available || !availability.requires)
-        return fail(
-          WIRE.error.conflict,
-          "The control no longer has a requirement to satisfy; observe again.",
-          { retryable: true },
-        );
-      await availability.requires.fulfill(kind, payload, actorFor(context));
-      const again = await perform(
-        { ...saved, expectedRev: surface.currentRev(), actor: actorFor(context) },
-        emit,
-      );
-      if (again.status === WIRE.status.ok) return again.output;
-      return fail(again.error.code, again.error.message, { retryable: again.error.retryable });
-    },
-    onResume: async ({ state, context, emit, fail }) => {
-      const saved = (state as unknown as { request: ActRequest }).request;
-      const again = await perform(
-        { ...saved, expectedRev: surface.currentRev(), actor: actorFor(context) },
-        emit,
-      );
-      if (again.status === WIRE.status.ok) return again.output;
-      return fail(again.error.code, again.error.message, { retryable: again.error.retryable });
-    },
-  });
+  }) as unknown as RegisteredAction;
 
   const ledger = action(ledgerName, {
     title: "Read the ledger",
@@ -311,6 +341,7 @@ export function surfaceActions(
       ledgerSeq: z.number().int(),
       entries: z.array(LedgerEntrySchema),
     }),
+    examples: [{ input: {}, output: { ledgerSeq: 0, entries: [] } }],
     display: {
       kind: "list",
       items: "/entries",
@@ -337,11 +368,219 @@ export function surfaceActions(
       if (input.limit !== undefined) query.limit = input.limit;
       return { ledgerSeq: surface.observe().ledgerSeq, entries: surface.ledger(query) };
     },
-  });
+  }) as unknown as RegisteredAction;
 
-  return [
-    observe as unknown as RegisteredAction,
-    act as unknown as RegisteredAction,
-    ledger as unknown as RegisteredAction,
-  ];
+  // ---------------------------------------------------------------------------------------------
+  // One action per entry [S-AXE-1], [S-AXE-6].
+  // ---------------------------------------------------------------------------------------------
+  const describeAction = (e: Entry, title: string): string => {
+    const on = e.object ? ` on ${e.object}` : "";
+    const tail =
+      "Returns the new revision and the changed entry ids. Refused with conflict when the application changed since expectedRev";
+    if (e.kind === "action") {
+      const f = e.effect;
+      const extras = [
+        f.confirm ? "needs confirm: true" : "",
+        f.text ? `takes free text (${f.text})` : "",
+      ].filter(Boolean);
+      return clampDescription(
+        `Runs the application's "${title}" control${on} through its own handler, as a click would; changes ${f.mutates}${extras.length ? `; ${extras.join("; ")}` : ""}. ${tail}, and unavailable with the application's reason when the control is disabled.`,
+      );
+    }
+    if (e.kind === "field") {
+      const max =
+        !e.edit.readOnly && e.edit.maxLength ? `, at most ${e.edit.maxLength} characters` : "";
+      return clampDescription(
+        `Sets the application's "${title}" field${on} through its own setter, as typing would${max}. ${tail}, and unavailable with the reason when the field is read only.`,
+      );
+    }
+    return clampDescription(
+      `Asks the application's "${title}" collection${on} to load more, as scrolling would. ${tail}, and unavailable when nothing more can load.`,
+    );
+  };
+
+  const inputFor = (e: Entry): z.ZodType => {
+    if (e.kind === "action") {
+      const shape: Record<string, z.ZodType> = {};
+      if (e.effect.confirm)
+        shape[WIRE.field.confirm] = z
+          .literal(true)
+          .describe(
+            "Must be true: the application requires explicit confirmation for this control",
+          );
+      if (e.effect.text) shape[WIRE.field.text] = z.string().optional().describe(e.effect.text);
+      return z.object(shape).strict();
+    }
+    if (e.kind === "field") {
+      const ed = e.edit;
+      let text: z.ZodType;
+      if (!ed.readOnly && ed.schema && isZodSchema(ed.schema)) text = ed.schema as z.ZodType;
+      else {
+        let s = z.string();
+        if (!ed.readOnly && ed.maxLength) s = s.max(ed.maxLength);
+        text = s;
+      }
+      return z
+        .object({ [WIRE.field.text]: text.describe("The new value, as it would be typed") })
+        .strict();
+    }
+    return z.object({}).strict();
+  };
+
+  const buildEntryAction = (e: Entry): RegisteredAction => {
+    const name = actionNameFor(e.id);
+    const title = nameOf(e);
+    const op = opFor(e);
+    const risk: Risk =
+      e.kind === "action"
+        ? (e.effect.risk ?? WIRE.risk.medium)
+        : e.kind === "field"
+          ? fieldRisk
+          : WIRE.risk.low;
+    const idempotent =
+      e.kind === "action" ? (e.effect.idempotent ?? false) : e.kind === "field" ? true : false;
+    const reversible =
+      e.kind === "action"
+        ? (e.effect.reversible ?? e.effect.undoable ?? false)
+        : e.kind === "field"
+          ? fieldReversible
+          : false;
+    const declaredHandoff = e.kind === "action" && e.state && !e.state.available && e.state.handoff;
+    const availability = (): AvailabilityInput => {
+      const a = surface.availability(e.id);
+      if (!a) return { available: false, reason: "the control is no longer on the page" };
+      if (a.available) return { available: true };
+      const out: AvailabilityInput = { available: false, reason: a.reason };
+      if (a.requires) out.requires = a.requires;
+      if (a.handoff) out.handoff = a.handoff;
+      return out;
+    };
+    const built = action(name, {
+      title,
+      description: describeAction(e, title),
+      risk,
+      idempotent,
+      reversible,
+      input: inputFor(e),
+      output: ActOutputSchema,
+      ...(declaredHandoff ? { humanHandoff: { reasons: [declaredHandoff.reason] } } : {}),
+      availability,
+      handler: async ({ input, context, emit, expectedRev, needsInput, handoff, fail }) => {
+        const args = input as { text?: string; confirm?: true };
+        const request: ActRequest = {
+          op,
+          target: e.id,
+          expectedRev: toSurfaceRev(expectedRev) as number,
+          actor: actorFor(context),
+        };
+        if (args.text !== undefined) request.text = args.text;
+        if (args.confirm !== undefined) request.confirm = args.confirm;
+        const result = await perform(request, emit);
+        if (result.status === WIRE.status.ok) return result.output;
+        const details = (result.error.details ?? {}) as Record<string, JsonValue>;
+        // Climb the ladder [S-AXE-2]: the control declared kinds that would make it available, or a
+        // step only a human can take. A freeze is neither: it is reported as it is.
+        const live = surface.get(e.id);
+        const state = live?.kind === "action" ? live.state : undefined;
+        if (
+          result.error.code === WIRE.error.unavailable &&
+          state &&
+          !state.available &&
+          !details[WIRE.field.frozen]
+        ) {
+          const saved = { request: request as unknown as JsonValue };
+          if (state.requires) {
+            return needsInput({
+              reason: "unavailable",
+              message: `${result.error.message} Provide one of the following to continue.`,
+              accepts: state.requires.accepts,
+              state: saved,
+              ...(state.handoff ? { fallback: handoff({ ...state.handoff, state: saved }) } : {}),
+            });
+          }
+          if (state.handoff) return handoff({ ...state.handoff, state: saved });
+        }
+        return fail(result.error.code, result.error.message, {
+          retryable: result.error.retryable,
+          details,
+        });
+      },
+      onContinue: async ({ kind, payload, state, context, emit, fail }) => {
+        const saved = (state as unknown as { request: ActRequest }).request;
+        const live = surface.get(e.id);
+        const availability = live?.kind === "action" ? live.state : undefined;
+        if (!availability || availability.available || !availability.requires)
+          return fail(
+            WIRE.error.conflict,
+            "The control no longer has a requirement to satisfy; observe again.",
+            { retryable: true },
+          );
+        await availability.requires.fulfill(kind, payload, actorFor(context));
+        return again(saved, context, emit, fail);
+      },
+      onResume: async ({ state, context, emit, fail }) => {
+        const saved = (state as unknown as { request: ActRequest }).request;
+        return again(saved, context, emit, fail);
+      },
+    });
+    return built as unknown as RegisteredAction;
+  };
+
+  // The set follows the registry: rebuilt when `registryVersion` moved, reused otherwise; within
+  // a rebuild, an entry object that was already published keeps its action.
+  const cache = new WeakMap<Entry, RegisteredAction>();
+  const failed = new WeakSet<Entry>();
+  let builtVersion = -1;
+  let built: RegisteredAction[] = [];
+  let byName = new Map<string, RegisteredAction>();
+  const ensure = (): void => {
+    const version = surface.registryVersion();
+    if (version === builtVersion) return;
+    const list: RegisteredAction[] = [observe, ledger];
+    const map = new Map<string, RegisteredAction>([
+      [observeName, observe],
+      [ledgerName, ledger],
+    ]);
+    for (const e of surface.entries()) {
+      let a = cache.get(e);
+      if (!a) {
+        if (failed.has(e)) continue;
+        try {
+          a = buildEntryAction(e);
+        } catch (error) {
+          failed.add(e);
+          onError(error, e.id);
+          continue;
+        }
+        cache.set(e, a);
+      }
+      list.push(a);
+      map.set(a.name, a);
+    }
+    built = list;
+    byName = map;
+    builtVersion = version;
+  };
+
+  return {
+    actionNameFor,
+    entryIdFor,
+    actions() {
+      ensure();
+      return built;
+    },
+    get(name) {
+      ensure();
+      return byName.get(name);
+    },
+    onChange(listener) {
+      let last = surface.registryVersion();
+      return surface.onChange(() => {
+        const version = surface.registryVersion();
+        if (version === last) return;
+        last = version;
+        listener();
+      });
+    },
+  };
 }

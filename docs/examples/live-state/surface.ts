@@ -21,5 +21,6 @@ export const axe = createAXE({
   revision: surface.currentRev,
 });
 
-for (const a of surfaceActions(surface, { namespace: "board" })) axe.register(a);
+// Every entry is its own action, with the entry's live state as its availability.
+axe.addProvider(surfaceActions(surface, { namespace: "board" }));
 // #endregion serve

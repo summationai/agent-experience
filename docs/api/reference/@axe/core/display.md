@@ -528,6 +528,16 @@ suggestedComparison: string[];
 action: string;
 ```
 
+<a id="expectedrev"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+From a dynamic affordance: the revision to present as the request envelope's `expectedRev`.
+
 <a id="input"></a>
 
 ##### input

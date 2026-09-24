@@ -212,7 +212,7 @@ registerLock();
 
 ## Serving a surface as an AXE manifest
 
-`surfaceActions` derives three actions: `<ns>.observe` (read-only, with `display` over the entries and a dynamic [affordance](presenting-results.md#affordances) per actionable row that binds `target`, `op`, and `expectedRev` into `<ns>.act`), `<ns>.act` (mutating, revision-guarded), and `<ns>.ledger` (read-only, `{ since?, limit? }` in, `{ ledgerSeq, entries }` out, with `display`). Register all three and everything else in these docs applies: discovery, MCP, `axe conformance`, `axe audit`, events.
+Every entry becomes its own AXE action. An agent reading the manifest, or the tool list of the derived MCP server, sees "Draft Jahmyr Gibbs (RB)" and "Lock March", each with its own `availability` and reason, not one `act` tool with a `target` parameter. `surfaceActions` returns an action provider: hand it to `addProvider` and the set follows the registry from then on, so a row that registers or unregisters as the page changes is in or out of the manifest, `/axe/state`, and the MCP tools on the next request.
 
 <!-- include: examples/surface/serve.ts#serve -->
 ```ts
@@ -227,17 +227,45 @@ export const axe = createAXE({
   baseUrl: "https://draft.example",
   auth: { modes: ["none", "user"], userLoginUrl: "https://draft.example/login" },
   secret: process.env.AXE_SECRET,
+  // The surface's revision is the site's: every envelope carries rev, and a stale expectedRev is
+  // refused before any handler runs.
+  revision: surface.currentRev,
 });
 
-for (const a of surfaceActions(surface, { namespace: "board" })) axe.register(a);
+// One action per entry, plus board.observe and board.ledger. The set follows the registry: a row
+// that registers or unregisters is in or out of the manifest on the next request.
+export const bridge = surfaceActions(surface, { namespace: "board" });
+axe.addProvider(bridge);
 
 export const handler = axe.fetchHandler();
 ```
 <!-- /include -->
 
-Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback`); one with only a `handoff` returns `needs_human`; a stale revision is `conflict` with `expectedRev` and `currentRev` in `details`; everything else stays an `error` with the application's reason. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
+The provider's set is `<ns>.observe` (read-only, with `display` over the entries and, per actionable row, a dynamic [affordance](presenting-results.md#affordances) that names the row's own action and carries the observation's `rev` as `expectedRev`), `<ns>.ledger` (read-only, `{ since?, limit? }` in, `{ ledgerSeq, entries }` out, with `display`), and one action per entry:
 
-Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. Sending `expectedRev` inside the `act` input still works and is deprecated.
+- The action's `title` is the entry's `name`; its `description` is composed from the kind, the `object`, and the `effect`.
+- An action entry carries its `effect`'s `idempotent`, `reversible`, and `risk`. Its input requires `confirm: true` when the effect declares `confirm`, and takes an optional `text` described by the effect's `text` prompt.
+- A field entry is `idempotent`; its `risk` and `reversible` come from the `fields` option (defaults `medium` and false); its input is `{ text }`, bounded by `maxLength` or validated by the field's own schema.
+- A collection entry is a low-risk action with no input that asks the collection to load more.
+- Every entry action's `availability` is the entry's live state: an action's reason with `requires` and `handoff`, a field's read-only reason, whether a collection can load more, and the freeze's reason for everything while the surface is frozen. `/axe/state` serves it per control.
+
+Names are `<ns>.<slug>`: the entry id lowercased, runs of other characters replaced by one hyphen, `e-` prefixed when the result starts with a digit, and a short hash appended only when two ids share a slug. `pick:me:Gibbs` under the `board` namespace is `board.pick-me-gibbs`. The bridge keeps the map both ways for its lifetime:
+
+<!-- include: examples/surface/serve.ts#names -->
+```ts
+// Entry ids are not action names; the bridge maps them both ways, and the map is stable.
+bridge.actionNameFor("pick:me:Gibbs"); // "board.pick-me-gibbs"
+bridge.entryIdFor("board.pick-me-gibbs"); // "pick:me:Gibbs"
+```
+<!-- /include -->
+
+`entrySlug(id)` gives the plain slug alone. Every name fits the action-name grammar, so MCP tool names follow (`board_pick-me-gibbs`).
+
+Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback`); one with only a `handoff` returns `needs_human`; a stale revision is `conflict` with `expectedRev` and `currentRev` in `details`; everything else stays an `error` with the application's reason, including a freeze, which never climbs the ladder. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
+
+Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
+
+The set is rebuilt only when the registry changed shape (`registryVersion` moved: a register, an unregister, a `reconcile`); a `bump` alone reuses the previous set, and a re-registered row rebuilds only its own action. Invocation resolves the action name through a map, so hundreds of rows cost hundreds of small lookups on `/axe/state` and one lookup per act. An entry whose name fails the honesty lint (an instruction aimed at the agent) is not published; the bridge's `onError` option hears about it and the row stays in `observe`. A retried `idempotencyKey` for an action whose row has since left the board (the pick that was just drafted) is still answered from the idempotency store, so a lost response is recoverable.
 
 ## Accessible names
 

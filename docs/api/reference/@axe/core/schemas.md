@@ -424,6 +424,7 @@ const DisplaySchema: ZodObject<{
 ```ts
 const DynamicAffordanceSchema: ZodObject<{
   action: ZodString;
+  expectedRev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   input: ZodRecord<ZodString, ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>>;
   primary: ZodOptional<ZodBoolean>;
   title: ZodString;

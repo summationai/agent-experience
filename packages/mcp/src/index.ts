@@ -29,6 +29,12 @@ export interface AxeLike {
   describe(): Manifest;
   /** When present, the manifest with `live.rev` and availability rendered (an `AXE` instance has it). */
   describeLive?(): Promise<Manifest>;
+  /**
+   * When present, the set of actions can change while the server runs (an `AXE` instance with an
+   * action provider). The tool list is then derived on every `tools/list`, and each change is
+   * forwarded to connected clients as `notifications/tools/list_changed`.
+   */
+  onActionsChanged?(listener: () => void): () => void;
 }
 
 export interface McpServerOptions {
@@ -44,7 +50,9 @@ export interface McpServerOptions {
 export interface DerivedMcpServer {
   server: Server;
   client: AXEClient;
+  /** The manifest when the server was created. For an in-process `AXE` source the tool list is re-derived on every `tools/list`. */
   manifest: Manifest;
+  /** The tools when the server was created. */
   tools: Tool[];
 }
 
@@ -76,33 +84,52 @@ export async function createMcpServer(
   options: McpServerOptions = {},
 ): Promise<DerivedMcpServer> {
   let client: AXEClient;
+  // For an in-process server the manifest is read again on every tool listing and call, because
+  // its actions may change while it runs (a Surface publishes one action per live control).
+  let manifestNow: () => Promise<Manifest>;
+  let axe: AxeLike | undefined;
   if (typeof source === "string") {
     client = await AXEClient.discover(source, options.client ?? {});
+    manifestNow = async () => client.manifest();
   } else if ("handle" in source && typeof source.handle === "function") {
-    const axe = source;
+    axe = source;
     const inProcess = (input: string | URL, init?: RequestInit) =>
-      axe.handle(new Request(input, init));
-    const manifest = axe.describeLive ? await axe.describeLive() : axe.describe();
-    client = new AXEClient(manifest, { ...(options.client ?? {}), fetch: inProcess });
+      axe!.handle(new Request(input, init));
+    manifestNow = async () => (axe!.describeLive ? await axe!.describeLive() : axe!.describe());
+    client = new AXEClient(await manifestNow(), { ...(options.client ?? {}), fetch: inProcess });
   } else {
     client = new AXEClient(source as Manifest, options.client ?? {});
+    manifestNow = async () => client.manifest();
   }
   const manifest = client.manifest();
   const tools = buildTools(manifest);
+  const dynamic = typeof axe?.onActionsChanged === "function";
   const server = new Server(
     { name: options.name ?? manifest.name, version: options.version ?? "0.1.0" },
-    { capabilities: { tools: {} }, instructions: instructionsFor(manifest) },
+    {
+      capabilities: { tools: dynamic ? { listChanged: true } : {} },
+      instructions: instructionsFor(manifest),
+    },
   );
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: dynamic ? buildTools(await manifestNow()) : tools,
+  }));
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const name = req.params.name;
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
     try {
-      return await callTool(client, manifest, name, args, options);
+      return await callTool(client, dynamic ? await manifestNow() : manifest, name, args, options);
     } catch (e) {
       return errorContent(`Tool "${name}" failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   });
+  if (dynamic) {
+    // Tell connected clients the tool list moved. Before a transport is connected there is no one
+    // to tell, and the SDK throws; the next tools/list reads the current set either way.
+    axe!.onActionsChanged!(() => {
+      server.sendToolListChanged().catch(() => undefined);
+    });
+  }
   return { server, client, manifest, tools };
 }
 
@@ -311,11 +338,12 @@ async function callTool(
       `Arguments do not match the input schema of ${action.name}:\n${issues.map((i) => `- ${i.path || "/"}: ${i.message}${i.expected ? ` (expected ${i.expected})` : ""}`).join("\n")}`,
     );
   }
-  let result = await client.invoke(
-    action.name,
-    input,
-    expectedRev !== undefined ? { expectedRev } : {},
-  );
+  // The client keys idempotency off its own manifest snapshot; an action that appeared since is
+  // still mutating, so the key is supplied here.
+  let result = await client.invoke(action.name, input, {
+    ...(expectedRev !== undefined ? { expectedRev } : {}),
+    ...(action.readOnly ? {} : { idempotencyKey: crypto.randomUUID() }),
+  });
   if (result.status === WIRE.status.pending) {
     result = await client.poll(result, { maxWaitMs: options.pollBudgetMs ?? 20_000 });
   }

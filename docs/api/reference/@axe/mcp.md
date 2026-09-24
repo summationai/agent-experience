@@ -56,6 +56,28 @@ handle(request): Promise<Response>;
 
 `Promise`\<`Response`\>
 
+<a id="onactionschanged"></a>
+
+##### onActionsChanged()?
+
+```ts
+optional onActionsChanged(listener): () => void;
+```
+
+When present, the set of actions can change while the server runs (an `AXE` instance with an
+action provider). The tool list is then derived on every `tools/list`, and each change is
+forwarded to connected clients as `notifications/tools/list_changed`.
+
+###### Parameters
+
+###### listener
+
+() => `void`
+
+###### Returns
+
+() => `void`
+
 ***
 
 <a id="derivedmcpserver"></a>
@@ -80,6 +102,8 @@ client: AXEClient;
 manifest: Manifest;
 ```
 
+The manifest when the server was created. For an in-process `AXE` source the tool list is re-derived on every `tools/list`.
+
 <a id="server"></a>
 
 ##### server
@@ -95,6 +119,8 @@ server: Server;
 ```ts
 tools: object[];
 ```
+
+The tools when the server was created.
 
 ###### \_meta?
 

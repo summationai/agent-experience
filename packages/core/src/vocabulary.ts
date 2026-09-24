@@ -578,7 +578,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   requires: "requires",
   /** The site's single revision: an opaque string or number that moves with every observable change. */
   rev: "rev",
-  /** The revision the agent observed; the call is refused with `conflict` if it moved. */
+  /** The revision the agent observed; the call is refused with `conflict` if it moved. On a dynamic affordance, the revision to present when following it. */
   expectedRev: "expectedRev",
   /** The site's revision at the time a stale `expectedRev` was refused. */
   currentRev: "currentRev",
@@ -812,6 +812,10 @@ export const api = /* @__PURE__ */ Object.freeze({
   revision: "revision",
   /** Return the manifest with `live.rev` and each action's `availability` computed for a request. */
   describeLive: "describeLive",
+  /** Add an `ActionProvider`: a source of actions consulted whenever actions are enumerated or looked up by name. */
+  addProvider: "addProvider",
+  /** Subscribe to changes in the set of actions: a registration, a new provider, or a provider's own change. */
+  onActionsChanged: "onActionsChanged",
   /** Helper that turns an `Availability` into an `unavailable` error with `details`. */
   unavailable: "unavailable",
   /** Find a manifest from any URL. */
@@ -888,8 +892,20 @@ export const api = /* @__PURE__ */ Object.freeze({
   expose: "expose",
   /** React hook that keeps one entry registered while mounted. */
   useSurface: "useSurface",
-  /** Derive AXE actions (observe and act) from a surface. */
+  /** Derive an action provider from a surface: observe, ledger, and one action per entry. */
   surfaceActions: "surfaceActions",
+  /** The AXE action name for an entry id: `<ns>.<slug>`, stable for the life of the bridge. */
+  actionNameFor: "actionNameFor",
+  /** The exact entry id an action name was issued for, or undefined. */
+  entryIdFor: "entryIdFor",
+  /** The plain slug of an entry id, before collision handling. */
+  entrySlug: "entrySlug",
+  /** Every registered entry, in registration order. */
+  entries: "entries",
+  /** Counter moved by register, unregister, reconcile, and reset; a bump alone leaves it. */
+  registryVersion: "registryVersion",
+  /** One entry's live availability as the bridge publishes it, honoring a freeze. */
+  availability: "availability",
   /** Restrict a document kind to specific MIME types. */
   withMimeTypes: "withMimeTypes",
   /** Define a site-specific kind under `x-<org>.`. */
@@ -1092,7 +1108,7 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1449,6 +1465,8 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "index", name: "index" },
   { category: "api", key: "revision", name: "revision" },
   { category: "api", key: "describeLive", name: "describeLive" },
+  { category: "api", key: "addProvider", name: "addProvider" },
+  { category: "api", key: "onActionsChanged", name: "onActionsChanged" },
   { category: "api", key: "unavailable", name: "unavailable" },
   { category: "api", key: "discover", name: "discover" },
   { category: "api", key: "manifest", name: "manifest" },
@@ -1488,6 +1506,12 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "expose", name: "expose" },
   { category: "api", key: "useSurface", name: "useSurface" },
   { category: "api", key: "surfaceActions", name: "surfaceActions" },
+  { category: "api", key: "actionNameFor", name: "actionNameFor" },
+  { category: "api", key: "entryIdFor", name: "entryIdFor" },
+  { category: "api", key: "entrySlug", name: "entrySlug" },
+  { category: "api", key: "entries", name: "entries" },
+  { category: "api", key: "registryVersion", name: "registryVersion" },
+  { category: "api", key: "availability", name: "availability" },
   { category: "api", key: "withMimeTypes", name: "withMimeTypes" },
   { category: "api", key: "customKind", name: "customKind" },
   { category: "api", key: "suggestedReason", name: "suggestedReason" },

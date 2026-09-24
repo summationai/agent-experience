@@ -53,6 +53,8 @@ type WireApi =
   | "index"
   | "revision"
   | "describeLive"
+  | "addProvider"
+  | "onActionsChanged"
   | "unavailable"
   | "discover"
   | "manifest"
@@ -92,6 +94,12 @@ type WireApi =
   | "expose"
   | "useSurface"
   | "surfaceActions"
+  | "actionNameFor"
+  | "entryIdFor"
+  | "entrySlug"
+  | "entries"
+  | "registryVersion"
+  | "availability"
   | "withMimeTypes"
   | "customKind"
   | "suggestedReason"
@@ -744,10 +752,13 @@ const api: Readonly<{
   accept: "accept";
   act: "act";
   action: "action";
+  actionNameFor: "actionNameFor";
+  addProvider: "addProvider";
   allowCredentials: "allowCredentials";
   allowed: "allowed";
   appendHandoffId: "appendHandoffId";
   authenticate: "authenticate";
+  availability: "availability";
   axeExpress: "axeExpress";
   axeFetch: "axeFetch";
   axeNext: "axeNext";
@@ -775,6 +786,9 @@ const api: Readonly<{
   describeLive: "describeLive";
   discover: "discover";
   emit: "emit";
+  entries: "entries";
+  entryIdFor: "entryIdFor";
+  entrySlug: "entrySlug";
   expose: "expose";
   fetchHandler: "fetchHandler";
   formatAuditHtml: "formatAuditHtml";
@@ -816,6 +830,7 @@ const api: Readonly<{
   needsInput: "needsInput";
   observe: "observe";
   onActionEvent: "onActionEvent";
+  onActionsChanged: "onActionsChanged";
   onChange: "onChange";
   onContinue: "onContinue";
   onError: "onError";
@@ -832,6 +847,7 @@ const api: Readonly<{
   reconcile: "reconcile";
   register: "register";
   registerGenerated: "registerGenerated";
+  registryVersion: "registryVersion";
   requireCompletion: "requireCompletion";
   requireIdempotencyKey: "requireIdempotencyKey";
   requireInputDescriptions: "requireInputDescriptions";
@@ -1532,10 +1548,13 @@ const WIRE: Readonly<{
      accept: "accept";
      act: "act";
      action: "action";
+     actionNameFor: "actionNameFor";
+     addProvider: "addProvider";
      allowCredentials: "allowCredentials";
      allowed: "allowed";
      appendHandoffId: "appendHandoffId";
      authenticate: "authenticate";
+     availability: "availability";
      axeExpress: "axeExpress";
      axeFetch: "axeFetch";
      axeNext: "axeNext";
@@ -1563,6 +1582,9 @@ const WIRE: Readonly<{
      describeLive: "describeLive";
      discover: "discover";
      emit: "emit";
+     entries: "entries";
+     entryIdFor: "entryIdFor";
+     entrySlug: "entrySlug";
      expose: "expose";
      fetchHandler: "fetchHandler";
      formatAuditHtml: "formatAuditHtml";
@@ -1604,6 +1626,7 @@ const WIRE: Readonly<{
      needsInput: "needsInput";
      observe: "observe";
      onActionEvent: "onActionEvent";
+     onActionsChanged: "onActionsChanged";
      onChange: "onChange";
      onContinue: "onContinue";
      onError: "onError";
@@ -1620,6 +1643,7 @@ const WIRE: Readonly<{
      reconcile: "reconcile";
      register: "register";
      registerGenerated: "registerGenerated";
+     registryVersion: "registryVersion";
      requireCompletion: "requireCompletion";
      requireIdempotencyKey: "requireIdempotencyKey";
      requireInputDescriptions: "requireInputDescriptions";
