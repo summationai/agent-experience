@@ -30,5 +30,9 @@ const WELL_KNOWN_PREFIX = WIRE.path.manifest.replace(/\.json$/, "");
 const AXE_ROOT = `/${WIRE.path.actions.split("/")[1]}`;
 
 export function isAxePath(pathname: string): boolean {
-  return pathname.startsWith(WELL_KNOWN_PREFIX) || pathname === AXE_ROOT || pathname.startsWith(`${AXE_ROOT}/`);
+  return (
+    pathname.startsWith(WELL_KNOWN_PREFIX) ||
+    pathname === AXE_ROOT ||
+    pathname.startsWith(`${AXE_ROOT}/`)
+  );
 }

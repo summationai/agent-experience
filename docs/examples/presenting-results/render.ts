@@ -45,7 +45,11 @@ const result: Result = {
         parking: "Street",
         badges: ["Available now"],
         // The applicant already applied here, so the site offers only a tour.
-        _axe: { affordances: [{ action: "tours.book", title: "Schedule a tour", input: { unitId: "u_118" } }] },
+        _axe: {
+          affordances: [
+            { action: "tours.book", title: "Schedule a tour", input: { unitId: "u_118" } },
+          ],
+        },
       },
       {
         id: "u_310",

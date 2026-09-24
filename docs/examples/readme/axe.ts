@@ -12,11 +12,14 @@ export const axe = createAXE({
 axe.register(
   action("classes.search", {
     title: "Search upcoming classes",
-    description: "Find classes by date and style. Returns up to 50 classes with start time, instructor, and spots left.",
+    description:
+      "Find classes by date and style. Returns up to 50 classes with start time, instructor, and spots left.",
     readOnly: true,
     risk: "none",
     input: z.object({ from: z.string().date().describe("Earliest date, YYYY-MM-DD") }),
-    output: z.object({ classes: z.array(z.object({ id: z.string(), title: z.string(), startsAt: z.string() })) }),
+    output: z.object({
+      classes: z.array(z.object({ id: z.string(), title: z.string(), startsAt: z.string() })),
+    }),
     handler: async ({ input }) => ({ classes: await findClasses(input.from) }),
   }),
 );

@@ -41,25 +41,25 @@ A `needs_input` result has six members. This is the wire JSON from [spec §8.1](
 }
 ```
 
-| Member              | Meaning                                                                                                                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reason`            | A short snake_case code, stable across calls. Use the conventions `payment_required`, `consent_required`, `identity_required`, `document_required`, or a site-specific code. Agents branch and log on it.       |
-| `message`           | Agent-facing prose explaining the requirement in the context of this call: the amount, the document, the policy. Agent-read text under the [honesty rules](audit.md#honesty-rules).                          |
-| `accepts`           | At least one entry, ordered from most automatable to least. Agents try them in order.                                                                                                                          |
-| `continuationToken` | Signed and opaque. The agent presents it to `/axe/continue` with the chosen `kind` and a `payload`.                                                                                                            |
-| `expiresAt`         | When the token stops working. Fifteen minutes by default.                                                                                                                                                      |
+| Member              | Meaning                                                                                                                                                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reason`            | A short snake_case code, stable across calls. Use the conventions `payment_required`, `consent_required`, `identity_required`, `document_required`, or a site-specific code. Agents branch and log on it.                                    |
+| `message`           | Agent-facing prose explaining the requirement in the context of this call: the amount, the document, the policy. Agent-read text under the [honesty rules](audit.md#honesty-rules).                                                          |
+| `accepts`           | At least one entry, ordered from most automatable to least. Agents try them in order.                                                                                                                                                        |
+| `continuationToken` | Signed and opaque. The agent presents it to `/axe/continue` with the chosen `kind` and a `payload`.                                                                                                                                          |
+| `expiresAt`         | When the token stops working. Fifteen minutes by default.                                                                                                                                                                                    |
 | `fallback`          | Optional. A complete Handoff (see [Human handoff](human-handoff.md)). An agent that can satisfy none of `accepts` presents it to the user without another round trip. Without it, the agent asks its user for the information and continues. |
 
 The `accepts` entry is the unit an agent's wallet or credential store matches on:
 
-| Member         | Meaning                                                                                                                                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kind`         | A well-known kind from the registry below, or a custom kind of the form `x-<org>.<name>`.                                                                                                            |
-| `title`        | A short label for the option. Defaults to the registry title.                                                                                                                                        |
-| `description`  | What this requirement is for, in this action. "Authorize a one-time ACH debit for the deposit", not "ACH".                                                                                          |
-| `schema`       | JSON Schema for `payload`. For a well-known kind, the registry schema or a restriction of it.                                                                                                        |
-| `sensitive`    | Whether the agent must confirm with the user before sending. Payment credentials and identity attributes are always sensitive.                                                                       |
-| `instructions` | Optional agent-read text the agent relays to the user or acts on: wire details, where to download a form, what a policy says. Anything the agent needs beyond the schema to produce the payload.     |
+| Member         | Meaning                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kind`         | A well-known kind from the registry below, or a custom kind of the form `x-<org>.<name>`.                                                                                                        |
+| `title`        | A short label for the option. Defaults to the registry title.                                                                                                                                    |
+| `description`  | What this requirement is for, in this action. "Authorize a one-time ACH debit for the deposit", not "ACH".                                                                                       |
+| `schema`       | JSON Schema for `payload`. For a well-known kind, the registry schema or a restriction of it.                                                                                                    |
+| `sensitive`    | Whether the agent must confirm with the user before sending. Payment credentials and identity attributes are always sensitive.                                                                   |
+| `instructions` | Optional agent-read text the agent relays to the user or acts on: wire details, where to download a form, what a policy says. Anything the agent needs beyond the schema to produce the payload. |
 
 The difference between `description` and `instructions`: `description` tells the agent what the option is; `instructions` tells it how to get the thing. A `payment.wire-confirmation` entry needs the bank details in `instructions` or no one can send the wire. A `consent.terms` entry should carry the policy title and a one-sentence summary so the agent can show the user what they are agreeing to.
 
@@ -75,30 +75,30 @@ Kinds in this namespace name what the agent submits, not what the site does with
 
 `payment.card` — sensitive.
 
-| Member              | Type                        | Required | Meaning                                                     |
-| ------------------- | --------------------------- | -------- | ----------------------------------------------------------- |
-| `token`             | string                      | yes      | PSP-issued single-use or network token.                     |
-| `provider`          | string                      | yes      | PSP identifier: `stripe`, `adyen`, `braintree`.             |
-| `brand`             | string                      | no       | Card network, lowercase.                                    |
-| `last4`             | string, four digits         | no       | For display and confirmation.                               |
-| `expMonth`          | integer 1–12                | no       |                                                             |
-| `expYear`           | integer, four digits        | no       |                                                             |
-| `billingPostalCode` | string                      | no       |                                                             |
-| `amount`            | number ≥ 0                  | no       | Amount the user authorized, when the requirement names one. |
-| `currency`          | string, three capitals      | no       |                                                             |
+| Member              | Type                   | Required | Meaning                                                     |
+| ------------------- | ---------------------- | -------- | ----------------------------------------------------------- |
+| `token`             | string                 | yes      | PSP-issued single-use or network token.                     |
+| `provider`          | string                 | yes      | PSP identifier: `stripe`, `adyen`, `braintree`.             |
+| `brand`             | string                 | no       | Card network, lowercase.                                    |
+| `last4`             | string, four digits    | no       | For display and confirmation.                               |
+| `expMonth`          | integer 1–12           | no       |                                                             |
+| `expYear`           | integer, four digits   | no       |                                                             |
+| `billingPostalCode` | string                 | no       |                                                             |
+| `amount`            | number ≥ 0             | no       | Amount the user authorized, when the requirement names one. |
+| `currency`          | string, three capitals | no       |                                                             |
 
 `payment.ach-debit` — sensitive. Authorization for a one-time debit from a US bank account.
 
-| Member              | Type                     | Required | Meaning                                                     |
-| ------------------- | ------------------------ | -------- | ----------------------------------------------------------- |
-| `accountHolderName` | string                   | yes      |                                                             |
-| `routingNumber`     | string, nine digits      | yes      | ABA routing number.                                         |
-| `accountNumber`     | string, 4–17 digits      | yes      |                                                             |
-| `accountType`       | `checking` or `savings`  | yes      |                                                             |
-| `amount`            | number ≥ 0               | yes      | Amount authorized.                                          |
-| `currency`          | string, three capitals   | yes      | `USD` for ACH.                                              |
-| `authorizedAt`      | date-time                | yes      | When the user gave authorization.                           |
-| `authorizationText` | string                   | yes      | The exact text the user agreed to. Required by NACHA rules. |
+| Member              | Type                    | Required | Meaning                                                     |
+| ------------------- | ----------------------- | -------- | ----------------------------------------------------------- |
+| `accountHolderName` | string                  | yes      |                                                             |
+| `routingNumber`     | string, nine digits     | yes      | ABA routing number.                                         |
+| `accountNumber`     | string, 4–17 digits     | yes      |                                                             |
+| `accountType`       | `checking` or `savings` | yes      |                                                             |
+| `amount`            | number ≥ 0              | yes      | Amount authorized.                                          |
+| `currency`          | string, three capitals  | yes      | `USD` for ACH.                                              |
+| `authorizedAt`      | date-time               | yes      | When the user gave authorization.                           |
+| `authorizationText` | string                  | yes      | The exact text the user agreed to. Required by NACHA rules. |
 
 `payment.wire-confirmation` — not sensitive. The site supplies bank details in `instructions`; the agent submits proof that the wire was sent.
 
@@ -126,14 +126,14 @@ Every identity kind is sensitive.
 
 `identity.government-id` — details from a government-issued document.
 
-| Member           | Type                                                                          | Required | Meaning                     |
-| ---------------- | ----------------------------------------------------------------------------- | -------- | --------------------------- |
-| `documentType`   | `passport`, `drivers-license`, `national-id`, or `residence-permit`           | yes      |                             |
-| `documentNumber` | string                                                                        | yes      |                             |
-| `issuingCountry` | string, two capitals                                                          | yes      | ISO 3166-1 alpha-2.         |
-| `fullName`       | string                                                                        | yes      | As printed on the document. |
-| `dateOfBirth`    | date                                                                          | no       |                             |
-| `expiresOn`      | date                                                                          | no       |                             |
+| Member           | Type                                                                | Required | Meaning                     |
+| ---------------- | ------------------------------------------------------------------- | -------- | --------------------------- |
+| `documentType`   | `passport`, `drivers-license`, `national-id`, or `residence-permit` | yes      |                             |
+| `documentNumber` | string                                                              | yes      |                             |
+| `issuingCountry` | string, two capitals                                                | yes      | ISO 3166-1 alpha-2.         |
+| `fullName`       | string                                                              | yes      | As printed on the document. |
+| `dateOfBirth`    | date                                                                | no       |                             |
+| `expiresOn`      | date                                                                | no       |                             |
 
 `identity.date-of-birth`
 
@@ -180,10 +180,10 @@ Not sensitive by default. Mark contact kinds sensitive when you collect them for
 
 `contact.phone`
 
-| Member          | Type           | Required | Meaning |
-| --------------- | -------------- | -------- | ------- |
-| `phone`         | string, E.164  | yes      | `+` then 7 to 15 digits. |
-| `canReceiveSms` | boolean        | no       |         |
+| Member          | Type          | Required | Meaning                  |
+| --------------- | ------------- | -------- | ------------------------ |
+| `phone`         | string, E.164 | yes      | `+` then 7 to 15 digits. |
+| `canReceiveSms` | boolean       | no       |                          |
 
 `contact.address`
 
@@ -240,7 +240,11 @@ axe.register(
     idempotent: true,
     reversible: true,
     auth: "user",
-    input: z.object({ issuingSchool: z.string().describe("Name of the school that issued the transcript") }).strict(),
+    input: z
+      .object({
+        issuingSchool: z.string().describe("Name of the school that issued the transcript"),
+      })
+      .strict(),
     output: z.object({ documentId: z.string(), missingDocuments: z.array(z.string()) }),
     handler: async ({ input, context, needsInput }) =>
       needsInput({
@@ -249,7 +253,8 @@ axe.register(
         accepts: [
           // Most automatable first: an agent that already holds the file at a URL needs no encoding step.
           accept(withMimeTypes(kinds.document.url, ["application/pdf"]), {
-            description: "An HTTPS URL to the transcript PDF. Northgate fetches it once, within 15 minutes of this response.",
+            description:
+              "An HTTPS URL to the transcript PDF. Northgate fetches it once, within 15 minutes of this response.",
             sensitive: true,
           }),
           accept(withMimeTypes(kinds.document.base64, ["application/pdf"]), {
@@ -261,7 +266,10 @@ axe.register(
         state: { applicantId: context.onBehalfOf!, issuingSchool: input.issuingSchool },
       }),
     onContinue: async ({ kind, payload, state, fail }) => {
-      const { applicantId, issuingSchool } = state as { applicantId: string; issuingSchool: string };
+      const { applicantId, issuingSchool } = state as {
+        applicantId: string;
+        issuingSchool: string;
+      };
       // The payload already validated against the chosen entry's schema; the casts only name the shape.
       const file =
         kind === "document.url"
@@ -270,7 +278,13 @@ axe.register(
       if (file.bytes.byteLength > MAX_TRANSCRIPT_BYTES) {
         // An error from onContinue does not consume the token; the agent can retry with a smaller file.
         return fail("invalid_input", "The transcript is larger than 10 MB.", {
-          issues: [{ path: "/payload", message: "decoded size exceeds 10 MB", expected: "at most 10485760 bytes" }],
+          issues: [
+            {
+              path: "/payload",
+              message: "decoded size exceeds 10 MB",
+              expected: "at most 10485760 bytes",
+            },
+          ],
         });
       }
       const documentId = await documents.store(applicantId, issuingSchool, file);
@@ -327,9 +341,16 @@ axe.register(
     onContinue: async ({ kind, payload, state }) => {
       const { classId, studentId } = state as { classId: string; studentId: string };
       if (kind === "consent.terms") {
-        await students.recordWaiver(studentId, payload as { policyVersion: string; acceptedAt: string });
+        await students.recordWaiver(
+          studentId,
+          payload as { policyVersion: string; acceptedAt: string },
+        );
       } else if (kind === "payment.card") {
-        await payments.chargeDropIn(studentId, classId, payload as { token: string; provider: string });
+        await payments.chargeDropIn(
+          studentId,
+          classId,
+          payload as { token: string; provider: string },
+        );
       }
       return nextStep(classId, studentId);
     },
@@ -342,7 +363,8 @@ async function nextStep(classId: string, studentId: string) {
   if (student.waiverVersion !== WAIVER.version) {
     return needsInput({
       reason: "consent_required",
-      message: "Sunrise Yoga requires an acknowledged liability waiver before a first class, and again when the waiver changes.",
+      message:
+        "Sunrise Yoga requires an acknowledged liability waiver before a first class, and again when the waiver changes.",
       accepts: [waiverConsent],
       state: { classId, studentId },
     });
@@ -351,7 +373,11 @@ async function nextStep(classId: string, studentId: string) {
     return needsInput({
       reason: "payment_required",
       message: `The drop-in rate for this class is $${cls.dropInUsd}. Members attend at no charge.`,
-      accepts: [accept(kinds.payment.card, { description: `Card token to charge $${cls.dropInUsd} for one drop-in class.` })],
+      accepts: [
+        accept(kinds.payment.card, {
+          description: `Card token to charge $${cls.dropInUsd} for one drop-in class.`,
+        }),
+      ],
       state: { classId, studentId },
     });
   }
@@ -380,7 +406,8 @@ A custom kind is legitimate when nothing in the registry describes the payload: 
 export const guarantorForm = customKind({
   kind: "x-oakridge.guarantor-form",
   title: "Guarantor agreement",
-  description: "Who guarantees the lease, their relationship to the applicant, and the signed Oakridge guarantor form.",
+  description:
+    "Who guarantees the lease, their relationship to the applicant, and the signed Oakridge guarantor form.",
   schema: z
     .object({
       guarantorName: z.string().min(1),
@@ -446,19 +473,28 @@ axe.register(
     idempotent: true,
     reversible: false,
     auth: "user",
-    input: z.object({ recipient: z.string().describe("Institution that will receive the transcript") }).strict(),
+    input: z
+      .object({ recipient: z.string().describe("Institution that will receive the transcript") })
+      .strict(),
     output: z.object({ releaseId: z.string(), deliveryBy: z.string() }),
     handler: async ({ input, context, needsInput }) =>
       needsInput({
         reason: "identity_required",
         message: "Confirm the applicant's date of birth before a transcript can be released.",
-        accepts: [accept(kinds.identity.dateOfBirth, { description: "Date of birth as entered on the application." })],
+        accepts: [
+          accept(kinds.identity.dateOfBirth, {
+            description: "Date of birth as entered on the application.",
+          }),
+        ],
         state: { applicantId: context.onBehalfOf!, recipient: input.recipient, verified: false },
       }),
     onContinue: async ({ kind, payload, state, needsInput, fail }) => {
       const s = state as { applicantId: string; recipient: string; verified: boolean };
       if (kind === "identity.date-of-birth") {
-        const matches = await registrar.verifyDateOfBirth(s.applicantId, (payload as { dateOfBirth: string }).dateOfBirth);
+        const matches = await registrar.verifyDateOfBirth(
+          s.applicantId,
+          (payload as { dateOfBirth: string }).dateOfBirth,
+        );
         if (!matches) {
           // An error does not consume the token: the agent can correct the value and retry.
           return fail("invalid_input", "The date of birth does not match the application.", {
@@ -479,7 +515,11 @@ axe.register(
         });
       }
       if (kind === "consent.terms" && s.verified) {
-        return registrar.release(s.applicantId, s.recipient, payload as { policyUrl: string; policyVersion: string; acceptedAt: string });
+        return registrar.release(
+          s.applicantId,
+          s.recipient,
+          payload as { policyUrl: string; policyVersion: string; acceptedAt: string },
+        );
       }
       // Unreachable in practice: the server rejects a kind that is not in the token's accepts.
       return fail("conflict", "Requirements were answered out of order. Call the action again.");
@@ -508,3 +548,4 @@ The threat model as a whole is in [Security](security.md).
 - [Designing actions](designing-actions.md#designing-requirements): choosing between one requirement with many options and a chain.
 - [For agent builders](for-agent-builders.md): fulfillers, confirmation, and how a wallet is keyed by kind.
 - [Kind registry](../spec/KINDS.md): the normative tables and the rules for proposing a new kind.
+````

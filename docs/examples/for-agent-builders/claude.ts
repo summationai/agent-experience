@@ -28,7 +28,9 @@ function toolsFor(client: AXEClient): Anthropic.Tool[] {
     description: [
       a.description,
       `Risk: ${a.risk}.`,
-      a.readOnly ? "Read-only." : `Changes state; ${a.reversible ? "reversible" : "not reversible"}. Confirm with the user first when risk is high.`,
+      a.readOnly
+        ? "Read-only."
+        : `Changes state; ${a.reversible ? "reversible" : "not reversible"}. Confirm with the user first when risk is high.`,
     ].join(" "),
     input_schema: { ...a.input, type: "object" },
   }));
@@ -100,7 +102,12 @@ export class AxeAgent {
         if (block.type !== "tool_use") continue;
         const actionName = this.actionsByTool.get(block.name);
         if (!actionName) {
-          results.push({ type: "tool_result", tool_use_id: block.id, content: `Unknown tool ${block.name}.`, is_error: true });
+          results.push({
+            type: "tool_result",
+            tool_use_id: block.id,
+            content: `Unknown tool ${block.name}.`,
+            is_error: true,
+          });
           continue;
         }
         const outcome = await this.client.run(actionName, block.input);
@@ -123,14 +130,18 @@ export class AxeAgent {
         if (outcome.action.display) {
           const presented = present(outcome.action, outcome.result, this.client.manifest().brand);
           this.host.showArtifact(toHTML(presented, { heading: outcome.action.title }));
-          const disclaimer = presented.disclaimer ? ` Disclaimer shown with it: "${presented.disclaimer}"` : "";
+          const disclaimer = presented.disclaimer
+            ? ` Disclaimer shown with it: "${presented.disclaimer}"`
+            : "";
           return `Shown to the user as a page with ${presented.items.length} item(s) and buttons for each next step.${disclaimer} Summarize briefly; do not repeat every field. Raw output: ${JSON.stringify(outcome.result.output)}`;
         }
         return JSON.stringify(outcome.result.output);
       }
       case "needs_input": {
         const r = outcome.result;
-        const options = r.accepts.map((a) => `${a.kind} (${a.title}${a.sensitive ? ", sensitive" : ""})`).join(", ");
+        const options = r.accepts
+          .map((a) => `${a.kind} (${a.title}${a.sensitive ? ", sensitive" : ""})`)
+          .join(", ");
         return `${r.message} The site accepts: ${options}. Nothing in the user's wallet matched (tried: ${outcome.tried.join(", ") || "none"}). Ask the user for the first option, specifically.`;
       }
       case "needs_human": {
@@ -169,5 +180,6 @@ const host: Host = {
 const agent = new AxeAgent(client, host);
 console.log(await agent.chat("Find me a one-bedroom in Bellevue under $3,200 a month."));
 // When the user presses "Apply for this unit" on the card for u_204, the page dispatches this:
-for (const cb of listeners) cb({ itemId: "u_204", action: "applications.submit", input: { unitId: "u_204" } });
+for (const cb of listeners)
+  cb({ itemId: "u_204", action: "applications.submit", input: { unitId: "u_204" } });
 // #endregion main

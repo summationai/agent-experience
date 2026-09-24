@@ -53,12 +53,25 @@ axe.register(
     input: z
       .object({
         classId: z.string().describe("Class id from classes.search"),
-        guests: z.number().int().min(0).max(3).optional().describe("Additional spots for guests, 0-3"),
+        guests: z
+          .number()
+          .int()
+          .min(0)
+          .max(3)
+          .optional()
+          .describe("Additional spots for guests, 0-3"),
       })
       .strict(),
-    output: z.object({ bookingId: z.string(), classId: z.string(), status: z.literal("confirmed") }),
+    output: z.object({
+      bookingId: z.string(),
+      classId: z.string(),
+      status: z.literal("confirmed"),
+    }),
     examples: [
-      { input: { classId: "c_101" }, output: { bookingId: "b_m_priya_c_101", classId: "c_101", status: "confirmed" } },
+      {
+        input: { classId: "c_101" },
+        output: { bookingId: "b_m_priya_c_101", classId: "c_101", status: "confirmed" },
+      },
     ],
     handler: async ({ input, context, needsInput, fail }) => {
       const memberId = context.onBehalfOf!;
@@ -94,7 +107,11 @@ describe("classes.book", () => {
     const result = await client.invoke("classes.book", { classId: "c_101" });
     assert.equal(result.status, "ok");
     if (result.status === "ok") {
-      assert.deepEqual(result.output, { bookingId: "b_m_priya_c_101", classId: "c_101", status: "confirmed" });
+      assert.deepEqual(result.output, {
+        bookingId: "b_m_priya_c_101",
+        classId: "c_101",
+        status: "confirmed",
+      });
     }
   });
 
@@ -155,7 +172,7 @@ Narrow on `status` before touching members. `Result` is a discriminated union, s
 
 ```sh
 npx axe conformance http://localhost:3000
-```
+````
 
 ```
 AXE conformance: http://localhost:3000/
@@ -181,13 +198,13 @@ The exit code is 0 when no check failed and 1 otherwise. Warnings do not fail th
 
 Flags:
 
-| Flag | Effect |
-| --- | --- |
-| `--auth <token>` | Sent as a bearer token in `Authorization`. Without it, `user` and `site` actions are not callable, and every check that needs one is skipped. |
-| `--no-mutate` | Skip every check that calls a mutating action: idempotency, the whole escalation ladder, token tampering. Use it against an environment you cannot reset. |
+| Flag                                        | Effect                                                                                                                                                             |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--auth <token>`                            | Sent as a bearer token in `Authorization`. Without it, `user` and `site` actions are not callable, and every check that needs one is skipped.                      |
+| `--no-mutate`                               | Skip every check that calls a mutating action: idempotency, the whole escalation ladder, token tampering. Use it against an environment you cannot reset.          |
 | `--ladder <action> --ladder-input '<json>'` | Name an action and input known to return `needs_input`. Use it when none of your examples does (examples are supposed to show the `ok` output, so this is common). |
-| `--vendor <name>` | The vendor presented in `context.agent`. Use it to verify a `policies.agents` allow or deny list; a denied vendor skips every live check. |
-| `--json` | Emit the full `ConformanceReport` as JSON instead of the table, including per-check spec requirement ids and the observations the audit reuses. |
+| `--vendor <name>`                           | The vendor presented in `context.agent`. Use it to verify a `policies.agents` allow or deny list; a denied vendor skips every live check.                          |
+| `--json`                                    | Emit the full `ConformanceReport` as JSON instead of the table, including per-check spec requirement ids and the observations the audit reuses.                    |
 
 A typical staging run for Oakridge Rentals, whose application flow needs a signed-in renter and a deposit:
 
@@ -260,9 +277,12 @@ const report = await runConformance(url, options);
 console.log(formatConformanceTable(report));
 
 const failed = report.checks.filter((c) => c.status === "fail");
-for (const c of failed) console.error(`${c.id}: ${c.detail} (see ${c.docs}; spec ${c.requirements.join(", ")})`);
+for (const c of failed)
+  console.error(`${c.id}: ${c.detail} (see ${c.docs}; spec ${c.requirements.join(", ")})`);
 
-const ladderSkipped = report.checks.filter((c) => c.id.startsWith("ladder.") && c.status === "skip");
+const ladderSkipped = report.checks.filter(
+  (c) => c.id.startsWith("ladder.") && c.status === "skip",
+);
 if (ladderSkipped.length > 0) {
   console.warn(`${ladderSkipped.length} ladder checks skipped: ${ladderSkipped[0]!.detail}`);
 }
@@ -424,3 +444,4 @@ One requirement, P-HON-3 (parity), maps to `audit.parity`, which is not a pass/f
 - [Designing actions](designing-actions.md): examples, requirements, and the metadata the truthfulness checks compare against.
 - [Deploying](deploying.md): the discovery hints, caching, and rate-limit headers the discovery and runtime checks look for.
 - [For agent builders](for-agent-builders.md): what an agent does with each status the suite exercises.
+````

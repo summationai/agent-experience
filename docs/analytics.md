@@ -21,18 +21,18 @@ The normative text is [`spec/EVENTS.md`](../spec/EVENTS.md). Nothing here adds t
 }
 ```
 
-| Member          | Type                                                                         | Meaning                                                                                                                 |
-| --------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `schemaVersion` | integer                                                                      | `1`. Present on every event so a consumer can migrate when the shape changes.                                           |
-| `ts`            | date-time                                                                    | When the response was produced.                                                                                         |
-| `action`        | string                                                                       | The action name. For a continue, resume, or poll it is the originating action, recovered from the token.                |
-| `status`        | `ok`, `needs_input`, `needs_human`, `pending`, `error`                       | The `status` of the result envelope that was returned.                                                                  |
-| `ladder`        | `ok`, `needs_input`, `continued`, `needs_human`, `resumed`, `pending`, `error` | Which rung produced the event. See the table below.                                                                     |
-| `agent`         | `{ vendor?, name?, version? }` or `null`                                     | From `context.agent`, else parsed from `User-Agent` when it follows the recommended form, else `null`.                  |
-| `latencyMs`     | integer ≥ 0                                                                  | Server-side wall time from request receipt to response.                                                                 |
-| `kind`          | string or `null`                                                             | On `continued`: the kind the agent submitted. On `needs_input`: the first kind in `accepts`. Otherwise `null`.          |
-| `errorCode`     | error code or `null`                                                         | `error.code` when `status` is `error`.                                                                                  |
-| `tenant`        | string or `null`                                                             | The tenant id on [platforms](platforms.md), else `null`.                                                                |
+| Member          | Type                                                                           | Meaning                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion` | integer                                                                        | `1`. Present on every event so a consumer can migrate when the shape changes.                                  |
+| `ts`            | date-time                                                                      | When the response was produced.                                                                                |
+| `action`        | string                                                                         | The action name. For a continue, resume, or poll it is the originating action, recovered from the token.       |
+| `status`        | `ok`, `needs_input`, `needs_human`, `pending`, `error`                         | The `status` of the result envelope that was returned.                                                         |
+| `ladder`        | `ok`, `needs_input`, `continued`, `needs_human`, `resumed`, `pending`, `error` | Which rung produced the event. See the table below.                                                            |
+| `agent`         | `{ vendor?, name?, version? }` or `null`                                       | From `context.agent`, else parsed from `User-Agent` when it follows the recommended form, else `null`.         |
+| `latencyMs`     | integer ≥ 0                                                                    | Server-side wall time from request receipt to response.                                                        |
+| `kind`          | string or `null`                                                               | On `continued`: the kind the agent submitted. On `needs_input`: the first kind in `accepts`. Otherwise `null`. |
+| `errorCode`     | error code or `null`                                                           | `error.code` when `status` is `error`.                                                                         |
+| `tenant`        | string or `null`                                                               | The tenant id on [platforms](platforms.md), else `null`.                                                       |
 
 `status` says what the agent received. `ladder` says which endpoint produced it, so you can compute funnels without joining requests together:
 
@@ -55,9 +55,9 @@ Events contain no personally identifiable information and no payloads, by constr
 
 A sink is any function of an event: `(event: AXEEvent) => void | Promise<void>`. Pass one sink or an array to `onEvent`. Three ship in `@axe/core/events`:
 
-- `consoleSink()` writes one JSON line per event to stdout. Pass your own writer to send the line elsewhere.
-- `jsonlFileSink(path)` appends JSON lines to a file, opening it lazily and serializing writes so lines never interleave. Node only.
-- `otelSink({ meter, tracer? })` records a counter and a histogram, and optionally one span per event. The parameter types are structural subsets of OpenTelemetry's meter and tracer, so `@axe/core` has no OpenTelemetry dependency and you pass the real objects from `@opentelemetry/api`.
+- `consoleSink` writes one JSON line per event to stdout. Pass your own writer to send the line elsewhere.
+- `jsonlFileSink` takes a path and appends JSON lines to it, opening the file lazily and serializing writes so lines never interleave. Node only.
+- `otelSink` takes a meter and an optional tracer, and records a counter and a histogram, plus one span per event when the tracer is present. The parameter types are structural subsets of OpenTelemetry's meter and tracer, so `@axe/core` has no OpenTelemetry dependency and you pass the real objects from `@opentelemetry/api`.
 
 The fourth export, combineSinks, fans events out to several sinks and isolates failures; it takes an error callback so a broken sink reports instead of disappearing. The array form of `onEvent` uses it internally with a callback that logs to stderr.
 
@@ -102,12 +102,12 @@ Sinks run after the response is determined, on a microtask, and they never delay
 
 `otelSink` records two instruments, both with the attributes `action`, `status`, `ladder`, `vendor` (the agent's vendor, or `unknown`), and `tenant` (the tenant id, or an empty string), plus `errorCode` and `kind` when the event has them:
 
-| Instrument     | Type      | Unit | Prometheus name after export                       |
-| -------------- | --------- | ---- | -------------------------------------------------- |
-| `axe.requests` | counter   |      | `axe_requests_total`                               |
-| `axe.latency`  | histogram | ms   | `axe_latency_bucket`, `axe_latency_sum`, `axe_latency_count` |
+| Instrument     | Type      | Unit | Prometheus name after export                                 |
+| -------------- | --------- | ---- | ------------------------------------------------------------ |
+| `axe.requests` | counter   |      | axe_requests_total                                           |
+| `axe.latency`  | histogram | ms   | axe_latency_bucket, axe_latency_sum, axe_latency_count       |
 
-OpenTelemetry exporters replace dots with underscores and append `_total` to monotonic counters. Some also append the unit, giving you `axe_latency_milliseconds_bucket`; check your exporter's output once and adjust the queries below.
+OpenTelemetry exporters replace dots with underscores and append a total suffix to monotonic counters. Some also append the unit, giving you axe_latency_milliseconds_bucket instead; check your exporter's output once and adjust the queries below.
 
 ## Day-one questions
 
@@ -130,7 +130,7 @@ CREATE TABLE axe_events (
 );
 CREATE INDEX ON axe_events (ts);
 CREATE INDEX ON axe_events (action, ts);
-```
+````
 
 The PromQL runs against the two instruments above. Every query below has both forms.
 
@@ -267,7 +267,7 @@ An action whose p95 approaches an agent's client timeout should return `pending`
 
 ### 6. Error rate by code, and who sends bad input
 
-The first query is the error mix. The second finds the vendors that hit `invalid_input` most on each action. A vendor whose agents keep failing validation on one action is telling you that the input schema's descriptions are not doing their job; the fix is usually a `describe` on the field and an example, not a looser schema.
+The first query is the error mix. The second finds the vendors that hit `invalid_input` most on each action. A vendor whose agents keep failing validation on one action is telling you that the input schema's descriptions are not doing their job; the fix is usually a description on the field and an example in `examples`, not a looser schema.
 
 ```sql
 SELECT error_code, count(*) AS errors,

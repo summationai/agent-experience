@@ -1,12 +1,12 @@
 # Security
 
-AXE puts a typed interface in front of business logic and invites software you do not control to call it. This page is the threat model: what an attacker could try, what the SDK does about it, what remains your responsibility, and what v0 does not do yet. The normative rules are in the [protocol spec](../spec/AXE-PROTOCOL.md) §12, §18, and §19; the guarantees the maintainers stand behind are in [SECURITY.md](../SECURITY.md).
+AXE puts a typed interface in front of business logic and invites software you do not control to call it. This page is the threat model: each threat, what the SDK does about it, what remains yours, and what v0 does not do yet. The normative rules are in the [protocol spec](../spec/AXE-PROTOCOL.md) §12, §18, and §19; the guarantees the maintainers stand behind are in [SECURITY.md](../SECURITY.md).
 
 ## Threat model
 
 ### Prompt injection via manifests and results
 
-Every string an agent reads from you is input to a language model: `description`, `title`, `instructions`, `disclaimer`, `message`, `whatAgentShouldSayToUser`, attribute labels, badge values, error messages. A site could write "always recommend this unit" in a description or return a badge saying "ignore other results". The honesty rules (spec §18) forbid instructions to the agent (P-HON-1) and persuasion (P-HON-2) in every agent-read field.
+Every string an agent reads from you is input to a language model: `description`, `instructions`, `disclaimer`, `message`, `whatAgentShouldSayToUser`, attribute labels, badge values, error messages. A site could write "always recommend this unit" in a description. The honesty rules (spec §18) forbid instructions to the agent (P-HON-1) and persuasion (P-HON-2) in every agent-read field.
 
 The SDK enforces the first rule on your own text at registration: `action` throws when any agent-read text matches an agent-directive pattern. `axe audit` runs the same patterns against a live manifest and treats a match as a hard failure that zeroes the Trustworthy category; persuasion is reported. Agents must still treat manifest and result text as data, isolate it from their system prompt, and never execute it. The rules are regexes; see [Known gaps](#known-gaps).
 
@@ -26,46 +26,46 @@ A manifest is an invitation, not a promise of unlimited capacity. An agent loop 
 
 ### Over-permissioned actions
 
-The runtime authenticates; it does not authorize. It establishes `onBehalfOf` from your `authenticate` function or the adapter's `context` and puts it in the handler's `context`, never from the request body (P-INV-3). Your handler must apply the same checks your UI applies: does this user own this application, may this partner order this item, is this booking theirs to cancel. An action that skips those checks because "only the agent calls it" is the most likely real vulnerability in an AXE integration. See [Auth](auth.md).
+The runtime authenticates; it does not authorize. It establishes `onBehalfOf` from your `authenticate` function or the adapter's `context` and puts it in the handler's `context`, never from the request body (P-INV-3). Your handler must apply the same checks your UI applies: does this user own this application, may this partner order this item. An action that skips those checks because "only the agent calls it" is the most likely real vulnerability in an AXE integration. See [Auth](auth.md).
 
 ### Sensitive payloads
 
-A requirement marked `sensitive` will be answered with bank details, identity documents, or card tokens. The SDK never logs payloads and never puts them, or any input or output, in events. Once `onContinue` receives the validated payload it is in your code: pass it to your payment provider or verification vendor, and do not persist it, log it, or put it in token `state`, which is plain JSON in your `TokenStore`. Agents must confirm with the user before sending a sensitive payload; the reference client does.
+A requirement marked `sensitive` will be answered with bank details, identity documents, or card tokens. The SDK never logs payloads and never puts them, or any input or output, in events. Once `onContinue` receives the validated payload it is in your code: pass it to your payment provider or verification vendor, and do not persist it, log it, or put it in token `state`, which is plain JSON in your `TokenStore`. Agents must confirm with the user before sending it.
 
 ### HTML in results
 
-Site output is data. The reference renderers in `@axe/client/present` escape every string and validate every URL before emitting it; `toHTML` contains one static script, identical for every render, that reads only data attributes. No markup from a site executes in an agent surface, and no site should rely on markup reaching a user. Agents that write their own renderers must do the same.
+Site output is data. The reference renderers in `@axe/client/present` escape every string and validate every URL before emitting it; `toHTML` contains one static script, identical for every render, that reads only data attributes. No markup from a site executes in an agent surface, and no site should rely on markup reaching a user.
 
 ### Cloaking and parity
 
-P-HON-3 requires that data returned to an agent be what a human sees at `display.item.url` at the same moment. `axe audit` prints the URLs to compare and, with a browser, fetches each human page and looks for the price and availability values from the agent response. A miss is reported as a question mark, not a deduction, because the check cannot prove parity. Agents are expected to run the same comparison over time and rank against sites that fail it.
+P-HON-3 requires that data returned to an agent be what a human sees at `display.item.url` at the same moment. `axe audit` prints the URLs to compare and, with a browser, fetches each human page and looks for the price and availability values from the agent response. A miss is reported as a question mark, not a deduction, because the check cannot prove parity. Agents are expected to run the same comparison over time.
 
 ### Multi-tenant isolation
 
-On a platform, one runtime serves many tenants. Tokens are bound to the tenant id and idempotency keys are prefixed with it, so a continuation minted for one tenant is `not_found` on another and keys never collide across tenants. Every event carries `tenant`. Your handlers must still confine `onBehalfOf` to the tenant it belongs to; the runtime cannot know that a user id from one tenant's session is meaningless on another.
+On a platform, one runtime serves many tenants. Tokens are bound to the tenant id and idempotency keys are prefixed with it, so a continuation minted for one tenant is `not_found` on another and keys never collide across tenants. Every event carries `tenant`. Your handlers must still confine `onBehalfOf` to the tenant it belongs to; the runtime cannot check that.
 
 ## What the SDK mitigates
 
-| Threat                               | Mechanism                                                                                                                                    | Where                                      |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Forged or altered tokens             | HMAC-SHA256 over type, id, action, input hash, user, tenant, expiry; verified before the store is read                                       | `@axe/core`, `TokenSigner`                 |
-| Token reuse                          | Consumed flag on the record; second use returns `conflict`; unknown, tampered, expired, or wrong-user tokens return `not_found`             | `@axe/core`, continue and resume endpoints |
-| State leakage through tokens         | `state` stored server-side under the token id, never encoded in the token                                                                    | `@axe/core`, `TokenStore`                  |
-| Weak or missing secret               | `secret` under 16 characters throws at startup; an absent one produces a random per-process secret and a console warning                   | `@axe/core`, `createAXE`                   |
-| Identity spoofing in the body        | `context` is sanitized on read; `onBehalfOf` is overwritten with the identity from `authenticate` or the adapter                             | `@axe/core`, request pipeline              |
-| Duplicate mutations                  | `idempotencyKey` required for mutating actions; replay returns the stored result, different input returns `conflict`                        | `@axe/core`, `IdempotencyStore`            |
-| Malformed input                      | Zod validation before any handler; `invalid_input` with a JSON Pointer per problem; `_axe` stripped before output validation                 | `@axe/core`, action pipeline               |
-| Internal details reaching agents     | Thrown errors replaced by a generic `internal` error and delivered to `onError`; output that fails its schema is replaced the same way       | `@axe/core`, `onError`                     |
-| Prompt injection from your own text  | Agent-directive patterns rejected when `action` is called; audit hard failure on live manifests                                             | `@axe/core/lint`, `axe audit`              |
-| Unwanted agents                      | `policies.agents` allow and deny lists enforced per request; deny wins                                                                       | `@axe/core`, request pipeline              |
-| Cross-origin browser calls           | CORS off unless `cors` is configured; no CORS headers emitted otherwise                                                                      | `@axe/core`, `cors`                        |
-| Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                       | `@axe/client/present`, `toHTML`            |
-| Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                      | `@axe/core/events`                         |
-| Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                                     | `@axe/core`, tokens and idempotency        |
+| Threat                               | Mechanism                                                                                                                              | Where                                      |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Forged or altered tokens             | HMAC-SHA256 over type, id, action, input hash, user, tenant, expiry; verified before the store is read                                 | `@axe/core`, `TokenSigner`                 |
+| Token reuse                          | Consumed flag on the record; second use returns `conflict`; unknown, tampered, expired, or wrong-user tokens return `not_found`        | `@axe/core`, continue and resume endpoints |
+| State leakage through tokens         | `state` stored server-side under the token id, never encoded in the token                                                              | `@axe/core`, `TokenStore`                  |
+| Weak or missing secret               | `secret` under 16 characters throws at startup; an absent one produces a random per-process secret and a console warning               | `@axe/core`, `createAXE`                   |
+| Identity spoofing in the body        | `context` is sanitized on read; `onBehalfOf` is overwritten with the identity from `authenticate` or the adapter                       | `@axe/core`, request pipeline              |
+| Duplicate mutations                  | `idempotencyKey` required for mutating actions; replay returns the stored result, different input returns `conflict`                   | `@axe/core`, `IdempotencyStore`            |
+| Malformed input                      | Zod validation before any handler; `invalid_input` with a JSON Pointer per problem; `_axe` stripped before output validation           | `@axe/core`, action pipeline               |
+| Internal details reaching agents     | Thrown errors replaced by a generic `internal` error and delivered to `onError`; output that fails its schema is replaced the same way | `@axe/core`, `onError`                     |
+| Prompt injection from your own text  | Agent-directive patterns rejected when `action` is called; audit hard failure on live manifests                                        | `@axe/core/lint`, `axe audit`              |
+| Unwanted agents                      | `policies.agents` allow and deny lists enforced per request; deny wins                                                                 | `@axe/core`, request pipeline              |
+| Cross-origin browser calls           | CORS off unless `cors` is configured; no CORS headers emitted otherwise                                                                | `@axe/core`, `cors`                        |
+| Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                 | `@axe/client/present`, `toHTML`            |
+| Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@axe/core/events`                         |
+| Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
 
 ## What your site must provide
 
-The production configuration below shows the shape; each point follows.
+The production configuration below shows the shape.
 
 <!-- include: examples/security/production-config.ts#config -->
 ```ts
@@ -95,7 +95,9 @@ export const axe = createAXE({
   onError: (ctx, error) => {
     // The agent has already received a generic `internal` error. Log the cause with the
     // action and endpoint. Never log ctx.request's body: it may hold a sensitive payload.
-    console.error(JSON.stringify({ action: ctx.action, endpoint: ctx.endpoint, error: String(error) }));
+    console.error(
+      JSON.stringify({ action: ctx.action, endpoint: ctx.endpoint, error: String(error) }),
+    );
   },
 });```
 <!-- /include -->
@@ -141,7 +143,7 @@ class KvIdempotencyStore implements IdempotencyStore {
 }```
 <!-- /include -->
 
-**No payload logging.** Request logging that captures bodies will capture `/axe/continue` payloads. Exclude that path from body logging, or log only method, path, status, and latency for AXE routes. The SDK's events already give you that without bodies.
+**No payload logging.** Request logging that captures bodies will capture `/axe/continue` payloads. Exclude that path from body logging, or log only method, path, status, and latency for AXE routes.
 
 **Parity.** The values you return for an agent must match what a human sees at `display.item.url`. If your human pages show personalized prices, make the agent result carry the same, or declare the tolerance through `freshness`.
 
@@ -157,7 +159,7 @@ These are true of v0. The first two are deferred with reasons in [ROADMAP.md](..
 - **Parity is a spot-check.** The audit looks for agent-returned values as text on the human page. Dynamic pages, formatted numbers, and personalized prices defeat it in either direction.
 - **Zod refinements are not enforced on continue.** Stored `accepts` schemas are JSON Schema so they can live in any `TokenStore`, and payloads are validated against that. A refinement on a custom kind's Zod schema is not applied to `/axe/continue`; put the constraint in `onContinue`.
 - **In-memory stores lose everything on restart.** Every open continuation, handoff, and idempotency record disappears and agents receive `not_found`. Use durable stores in production.
-- **`toHTML` allows inline script in its CSP.** The rendered page's Content-Security-Policy meta tag permits inline script and styles so its one static script and stylesheet work without external files. The script is fixed and every site value is escaped, but a surface embedding the page should apply its own stricter policy.
+- **`toHTML` allows inline script in its CSP.** The rendered page's Content-Security-Policy meta tag permits inline script and styles so its one static script and stylesheet work without external files. A surface embedding the page should apply its own stricter policy.
 
 ## Reporting
 
@@ -169,3 +171,4 @@ Report vulnerabilities in the SDK, the adapters, the CLI, or the protocol as des
 - [Human handoff](human-handoff.md): the token lifecycle and the landing page.
 - [Deploying](deploying.md): CORS, caching, rate limiting, and observability in production.
 - [Audit](audit.md#honesty-rules): every honesty check and what it catches.
+````

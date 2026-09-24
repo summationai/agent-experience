@@ -20,14 +20,29 @@ axe.register(
     readOnly: true,
     risk: "none",
     auth: "user",
-    input: z.object({ term: z.enum(["fall-2027", "spring-2027"]).optional().describe("Admission term; defaults to the most recent application") }),
+    input: z.object({
+      term: z
+        .enum(["fall-2027", "spring-2027"])
+        .optional()
+        .describe("Admission term; defaults to the most recent application"),
+    }),
     output: z.object({
       applicationId: z.string(),
       status: z.enum(["incomplete", "under-review", "decided"]),
       missingDocuments: z.array(z.string()),
       decisionDate: z.string().nullable(),
     }),
-    examples: [{ input: {}, output: { applicationId: "NU-2027-0142", status: "incomplete", missingDocuments: ["transcript"], decisionDate: null } }],
+    examples: [
+      {
+        input: {},
+        output: {
+          applicationId: "NU-2027-0142",
+          status: "incomplete",
+          missingDocuments: ["transcript"],
+          decisionDate: null,
+        },
+      },
+    ],
     handler: async ({ input, context }) => admissions.status(context.onBehalfOf!, input.term),
   }),
 );
@@ -35,6 +50,11 @@ axe.register(
 // Stand-in for your admissions system.
 const admissions = {
   async status(_applicantId: string, _term?: string) {
-    return { applicationId: "NU-2027-0142", status: "incomplete" as const, missingDocuments: ["transcript"], decisionDate: null };
+    return {
+      applicationId: "NU-2027-0142",
+      status: "incomplete" as const,
+      missingDocuments: ["transcript"],
+      decisionDate: null,
+    };
   },
 };

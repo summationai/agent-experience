@@ -4,7 +4,9 @@ import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@axe/client";
 // Start from any URL on the site. discover() tries /.well-known/axe.json, then /axe/manifest,
 // then the AXE-Manifest header, then <link rel="axe-manifest"> in the page.
 const { manifest, manifestUrl, via } = await discover("https://oakridge-rentals.example");
-console.log(`${manifest.name}: ${manifest.actions.length} actions (manifest at ${manifestUrl}, via ${via})`);
+console.log(
+  `${manifest.name}: ${manifest.actions.length} actions (manifest at ${manifestUrl}, via ${via})`,
+);
 
 const client = new AXEClient(manifest, {
   // Sent as context.agent and as the User-Agent. vendor is what policies.agents matches.

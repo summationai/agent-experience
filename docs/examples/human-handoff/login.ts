@@ -29,8 +29,14 @@ axe.register(
     readOnly: true,
     risk: "none",
     auth: "user",
-    input: z.object({ orderNumber: z.string().describe("Order number from the confirmation email") }).strict(),
-    output: z.object({ status: z.string(), carrier: z.string().nullable(), expectedBy: z.string().nullable() }),
+    input: z
+      .object({ orderNumber: z.string().describe("Order number from the confirmation email") })
+      .strict(),
+    output: z.object({
+      status: z.string(),
+      carrier: z.string().nullable(),
+      expectedBy: z.string().nullable(),
+    }),
     handler: async ({ input, context }) => orders.track(context.onBehalfOf!, input.orderNumber),
   }),
 );
@@ -48,7 +54,11 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { email, password, handoffId } = req.body as { email: string; password: string; handoffId?: string };
+  const { email, password, handoffId } = req.body as {
+    email: string;
+    password: string;
+    handoffId?: string;
+  };
   const user = await accounts.signIn(email, password);
   if (!user) {
     res.status(401).send(loginForm(handoffId ?? "", "Wrong email or password."));

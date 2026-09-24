@@ -11,7 +11,9 @@ export async function applicantFromRequest(request: Request): Promise<Identity |
 }
 
 /** Cookie header in: Pages API handlers expose it as req.headers.cookie. */
-export async function applicantFromCookieHeader(cookie: string | null | undefined): Promise<Identity | null> {
+export async function applicantFromCookieHeader(
+  cookie: string | null | undefined,
+): Promise<Identity | null> {
   const sid = /(?:^|;\s*)ng_session=([^;]+)/.exec(cookie ?? "")?.[1];
   const applicantId = sid ? SESSIONS.get(sid) : undefined;
   return applicantId ? { onBehalfOf: applicantId } : null;

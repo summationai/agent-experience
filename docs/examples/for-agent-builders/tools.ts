@@ -22,7 +22,9 @@ export function toolDefinitions(client: AXEClient): ToolDefinition[] {
     description: [
       a.description,
       `Risk: ${a.risk}.`,
-      a.readOnly ? "Read-only." : `Changes state; ${a.reversible ? "reversible" : "not reversible"}.`,
+      a.readOnly
+        ? "Read-only."
+        : `Changes state; ${a.reversible ? "reversible" : "not reversible"}.`,
       a.auth !== "none" ? `Requires ${a.auth} authentication.` : "",
     ]
       .filter(Boolean)
@@ -41,7 +43,10 @@ export function describeOutcome(client: AXEClient, outcome: RunOutcome): string 
     case "needs_input": {
       const r = outcome.result;
       const options = r.accepts
-        .map((a) => `- ${a.kind}: ${a.title}. ${a.description}${a.sensitive ? " (sensitive: confirm with the user)" : ""}`)
+        .map(
+          (a) =>
+            `- ${a.kind}: ${a.title}. ${a.description}${a.sensitive ? " (sensitive: confirm with the user)" : ""}`,
+        )
         .join("\n");
       return `The site needs one of the following (${r.reason}): ${r.message}\n${options}\nAlready tried: ${outcome.tried.join(", ") || "none"}. Ask the user for the first option you can collect.`;
     }

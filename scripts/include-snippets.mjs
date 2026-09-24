@@ -49,9 +49,9 @@ function snippet(spec) {
     );
     if (start < 0 || end < 0) throw new Error(`include: ${spec}: region "${region}" not found`);
     lines = lines.slice(start + 1, end);
-  } else {
-    lines = lines.filter((l) => !/^\s*\/\/\s*#(end)?region\b/.test(l));
   }
+  // Nested region markers are scaffolding for other includes, never content.
+  lines = lines.filter((l) => !/^\s*\/\/\s*#(end)?region\b/.test(l));
   while (lines.length && lines[0].trim() === "") lines.shift();
   while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
   const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => /^\s*/.exec(l)[0].length));

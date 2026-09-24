@@ -6,7 +6,7 @@
 
 ### AcceptInput
 
-Defined in: [packages/core/src/kinds.ts:28](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L28)
+Defined in: [packages/core/src/kinds.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L28)
 
 A server-side `accepts[]` entry: like the wire `Accept` but with a Zod schema.
 
@@ -18,7 +18,7 @@ A server-side `accepts[]` entry: like the wire `Accept` but with a Zod schema.
 description: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:31](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L31)
+Defined in: [packages/core/src/kinds.ts:31](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L31)
 
 ##### instructions?
 
@@ -26,7 +26,7 @@ Defined in: [packages/core/src/kinds.ts:31](https://github.com/summationai/code/
 optional instructions?: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:34](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L34)
+Defined in: [packages/core/src/kinds.ts:34](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L34)
 
 ##### kind
 
@@ -34,7 +34,7 @@ Defined in: [packages/core/src/kinds.ts:34](https://github.com/summationai/code/
 kind: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:29](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L29)
+Defined in: [packages/core/src/kinds.ts:29](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L29)
 
 ##### schema
 
@@ -44,7 +44,7 @@ schema:
 | ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:32](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L32)
+Defined in: [packages/core/src/kinds.ts:32](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L32)
 
 ##### sensitive
 
@@ -52,7 +52,7 @@ Defined in: [packages/core/src/kinds.ts:32](https://github.com/summationai/code/
 sensitive: boolean;
 ```
 
-Defined in: [packages/core/src/kinds.ts:33](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L33)
+Defined in: [packages/core/src/kinds.ts:33](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L33)
 
 ##### title?
 
@@ -60,13 +60,13 @@ Defined in: [packages/core/src/kinds.ts:33](https://github.com/summationai/code/
 optional title?: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:30](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L30)
+Defined in: [packages/core/src/kinds.ts:30](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L30)
 
 ***
 
 ### KindDefinition
 
-Defined in: [packages/core/src/kinds.ts:19](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L19)
+Defined in: [packages/core/src/kinds.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L19)
 
 A well-known or custom kind: its wire name, payload schema, and defaults for an `accepts[]` entry.
 
@@ -84,7 +84,7 @@ A well-known or custom kind: its wire name, payload schema, and defaults for an 
 readonly description: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:22](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L22)
+Defined in: [packages/core/src/kinds.ts:22](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L22)
 
 ##### kind
 
@@ -92,7 +92,7 @@ Defined in: [packages/core/src/kinds.ts:22](https://github.com/summationai/code/
 readonly kind: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:20](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L20)
+Defined in: [packages/core/src/kinds.ts:20](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L20)
 
 ##### schema
 
@@ -100,7 +100,7 @@ Defined in: [packages/core/src/kinds.ts:20](https://github.com/summationai/code/
 readonly schema: S;
 ```
 
-Defined in: [packages/core/src/kinds.ts:23](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L23)
+Defined in: [packages/core/src/kinds.ts:23](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L23)
 
 ##### sensitive
 
@@ -108,7 +108,7 @@ Defined in: [packages/core/src/kinds.ts:23](https://github.com/summationai/code/
 readonly sensitive: boolean;
 ```
 
-Defined in: [packages/core/src/kinds.ts:24](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L24)
+Defined in: [packages/core/src/kinds.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L24)
 
 ##### title
 
@@ -116,7 +116,7 @@ Defined in: [packages/core/src/kinds.ts:24](https://github.com/summationai/code/
 readonly title: string;
 ```
 
-Defined in: [packages/core/src/kinds.ts:21](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L21)
+Defined in: [packages/core/src/kinds.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L21)
 
 ## Variables
 
@@ -132,7 +132,7 @@ const consentTerms: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:243](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L243)
+Defined in: [packages/core/src/kinds.ts:243](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L243)
 
 ***
 
@@ -149,7 +149,7 @@ const contactAddress: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:226](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L226)
+Defined in: [packages/core/src/kinds.ts:226](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L226)
 
 ***
 
@@ -161,7 +161,7 @@ const contactEmail: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:202](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L202)
+Defined in: [packages/core/src/kinds.ts:202](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L202)
 
 ***
 
@@ -174,7 +174,7 @@ const contactPhone: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:210](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L210)
+Defined in: [packages/core/src/kinds.ts:210](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L210)
 
 ***
 
@@ -188,7 +188,7 @@ const documentBase64: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:188](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L188)
+Defined in: [packages/core/src/kinds.ts:188](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L188)
 
 ***
 
@@ -203,7 +203,7 @@ const documentUrl: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:173](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L173)
+Defined in: [packages/core/src/kinds.ts:173](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L173)
 
 ***
 
@@ -215,7 +215,7 @@ const identityDateOfBirth: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:157](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L157)
+Defined in: [packages/core/src/kinds.ts:157](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L157)
 
 ***
 
@@ -237,7 +237,7 @@ const identityGovernmentId: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:140](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L140)
+Defined in: [packages/core/src/kinds.ts:140](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L140)
 
 ***
 
@@ -249,7 +249,7 @@ const identitySsnLast4: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:165](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L165)
+Defined in: [packages/core/src/kinds.ts:165](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L165)
 
 ***
 
@@ -360,7 +360,7 @@ const kinds: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:260](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L260)
+Defined in: [packages/core/src/kinds.ts:260](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L260)
 
 Every well-known kind, grouped by namespace.
 
@@ -384,7 +384,7 @@ const paymentAchDebit: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:80](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L80)
+Defined in: [packages/core/src/kinds.ts:80](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L80)
 
 ***
 
@@ -404,7 +404,7 @@ const paymentCard: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:57](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L57)
+Defined in: [packages/core/src/kinds.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L57)
 
 ***
 
@@ -420,7 +420,7 @@ const paymentInvoice: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:124](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L124)
+Defined in: [packages/core/src/kinds.ts:124](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L124)
 
 ***
 
@@ -436,7 +436,7 @@ const paymentWireConfirmation: KindDefinition<ZodObject<{
 }, $strict>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:108](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L108)
+Defined in: [packages/core/src/kinds.ts:108](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L108)
 
 ***
 
@@ -446,7 +446,7 @@ Defined in: [packages/core/src/kinds.ts:108](https://github.com/summationai/code
 const WELL_KNOWN_KINDS: readonly KindDefinition[];
 ```
 
-Defined in: [packages/core/src/kinds.ts:287](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L287)
+Defined in: [packages/core/src/kinds.ts:287](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L287)
 
 Flat list of every well-known kind definition.
 
@@ -458,7 +458,7 @@ Flat list of every well-known kind definition.
 function accept(kind, options?): AcceptInput;
 ```
 
-Defined in: [packages/core/src/kinds.ts:358](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L358)
+Defined in: [packages/core/src/kinds.ts:358](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L358)
 
 Build an `accepts[]` entry from a kind definition. `description` should say what
 this requirement is for in the context of the action; `instructions` is relayed to
@@ -500,7 +500,7 @@ the user or acted on by the agent (wire details, where to obtain a document).
 function customKind<S>(spec): KindDefinition<S>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:322](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L322)
+Defined in: [packages/core/src/kinds.ts:322](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L322)
 
 Define a custom kind under your own namespace. The name must be `x-<org>.<name>`.
 Throws when the name is malformed or collides with a well-known namespace.
@@ -547,7 +547,7 @@ Throws when the name is malformed or collides with a well-known namespace.
 function isCustomKind(name): boolean;
 ```
 
-Defined in: [packages/core/src/kinds.ts:309](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L309)
+Defined in: [packages/core/src/kinds.ts:309](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L309)
 
 Whether a kind name is a valid custom kind (`x-<org>.<name>`).
 
@@ -569,7 +569,7 @@ Whether a kind name is a valid custom kind (`x-<org>.<name>`).
 function isValidKindName(name): boolean;
 ```
 
-Defined in: [packages/core/src/kinds.ts:314](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L314)
+Defined in: [packages/core/src/kinds.ts:314](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L314)
 
 Whether a kind name is syntactically valid: well-known or custom.
 
@@ -591,7 +591,7 @@ Whether a kind name is syntactically valid: well-known or custom.
 function kindJsonSchema(kind): JsonSchema;
 ```
 
-Defined in: [packages/core/src/kinds.ts:384](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L384)
+Defined in: [packages/core/src/kinds.ts:405](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L405)
 
 JSON Schema for a kind's payload, as it appears on the wire.
 
@@ -607,6 +607,30 @@ JSON Schema for a kind's payload, as it appears on the wire.
 
 ***
 
+### suggestedReason()
+
+```ts
+function suggestedReason(kindName): string | undefined;
+```
+
+Defined in: [packages/core/src/kinds.ts:388](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L388)
+
+The conventional `reason` string for a requirement whose kinds share a namespace:
+`payment_required`, `identity_required`, `document_required`, `consent_required`.
+Returns undefined for contact kinds and custom kinds, which take site-specific reasons.
+
+#### Parameters
+
+##### kindName
+
+`string`
+
+#### Returns
+
+`string` \| `undefined`
+
+***
+
 ### wellKnownKind()
 
 ```ts
@@ -615,7 +639,7 @@ function wellKnownKind(name):
   | undefined;
 ```
 
-Defined in: [packages/core/src/kinds.ts:304](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L304)
+Defined in: [packages/core/src/kinds.ts:304](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L304)
 
 Look up a well-known kind by wire name.
 
@@ -638,7 +662,7 @@ Look up a well-known kind by wire name.
 function withMimeTypes<S>(kind, mimeTypes): KindDefinition<ZodObject<$ZodLooseShape, $strip>>;
 ```
 
-Defined in: [packages/core/src/kinds.ts:341](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/kinds.ts#L341)
+Defined in: [packages/core/src/kinds.ts:341](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/kinds.ts#L341)
 
 Restrict a document kind to specific MIME types. Returns a new definition whose
 schema is a restriction of the registry schema, which spec/KINDS.md [K-3] permits.

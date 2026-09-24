@@ -26,8 +26,17 @@ axe.register(
     reversible: true,
     auth: "user",
     input: z.object({ classId: z.string().describe("Class id, as returned by classes.search") }),
-    output: z.object({ bookingId: z.string(), classId: z.string(), startsAt: z.string().datetime() }),
-    examples: [{ input: { classId: "c_102" }, output: { bookingId: "b_9001", classId: "c_102", startsAt: "2026-10-01T03:00:00Z" } }],
+    output: z.object({
+      bookingId: z.string(),
+      classId: z.string(),
+      startsAt: z.string().datetime(),
+    }),
+    examples: [
+      {
+        input: { classId: "c_102" },
+        output: { bookingId: "b_9001", classId: "c_102", startsAt: "2026-10-01T03:00:00Z" },
+      },
+    ],
     // `auth: "user"` guarantees an identity here: without one the SDK has already
     // returned a login_required handoff instead of calling the handler.
     handler: async ({ input, context }) => bookings.create(context.onBehalfOf!, input.classId),
@@ -106,7 +115,11 @@ function mountForPlatform(host: express.Express) {
 // Stand-ins for your database.
 const bookings = {
   async create(memberId: string, classId: string) {
-    return { bookingId: `b_${memberId.slice(2)}_${classId}`, classId, startsAt: "2026-10-01T03:00:00Z" };
+    return {
+      bookingId: `b_${memberId.slice(2)}_${classId}`,
+      classId,
+      startsAt: "2026-10-01T03:00:00Z",
+    };
   },
 };
 

@@ -12,15 +12,11 @@
     "packages/cli"
   ],
   "packageOptions": {
-    "entryPoints": [
-      "src/index.ts"
-    ],
+    "entryPoints": ["src/index.ts"],
     "excludeInternal": true,
     "excludePrivate": true
   },
-  "plugin": [
-    "typedoc-plugin-markdown"
-  ],
+  "plugin": ["typedoc-plugin-markdown"],
   "out": "docs/api/reference",
   "readme": "none",
   "cleanOutputDir": true,

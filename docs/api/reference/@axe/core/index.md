@@ -6,7 +6,7 @@
 
 ### ActionDefinitionError
 
-Defined in: [packages/core/src/action.ts:155](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L155)
+Defined in: [packages/core/src/action.ts:160](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L160)
 
 Thrown for structural problems in an action definition. The message says what to change.
 
@@ -22,7 +22,7 @@ Thrown for structural problems in an action definition. The message says what to
 new ActionDefinitionError(action, message): ActionDefinitionError;
 ```
 
-Defined in: [packages/core/src/action.ts:156](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L156)
+Defined in: [packages/core/src/action.ts:161](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L161)
 
 ###### Parameters
 
@@ -52,7 +52,7 @@ Error.constructor
 readonly action: string;
 ```
 
-Defined in: [packages/core/src/action.ts:157](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L157)
+Defined in: [packages/core/src/action.ts:162](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L162)
 
 ##### cause?
 
@@ -244,7 +244,7 @@ Error.prepareStackTrace
 
 ### AXE
 
-Defined in: [packages/core/src/server.ts:168](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L168)
+Defined in: [packages/core/src/server.ts:171](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L171)
 
 The server. Create one with `createAXE()`.
 
@@ -256,7 +256,7 @@ The server. Create one with `createAXE()`.
 new AXE(config): AXE;
 ```
 
-Defined in: [packages/core/src/server.ts:177](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L177)
+Defined in: [packages/core/src/server.ts:180](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L180)
 
 ###### Parameters
 
@@ -276,7 +276,7 @@ Defined in: [packages/core/src/server.ts:177](https://github.com/summationai/cod
 readonly config: AXEConfig;
 ```
 
-Defined in: [packages/core/src/server.ts:177](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L177)
+Defined in: [packages/core/src/server.ts:180](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L180)
 
 #### Accessors
 
@@ -288,7 +288,7 @@ Defined in: [packages/core/src/server.ts:177](https://github.com/summationai/cod
 get definitions(): ActionDefinition[];
 ```
 
-Defined in: [packages/core/src/server.ts:267](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L267)
+Defined in: [packages/core/src/server.ts:270](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L270)
 
 Every registered action's wire definition.
 
@@ -304,7 +304,7 @@ Every registered action's wire definition.
 completeHandoff(handoffId, completion?): Promise<boolean>;
 ```
 
-Defined in: [packages/core/src/server.ts:346](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L346)
+Defined in: [packages/core/src/server.ts:349](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L349)
 
 Record that the human finished a handoff. Call this from the page at the handoff
 `url` (read the `axe_handoff` query parameter). Returns false when the id is unknown.
@@ -335,7 +335,7 @@ Record that the human finished a handoff. Call this from the page at the handoff
 describe(tenant?): Manifest;
 ```
 
-Defined in: [packages/core/src/server.ts:312](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L312)
+Defined in: [packages/core/src/server.ts:315](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L315)
 
 The manifest, optionally for a tenant.
 
@@ -355,7 +355,7 @@ The manifest, optionally for a tenant.
 fetchHandler(): (request, adapter?) => Promise<Response>;
 ```
 
-Defined in: [packages/core/src/server.ts:338](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L338)
+Defined in: [packages/core/src/server.ts:341](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L341)
 
 A `(Request) => Promise<Response>` for the whole protocol surface. Adapters wrap this.
 
@@ -369,7 +369,7 @@ A `(Request) => Promise<Response>` for the whole protocol surface. Adapters wrap
 finalize(): this;
 ```
 
-Defined in: [packages/core/src/server.ts:280](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L280)
+Defined in: [packages/core/src/server.ts:283](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L283)
 
 Verify cross-action references (affordance targets, flow steps, deprecations).
 Called automatically on the first request or `describe()`; call it in tests to fail fast.
@@ -386,7 +386,7 @@ getAction(name):
   | undefined;
 ```
 
-Defined in: [packages/core/src/server.ts:272](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L272)
+Defined in: [packages/core/src/server.ts:275](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L275)
 
 Look up one registered action.
 
@@ -407,7 +407,7 @@ Look up one registered action.
 handle(request, adapter?): Promise<Response>;
 ```
 
-Defined in: [packages/core/src/server.ts:370](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L370)
+Defined in: [packages/core/src/server.ts:373](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L373)
 
 Handle one request. Prefer `fetchHandler()`; this is the same thing as a method.
 
@@ -431,7 +431,7 @@ Handle one request. Prefer `fetchHandler()`; this is the same thing as a method.
 register<I, O, S>(registered): this;
 ```
 
-Defined in: [packages/core/src/server.ts:231](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L231)
+Defined in: [packages/core/src/server.ts:234](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L234)
 
 Add an action created with `action()`. Throws when the name is taken or a declaration is invalid.
 
@@ -463,7 +463,7 @@ Add an action created with `action()`. Throws when the name is taken or a declar
 
 ### AXEError
 
-Defined in: [packages/core/src/results.ts:129](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L129)
+Defined in: [packages/core/src/results.ts:129](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L129)
 
 Throwable form of `fail()`, for code paths deep inside a handler. The runtime converts it.
 
@@ -483,7 +483,7 @@ new AXEError(
 ): AXEError;
 ```
 
-Defined in: [packages/core/src/results.ts:131](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L131)
+Defined in: [packages/core/src/results.ts:131](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L131)
 
 ###### Parameters
 
@@ -531,7 +531,7 @@ Error.cause
 readonly intent: ErrorIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:130](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L130)
+Defined in: [packages/core/src/results.ts:130](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L130)
 
 ##### message
 
@@ -609,7 +609,7 @@ Error.stackTraceLimit
 get code(): WireError;
 ```
 
-Defined in: [packages/core/src/results.ts:136](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L136)
+Defined in: [packages/core/src/results.ts:136](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L136)
 
 ###### Returns
 
@@ -725,7 +725,7 @@ Error.prepareStackTrace
 
 ### MemoryIdempotencyStore
 
-Defined in: [packages/core/src/idempotency.ts:23](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L23)
+Defined in: [packages/core/src/idempotency.ts:23](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L23)
 
 In-memory `IdempotencyStore`. Suitable for a single process.
 
@@ -755,7 +755,7 @@ new MemoryIdempotencyStore(): MemoryIdempotencyStore;
 get size(): number;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:40](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L40)
+Defined in: [packages/core/src/idempotency.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L40)
 
 ###### Returns
 
@@ -769,7 +769,7 @@ Defined in: [packages/core/src/idempotency.ts:40](https://github.com/summationai
 get(key): Promise<IdempotencyRecord | undefined>;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:26](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L26)
+Defined in: [packages/core/src/idempotency.ts:26](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L26)
 
 ###### Parameters
 
@@ -795,7 +795,7 @@ set(
 ): Promise<void>;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:36](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L36)
+Defined in: [packages/core/src/idempotency.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L36)
 
 ###### Parameters
 
@@ -823,7 +823,7 @@ Defined in: [packages/core/src/idempotency.ts:36](https://github.com/summationai
 
 ### MemoryTokenStore
 
-Defined in: [packages/core/src/tokens.ts:61](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L61)
+Defined in: [packages/core/src/tokens.ts:61](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L61)
 
 In-memory `TokenStore` with expiry. Suitable for a single process.
 
@@ -853,7 +853,7 @@ new MemoryTokenStore(): MemoryTokenStore;
 get size(): number;
 ```
 
-Defined in: [packages/core/src/tokens.ts:83](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L83)
+Defined in: [packages/core/src/tokens.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L83)
 
 Number of live records, for tests.
 
@@ -869,7 +869,7 @@ Number of live records, for tests.
 delete(id): Promise<void>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:78](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L78)
+Defined in: [packages/core/src/tokens.ts:78](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L78)
 
 ###### Parameters
 
@@ -891,7 +891,7 @@ Defined in: [packages/core/src/tokens.ts:78](https://github.com/summationai/code
 get(id): Promise<TokenRecord | undefined>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L64)
+Defined in: [packages/core/src/tokens.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L64)
 
 ###### Parameters
 
@@ -917,7 +917,7 @@ set(
 ): Promise<void>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:74](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L74)
+Defined in: [packages/core/src/tokens.ts:74](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L74)
 
 ###### Parameters
 
@@ -945,7 +945,7 @@ Defined in: [packages/core/src/tokens.ts:74](https://github.com/summationai/code
 
 ### TokenSigner
 
-Defined in: [packages/core/src/tokens.ts:134](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L134)
+Defined in: [packages/core/src/tokens.ts:134](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L134)
 
 Signs and verifies tokens with one HMAC secret.
 
@@ -957,7 +957,7 @@ Signs and verifies tokens with one HMAC secret.
 new TokenSigner(secret): TokenSigner;
 ```
 
-Defined in: [packages/core/src/tokens.ts:135](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L135)
+Defined in: [packages/core/src/tokens.ts:135](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L135)
 
 ###### Parameters
 
@@ -977,7 +977,7 @@ Defined in: [packages/core/src/tokens.ts:135](https://github.com/summationai/cod
 sign(payload): Promise<string>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:143](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L143)
+Defined in: [packages/core/src/tokens.ts:143](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L143)
 
 ###### Parameters
 
@@ -995,7 +995,7 @@ Defined in: [packages/core/src/tokens.ts:143](https://github.com/summationai/cod
 verify(token, expectedType): Promise<TokenPayload | undefined>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:150](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L150)
+Defined in: [packages/core/src/tokens.ts:150](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L150)
 
 Returns the payload when the signature verifies and the token has not expired; otherwise `undefined`.
 
@@ -1017,7 +1017,7 @@ Returns the payload when the signature verifies and the token has not expired; o
 
 ### ActionSpec
 
-Defined in: [packages/core/src/action.ts:106](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L106)
+Defined in: [packages/core/src/action.ts:111](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L111)
 
 #### Type Parameters
 
@@ -1041,7 +1041,7 @@ Defined in: [packages/core/src/action.ts:106](https://github.com/summationai/cod
 optional affordances?: Affordance[];
 ```
 
-Defined in: [packages/core/src/action.ts:126](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L126)
+Defined in: [packages/core/src/action.ts:131](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L131)
 
 ##### auth?
 
@@ -1049,7 +1049,7 @@ Defined in: [packages/core/src/action.ts:126](https://github.com/summationai/cod
 optional auth?: WireAuthMode;
 ```
 
-Defined in: [packages/core/src/action.ts:123](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L123)
+Defined in: [packages/core/src/action.ts:128](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L128)
 
 Default `none`.
 
@@ -1059,7 +1059,7 @@ Default `none`.
 optional deprecated?: Deprecation;
 ```
 
-Defined in: [packages/core/src/action.ts:130](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L130)
+Defined in: [packages/core/src/action.ts:135](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L135)
 
 ##### description
 
@@ -1067,7 +1067,7 @@ Defined in: [packages/core/src/action.ts:130](https://github.com/summationai/cod
 description: string;
 ```
 
-Defined in: [packages/core/src/action.ts:112](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L112)
+Defined in: [packages/core/src/action.ts:117](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L117)
 
 ##### display?
 
@@ -1075,7 +1075,7 @@ Defined in: [packages/core/src/action.ts:112](https://github.com/summationai/cod
 optional display?: Display;
 ```
 
-Defined in: [packages/core/src/action.ts:125](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L125)
+Defined in: [packages/core/src/action.ts:130](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L130)
 
 ##### examples?
 
@@ -1083,7 +1083,7 @@ Defined in: [packages/core/src/action.ts:125](https://github.com/summationai/cod
 optional examples?: object[];
 ```
 
-Defined in: [packages/core/src/action.ts:124](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L124)
+Defined in: [packages/core/src/action.ts:129](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L129)
 
 ###### input
 
@@ -1103,7 +1103,7 @@ output: input<O>;
 optional freshness?: Freshness;
 ```
 
-Defined in: [packages/core/src/action.ts:128](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L128)
+Defined in: [packages/core/src/action.ts:133](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L133)
 
 ##### handler
 
@@ -1111,7 +1111,7 @@ Defined in: [packages/core/src/action.ts:128](https://github.com/summationai/cod
 handler: (ctx) => MaybePromise<HandlerReturn<input<O>>>;
 ```
 
-Defined in: [packages/core/src/action.ts:131](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L131)
+Defined in: [packages/core/src/action.ts:136](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L136)
 
 ###### Parameters
 
@@ -1129,7 +1129,7 @@ Defined in: [packages/core/src/action.ts:131](https://github.com/summationai/cod
 optional humanHandoff?: object;
 ```
 
-Defined in: [packages/core/src/action.ts:129](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L129)
+Defined in: [packages/core/src/action.ts:134](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L134)
 
 ###### reasons
 
@@ -1143,7 +1143,7 @@ reasons: string[];
 optional idempotent?: boolean;
 ```
 
-Defined in: [packages/core/src/action.ts:118](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L118)
+Defined in: [packages/core/src/action.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L123)
 
 Default: true when readOnly, otherwise false.
 
@@ -1153,7 +1153,7 @@ Default: true when readOnly, otherwise false.
 input: I;
 ```
 
-Defined in: [packages/core/src/action.ts:113](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L113)
+Defined in: [packages/core/src/action.ts:118](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L118)
 
 ##### onContinue?
 
@@ -1161,7 +1161,7 @@ Defined in: [packages/core/src/action.ts:113](https://github.com/summationai/cod
 optional onContinue?: (ctx) => MaybePromise<HandlerReturn<input<O>>>;
 ```
 
-Defined in: [packages/core/src/action.ts:132](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L132)
+Defined in: [packages/core/src/action.ts:137](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L137)
 
 ###### Parameters
 
@@ -1179,7 +1179,7 @@ Defined in: [packages/core/src/action.ts:132](https://github.com/summationai/cod
 optional onPoll?: (ctx) => MaybePromise<HandlerReturn<input<O>>>;
 ```
 
-Defined in: [packages/core/src/action.ts:134](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L134)
+Defined in: [packages/core/src/action.ts:139](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L139)
 
 ###### Parameters
 
@@ -1197,7 +1197,7 @@ Defined in: [packages/core/src/action.ts:134](https://github.com/summationai/cod
 optional onResume?: (ctx) => MaybePromise<HandlerReturn<input<O>>>;
 ```
 
-Defined in: [packages/core/src/action.ts:133](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L133)
+Defined in: [packages/core/src/action.ts:138](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L138)
 
 ###### Parameters
 
@@ -1215,7 +1215,7 @@ Defined in: [packages/core/src/action.ts:133](https://github.com/summationai/cod
 output: O;
 ```
 
-Defined in: [packages/core/src/action.ts:114](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L114)
+Defined in: [packages/core/src/action.ts:119](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L119)
 
 ##### pagination?
 
@@ -1223,7 +1223,7 @@ Defined in: [packages/core/src/action.ts:114](https://github.com/summationai/cod
 optional pagination?: Pagination;
 ```
 
-Defined in: [packages/core/src/action.ts:127](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L127)
+Defined in: [packages/core/src/action.ts:132](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L132)
 
 ##### readOnly?
 
@@ -1231,7 +1231,7 @@ Defined in: [packages/core/src/action.ts:127](https://github.com/summationai/cod
 optional readOnly?: boolean;
 ```
 
-Defined in: [packages/core/src/action.ts:116](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L116)
+Defined in: [packages/core/src/action.ts:121](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L121)
 
 Default false.
 
@@ -1241,7 +1241,7 @@ Default false.
 optional reversible?: boolean;
 ```
 
-Defined in: [packages/core/src/action.ts:120](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L120)
+Defined in: [packages/core/src/action.ts:125](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L125)
 
 Default: true when readOnly, otherwise false.
 
@@ -1251,7 +1251,7 @@ Default: true when readOnly, otherwise false.
 risk: WireRisk;
 ```
 
-Defined in: [packages/core/src/action.ts:121](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L121)
+Defined in: [packages/core/src/action.ts:126](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L126)
 
 ##### title
 
@@ -1259,13 +1259,13 @@ Defined in: [packages/core/src/action.ts:121](https://github.com/summationai/cod
 title: string;
 ```
 
-Defined in: [packages/core/src/action.ts:111](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L111)
+Defined in: [packages/core/src/action.ts:116](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L116)
 
 ***
 
 ### AdapterContext
 
-Defined in: [packages/core/src/server.ts:97](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L97)
+Defined in: [packages/core/src/server.ts:98](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L98)
 
 Passed by adapters to inject the framework's own session and tenant resolution.
 
@@ -1277,7 +1277,7 @@ Passed by adapters to inject the framework's own session and tenant resolution.
 optional identity?: Identity | null;
 ```
 
-Defined in: [packages/core/src/server.ts:98](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L98)
+Defined in: [packages/core/src/server.ts:99](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L99)
 
 ##### tenant?
 
@@ -1285,13 +1285,13 @@ Defined in: [packages/core/src/server.ts:98](https://github.com/summationai/code
 optional tenant?: TenantInfo | null;
 ```
 
-Defined in: [packages/core/src/server.ts:99](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L99)
+Defined in: [packages/core/src/server.ts:100](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L100)
 
 ***
 
 ### AuthConfig
 
-Defined in: [packages/core/src/server.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L63)
+Defined in: [packages/core/src/server.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L64)
 
 #### Properties
 
@@ -1301,7 +1301,7 @@ Defined in: [packages/core/src/server.ts:63](https://github.com/summationai/code
 optional authenticate?: (request) => MaybePromise<Identity | null | undefined>;
 ```
 
-Defined in: [packages/core/src/server.ts:68](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L68)
+Defined in: [packages/core/src/server.ts:69](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L69)
 
 Map a request to the acting user, for `user` mode pass-through. Return `null` when anonymous.
 
@@ -1313,7 +1313,7 @@ Map a request to the acting user, for `user` mode pass-through. Return `null` wh
 
 ###### Returns
 
-[`MaybePromise`](#maybepromise)\<[`Identity`](#identity-1) \| `null` \| `undefined`\>
+[`MaybePromise`](#maybepromise)\<[`Identity`](#identity-3) \| `null` \| `undefined`\>
 
 ##### modes
 
@@ -1321,7 +1321,7 @@ Map a request to the acting user, for `user` mode pass-through. Return `null` wh
 modes: WireAuthMode[];
 ```
 
-Defined in: [packages/core/src/server.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L64)
+Defined in: [packages/core/src/server.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L65)
 
 ##### userLoginUrl?
 
@@ -1329,7 +1329,7 @@ Defined in: [packages/core/src/server.ts:64](https://github.com/summationai/code
 optional userLoginUrl?: string;
 ```
 
-Defined in: [packages/core/src/server.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L66)
+Defined in: [packages/core/src/server.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L67)
 
 Where a human signs in during a `login_required` handoff. Required when `user` is a mode and pass-through is not the only mechanism.
 
@@ -1339,7 +1339,7 @@ Where a human signs in during a `login_required` handoff. Required when `user` i
 optional verifySiteKey?: (key, request) => MaybePromise<SiteKeyVerdict>;
 ```
 
-Defined in: [packages/core/src/server.ts:70](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L70)
+Defined in: [packages/core/src/server.ts:71](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L71)
 
 Validate a `site` mode bearer key.
 
@@ -1361,7 +1361,7 @@ Validate a `site` mode bearer key.
 
 ### AXEConfig
 
-Defined in: [packages/core/src/server.ts:102](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L102)
+Defined in: [packages/core/src/server.ts:103](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L103)
 
 #### Properties
 
@@ -1371,7 +1371,7 @@ Defined in: [packages/core/src/server.ts:102](https://github.com/summationai/cod
 auth: AuthConfig;
 ```
 
-Defined in: [packages/core/src/server.ts:107](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L107)
+Defined in: [packages/core/src/server.ts:108](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L108)
 
 ##### baseUrl
 
@@ -1379,7 +1379,7 @@ Defined in: [packages/core/src/server.ts:107](https://github.com/summationai/cod
 baseUrl: string;
 ```
 
-Defined in: [packages/core/src/server.ts:105](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L105)
+Defined in: [packages/core/src/server.ts:106](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L106)
 
 ##### brand?
 
@@ -1387,7 +1387,7 @@ Defined in: [packages/core/src/server.ts:105](https://github.com/summationai/cod
 optional brand?: Brand;
 ```
 
-Defined in: [packages/core/src/server.ts:110](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L110)
+Defined in: [packages/core/src/server.ts:111](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L111)
 
 ##### contact?
 
@@ -1395,7 +1395,7 @@ Defined in: [packages/core/src/server.ts:110](https://github.com/summationai/cod
 optional contact?: Contact;
 ```
 
-Defined in: [packages/core/src/server.ts:109](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L109)
+Defined in: [packages/core/src/server.ts:110](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L110)
 
 ##### cors?
 
@@ -1403,7 +1403,7 @@ Defined in: [packages/core/src/server.ts:109](https://github.com/summationai/cod
 optional cors?: CorsConfig;
 ```
 
-Defined in: [packages/core/src/server.ts:122](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L122)
+Defined in: [packages/core/src/server.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L123)
 
 ##### description
 
@@ -1411,7 +1411,7 @@ Defined in: [packages/core/src/server.ts:122](https://github.com/summationai/cod
 description: string;
 ```
 
-Defined in: [packages/core/src/server.ts:104](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L104)
+Defined in: [packages/core/src/server.ts:105](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L105)
 
 ##### flows?
 
@@ -1419,7 +1419,7 @@ Defined in: [packages/core/src/server.ts:104](https://github.com/summationai/cod
 optional flows?: Flow[];
 ```
 
-Defined in: [packages/core/src/server.ts:111](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L111)
+Defined in: [packages/core/src/server.ts:112](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L112)
 
 ##### humanFallbackUrl?
 
@@ -1427,7 +1427,7 @@ Defined in: [packages/core/src/server.ts:111](https://github.com/summationai/cod
 optional humanFallbackUrl?: string;
 ```
 
-Defined in: [packages/core/src/server.ts:106](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L106)
+Defined in: [packages/core/src/server.ts:107](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L107)
 
 ##### idempotencyStore?
 
@@ -1435,7 +1435,7 @@ Defined in: [packages/core/src/server.ts:106](https://github.com/summationai/cod
 optional idempotencyStore?: IdempotencyStore;
 ```
 
-Defined in: [packages/core/src/server.ts:117](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L117)
+Defined in: [packages/core/src/server.ts:118](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L118)
 
 ##### idempotencyTtlSeconds?
 
@@ -1443,7 +1443,7 @@ Defined in: [packages/core/src/server.ts:117](https://github.com/summationai/cod
 optional idempotencyTtlSeconds?: number;
 ```
 
-Defined in: [packages/core/src/server.ts:119](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L119)
+Defined in: [packages/core/src/server.ts:120](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L120)
 
 Default 86400 (24 hours).
 
@@ -1453,7 +1453,7 @@ Default 86400 (24 hours).
 optional index?: IndexConfig;
 ```
 
-Defined in: [packages/core/src/server.ts:126](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L126)
+Defined in: [packages/core/src/server.ts:127](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L127)
 
 Serve a platform index at `/.well-known/axe-index.json`.
 
@@ -1463,7 +1463,7 @@ Serve a platform index at `/.well-known/axe-index.json`.
 optional indexUrl?: string;
 ```
 
-Defined in: [packages/core/src/server.ts:112](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L112)
+Defined in: [packages/core/src/server.ts:113](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L113)
 
 ##### manifestCacheSeconds?
 
@@ -1471,7 +1471,7 @@ Defined in: [packages/core/src/server.ts:112](https://github.com/summationai/cod
 optional manifestCacheSeconds?: number;
 ```
 
-Defined in: [packages/core/src/server.ts:128](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L128)
+Defined in: [packages/core/src/server.ts:129](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L129)
 
 `Cache-Control` max-age for the manifest, in seconds. Default 300.
 
@@ -1481,7 +1481,7 @@ Defined in: [packages/core/src/server.ts:128](https://github.com/summationai/cod
 name: string;
 ```
 
-Defined in: [packages/core/src/server.ts:103](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L103)
+Defined in: [packages/core/src/server.ts:104](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L104)
 
 ##### onError?
 
@@ -1489,7 +1489,7 @@ Defined in: [packages/core/src/server.ts:103](https://github.com/summationai/cod
 optional onError?: (ctx, error) => MaybePromise<void>;
 ```
 
-Defined in: [packages/core/src/server.ts:131](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L131)
+Defined in: [packages/core/src/server.ts:132](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L132)
 
 ###### Parameters
 
@@ -1511,7 +1511,7 @@ Defined in: [packages/core/src/server.ts:131](https://github.com/summationai/cod
 optional onEvent?: EventSink | EventSink[];
 ```
 
-Defined in: [packages/core/src/server.ts:132](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L132)
+Defined in: [packages/core/src/server.ts:133](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L133)
 
 ##### onRequest?
 
@@ -1519,7 +1519,7 @@ Defined in: [packages/core/src/server.ts:132](https://github.com/summationai/cod
 optional onRequest?: (ctx) => MaybePromise<void | ResultIntent>;
 ```
 
-Defined in: [packages/core/src/server.ts:129](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L129)
+Defined in: [packages/core/src/server.ts:130](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L130)
 
 ###### Parameters
 
@@ -1537,7 +1537,7 @@ Defined in: [packages/core/src/server.ts:129](https://github.com/summationai/cod
 optional onResult?: (ctx, result) => MaybePromise<void>;
 ```
 
-Defined in: [packages/core/src/server.ts:130](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L130)
+Defined in: [packages/core/src/server.ts:131](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L131)
 
 ###### Parameters
 
@@ -1559,7 +1559,7 @@ Defined in: [packages/core/src/server.ts:130](https://github.com/summationai/cod
 optional policies?: Policies;
 ```
 
-Defined in: [packages/core/src/server.ts:108](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L108)
+Defined in: [packages/core/src/server.ts:109](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L109)
 
 ##### requireIdempotencyKey?
 
@@ -1567,7 +1567,7 @@ Defined in: [packages/core/src/server.ts:108](https://github.com/summationai/cod
 optional requireIdempotencyKey?: boolean;
 ```
 
-Defined in: [packages/core/src/server.ts:121](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L121)
+Defined in: [packages/core/src/server.ts:122](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L122)
 
 Reject mutating calls without `idempotencyKey`. Default true.
 
@@ -1577,7 +1577,7 @@ Reject mutating calls without `idempotencyKey`. Default true.
 optional secret?: string;
 ```
 
-Defined in: [packages/core/src/server.ts:115](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L115)
+Defined in: [packages/core/src/server.ts:116](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L116)
 
 HMAC secret for tokens, at least 16 characters. Omit only in development: a random per-process secret is used and tokens do not survive restarts.
 
@@ -1587,7 +1587,7 @@ HMAC secret for tokens, at least 16 characters. Omit only in development: a rand
 optional tenant?: (request) => MaybePromise<TenantInfo | null | undefined>;
 ```
 
-Defined in: [packages/core/src/server.ts:124](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L124)
+Defined in: [packages/core/src/server.ts:125](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L125)
 
 Resolve the tenant for a request on multi-tenant platforms. Return `null` for unknown hosts.
 
@@ -1607,7 +1607,7 @@ Resolve the tenant for a request on multi-tenant platforms. Return `null` for un
 optional tokenStore?: TokenStore;
 ```
 
-Defined in: [packages/core/src/server.ts:116](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L116)
+Defined in: [packages/core/src/server.ts:117](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L117)
 
 ##### updatedAt?
 
@@ -1615,13 +1615,13 @@ Defined in: [packages/core/src/server.ts:116](https://github.com/summationai/cod
 optional updatedAt?: string;
 ```
 
-Defined in: [packages/core/src/server.ts:113](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L113)
+Defined in: [packages/core/src/server.ts:114](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L114)
 
 ***
 
 ### ContinueContext
 
-Defined in: [packages/core/src/action.ts:85](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L85)
+Defined in: [packages/core/src/action.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L90)
 
 #### Extends
 
@@ -1641,7 +1641,7 @@ Defined in: [packages/core/src/action.ts:85](https://github.com/summationai/code
 action: string;
 ```
 
-Defined in: [packages/core/src/action.ts:72](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L72)
+Defined in: [packages/core/src/action.ts:73](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L73)
 
 The action name.
 
@@ -1657,7 +1657,7 @@ BaseContext.action
 context: RequestContext;
 ```
 
-Defined in: [packages/core/src/action.ts:74](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L74)
+Defined in: [packages/core/src/action.ts:75](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L75)
 
 The sanitized request context. `onBehalfOf` is the authenticated identity, never the agent's claim.
 
@@ -1673,7 +1673,7 @@ BaseContext.context
 fail: (code, message, options) => ErrorIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L67)
+Defined in: [packages/core/src/action.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L68)
 
 Return a structured error. Prefer this over throwing: thrown errors become a generic `internal`.
 
@@ -1707,7 +1707,7 @@ BaseContext.fail
 handoff: (spec) => HandoffIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L65)
+Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L66)
 
 Hand off to the human. Return it directly for `needs_human`, or pass it as `fallback` to needsInput(). See spec §9.
 
@@ -1727,13 +1727,29 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
+##### identity
+
+```ts
+identity: Identity | null;
+```
+
+Defined in: [packages/core/src/action.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L77)
+
+The identity your `authenticate` function or adapter established, with any `claims`; null when anonymous.
+
+###### Inherited from
+
+```ts
+BaseContext.identity
+```
+
 ##### kind
 
 ```ts
 kind: string;
 ```
 
-Defined in: [packages/core/src/action.ts:87](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L87)
+Defined in: [packages/core/src/action.ts:92](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L92)
 
 The kind the agent chose from `accepts`.
 
@@ -1743,7 +1759,7 @@ The kind the agent chose from `accepts`.
 needsInput: (spec) => NeedsInputIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L64)
+Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L65)
 
 Ask the agent for something it may hold. See spec §8.
 
@@ -1769,7 +1785,7 @@ BaseContext.needsInput
 ok: <O>(output) => OkIntent<O>;
 ```
 
-Defined in: [packages/core/src/action.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L63)
+Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L64)
 
 Explicitly mark a value as the action's output. Returning the plain value is equivalent.
 
@@ -1801,7 +1817,7 @@ BaseContext.ok
 payload: JsonValue;
 ```
 
-Defined in: [packages/core/src/action.ts:89](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L89)
+Defined in: [packages/core/src/action.ts:94](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L94)
 
 The payload, already validated against that kind's schema.
 
@@ -1811,7 +1827,7 @@ The payload, already validated against that kind's schema.
 pending: (spec) => PendingIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L66)
+Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L67)
 
 Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10.
 
@@ -1837,7 +1853,7 @@ BaseContext.pending
 request: Request;
 ```
 
-Defined in: [packages/core/src/action.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L76)
+Defined in: [packages/core/src/action.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L81)
 
 The underlying Web request, for headers and the site's own session lookups.
 
@@ -1847,13 +1863,34 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
+##### siteKey
+
+```ts
+siteKey: 
+  | {
+  actions?: string[];
+  id?: string;
+}
+  | null;
+```
+
+Defined in: [packages/core/src/action.ts:79](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L79)
+
+For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+
+###### Inherited from
+
+```ts
+BaseContext.siteKey
+```
+
 ##### state
 
 ```ts
 state: S;
 ```
 
-Defined in: [packages/core/src/action.ts:91](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L91)
+Defined in: [packages/core/src/action.ts:96](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L96)
 
 The `state` passed to `needsInput`.
 
@@ -1863,7 +1900,7 @@ The `state` passed to `needsInput`.
 tenant: TenantInfo | null;
 ```
 
-Defined in: [packages/core/src/action.ts:78](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L78)
+Defined in: [packages/core/src/action.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L83)
 
 The tenant, on platforms.
 
@@ -1877,7 +1914,7 @@ BaseContext.tenant
 
 ### CorsConfig
 
-Defined in: [packages/core/src/server.ts:73](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L73)
+Defined in: [packages/core/src/server.ts:74](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L74)
 
 #### Properties
 
@@ -1887,7 +1924,7 @@ Defined in: [packages/core/src/server.ts:73](https://github.com/summationai/code
 optional allowCredentials?: boolean;
 ```
 
-Defined in: [packages/core/src/server.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L76)
+Defined in: [packages/core/src/server.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L77)
 
 ##### origins
 
@@ -1895,7 +1932,7 @@ Defined in: [packages/core/src/server.ts:76](https://github.com/summationai/code
 origins: string[] | "*";
 ```
 
-Defined in: [packages/core/src/server.ts:75](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L75)
+Defined in: [packages/core/src/server.ts:76](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L76)
 
 `"*"` or a list of allowed origins.
 
@@ -1903,7 +1940,7 @@ Defined in: [packages/core/src/server.ts:75](https://github.com/summationai/code
 
 ### ErrorIntent
 
-Defined in: [packages/core/src/results.ts:58](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L58)
+Defined in: [packages/core/src/results.ts:58](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L58)
 
 #### Properties
 
@@ -1913,7 +1950,7 @@ Defined in: [packages/core/src/results.ts:58](https://github.com/summationai/cod
 readonly [INTENT]: "error";
 ```
 
-Defined in: [packages/core/src/results.ts:59](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L59)
+Defined in: [packages/core/src/results.ts:59](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L59)
 
 ##### error
 
@@ -1921,13 +1958,13 @@ Defined in: [packages/core/src/results.ts:59](https://github.com/summationai/cod
 error: ErrorBody;
 ```
 
-Defined in: [packages/core/src/results.ts:60](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L60)
+Defined in: [packages/core/src/results.ts:60](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L60)
 
 ***
 
 ### FailOptions
 
-Defined in: [packages/core/src/results.ts:107](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L107)
+Defined in: [packages/core/src/results.ts:107](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L107)
 
 #### Properties
 
@@ -1937,7 +1974,7 @@ Defined in: [packages/core/src/results.ts:107](https://github.com/summationai/co
 optional details?: JsonObject;
 ```
 
-Defined in: [packages/core/src/results.ts:109](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L109)
+Defined in: [packages/core/src/results.ts:109](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L109)
 
 ##### issues?
 
@@ -1945,7 +1982,7 @@ Defined in: [packages/core/src/results.ts:109](https://github.com/summationai/co
 optional issues?: ValidationIssue[];
 ```
 
-Defined in: [packages/core/src/results.ts:110](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L110)
+Defined in: [packages/core/src/results.ts:110](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L110)
 
 ##### retryable?
 
@@ -1953,13 +1990,13 @@ Defined in: [packages/core/src/results.ts:110](https://github.com/summationai/co
 optional retryable?: boolean;
 ```
 
-Defined in: [packages/core/src/results.ts:108](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L108)
+Defined in: [packages/core/src/results.ts:108](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L108)
 
 ***
 
 ### HandlerContext
 
-Defined in: [packages/core/src/action.ts:81](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L81)
+Defined in: [packages/core/src/action.ts:86](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L86)
 
 #### Extends
 
@@ -1979,7 +2016,7 @@ Defined in: [packages/core/src/action.ts:81](https://github.com/summationai/code
 action: string;
 ```
 
-Defined in: [packages/core/src/action.ts:72](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L72)
+Defined in: [packages/core/src/action.ts:73](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L73)
 
 The action name.
 
@@ -1995,7 +2032,7 @@ BaseContext.action
 context: RequestContext;
 ```
 
-Defined in: [packages/core/src/action.ts:74](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L74)
+Defined in: [packages/core/src/action.ts:75](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L75)
 
 The sanitized request context. `onBehalfOf` is the authenticated identity, never the agent's claim.
 
@@ -2011,7 +2048,7 @@ BaseContext.context
 fail: (code, message, options) => ErrorIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L67)
+Defined in: [packages/core/src/action.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L68)
 
 Return a structured error. Prefer this over throwing: thrown errors become a generic `internal`.
 
@@ -2045,7 +2082,7 @@ BaseContext.fail
 handoff: (spec) => HandoffIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L65)
+Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L66)
 
 Hand off to the human. Return it directly for `needs_human`, or pass it as `fallback` to needsInput(). See spec §9.
 
@@ -2065,13 +2102,29 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
+##### identity
+
+```ts
+identity: Identity | null;
+```
+
+Defined in: [packages/core/src/action.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L77)
+
+The identity your `authenticate` function or adapter established, with any `claims`; null when anonymous.
+
+###### Inherited from
+
+```ts
+BaseContext.identity
+```
+
 ##### input
 
 ```ts
 input: I;
 ```
 
-Defined in: [packages/core/src/action.ts:82](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L82)
+Defined in: [packages/core/src/action.ts:87](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L87)
 
 ##### needsInput
 
@@ -2079,7 +2132,7 @@ Defined in: [packages/core/src/action.ts:82](https://github.com/summationai/code
 needsInput: (spec) => NeedsInputIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L64)
+Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L65)
 
 Ask the agent for something it may hold. See spec §8.
 
@@ -2105,7 +2158,7 @@ BaseContext.needsInput
 ok: <O>(output) => OkIntent<O>;
 ```
 
-Defined in: [packages/core/src/action.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L63)
+Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L64)
 
 Explicitly mark a value as the action's output. Returning the plain value is equivalent.
 
@@ -2137,7 +2190,7 @@ BaseContext.ok
 pending: (spec) => PendingIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L66)
+Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L67)
 
 Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10.
 
@@ -2163,7 +2216,7 @@ BaseContext.pending
 request: Request;
 ```
 
-Defined in: [packages/core/src/action.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L76)
+Defined in: [packages/core/src/action.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L81)
 
 The underlying Web request, for headers and the site's own session lookups.
 
@@ -2173,13 +2226,34 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
+##### siteKey
+
+```ts
+siteKey: 
+  | {
+  actions?: string[];
+  id?: string;
+}
+  | null;
+```
+
+Defined in: [packages/core/src/action.ts:79](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L79)
+
+For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+
+###### Inherited from
+
+```ts
+BaseContext.siteKey
+```
+
 ##### tenant
 
 ```ts
 tenant: TenantInfo | null;
 ```
 
-Defined in: [packages/core/src/action.ts:78](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L78)
+Defined in: [packages/core/src/action.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L83)
 
 The tenant, on platforms.
 
@@ -2193,7 +2267,7 @@ BaseContext.tenant
 
 ### HandoffIntent
 
-Defined in: [packages/core/src/results.ts:16](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L16)
+Defined in: [packages/core/src/results.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L16)
 
 #### Properties
 
@@ -2203,7 +2277,7 @@ Defined in: [packages/core/src/results.ts:16](https://github.com/summationai/cod
 readonly [INTENT]: "handoff";
 ```
 
-Defined in: [packages/core/src/results.ts:17](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L17)
+Defined in: [packages/core/src/results.ts:17](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L17)
 
 ##### appendHandoffId?
 
@@ -2211,7 +2285,7 @@ Defined in: [packages/core/src/results.ts:17](https://github.com/summationai/cod
 optional appendHandoffId?: boolean;
 ```
 
-Defined in: [packages/core/src/results.ts:28](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L28)
+Defined in: [packages/core/src/results.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L28)
 
 Append `?axe_handoff=<id>` to `url` (default true).
 
@@ -2221,7 +2295,7 @@ Append `?axe_handoff=<id>` to `url` (default true).
 instructions: string;
 ```
 
-Defined in: [packages/core/src/results.ts:19](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L19)
+Defined in: [packages/core/src/results.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L19)
 
 ##### reason
 
@@ -2229,7 +2303,7 @@ Defined in: [packages/core/src/results.ts:19](https://github.com/summationai/cod
 reason: string;
 ```
 
-Defined in: [packages/core/src/results.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L18)
+Defined in: [packages/core/src/results.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L18)
 
 ##### requireCompletion?
 
@@ -2237,7 +2311,7 @@ Defined in: [packages/core/src/results.ts:18](https://github.com/summationai/cod
 optional requireCompletion?: boolean;
 ```
 
-Defined in: [packages/core/src/results.ts:30](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L30)
+Defined in: [packages/core/src/results.ts:30](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L30)
 
 Refuse `/axe/resume` with `conflict` until `completeHandoff()` is called for this handoff. Default false.
 
@@ -2247,7 +2321,7 @@ Refuse `/axe/resume` with `conflict` until `completeHandoff()` is called for thi
 optional state?: JsonValue;
 ```
 
-Defined in: [packages/core/src/results.ts:24](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L24)
+Defined in: [packages/core/src/results.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L24)
 
 Server-side state delivered to `onResume`. Must be JSON-serializable.
 
@@ -2257,7 +2331,7 @@ Server-side state delivered to `onResume`. Must be JSON-serializable.
 optional ttlSeconds?: number;
 ```
 
-Defined in: [packages/core/src/results.ts:26](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L26)
+Defined in: [packages/core/src/results.ts:26](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L26)
 
 Token lifetime. Default 24 hours.
 
@@ -2267,7 +2341,7 @@ Token lifetime. Default 24 hours.
 url: string | ((handoffId) => string);
 ```
 
-Defined in: [packages/core/src/results.ts:21](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L21)
+Defined in: [packages/core/src/results.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L21)
 
 The human-facing page. A function receives the handoff id so the URL can embed it.
 
@@ -2277,13 +2351,13 @@ The human-facing page. A function receives the handoff id so the URL can embed i
 whatAgentShouldSayToUser: string;
 ```
 
-Defined in: [packages/core/src/results.ts:22](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L22)
+Defined in: [packages/core/src/results.ts:22](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L22)
 
 ***
 
 ### HookContext
 
-Defined in: [packages/core/src/server.ts:88](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L88)
+Defined in: [packages/core/src/server.ts:89](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L89)
 
 Passed to hooks.
 
@@ -2295,7 +2369,7 @@ Passed to hooks.
 action: string;
 ```
 
-Defined in: [packages/core/src/server.ts:90](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L90)
+Defined in: [packages/core/src/server.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L91)
 
 ##### context
 
@@ -2303,7 +2377,7 @@ Defined in: [packages/core/src/server.ts:90](https://github.com/summationai/code
 context: RequestContext;
 ```
 
-Defined in: [packages/core/src/server.ts:92](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L92)
+Defined in: [packages/core/src/server.ts:93](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L93)
 
 ##### endpoint
 
@@ -2311,7 +2385,7 @@ Defined in: [packages/core/src/server.ts:92](https://github.com/summationai/code
 endpoint: Endpoint;
 ```
 
-Defined in: [packages/core/src/server.ts:89](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L89)
+Defined in: [packages/core/src/server.ts:90](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L90)
 
 ##### request
 
@@ -2319,7 +2393,7 @@ Defined in: [packages/core/src/server.ts:89](https://github.com/summationai/code
 request: Request;
 ```
 
-Defined in: [packages/core/src/server.ts:91](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L91)
+Defined in: [packages/core/src/server.ts:92](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L92)
 
 ##### tenant
 
@@ -2327,13 +2401,13 @@ Defined in: [packages/core/src/server.ts:91](https://github.com/summationai/code
 tenant: TenantInfo | null;
 ```
 
-Defined in: [packages/core/src/server.ts:93](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L93)
+Defined in: [packages/core/src/server.ts:94](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L94)
 
 ***
 
 ### IdempotencyRecord
 
-Defined in: [packages/core/src/idempotency.ts:7](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L7)
+Defined in: [packages/core/src/idempotency.ts:7](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L7)
 
 #### Properties
 
@@ -2343,7 +2417,7 @@ Defined in: [packages/core/src/idempotency.ts:7](https://github.com/summationai/
 createdAt: number;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:10](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L10)
+Defined in: [packages/core/src/idempotency.ts:10](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L10)
 
 ##### inputHash
 
@@ -2351,7 +2425,7 @@ Defined in: [packages/core/src/idempotency.ts:10](https://github.com/summationai
 inputHash: string;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:8](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L8)
+Defined in: [packages/core/src/idempotency.ts:8](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L8)
 
 ##### result
 
@@ -2359,13 +2433,13 @@ Defined in: [packages/core/src/idempotency.ts:8](https://github.com/summationai/
 result: Result;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:9](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L9)
+Defined in: [packages/core/src/idempotency.ts:9](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L9)
 
 ***
 
 ### IdempotencyStore
 
-Defined in: [packages/core/src/idempotency.ts:17](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L17)
+Defined in: [packages/core/src/idempotency.ts:17](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L17)
 
 Storage for idempotency records. Keys are already scoped by tenant, action, and
 acting user. Implement with Redis `SET ... EX` or a table with a TTL index.
@@ -2378,7 +2452,7 @@ acting user. Implement with Redis `SET ... EX` or a table with a TTL index.
 get(key): Promise<IdempotencyRecord | undefined>;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L18)
+Defined in: [packages/core/src/idempotency.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L18)
 
 ###### Parameters
 
@@ -2400,7 +2474,7 @@ set(
 ): Promise<void>;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:19](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L19)
+Defined in: [packages/core/src/idempotency.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L19)
 
 ###### Parameters
 
@@ -2424,7 +2498,7 @@ Defined in: [packages/core/src/idempotency.ts:19](https://github.com/summationai
 
 ### Identity
 
-Defined in: [packages/core/src/server.ts:54](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L54)
+Defined in: [packages/core/src/server.ts:55](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L55)
 
 The identity an adapter or `authenticate` establishes for the acting user.
 
@@ -2436,7 +2510,7 @@ The identity an adapter or `authenticate` establishes for the acting user.
 optional claims?: Record<string, JsonValue>;
 ```
 
-Defined in: [packages/core/src/server.ts:57](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L57)
+Defined in: [packages/core/src/server.ts:58](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L58)
 
 Anything the site wants handlers to see (roles, email). Not sent on the wire.
 
@@ -2446,13 +2520,13 @@ Anything the site wants handlers to see (roles, email). Not sent on the wire.
 onBehalfOf: string;
 ```
 
-Defined in: [packages/core/src/server.ts:55](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L55)
+Defined in: [packages/core/src/server.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L56)
 
 ***
 
 ### IndexConfig
 
-Defined in: [packages/core/src/server.ts:79](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L79)
+Defined in: [packages/core/src/server.ts:80](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L80)
 
 #### Properties
 
@@ -2462,7 +2536,7 @@ Defined in: [packages/core/src/server.ts:79](https://github.com/summationai/code
 platform: object;
 ```
 
-Defined in: [packages/core/src/server.ts:80](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L80)
+Defined in: [packages/core/src/server.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L81)
 
 ###### name
 
@@ -2485,7 +2559,7 @@ sites: (page) => MaybePromise<{
 }>;
 ```
 
-Defined in: [packages/core/src/server.ts:82](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L82)
+Defined in: [packages/core/src/server.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L83)
 
 Return one page of sites. `page` is whatever you put in the previous page's `next` query string, or `null`.
 
@@ -2506,7 +2580,7 @@ Return one page of sites. `page` is whatever you put in the previous page's `nex
 
 ### NeedsInputIntent
 
-Defined in: [packages/core/src/results.ts:33](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L33)
+Defined in: [packages/core/src/results.ts:33](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L33)
 
 #### Properties
 
@@ -2516,7 +2590,7 @@ Defined in: [packages/core/src/results.ts:33](https://github.com/summationai/cod
 readonly [INTENT]: "needs_input";
 ```
 
-Defined in: [packages/core/src/results.ts:34](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L34)
+Defined in: [packages/core/src/results.ts:34](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L34)
 
 ##### accepts
 
@@ -2524,7 +2598,7 @@ Defined in: [packages/core/src/results.ts:34](https://github.com/summationai/cod
 accepts: AcceptInput[];
 ```
 
-Defined in: [packages/core/src/results.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L37)
+Defined in: [packages/core/src/results.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L37)
 
 ##### fallback?
 
@@ -2532,7 +2606,7 @@ Defined in: [packages/core/src/results.ts:37](https://github.com/summationai/cod
 optional fallback?: HandoffIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:41](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L41)
+Defined in: [packages/core/src/results.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L41)
 
 Reached only when the agent can satisfy none of `accepts`.
 
@@ -2542,7 +2616,7 @@ Reached only when the agent can satisfy none of `accepts`.
 message: string;
 ```
 
-Defined in: [packages/core/src/results.ts:36](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L36)
+Defined in: [packages/core/src/results.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L36)
 
 ##### reason
 
@@ -2550,7 +2624,7 @@ Defined in: [packages/core/src/results.ts:36](https://github.com/summationai/cod
 reason: string;
 ```
 
-Defined in: [packages/core/src/results.ts:35](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L35)
+Defined in: [packages/core/src/results.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L35)
 
 ##### state?
 
@@ -2558,7 +2632,7 @@ Defined in: [packages/core/src/results.ts:35](https://github.com/summationai/cod
 optional state?: JsonValue;
 ```
 
-Defined in: [packages/core/src/results.ts:39](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L39)
+Defined in: [packages/core/src/results.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L39)
 
 Server-side state delivered to `onContinue`. Must be JSON-serializable.
 
@@ -2568,7 +2642,7 @@ Server-side state delivered to `onContinue`. Must be JSON-serializable.
 optional ttlSeconds?: number;
 ```
 
-Defined in: [packages/core/src/results.ts:43](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L43)
+Defined in: [packages/core/src/results.ts:43](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L43)
 
 Token lifetime. Default 15 minutes.
 
@@ -2576,7 +2650,7 @@ Token lifetime. Default 15 minutes.
 
 ### OkIntent
 
-Defined in: [packages/core/src/results.ts:11](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L11)
+Defined in: [packages/core/src/results.ts:11](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L11)
 
 #### Type Parameters
 
@@ -2592,7 +2666,7 @@ Defined in: [packages/core/src/results.ts:11](https://github.com/summationai/cod
 readonly [INTENT]: "ok";
 ```
 
-Defined in: [packages/core/src/results.ts:12](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L12)
+Defined in: [packages/core/src/results.ts:12](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L12)
 
 ##### output
 
@@ -2600,13 +2674,13 @@ Defined in: [packages/core/src/results.ts:12](https://github.com/summationai/cod
 output: O;
 ```
 
-Defined in: [packages/core/src/results.ts:13](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L13)
+Defined in: [packages/core/src/results.ts:13](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L13)
 
 ***
 
 ### PendingIntent
 
-Defined in: [packages/core/src/results.ts:46](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L46)
+Defined in: [packages/core/src/results.ts:46](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L46)
 
 #### Properties
 
@@ -2616,7 +2690,7 @@ Defined in: [packages/core/src/results.ts:46](https://github.com/summationai/cod
 readonly [INTENT]: "pending";
 ```
 
-Defined in: [packages/core/src/results.ts:47](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L47)
+Defined in: [packages/core/src/results.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L47)
 
 ##### pollUrl?
 
@@ -2624,7 +2698,7 @@ Defined in: [packages/core/src/results.ts:47](https://github.com/summationai/cod
 optional pollUrl?: string;
 ```
 
-Defined in: [packages/core/src/results.ts:53](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L53)
+Defined in: [packages/core/src/results.ts:53](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L53)
 
 Use your own poll URL instead of the SDK's `/axe/poll/{token}`.
 
@@ -2634,7 +2708,7 @@ Use your own poll URL instead of the SDK's `/axe/poll/{token}`.
 optional retryAfter?: number;
 ```
 
-Defined in: [packages/core/src/results.ts:49](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L49)
+Defined in: [packages/core/src/results.ts:49](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L49)
 
 Seconds the agent should wait before polling. Default 5.
 
@@ -2644,7 +2718,7 @@ Seconds the agent should wait before polling. Default 5.
 optional state?: JsonValue;
 ```
 
-Defined in: [packages/core/src/results.ts:51](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L51)
+Defined in: [packages/core/src/results.ts:51](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L51)
 
 Server-side state delivered to `onPoll`.
 
@@ -2654,7 +2728,7 @@ Server-side state delivered to `onPoll`.
 optional ttlSeconds?: number;
 ```
 
-Defined in: [packages/core/src/results.ts:55](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L55)
+Defined in: [packages/core/src/results.ts:55](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L55)
 
 How long the poll token stays valid. Default 1 hour.
 
@@ -2662,7 +2736,7 @@ How long the poll token stays valid. Default 1 hour.
 
 ### PollContext
 
-Defined in: [packages/core/src/action.ts:101](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L101)
+Defined in: [packages/core/src/action.ts:106](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L106)
 
 #### Extends
 
@@ -2682,7 +2756,7 @@ Defined in: [packages/core/src/action.ts:101](https://github.com/summationai/cod
 action: string;
 ```
 
-Defined in: [packages/core/src/action.ts:72](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L72)
+Defined in: [packages/core/src/action.ts:73](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L73)
 
 The action name.
 
@@ -2698,7 +2772,7 @@ BaseContext.action
 context: RequestContext;
 ```
 
-Defined in: [packages/core/src/action.ts:74](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L74)
+Defined in: [packages/core/src/action.ts:75](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L75)
 
 The sanitized request context. `onBehalfOf` is the authenticated identity, never the agent's claim.
 
@@ -2714,7 +2788,7 @@ BaseContext.context
 fail: (code, message, options) => ErrorIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L67)
+Defined in: [packages/core/src/action.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L68)
 
 Return a structured error. Prefer this over throwing: thrown errors become a generic `internal`.
 
@@ -2748,7 +2822,7 @@ BaseContext.fail
 handoff: (spec) => HandoffIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L65)
+Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L66)
 
 Hand off to the human. Return it directly for `needs_human`, or pass it as `fallback` to needsInput(). See spec §9.
 
@@ -2768,13 +2842,29 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
+##### identity
+
+```ts
+identity: Identity | null;
+```
+
+Defined in: [packages/core/src/action.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L77)
+
+The identity your `authenticate` function or adapter established, with any `claims`; null when anonymous.
+
+###### Inherited from
+
+```ts
+BaseContext.identity
+```
+
 ##### needsInput
 
 ```ts
 needsInput: (spec) => NeedsInputIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L64)
+Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L65)
 
 Ask the agent for something it may hold. See spec §8.
 
@@ -2800,7 +2890,7 @@ BaseContext.needsInput
 ok: <O>(output) => OkIntent<O>;
 ```
 
-Defined in: [packages/core/src/action.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L63)
+Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L64)
 
 Explicitly mark a value as the action's output. Returning the plain value is equivalent.
 
@@ -2832,7 +2922,7 @@ BaseContext.ok
 pending: (spec) => PendingIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L66)
+Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L67)
 
 Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10.
 
@@ -2858,7 +2948,7 @@ BaseContext.pending
 request: Request;
 ```
 
-Defined in: [packages/core/src/action.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L76)
+Defined in: [packages/core/src/action.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L81)
 
 The underlying Web request, for headers and the site's own session lookups.
 
@@ -2868,13 +2958,34 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
+##### siteKey
+
+```ts
+siteKey: 
+  | {
+  actions?: string[];
+  id?: string;
+}
+  | null;
+```
+
+Defined in: [packages/core/src/action.ts:79](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L79)
+
+For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+
+###### Inherited from
+
+```ts
+BaseContext.siteKey
+```
+
 ##### state
 
 ```ts
 state: S;
 ```
 
-Defined in: [packages/core/src/action.ts:103](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L103)
+Defined in: [packages/core/src/action.ts:108](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L108)
 
 The `state` passed to `pending`.
 
@@ -2884,7 +2995,7 @@ The `state` passed to `pending`.
 tenant: TenantInfo | null;
 ```
 
-Defined in: [packages/core/src/action.ts:78](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L78)
+Defined in: [packages/core/src/action.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L83)
 
 The tenant, on platforms.
 
@@ -2898,7 +3009,7 @@ BaseContext.tenant
 
 ### RegisteredAction
 
-Defined in: [packages/core/src/action.ts:138](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L138)
+Defined in: [packages/core/src/action.ts:143](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L143)
 
 A registered action: the wire definition plus the runtime pieces.
 
@@ -2924,7 +3035,7 @@ A registered action: the wire definition plus the runtime pieces.
 definition: ActionDefinition;
 ```
 
-Defined in: [packages/core/src/action.ts:145](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L145)
+Defined in: [packages/core/src/action.ts:150](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L150)
 
 ##### itemSchema
 
@@ -2932,7 +3043,7 @@ Defined in: [packages/core/src/action.ts:145](https://github.com/summationai/cod
 itemSchema: JsonSchema;
 ```
 
-Defined in: [packages/core/src/action.ts:147](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L147)
+Defined in: [packages/core/src/action.ts:152](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L152)
 
 The item schema derived from `display`, for later affordance checks.
 
@@ -2942,7 +3053,7 @@ The item schema derived from `display`, for later affordance checks.
 name: string;
 ```
 
-Defined in: [packages/core/src/action.ts:143](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L143)
+Defined in: [packages/core/src/action.ts:148](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L148)
 
 ##### spec
 
@@ -2950,7 +3061,7 @@ Defined in: [packages/core/src/action.ts:143](https://github.com/summationai/cod
 spec: ActionSpec<I, O, S>;
 ```
 
-Defined in: [packages/core/src/action.ts:144](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L144)
+Defined in: [packages/core/src/action.ts:149](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L149)
 
 ##### unresolvedTargets
 
@@ -2958,7 +3069,7 @@ Defined in: [packages/core/src/action.ts:144](https://github.com/summationai/cod
 unresolvedTargets: string[];
 ```
 
-Defined in: [packages/core/src/action.ts:149](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L149)
+Defined in: [packages/core/src/action.ts:154](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L154)
 
 Affordance targets not registered at the time this action was; checked at finalization.
 
@@ -2966,7 +3077,7 @@ Affordance targets not registered at the time this action was; checked at finali
 
 ### ResultHelpers
 
-Defined in: [packages/core/src/action.ts:62](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L62)
+Defined in: [packages/core/src/action.ts:63](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L63)
 
 The helpers every handler receives. They are also importable from `@axe/core`.
 
@@ -2978,7 +3089,7 @@ The helpers every handler receives. They are also importable from `@axe/core`.
 fail: (code, message, options) => ErrorIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L67)
+Defined in: [packages/core/src/action.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L68)
 
 Return a structured error. Prefer this over throwing: thrown errors become a generic `internal`.
 
@@ -3006,7 +3117,7 @@ Return a structured error. Prefer this over throwing: thrown errors become a gen
 handoff: (spec) => HandoffIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L65)
+Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L66)
 
 Hand off to the human. Return it directly for `needs_human`, or pass it as `fallback` to needsInput(). See spec §9.
 
@@ -3026,7 +3137,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 needsInput: (spec) => NeedsInputIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L64)
+Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L65)
 
 Ask the agent for something it may hold. See spec §8.
 
@@ -3046,7 +3157,7 @@ Ask the agent for something it may hold. See spec §8.
 ok: <O>(output) => OkIntent<O>;
 ```
 
-Defined in: [packages/core/src/action.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L63)
+Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L64)
 
 Explicitly mark a value as the action's output. Returning the plain value is equivalent.
 
@@ -3072,7 +3183,7 @@ Explicitly mark a value as the action's output. Returning the plain value is equ
 pending: (spec) => PendingIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L66)
+Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L67)
 
 Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10.
 
@@ -3090,7 +3201,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 
 ### ResumeContext
 
-Defined in: [packages/core/src/action.ts:94](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L94)
+Defined in: [packages/core/src/action.ts:99](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L99)
 
 #### Extends
 
@@ -3110,7 +3221,7 @@ Defined in: [packages/core/src/action.ts:94](https://github.com/summationai/code
 action: string;
 ```
 
-Defined in: [packages/core/src/action.ts:72](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L72)
+Defined in: [packages/core/src/action.ts:73](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L73)
 
 The action name.
 
@@ -3132,7 +3243,7 @@ completion:
   | undefined;
 ```
 
-Defined in: [packages/core/src/action.ts:98](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L98)
+Defined in: [packages/core/src/action.ts:103](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L103)
 
 What `completeHandoff` recorded, if the site called it.
 
@@ -3142,7 +3253,7 @@ What `completeHandoff` recorded, if the site called it.
 context: RequestContext;
 ```
 
-Defined in: [packages/core/src/action.ts:74](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L74)
+Defined in: [packages/core/src/action.ts:75](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L75)
 
 The sanitized request context. `onBehalfOf` is the authenticated identity, never the agent's claim.
 
@@ -3158,7 +3269,7 @@ BaseContext.context
 fail: (code, message, options) => ErrorIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L67)
+Defined in: [packages/core/src/action.ts:68](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L68)
 
 Return a structured error. Prefer this over throwing: thrown errors become a generic `internal`.
 
@@ -3192,7 +3303,7 @@ BaseContext.fail
 handoff: (spec) => HandoffIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L65)
+Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L66)
 
 Hand off to the human. Return it directly for `needs_human`, or pass it as `fallback` to needsInput(). See spec §9.
 
@@ -3212,13 +3323,29 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
+##### identity
+
+```ts
+identity: Identity | null;
+```
+
+Defined in: [packages/core/src/action.ts:77](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L77)
+
+The identity your `authenticate` function or adapter established, with any `claims`; null when anonymous.
+
+###### Inherited from
+
+```ts
+BaseContext.identity
+```
+
 ##### needsInput
 
 ```ts
 needsInput: (spec) => NeedsInputIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L64)
+Defined in: [packages/core/src/action.ts:65](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L65)
 
 Ask the agent for something it may hold. See spec §8.
 
@@ -3244,7 +3371,7 @@ BaseContext.needsInput
 ok: <O>(output) => OkIntent<O>;
 ```
 
-Defined in: [packages/core/src/action.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L63)
+Defined in: [packages/core/src/action.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L64)
 
 Explicitly mark a value as the action's output. Returning the plain value is equivalent.
 
@@ -3276,7 +3403,7 @@ BaseContext.ok
 pending: (spec) => PendingIntent;
 ```
 
-Defined in: [packages/core/src/action.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L66)
+Defined in: [packages/core/src/action.ts:67](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L67)
 
 Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10.
 
@@ -3302,7 +3429,7 @@ BaseContext.pending
 request: Request;
 ```
 
-Defined in: [packages/core/src/action.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L76)
+Defined in: [packages/core/src/action.ts:81](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L81)
 
 The underlying Web request, for headers and the site's own session lookups.
 
@@ -3312,13 +3439,34 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
+##### siteKey
+
+```ts
+siteKey: 
+  | {
+  actions?: string[];
+  id?: string;
+}
+  | null;
+```
+
+Defined in: [packages/core/src/action.ts:79](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L79)
+
+For `site` mode: what `verifySiteKey` returned about the key, when it returned an object.
+
+###### Inherited from
+
+```ts
+BaseContext.siteKey
+```
+
 ##### state
 
 ```ts
 state: S;
 ```
 
-Defined in: [packages/core/src/action.ts:96](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L96)
+Defined in: [packages/core/src/action.ts:101](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L101)
 
 The `state` passed to `handoff`.
 
@@ -3328,7 +3476,7 @@ The `state` passed to `handoff`.
 tenant: TenantInfo | null;
 ```
 
-Defined in: [packages/core/src/action.ts:78](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L78)
+Defined in: [packages/core/src/action.ts:83](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L83)
 
 The tenant, on platforms.
 
@@ -3342,7 +3490,7 @@ BaseContext.tenant
 
 ### TenantInfo
 
-Defined in: [packages/core/src/action.ts:46](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L46)
+Defined in: [packages/core/src/action.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L47)
 
 Information about the tenant serving this request, on multi-tenant platforms.
 
@@ -3354,7 +3502,7 @@ Information about the tenant serving this request, on multi-tenant platforms.
 optional auth?: Partial<ManifestAuth>;
 ```
 
-Defined in: [packages/core/src/action.ts:56](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L56)
+Defined in: [packages/core/src/action.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L57)
 
 ##### baseUrl
 
@@ -3362,7 +3510,7 @@ Defined in: [packages/core/src/action.ts:56](https://github.com/summationai/code
 baseUrl: string;
 ```
 
-Defined in: [packages/core/src/action.ts:50](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L50)
+Defined in: [packages/core/src/action.ts:51](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L51)
 
 ##### brand?
 
@@ -3370,7 +3518,7 @@ Defined in: [packages/core/src/action.ts:50](https://github.com/summationai/code
 optional brand?: Brand;
 ```
 
-Defined in: [packages/core/src/action.ts:53](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L53)
+Defined in: [packages/core/src/action.ts:54](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L54)
 
 ##### contact?
 
@@ -3378,7 +3526,7 @@ Defined in: [packages/core/src/action.ts:53](https://github.com/summationai/code
 optional contact?: Contact;
 ```
 
-Defined in: [packages/core/src/action.ts:55](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L55)
+Defined in: [packages/core/src/action.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L56)
 
 ##### description?
 
@@ -3386,7 +3534,7 @@ Defined in: [packages/core/src/action.ts:55](https://github.com/summationai/code
 optional description?: string;
 ```
 
-Defined in: [packages/core/src/action.ts:51](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L51)
+Defined in: [packages/core/src/action.ts:52](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L52)
 
 ##### humanFallbackUrl?
 
@@ -3394,7 +3542,7 @@ Defined in: [packages/core/src/action.ts:51](https://github.com/summationai/code
 optional humanFallbackUrl?: string;
 ```
 
-Defined in: [packages/core/src/action.ts:52](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L52)
+Defined in: [packages/core/src/action.ts:53](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L53)
 
 ##### id
 
@@ -3402,7 +3550,7 @@ Defined in: [packages/core/src/action.ts:52](https://github.com/summationai/code
 id: string;
 ```
 
-Defined in: [packages/core/src/action.ts:48](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L48)
+Defined in: [packages/core/src/action.ts:49](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L49)
 
 Stable identifier; appears on events as `tenant`.
 
@@ -3412,7 +3560,7 @@ Stable identifier; appears on events as `tenant`.
 optional indexUrl?: string;
 ```
 
-Defined in: [packages/core/src/action.ts:57](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L57)
+Defined in: [packages/core/src/action.ts:58](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L58)
 
 ##### name
 
@@ -3420,7 +3568,7 @@ Defined in: [packages/core/src/action.ts:57](https://github.com/summationai/code
 name: string;
 ```
 
-Defined in: [packages/core/src/action.ts:49](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L49)
+Defined in: [packages/core/src/action.ts:50](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L50)
 
 ##### policies?
 
@@ -3428,7 +3576,7 @@ Defined in: [packages/core/src/action.ts:49](https://github.com/summationai/code
 optional policies?: Policies;
 ```
 
-Defined in: [packages/core/src/action.ts:54](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L54)
+Defined in: [packages/core/src/action.ts:55](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L55)
 
 ##### updatedAt?
 
@@ -3436,13 +3584,13 @@ Defined in: [packages/core/src/action.ts:54](https://github.com/summationai/code
 optional updatedAt?: string;
 ```
 
-Defined in: [packages/core/src/action.ts:58](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L58)
+Defined in: [packages/core/src/action.ts:59](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L59)
 
 ***
 
 ### TokenRecord
 
-Defined in: [packages/core/src/tokens.ts:24](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L24)
+Defined in: [packages/core/src/tokens.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L24)
 
 What the server remembers about an outstanding token. Must be JSON-serializable.
 
@@ -3454,7 +3602,7 @@ What the server remembers about an outstanding token. Must be JSON-serializable.
 optional accepts?: Accept[];
 ```
 
-Defined in: [packages/core/src/tokens.ts:35](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L35)
+Defined in: [packages/core/src/tokens.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L35)
 
 Continuation only: the accepted entries, with JSON Schemas.
 
@@ -3464,7 +3612,7 @@ Continuation only: the accepted entries, with JSON Schemas.
 action: string;
 ```
 
-Defined in: [packages/core/src/tokens.ts:27](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L27)
+Defined in: [packages/core/src/tokens.ts:27](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L27)
 
 ##### completion?
 
@@ -3472,7 +3620,7 @@ Defined in: [packages/core/src/tokens.ts:27](https://github.com/summationai/code
 optional completion?: object;
 ```
 
-Defined in: [packages/core/src/tokens.ts:43](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L43)
+Defined in: [packages/core/src/tokens.ts:43](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L43)
 
 Resume only: recorded by `completeHandoff`.
 
@@ -3500,7 +3648,7 @@ optional onBehalfOf?: string;
 optional consumedAt?: number;
 ```
 
-Defined in: [packages/core/src/tokens.ts:45](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L45)
+Defined in: [packages/core/src/tokens.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L45)
 
 Set once the token has been used.
 
@@ -3510,7 +3658,7 @@ Set once the token has been used.
 expiresAt: number;
 ```
 
-Defined in: [packages/core/src/tokens.ts:31](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L31)
+Defined in: [packages/core/src/tokens.ts:31](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L31)
 
 ##### handoff?
 
@@ -3518,7 +3666,7 @@ Defined in: [packages/core/src/tokens.ts:31](https://github.com/summationai/code
 optional handoff?: Handoff;
 ```
 
-Defined in: [packages/core/src/tokens.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L37)
+Defined in: [packages/core/src/tokens.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L37)
 
 Resume only: the handoff as sent, so it can be re-served while open.
 
@@ -3528,7 +3676,7 @@ Resume only: the handoff as sent, so it can be re-served while open.
 id: string;
 ```
 
-Defined in: [packages/core/src/tokens.ts:25](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L25)
+Defined in: [packages/core/src/tokens.ts:25](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L25)
 
 ##### inputHash
 
@@ -3536,7 +3684,7 @@ Defined in: [packages/core/src/tokens.ts:25](https://github.com/summationai/code
 inputHash: string;
 ```
 
-Defined in: [packages/core/src/tokens.ts:28](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L28)
+Defined in: [packages/core/src/tokens.ts:28](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L28)
 
 ##### login?
 
@@ -3544,7 +3692,7 @@ Defined in: [packages/core/src/tokens.ts:28](https://github.com/summationai/code
 optional login?: object;
 ```
 
-Defined in: [packages/core/src/tokens.ts:39](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L39)
+Defined in: [packages/core/src/tokens.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L39)
 
 Resume only: whether the handoff was created by the SDK for login.
 
@@ -3572,7 +3720,7 @@ input: JsonValue;
 onBehalfOf: string | null;
 ```
 
-Defined in: [packages/core/src/tokens.ts:29](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L29)
+Defined in: [packages/core/src/tokens.ts:29](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L29)
 
 ##### requireCompletion?
 
@@ -3580,7 +3728,7 @@ Defined in: [packages/core/src/tokens.ts:29](https://github.com/summationai/code
 optional requireCompletion?: boolean;
 ```
 
-Defined in: [packages/core/src/tokens.ts:41](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L41)
+Defined in: [packages/core/src/tokens.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L41)
 
 Resume only: refuse resume until completion is recorded.
 
@@ -3590,7 +3738,7 @@ Resume only: refuse resume until completion is recorded.
 state: JsonValue | undefined;
 ```
 
-Defined in: [packages/core/src/tokens.ts:33](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L33)
+Defined in: [packages/core/src/tokens.ts:33](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L33)
 
 Site-provided state for `onContinue` / `onResume` / `onPoll`.
 
@@ -3600,7 +3748,7 @@ Site-provided state for `onContinue` / `onResume` / `onPoll`.
 tenant: string | null;
 ```
 
-Defined in: [packages/core/src/tokens.ts:30](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L30)
+Defined in: [packages/core/src/tokens.ts:30](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L30)
 
 ##### terminal?
 
@@ -3608,7 +3756,7 @@ Defined in: [packages/core/src/tokens.ts:30](https://github.com/summationai/code
 optional terminal?: Result;
 ```
 
-Defined in: [packages/core/src/tokens.ts:47](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L47)
+Defined in: [packages/core/src/tokens.ts:47](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L47)
 
 Poll only: the terminal result once produced.
 
@@ -3618,13 +3766,13 @@ Poll only: the terminal result once produced.
 type: TokenType;
 ```
 
-Defined in: [packages/core/src/tokens.ts:26](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L26)
+Defined in: [packages/core/src/tokens.ts:26](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L26)
 
 ***
 
 ### TokenStore
 
-Defined in: [packages/core/src/tokens.ts:54](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L54)
+Defined in: [packages/core/src/tokens.ts:54](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L54)
 
 Storage for token records. Implement with Redis, a KV store, or a database for
 multi-instance deployments. The in-memory implementation is the default.
@@ -3637,7 +3785,7 @@ multi-instance deployments. The in-memory implementation is the default.
 delete(id): Promise<void>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:57](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L57)
+Defined in: [packages/core/src/tokens.ts:57](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L57)
 
 ###### Parameters
 
@@ -3655,7 +3803,7 @@ Defined in: [packages/core/src/tokens.ts:57](https://github.com/summationai/code
 get(id): Promise<TokenRecord | undefined>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:55](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L55)
+Defined in: [packages/core/src/tokens.ts:55](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L55)
 
 ###### Parameters
 
@@ -3677,7 +3825,7 @@ set(
 ): Promise<void>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:56](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L56)
+Defined in: [packages/core/src/tokens.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L56)
 
 ###### Parameters
 
@@ -3705,7 +3853,7 @@ Defined in: [packages/core/src/tokens.ts:56](https://github.com/summationai/code
 type Endpoint = "action" | "continue" | "resume" | "poll";
 ```
 
-Defined in: [packages/core/src/server.ts:85](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L85)
+Defined in: [packages/core/src/server.ts:86](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L86)
 
 ***
 
@@ -3715,7 +3863,7 @@ Defined in: [packages/core/src/server.ts:85](https://github.com/summationai/code
 type HandlerReturn<O> = O | ResultIntent<O>;
 ```
 
-Defined in: [packages/core/src/action.ts:43](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L43)
+Defined in: [packages/core/src/action.ts:44](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L44)
 
 What a handler may return: the output value itself, or an intent from `ok`, `needsInput`, `handoff`, `pending`, `fail`.
 
@@ -3733,7 +3881,7 @@ What a handler may return: the output value itself, or an intent from `ok`, `nee
 type MaybePromise<T> = T | Promise<T>;
 ```
 
-Defined in: [packages/core/src/action.ts:40](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L40)
+Defined in: [packages/core/src/action.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L41)
 
 #### Type Parameters
 
@@ -3754,7 +3902,7 @@ type ResultIntent<O> =
   | ErrorIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:63](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L63)
+Defined in: [packages/core/src/results.ts:63](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L63)
 
 #### Type Parameters
 
@@ -3775,7 +3923,7 @@ type SiteKeyVerdict =
 };
 ```
 
-Defined in: [packages/core/src/server.ts:61](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L61)
+Defined in: [packages/core/src/server.ts:62](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L62)
 
 What a `verifySiteKey` function may return: `true`, `false`, or an allowlist of actions.
 
@@ -3787,7 +3935,7 @@ What a `verifySiteKey` function may return: `true`, `false`, or an allowlist of 
 type TokenType = "continuation" | "resume" | "poll";
 ```
 
-Defined in: [packages/core/src/tokens.ts:11](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L11)
+Defined in: [packages/core/src/tokens.ts:11](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L11)
 
 ## Variables
 
@@ -3797,7 +3945,7 @@ Defined in: [packages/core/src/tokens.ts:11](https://github.com/summationai/code
 const ACTION_NAME_PATTERN: RegExp;
 ```
 
-Defined in: [packages/core/src/action.ts:152](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L152)
+Defined in: [packages/core/src/action.ts:157](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L157)
 
 ***
 
@@ -3807,9 +3955,21 @@ Defined in: [packages/core/src/action.ts:152](https://github.com/summationai/cod
 const DEFAULT_IDEMPOTENCY_TTL_SECONDS: number;
 ```
 
-Defined in: [packages/core/src/idempotency.ts:46](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/idempotency.ts#L46)
+Defined in: [packages/core/src/idempotency.ts:46](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/idempotency.ts#L46)
 
 Default idempotency window: 24 hours.
+
+***
+
+### MAX\_BASE64\_DOCUMENT\_BYTES
+
+```ts
+const MAX_BASE64_DOCUMENT_BYTES: number;
+```
+
+Defined in: [packages/core/src/server.ts:138](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L138)
+
+Decoded-size limit for `document.base64` payloads (spec/KINDS.md).
 
 ## Functions
 
@@ -3819,7 +3979,7 @@ Default idempotency window: 24 hours.
 function action<I, O, S>(name, spec): RegisteredAction<I, O, S>;
 ```
 
-Defined in: [packages/core/src/action.ts:169](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/action.ts#L169)
+Defined in: [packages/core/src/action.ts:174](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/action.ts#L174)
 
 Define an action. Throws `ActionDefinitionError` or `DisplayValidationError` when the
 definition cannot be published as declared. Register the result with `axe.register()`.
@@ -3860,7 +4020,7 @@ definition cannot be published as declared. Register the result with `axe.regist
 function canonicalJson(value): string;
 ```
 
-Defined in: [packages/core/src/tokens.ts:122](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L122)
+Defined in: [packages/core/src/tokens.ts:122](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L122)
 
 Deterministic JSON: object keys sorted recursively.
 
@@ -3882,7 +4042,7 @@ Deterministic JSON: object keys sorted recursively.
 function createAXE(config): AXE;
 ```
 
-Defined in: [packages/core/src/server.ts:1552](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/server.ts#L1552)
+Defined in: [packages/core/src/server.ts:1606](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/server.ts#L1606)
 
 Create an AXE server. See `docs/getting-started.md`.
 
@@ -3904,7 +4064,7 @@ Create an AXE server. See `docs/getting-started.md`.
 function deepEqual(a, b): boolean;
 ```
 
-Defined in: [packages/core/src/json-schema.ts:221](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/json-schema.ts#L221)
+Defined in: [packages/core/src/json-schema.ts:221](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/json-schema.ts#L221)
 
 #### Parameters
 
@@ -3928,7 +4088,7 @@ Defined in: [packages/core/src/json-schema.ts:221](https://github.com/summationa
 function escapeToken(token): string;
 ```
 
-Defined in: [packages/core/src/pointer.ts:21](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/pointer.ts#L21)
+Defined in: [packages/core/src/pointer.ts:21](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/pointer.ts#L21)
 
 Escape one reference token.
 
@@ -3954,7 +4114,7 @@ function fail(
 ): ErrorIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:114](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L114)
+Defined in: [packages/core/src/results.ts:114](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L114)
 
 Return a structured error. Prefer this over throwing: thrown errors become a generic `internal`.
 
@@ -3984,7 +4144,7 @@ Return a structured error. Prefer this over throwing: thrown errors become a gen
 function getPointer(value, pointer): unknown;
 ```
 
-Defined in: [packages/core/src/pointer.ts:26](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/pointer.ts#L26)
+Defined in: [packages/core/src/pointer.ts:26](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/pointer.ts#L26)
 
 Resolve a pointer against a value. Returns `undefined` when any step is missing.
 
@@ -4010,7 +4170,7 @@ Resolve a pointer against a value. Returns `undefined` when any step is missing.
 function handoff(spec): HandoffIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:91](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L91)
+Defined in: [packages/core/src/results.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L91)
 
 Hand off to the human. Return it directly for `needs_human`, or pass it as `fallback` to needsInput(). See spec §9.
 
@@ -4032,7 +4192,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 function hashJson(value): Promise<string>;
 ```
 
-Defined in: [packages/core/src/tokens.ts:116](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/tokens.ts#L116)
+Defined in: [packages/core/src/tokens.ts:116](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/tokens.ts#L116)
 
 SHA-256 of a canonical JSON encoding, base64url. Used to bind tokens and idempotency keys to inputs.
 
@@ -4054,7 +4214,7 @@ SHA-256 of a canonical JSON encoding, base64url. Used to bind tokens and idempot
 function isIntent(value): value is ResultIntent<unknown>;
 ```
 
-Defined in: [packages/core/src/results.ts:66](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L66)
+Defined in: [packages/core/src/results.ts:66](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L66)
 
 #### Parameters
 
@@ -4074,7 +4234,7 @@ Defined in: [packages/core/src/results.ts:66](https://github.com/summationai/cod
 function isZodSchema(value): value is ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>;
 ```
 
-Defined in: [packages/core/src/zod-json-schema.ts:22](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/zod-json-schema.ts#L22)
+Defined in: [packages/core/src/zod-json-schema.ts:22](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/zod-json-schema.ts#L22)
 
 Whether a value is a Zod schema (as opposed to a JSON Schema object).
 
@@ -4096,7 +4256,7 @@ Whether a value is a Zod schema (as opposed to a JSON Schema object).
 function needsInput(spec): NeedsInputIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:76](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L76)
+Defined in: [packages/core/src/results.ts:76](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L76)
 
 Ask the agent for something it may hold. See spec §8.
 
@@ -4118,7 +4278,7 @@ Ask the agent for something it may hold. See spec §8.
 function ok<O>(output): OkIntent<O>;
 ```
 
-Defined in: [packages/core/src/results.ts:71](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L71)
+Defined in: [packages/core/src/results.ts:71](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L71)
 
 Explicitly mark a value as the action's output. Returning the plain value is equivalent.
 
@@ -4146,7 +4306,7 @@ Explicitly mark a value as the action's output. Returning the plain value is equ
 function parsePointer(pointer): string[];
 ```
 
-Defined in: [packages/core/src/pointer.ts:9](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/pointer.ts#L9)
+Defined in: [packages/core/src/pointer.ts:9](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/pointer.ts#L9)
 
 Split a JSON Pointer into unescaped reference tokens. Throws on malformed input.
 
@@ -4168,7 +4328,7 @@ Split a JSON Pointer into unescaped reference tokens. Throws on malformed input.
 function pending(spec?): PendingIntent;
 ```
 
-Defined in: [packages/core/src/results.ts:103](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/results.ts#L103)
+Defined in: [packages/core/src/results.ts:103](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/results.ts#L103)
 
 Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10.
 
@@ -4194,7 +4354,7 @@ function resolvePointerInSchema(
 ): JsonSchema | undefined;
 ```
 
-Defined in: [packages/core/src/pointer.ts:91](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/pointer.ts#L91)
+Defined in: [packages/core/src/pointer.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/pointer.ts#L91)
 
 Resolve a pointer against a JSON Schema, returning the sub-schema it points to,
 or `undefined` when the location does not exist in the schema.
@@ -4225,7 +4385,7 @@ or `undefined` when the location does not exist in the schema.
 function schemasStructurallyEqual(a, b): boolean;
 ```
 
-Defined in: [packages/core/src/json-schema.ts:253](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/json-schema.ts#L253)
+Defined in: [packages/core/src/json-schema.ts:253](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/json-schema.ts#L253)
 
 Structural equivalence of two schemas, ignoring `title`, `description`, `$id`,
 `$schema`, `examples`, and `default`. Used to detect custom kinds that duplicate
@@ -4253,7 +4413,7 @@ a well-known kind.
 function toJsonSchema(schema, io): JsonSchema;
 ```
 
-Defined in: [packages/core/src/zod-json-schema.ts:10](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/zod-json-schema.ts#L10)
+Defined in: [packages/core/src/zod-json-schema.ts:10](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/zod-json-schema.ts#L10)
 
 Convert a Zod schema to JSON Schema draft 2020-12.
 `io` is `"input"` for schemas that describe what callers send and `"output"` for what handlers return.
@@ -4280,7 +4440,7 @@ Convert a Zod schema to JSON Schema draft 2020-12.
 function validateJsonSchema(schema, value): ValidationIssue[];
 ```
 
-Defined in: [packages/core/src/json-schema.ts:242](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/json-schema.ts#L242)
+Defined in: [packages/core/src/json-schema.ts:242](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/json-schema.ts#L242)
 
 Validate `value` against `schema`. Returns an empty array when valid, otherwise
 one issue per problem, each with a JSON Pointer `path` relative to `value`.

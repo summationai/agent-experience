@@ -41,8 +41,10 @@ display: {
     badges: ["/badges"],
   },
   suggestedComparison: ["Size", "Available", "Pets"],
-  emptyMessage: "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
-  disclaimer: "Pricing and availability change frequently. Confirm on the listing page before applying.",
+  emptyMessage:
+    "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
+  disclaimer:
+    "Pricing and availability change frequently. Confirm on the listing page before applying.",
 },```
 <!-- /include -->
 
@@ -97,7 +99,12 @@ An affordance is a follow-up action for an item, with inputs pre-bound by pointe
 ```ts
 affordances: [
   { action: "tours.book", title: "Schedule a tour", input: { unitId: "/id" } },
-  { action: "applications.submit", title: "Apply for this unit", input: { unitId: "/id" }, primary: true },
+  {
+    action: "applications.submit",
+    title: "Apply for this unit",
+    input: { unitId: "/id" },
+    primary: true,
+  },
 ],```
 <!-- /include -->
 
@@ -115,7 +122,14 @@ handler: async ({ input, context }) => {
   const units = await Promise.all(
     page.units.map(async (u) =>
       context.onBehalfOf && (await db.hasOpenApplication(u.id, context.onBehalfOf))
-        ? { ...u, _axe: { affordances: [{ action: "tours.book", title: "Schedule a tour", input: { unitId: u.id } }] } }
+        ? {
+            ...u,
+            _axe: {
+              affordances: [
+                { action: "tours.book", title: "Schedule a tour", input: { unitId: u.id } },
+              ],
+            },
+          }
         : u,
     ),
   );
@@ -131,7 +145,11 @@ A read action that returns a list should declare `pagination`:
 
 <!-- include: examples/apartments/site.ts#pagination -->
 ```ts
-pagination: { cursorIn: "/cursor", cursorOut: "/nextCursor", pageSize: { default: 10, max: 20 } },
+pagination: {
+  cursorIn: "/cursor",
+  cursorOut: "/nextCursor",
+  pageSize: { default: 10, max: 20 },
+},
 freshness: { cacheTtlSeconds: 300 },```
 <!-- /include -->
 
@@ -240,7 +258,7 @@ In a Markdown chat, the agent calls `toMarkdown` and pastes the result. This is 
 - Parkside 310: Schedule a tour (`tours.book` with `{"unitId":"u_310"}`); **Apply for this unit** (`applications.submit` with `{"unitId":"u_310"}`)
 
 _Pricing and availability change frequently. Confirm on the listing page before applying._
-```
+````
 
 Read aloud, there is no table. The agent uses the count, the price range, and `compare` to pick the one differentiator worth saying, then relays the disclaimer:
 

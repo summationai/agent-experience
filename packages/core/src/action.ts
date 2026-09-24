@@ -24,6 +24,7 @@ import type {
   Risk,
 } from "./types";
 import type { ResultIntent } from "./results";
+import type { Identity } from "./server";
 import type { fail, handoff, needsInput, ok, pending } from "./results";
 import { toJsonSchema } from "./zod-json-schema";
 import {
@@ -72,6 +73,10 @@ interface BaseContext extends ResultHelpers {
   action: string;
   /** The sanitized request context. `onBehalfOf` is the authenticated identity, never the agent's claim. */
   context: RequestContext;
+  /** The identity your `authenticate` function or adapter established, with any `claims`; null when anonymous. */
+  identity: Identity | null;
+  /** For `site` mode: what `verifySiteKey` returned about the key, when it returned an object. */
+  siteKey: { id?: string; actions?: string[] } | null;
   /** The underlying Web request, for headers and the site's own session lookups. */
   request: Request;
   /** The tenant, on platforms. */

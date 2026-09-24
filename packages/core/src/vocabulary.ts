@@ -514,6 +514,8 @@ export const field = /* @__PURE__ */ Object.freeze({
   details: "details",
   /** Array of `{ path, message, expected? }` validation problems. */
   issues: "issues",
+  /** `open` on a `conflict` returned by `/axe/resume` before the human finished. */
+  handoffStatus: "handoffStatus",
   /** What the schema wanted at `path`. */
   expected: "expected",
   /** Event schema version, currently `1`. */
@@ -732,6 +734,80 @@ export const api = /* @__PURE__ */ Object.freeze({
   createTestClient: "createTestClient",
   /** The drift test as a function, for use in other repositories. */
   checkVocabularyDrift: "checkVocabularyDrift",
+  /** Restrict a document kind to specific MIME types. */
+  withMimeTypes: "withMimeTypes",
+  /** Define a site-specific kind under `x-<org>.`. */
+  customKind: "customKind",
+  /** Conventional `reason` string for a kind's namespace. */
+  suggestedReason: "suggestedReason",
+  /** Token lifetime option on `needsInput`, `handoff`, and `pending`. */
+  ttlSeconds: "ttlSeconds",
+  /** Handoff option: refuse resume until `completeHandoff` is called. */
+  requireCompletion: "requireCompletion",
+  /** Handoff option: append `axe_handoff` to the URL (default true). */
+  appendHandoffId: "appendHandoffId",
+  /** What `completeHandoff` recorded, delivered to `onResume`. */
+  completion: "completion",
+  /** Handler context member: the authenticated identity with `claims`, or null. */
+  identity: "identity",
+  /** Extra site-defined data on an `Identity`, visible to handlers, never on the wire. */
+  claims: "claims",
+  /** Handler context member: what `verifySiteKey` returned for a `site` call. */
+  siteKey: "siteKey",
+  /** Config: reject mutating calls without `idempotencyKey` (default true). */
+  requireIdempotencyKey: "requireIdempotencyKey",
+  /** Config: idempotency window (default 86400). */
+  idempotencyTtlSeconds: "idempotencyTtlSeconds",
+  /** Config: `Cache-Control` max-age for the manifest (default 300). */
+  manifestCacheSeconds: "manifestCacheSeconds",
+  /** CORS option: send `Access-Control-Allow-Credentials`. */
+  allowCredentials: "allowCredentials",
+  /** Fan events out to several sinks, isolating failures. */
+  combineSinks: "combineSinks",
+  /** Parse the recommended `User-Agent` form into an event agent. */
+  parseUserAgent: "parseUserAgent",
+  /** Narrow a result to `ok`. */
+  isOk: "isOk",
+  /** Narrow a result to `needs_input`. */
+  isNeedsInput: "isNeedsInput",
+  /** Narrow a result to `needs_human`. */
+  isNeedsHuman: "isNeedsHuman",
+  /** Narrow a result to `pending`. */
+  isPending: "isPending",
+  /** Narrow a result to `error`. */
+  isError: "isError",
+  /** Whether `policies.agents` permits this client's vendor. */
+  allowed: "allowed",
+  /** Client option: retries after `rate_limited` or `unavailable` (default 1). */
+  retries: "retries",
+  /** Client option: longest `Retry-After` honored automatically. */
+  maxRetryAfterMs: "maxRetryAfterMs",
+  /** Poll option: give up after this long. */
+  maxWaitMs: "maxWaitMs",
+  /** MCP tool name for an action (dots become underscores). */
+  toolNameFor: "toolNameFor",
+  /** Render a result envelope as MCP tool content. */
+  formatResult: "formatResult",
+  /** How long a tool call polls `pending` before returning (default 20000). */
+  pollBudgetMs: "pollBudgetMs",
+  /** Whether a path is one AXE serves. */
+  isAxePath: "isAxePath",
+  /** Convert a Node request to a Web `Request`. */
+  toWebRequest: "toWebRequest",
+  /** Write a Web `Response` to a Node response. */
+  sendWebResponse: "sendWebResponse",
+  /** Invoke an action in-process and return the envelope. */
+  invokeAction: "invokeAction",
+  /** A valid sample payload for a well-known kind. */
+  samplePayload: "samplePayload",
+  /** Terminal table for a conformance report. */
+  formatConformanceTable: "formatConformanceTable",
+  /** Terminal table for an audit report. */
+  formatAuditTable: "formatAuditTable",
+  /** Self-contained HTML audit report. */
+  formatAuditHtml: "formatAuditHtml",
+  /** Human-readable drift report. */
+  formatDriftReport: "formatDriftReport",
 } as const);
 
 /**
@@ -807,11 +883,11 @@ export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_pol
 /** Union of every `cli` name. */
 export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp";
 /** Union of every `field` name. */
-export type WireField = "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
+export type WireField = "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1029,6 +1105,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "retryable", name: "retryable" },
   { category: "field", key: "details", name: "details" },
   { category: "field", key: "issues", name: "issues" },
+  { category: "field", key: "handoffStatus", name: "handoffStatus" },
   { category: "field", key: "expected", name: "expected" },
   { category: "field", key: "schemaVersion", name: "schemaVersion" },
   { category: "field", key: "ts", name: "ts" },
@@ -1134,4 +1211,41 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "runAudit", name: "runAudit" },
   { category: "api", key: "createTestClient", name: "createTestClient" },
   { category: "api", key: "checkVocabularyDrift", name: "checkVocabularyDrift" },
+  { category: "api", key: "withMimeTypes", name: "withMimeTypes" },
+  { category: "api", key: "customKind", name: "customKind" },
+  { category: "api", key: "suggestedReason", name: "suggestedReason" },
+  { category: "api", key: "ttlSeconds", name: "ttlSeconds" },
+  { category: "api", key: "requireCompletion", name: "requireCompletion" },
+  { category: "api", key: "appendHandoffId", name: "appendHandoffId" },
+  { category: "api", key: "completion", name: "completion" },
+  { category: "api", key: "identity", name: "identity" },
+  { category: "api", key: "claims", name: "claims" },
+  { category: "api", key: "siteKey", name: "siteKey" },
+  { category: "api", key: "requireIdempotencyKey", name: "requireIdempotencyKey" },
+  { category: "api", key: "idempotencyTtlSeconds", name: "idempotencyTtlSeconds" },
+  { category: "api", key: "manifestCacheSeconds", name: "manifestCacheSeconds" },
+  { category: "api", key: "allowCredentials", name: "allowCredentials" },
+  { category: "api", key: "combineSinks", name: "combineSinks" },
+  { category: "api", key: "parseUserAgent", name: "parseUserAgent" },
+  { category: "api", key: "isOk", name: "isOk" },
+  { category: "api", key: "isNeedsInput", name: "isNeedsInput" },
+  { category: "api", key: "isNeedsHuman", name: "isNeedsHuman" },
+  { category: "api", key: "isPending", name: "isPending" },
+  { category: "api", key: "isError", name: "isError" },
+  { category: "api", key: "allowed", name: "allowed" },
+  { category: "api", key: "retries", name: "retries" },
+  { category: "api", key: "maxRetryAfterMs", name: "maxRetryAfterMs" },
+  { category: "api", key: "maxWaitMs", name: "maxWaitMs" },
+  { category: "api", key: "toolNameFor", name: "toolNameFor" },
+  { category: "api", key: "formatResult", name: "formatResult" },
+  { category: "api", key: "pollBudgetMs", name: "pollBudgetMs" },
+  { category: "api", key: "isAxePath", name: "isAxePath" },
+  { category: "api", key: "toWebRequest", name: "toWebRequest" },
+  { category: "api", key: "sendWebResponse", name: "sendWebResponse" },
+  { category: "api", key: "invokeAction", name: "invokeAction" },
+  { category: "api", key: "samplePayload", name: "samplePayload" },
+  { category: "api", key: "formatConformanceTable", name: "formatConformanceTable" },
+  { category: "api", key: "formatAuditTable", name: "formatAuditTable" },
+  { category: "api", key: "formatAuditHtml", name: "formatAuditHtml" },
+  { category: "api", key: "formatDriftReport", name: "formatDriftReport" },
 ]);

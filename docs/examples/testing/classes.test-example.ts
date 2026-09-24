@@ -46,12 +46,25 @@ axe.register(
     input: z
       .object({
         classId: z.string().describe("Class id from classes.search"),
-        guests: z.number().int().min(0).max(3).optional().describe("Additional spots for guests, 0-3"),
+        guests: z
+          .number()
+          .int()
+          .min(0)
+          .max(3)
+          .optional()
+          .describe("Additional spots for guests, 0-3"),
       })
       .strict(),
-    output: z.object({ bookingId: z.string(), classId: z.string(), status: z.literal("confirmed") }),
+    output: z.object({
+      bookingId: z.string(),
+      classId: z.string(),
+      status: z.literal("confirmed"),
+    }),
     examples: [
-      { input: { classId: "c_101" }, output: { bookingId: "b_m_priya_c_101", classId: "c_101", status: "confirmed" } },
+      {
+        input: { classId: "c_101" },
+        output: { bookingId: "b_m_priya_c_101", classId: "c_101", status: "confirmed" },
+      },
     ],
     handler: async ({ input, context, needsInput, fail }) => {
       const memberId = context.onBehalfOf!;
@@ -84,7 +97,11 @@ describe("classes.book", () => {
     const result = await client.invoke("classes.book", { classId: "c_101" });
     assert.equal(result.status, "ok");
     if (result.status === "ok") {
-      assert.deepEqual(result.output, { bookingId: "b_m_priya_c_101", classId: "c_101", status: "confirmed" });
+      assert.deepEqual(result.output, {
+        bookingId: "b_m_priya_c_101",
+        classId: "c_101",
+        status: "confirmed",
+      });
     }
   });
 

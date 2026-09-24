@@ -15,7 +15,7 @@ describe("vocabulary drift", () => {
       { name: "/axe/actions", categories: ["path"] },
     ]);
     expect(wireLikeNames("AXE-Protocol")[0]!.name).toBe("AXE-Protocol");
-    expect(wireLikeNames("axe_continue")[0]!.categories).toEqual(["tool"]);
+    expect(wireLikeNames("axe_continue")[0]!.categories).toEqual(["tool", "query"]);
     expect(wireLikeNames("axe audit --json")[0]!.name).toBe("axe audit");
     expect(wireLikeNames("continuationToken")[0]!.categories).toEqual(["field", "api"]);
     expect(wireLikeNames("needs_input")[0]!.categories).toContain("status");

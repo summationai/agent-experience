@@ -6,7 +6,7 @@
 
 ### NextAdapterOptions
 
-Defined in: [packages/next/src/index.ts:16](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L16)
+Defined in: [packages/next/src/index.ts:16](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L16)
 
 #### Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/next/src/index.ts:16](https://github.com/summationai/code/
 optional context?: (request) => MaybePromise<AdapterContext | undefined>;
 ```
 
-Defined in: [packages/next/src/index.ts:18](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L18)
+Defined in: [packages/next/src/index.ts:18](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L18)
 
 Inject the app's session or tenant.
 
@@ -34,7 +34,7 @@ Inject the app's session or tenant.
 
 ### NextPagesAdapterOptions
 
-Defined in: [packages/next/src/index.ts:40](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L40)
+Defined in: [packages/next/src/index.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L40)
 
 #### Properties
 
@@ -44,7 +44,7 @@ Defined in: [packages/next/src/index.ts:40](https://github.com/summationai/code/
 optional context?: (req, res) => MaybePromise<AdapterContext | undefined>;
 ```
 
-Defined in: [packages/next/src/index.ts:41](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L41)
+Defined in: [packages/next/src/index.ts:41](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L41)
 
 ###### Parameters
 
@@ -66,7 +66,7 @@ Defined in: [packages/next/src/index.ts:41](https://github.com/summationai/code/
 optional origin?: string;
 ```
 
-Defined in: [packages/next/src/index.ts:46](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L46)
+Defined in: [packages/next/src/index.ts:46](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L46)
 
 The public origin, e.g. `https://example.com`. Defaults to the request's `Host` header.
 
@@ -74,7 +74,7 @@ The public origin, e.g. `https://example.com`. Defaults to the request's `Host` 
 
 ### PagesApiRequestLike
 
-Defined in: [packages/next/src/index.ts:35](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L35)
+Defined in: [packages/next/src/index.ts:35](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L35)
 
 A Pages API request: Next parses JSON bodies into `body` by default.
 
@@ -115,7 +115,7 @@ IncomingMessage.aborted
 optional body?: unknown;
 ```
 
-Defined in: [packages/next/src/index.ts:36](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L36)
+Defined in: [packages/next/src/index.ts:36](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L36)
 
 ##### closed
 
@@ -393,7 +393,7 @@ IncomingMessage.method
 optional query?: Record<string, string | string[] | undefined>;
 ```
 
-Defined in: [packages/next/src/index.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L37)
+Defined in: [packages/next/src/index.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L37)
 
 ##### rawHeaders
 
@@ -4468,7 +4468,7 @@ IncomingMessage.wrap
 function axeNext(axe, options?): object;
 ```
 
-Defined in: [packages/next/src/index.ts:24](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L24)
+Defined in: [packages/next/src/index.ts:24](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L24)
 
 App Router route handlers. Export the returned `GET`, `POST`, and `OPTIONS` from your route file.
 
@@ -4512,7 +4512,7 @@ POST: RouteHandler;
 function axeNextPages(axe, options?): (req, res) => Promise<void>;
 ```
 
-Defined in: [packages/next/src/index.ts:50](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/next/src/index.ts#L50)
+Defined in: [packages/next/src/index.ts:50](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/next/src/index.ts#L50)
 
 Pages API handler. Use a catch-all route (`pages/api/axe/[...axe].ts`) and rewrite `/.well-known/axe.json` and `/axe/:path*` to it.
 

@@ -16,7 +16,12 @@ interface Card {
 }
 const vault = {
   async bankAccount(): Promise<BankAccount | undefined> {
-    return { holderName: "Ana Ruiz", routingNumber: "021000021", accountNumber: "000123456789", accountType: "checking" };
+    return {
+      holderName: "Ana Ruiz",
+      routingNumber: "021000021",
+      accountNumber: "000123456789",
+      accountType: "checking",
+    };
   },
   async card(): Promise<Card | undefined> {
     return { token: "tok_1Q2w3E4r", provider: "stripe", brand: "visa", last4: "4242" };
@@ -24,7 +29,14 @@ const vault = {
 };
 const profileStore = {
   email: "ana@example.com",
-  address: { line1: "412 Pine St", line2: "Apt 9", city: "Seattle", region: "WA", postalCode: "98101", country: "US" },
+  address: {
+    line1: "412 Pine St",
+    line2: "Apt 9",
+    city: "Seattle",
+    region: "WA",
+    postalCode: "98101",
+    country: "US",
+  },
 };
 async function askUser(question: string): Promise<boolean> {
   console.log(question);
@@ -35,7 +47,7 @@ async function askUser(question: string): Promise<boolean> {
 /** Amount and currency named in the site's message, e.g. "A refundable $500 holding deposit". */
 function amountIn(message: string): { amount: number; currency: string } | undefined {
   const m = /\$([0-9][0-9,]*(?:\.[0-9]{2})?)/.exec(message);
-  return m?.[1] ? { amount: Number(m[1].replace(/,/g, "")) , currency: "USD" } : undefined;
+  return m?.[1] ? { amount: Number(m[1].replace(/,/g, "")), currency: "USD" } : undefined;
 }
 
 const wallet: Fulfiller = {
@@ -116,7 +128,9 @@ switch (outcome.status) {
     break;
   case "needs_input":
     // Tried these kinds and none produced a payload (or the user declined a sensitive one).
-    console.log(`Still needs one of ${outcome.result.accepts.map((a) => a.kind).join(", ")}; tried ${outcome.tried.join(", ")}`);
+    console.log(
+      `Still needs one of ${outcome.result.accepts.map((a) => a.kind).join(", ")}; tried ${outcome.tried.join(", ")}`,
+    );
     break;
   case "needs_human":
     console.log(outcome.handoff.whatAgentShouldSayToUser, outcome.handoff.url);

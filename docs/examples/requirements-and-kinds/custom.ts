@@ -10,7 +10,8 @@ import { customKind, accept } from "@axe/core/kinds";
 export const guarantorForm = customKind({
   kind: "x-oakridge.guarantor-form",
   title: "Guarantor agreement",
-  description: "Who guarantees the lease, their relationship to the applicant, and the signed Oakridge guarantor form.",
+  description:
+    "Who guarantees the lease, their relationship to the applicant, and the signed Oakridge guarantor form.",
   schema: z
     .object({
       guarantorName: z.string().min(1),

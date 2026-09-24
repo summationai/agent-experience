@@ -82,7 +82,9 @@ export const axe = createAXE({
   onError: (ctx, error) => {
     // The agent has already received a generic `internal` error. Log the cause with the
     // action and endpoint. Never log ctx.request's body: it may hold a sensitive payload.
-    console.error(JSON.stringify({ action: ctx.action, endpoint: ctx.endpoint, error: String(error) }));
+    console.error(
+      JSON.stringify({ action: ctx.action, endpoint: ctx.endpoint, error: String(error) }),
+    );
   },
 });
 // #endregion config

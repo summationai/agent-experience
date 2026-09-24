@@ -36,9 +36,12 @@ async function settle(client: AXEClient, outcome: RunOutcome, chat: Conversation
       // Fulfillers were tried (outcome.tried lists the kinds). Ask the user for the specific
       // thing the site named, in the site's order of preference. Never a generic "I couldn't".
       const want =
-        outcome.result.accepts.find((a) => !outcome.tried.includes(a.kind)) ?? outcome.result.accepts[0];
+        outcome.result.accepts.find((a) => !outcome.tried.includes(a.kind)) ??
+        outcome.result.accepts[0];
       if (!want) return chat.say(outcome.result.message);
-      chat.say(`${outcome.result.message} To continue I need ${want.title.toLowerCase()}: ${want.description}`);
+      chat.say(
+        `${outcome.result.message} To continue I need ${want.title.toLowerCase()}: ${want.description}`,
+      );
       if (want.instructions) chat.say(want.instructions);
       chat.remember("continuationToken", outcome.result.continuationToken);
       return;
@@ -56,7 +59,9 @@ async function settle(client: AXEClient, outcome: RunOutcome, chat: Conversation
       // run() already polled for its budget. Poll once more, then tell the user what to expect.
       const later = await client.poll(outcome.result, { maxWaitMs: 60_000 });
       if (later.status === "pending") {
-        chat.say(`${site} is still working on this. I'll check back in ${later.retryAfter} seconds.`);
+        chat.say(
+          `${site} is still working on this. I'll check back in ${later.retryAfter} seconds.`,
+        );
         chat.remember(`pollUrl:${outcome.action.name}`, later.pollUrl);
         return;
       }

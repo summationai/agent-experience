@@ -383,7 +383,8 @@ async function discovery(r: Runner): Promise<void> {
     const robots = await r.request(`${origin}/robots.txt`);
     if (robots.ok) {
       const text = await robots.text();
-      if (new RegExp(`^(${WIRE.robots.manifest}|${WIRE.robots.index}):\\s*\\S+`, "im").test(text)) hint = "robots";
+      if (new RegExp(`^(${WIRE.robots.manifest}|${WIRE.robots.index}):\\s*\\S+`, "im").test(text))
+        hint = "robots";
     }
   } catch {
     // ignore
@@ -1443,12 +1444,13 @@ async function ladder(r: Runner): Promise<void> {
     ) &&
     /^[a-z][a-z0-9_]*$/.test(ni.reason) &&
     ni.message.length > 0;
+  const convention = suggestedReason(ni.accepts[0]!.kind);
   r.add(
     "ladder.needs-input-shape",
     "needs_input carries ordered accepts with schemas",
     shapeOk ? "pass" : "fail",
     ["P-REQ-1", "P-REQ-2", "P-REQ-5"],
-    `${target.name}: reason ${ni.reason}; accepts ${ni.accepts.map((a) => a.kind).join(", ")}`,
+    `${target.name}: reason ${ni.reason}${convention && convention !== ni.reason ? ` (convention for ${ni.accepts[0]!.kind.split(".")[0]} kinds is ${convention})` : ""}; accepts ${ni.accepts.map((a) => a.kind).join(", ")}`,
     DOCS.ladder,
   );
 

@@ -57,9 +57,16 @@ axe.register(
     onContinue: async ({ kind, payload, state }) => {
       const { classId, studentId } = state as { classId: string; studentId: string };
       if (kind === "consent.terms") {
-        await students.recordWaiver(studentId, payload as { policyVersion: string; acceptedAt: string });
+        await students.recordWaiver(
+          studentId,
+          payload as { policyVersion: string; acceptedAt: string },
+        );
       } else if (kind === "payment.card") {
-        await payments.chargeDropIn(studentId, classId, payload as { token: string; provider: string });
+        await payments.chargeDropIn(
+          studentId,
+          classId,
+          payload as { token: string; provider: string },
+        );
       }
       return nextStep(classId, studentId);
     },
@@ -72,7 +79,8 @@ async function nextStep(classId: string, studentId: string) {
   if (student.waiverVersion !== WAIVER.version) {
     return needsInput({
       reason: "consent_required",
-      message: "Sunrise Yoga requires an acknowledged liability waiver before a first class, and again when the waiver changes.",
+      message:
+        "Sunrise Yoga requires an acknowledged liability waiver before a first class, and again when the waiver changes.",
       accepts: [waiverConsent],
       state: { classId, studentId },
     });
@@ -81,7 +89,11 @@ async function nextStep(classId: string, studentId: string) {
     return needsInput({
       reason: "payment_required",
       message: `The drop-in rate for this class is $${cls.dropInUsd}. Members attend at no charge.`,
-      accepts: [accept(kinds.payment.card, { description: `Card token to charge $${cls.dropInUsd} for one drop-in class.` })],
+      accepts: [
+        accept(kinds.payment.card, {
+          description: `Card token to charge $${cls.dropInUsd} for one drop-in class.`,
+        }),
+      ],
       state: { classId, studentId },
     });
   }
@@ -94,13 +106,20 @@ const students = {
   async get(_studentId: string) {
     return { waiverVersion: null as string | null, hasMembership: false };
   },
-  async recordWaiver(_studentId: string, _consent: { policyVersion: string; acceptedAt: string }) {},
+  async recordWaiver(
+    _studentId: string,
+    _consent: { policyVersion: string; acceptedAt: string },
+  ) {},
 };
 const payments = {
   async hasPaid(_studentId: string, _classId: string) {
     return false;
   },
-  async chargeDropIn(_studentId: string, _classId: string, _card: { token: string; provider: string }) {},
+  async chargeDropIn(
+    _studentId: string,
+    _classId: string,
+    _card: { token: string; provider: string },
+  ) {},
 };
 const classes = {
   async get(_classId: string) {

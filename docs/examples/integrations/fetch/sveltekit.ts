@@ -9,11 +9,16 @@ import { customerFrom, type SessionLookup } from "./session";
 // `Handle` from "@sveltejs/kit" and declare `App.Platform` in app.d.ts.
 type Platform = { env?: { SESSIONS?: SessionLookup } } | undefined;
 type RequestEvent = { request: Request; url: URL; platform: Platform };
-type Handle = (input: { event: RequestEvent; resolve: (event: RequestEvent) => Promise<Response> }) => Promise<Response>;
+type Handle = (input: {
+  event: RequestEvent;
+  resolve: (event: RequestEvent) => Promise<Response>;
+}) => Promise<Response>;
 
 const handler = axeFetch<Platform>(axe, {
   // `platform` is set by adapter-cloudflare and friends; on adapter-node it is undefined.
-  context: async (request, platform) => ({ identity: await customerFrom(request, platform?.env?.SESSIONS) }),
+  context: async (request, platform) => ({
+    identity: await customerFrom(request, platform?.env?.SESSIONS),
+  }),
 });
 
 export const handle: Handle = async ({ event, resolve }) => {

@@ -30,7 +30,11 @@ axe.register(
     idempotent: true,
     reversible: true,
     auth: "user",
-    input: z.object({ issuingSchool: z.string().describe("Name of the school that issued the transcript") }).strict(),
+    input: z
+      .object({
+        issuingSchool: z.string().describe("Name of the school that issued the transcript"),
+      })
+      .strict(),
     output: z.object({ documentId: z.string(), missingDocuments: z.array(z.string()) }),
     handler: async ({ input, context, needsInput }) =>
       needsInput({
@@ -39,7 +43,8 @@ axe.register(
         accepts: [
           // Most automatable first: an agent that already holds the file at a URL needs no encoding step.
           accept(withMimeTypes(kinds.document.url, ["application/pdf"]), {
-            description: "An HTTPS URL to the transcript PDF. Northgate fetches it once, within 15 minutes of this response.",
+            description:
+              "An HTTPS URL to the transcript PDF. Northgate fetches it once, within 15 minutes of this response.",
             sensitive: true,
           }),
           accept(withMimeTypes(kinds.document.base64, ["application/pdf"]), {
@@ -51,7 +56,10 @@ axe.register(
         state: { applicantId: context.onBehalfOf!, issuingSchool: input.issuingSchool },
       }),
     onContinue: async ({ kind, payload, state, fail }) => {
-      const { applicantId, issuingSchool } = state as { applicantId: string; issuingSchool: string };
+      const { applicantId, issuingSchool } = state as {
+        applicantId: string;
+        issuingSchool: string;
+      };
       // The payload already validated against the chosen entry's schema; the casts only name the shape.
       const file =
         kind === "document.url"
@@ -60,7 +68,13 @@ axe.register(
       if (file.bytes.byteLength > MAX_TRANSCRIPT_BYTES) {
         // An error from onContinue does not consume the token; the agent can retry with a smaller file.
         return fail("invalid_input", "The transcript is larger than 10 MB.", {
-          issues: [{ path: "/payload", message: "decoded size exceeds 10 MB", expected: "at most 10485760 bytes" }],
+          issues: [
+            {
+              path: "/payload",
+              message: "decoded size exceeds 10 MB",
+              expected: "at most 10485760 bytes",
+            },
+          ],
         });
       }
       const documentId = await documents.store(applicantId, issuingSchool, file);
@@ -81,7 +95,10 @@ async function fetchDocument(doc: { url: string; mimeType: string }): Promise<St
 }
 
 function decodeDocument(doc: { mimeType: string; contentBase64: string }): StoredFile {
-  return { mimeType: doc.mimeType, bytes: new Uint8Array(Buffer.from(doc.contentBase64, "base64")) };
+  return {
+    mimeType: doc.mimeType,
+    bytes: new Uint8Array(Buffer.from(doc.contentBase64, "base64")),
+  };
 }
 
 // Stand-ins for your document store.

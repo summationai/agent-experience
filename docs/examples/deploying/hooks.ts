@@ -43,7 +43,11 @@ export const axe = createAXE({
     log.info({ msg: "axe.result", ...fields(ctx), status: result.status });
   },
   onError: (ctx, error) => {
-    log.error({ msg: "axe.error", ...fields(ctx), error: error instanceof Error ? error.message : String(error) });
+    log.error({
+      msg: "axe.error",
+      ...fields(ctx),
+      error: error instanceof Error ? error.message : String(error),
+    });
     apm.captureException(error, { action: ctx.action, endpoint: ctx.endpoint });
   },
   onEvent: otelSink({ meter: metrics.getMeter("axe") }),

@@ -17,7 +17,10 @@ const LOCAL: SessionLookup = {
  * A browser on your site sends the session cookie; an agent holding a token the
  * customer granted sends it as a bearer. Both resolve to the same identity.
  */
-export async function customerFrom(request: Request, sessions: SessionLookup = LOCAL): Promise<Identity | null> {
+export async function customerFrom(
+  request: Request,
+  sessions: SessionLookup = LOCAL,
+): Promise<Identity | null> {
   const bearer = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   const cookie = /(?:^|;\s*)fo_session=([^;]+)/.exec(request.headers.get("cookie") ?? "")?.[1];
   const sid = bearer ?? cookie;

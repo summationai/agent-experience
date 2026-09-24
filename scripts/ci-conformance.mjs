@@ -9,11 +9,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const port = 3210;
 const base = `http://localhost:${port}`;
 
-const server = spawn(process.execPath, ["--import", "tsx", "docs/examples/getting-started/server-express.ts"], {
-  cwd: root,
-  env: { ...process.env, PORT: String(port), AXE_BASE_URL: base },
-  stdio: ["ignore", "pipe", "inherit"],
-});
+const server = spawn(
+  process.execPath,
+  ["--import", "tsx", "docs/examples/getting-started/server-express.ts"],
+  {
+    cwd: root,
+    env: { ...process.env, PORT: String(port), AXE_BASE_URL: base },
+    stdio: ["ignore", "pipe", "inherit"],
+  },
+);
 server.stdout.on("data", (d) => process.stdout.write(`[server] ${d}`));
 
 async function waitForServer() {
@@ -31,7 +35,10 @@ async function waitForServer() {
 
 function runCli(args) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [join(root, "packages/cli/dist/index.js"), ...args], { cwd: root, stdio: "inherit" });
+    const child = spawn(process.execPath, [join(root, "packages/cli/dist/index.js"), ...args], {
+      cwd: root,
+      stdio: "inherit",
+    });
     child.on("exit", (code) => resolve(code ?? 1));
   });
 }

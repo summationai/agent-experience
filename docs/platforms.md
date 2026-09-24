@@ -34,7 +34,8 @@ const studios: Studio[] = [
     id: "st_101",
     host: "sunriseyoga.example",
     name: "Sunrise Yoga Studio",
-    description: "Search upcoming yoga classes by date and style, see instructor names and spots left, and (once signed in) book or cancel a spot.",
+    description:
+      "Search upcoming yoga classes by date and style, see instructor names and spots left, and (once signed in) book or cancel a spot.",
     accentColor: "#e0a458",
     requestsPerMinute: 60,
     deniedVendors: [],
@@ -44,7 +45,8 @@ const studios: Studio[] = [
     id: "st_102",
     host: "moonpilates.example",
     name: "Moon Pilates",
-    description: "Find reformer and mat Pilates sessions by date and level, check equipment availability, and reserve a reformer once signed in.",
+    description:
+      "Find reformer and mat Pilates sessions by date and level, check equipment availability, and reserve a reformer once signed in.",
     accentColor: "#3b3f8f",
     requestsPerMinute: 30,
     deniedVendors: ["scraperco"],
@@ -54,7 +56,8 @@ const studios: Studio[] = [
     id: "st_103",
     host: "riverbarre.example",
     name: "River Barre",
-    description: "Browse barre classes by date and instructor, see spots left, and book or join a waitlist once signed in.",
+    description:
+      "Browse barre classes by date and instructor, see spots left, and book or join a waitlist once signed in.",
     accentColor: "#2f7a5a",
     requestsPerMinute: 60,
     deniedVendors: [],
@@ -76,13 +79,42 @@ const db = {
     return { studios: slice, next };
   },
   async searchClasses(studioId: string, filters: { from: string; to?: string | undefined }) {
-    return SCHEDULE.filter((c) => c.studioId === studioId && c.startsAt.slice(0, 10) >= filters.from && (!filters.to || c.startsAt.slice(0, 10) <= filters.to));
+    return SCHEDULE.filter(
+      (c) =>
+        c.studioId === studioId &&
+        c.startsAt.slice(0, 10) >= filters.from &&
+        (!filters.to || c.startsAt.slice(0, 10) <= filters.to),
+    );
   },
 };
 const SCHEDULE = [
-  { studioId: "st_101", id: "c_101", title: "Morning Vinyasa", startsAt: "2026-10-01T14:00:00Z", instructor: "Priya N.", spotsLeft: 6, url: "https://sunriseyoga.example/classes/c_101" },
-  { studioId: "st_102", id: "c_201", title: "Reformer Level 1", startsAt: "2026-10-01T16:00:00Z", instructor: "Dana K.", spotsLeft: 3, url: "https://moonpilates.example/classes/c_201" },
-  { studioId: "st_103", id: "c_301", title: "Barre Fundamentals", startsAt: "2026-10-01T17:30:00Z", instructor: "Lena O.", spotsLeft: 8, url: "https://riverbarre.example/classes/c_301" },
+  {
+    studioId: "st_101",
+    id: "c_101",
+    title: "Morning Vinyasa",
+    startsAt: "2026-10-01T14:00:00Z",
+    instructor: "Priya N.",
+    spotsLeft: 6,
+    url: "https://sunriseyoga.example/classes/c_101",
+  },
+  {
+    studioId: "st_102",
+    id: "c_201",
+    title: "Reformer Level 1",
+    startsAt: "2026-10-01T16:00:00Z",
+    instructor: "Dana K.",
+    spotsLeft: 3,
+    url: "https://moonpilates.example/classes/c_201",
+  },
+  {
+    studioId: "st_103",
+    id: "c_301",
+    title: "Barre Fundamentals",
+    startsAt: "2026-10-01T17:30:00Z",
+    instructor: "Lena O.",
+    spotsLeft: 8,
+    url: "https://riverbarre.example/classes/c_301",
+  },
 ];
 
 // A tenant is the per-studio overlay on the shared declaration: the fields that differ
@@ -131,7 +163,8 @@ export const axe = createAXE({
   // Platform-level values. A tenant overrides each of these; the platform's own host
   // (studiohost.example) resolves to no tenant and serves only the index.
   name: "StudioHost",
-  description: "Class scheduling for independent fitness studios. Each studio publishes its own manifest at its own domain; this platform publishes the index of them.",
+  description:
+    "Class scheduling for independent fitness studios. Each studio publishes its own manifest at its own domain; this platform publishes the index of them.",
   baseUrl: "https://studiohost.example",
   humanFallbackUrl: "https://studiohost.example",
   auth: { modes: ["none", "user"] },
@@ -159,7 +192,8 @@ const ClassSchema = z.object({
 axe.register(
   action("classes.search", {
     title: "Search upcoming classes",
-    description: "Find this studio's upcoming classes by date range. Returns up to 50 classes with start time, instructor, spots left, and a link to the class page. Does not book anything.",
+    description:
+      "Find this studio's upcoming classes by date range. Returns up to 50 classes with start time, instructor, spots left, and a link to the class page. Does not book anything.",
     readOnly: true,
     risk: "none",
     input: z.object({
@@ -180,13 +214,31 @@ axe.register(
           { label: "Spots left", path: "/spotsLeft", format: "number", compare: "higher-better" },
         ],
       },
-      disclaimer: "Availability changes quickly. Confirm on the class page before planning around it.",
+      disclaimer:
+        "Availability changes quickly. Confirm on the class page before planning around it.",
     },
-    examples: [{ input: { from: "2026-10-01" }, output: { classes: [{ id: "c_101", title: "Morning Vinyasa", startsAt: "2026-10-01T14:00:00Z", instructor: "Priya N.", spotsLeft: 6, url: "https://sunriseyoga.example/classes/c_101" }] } }],
+    examples: [
+      {
+        input: { from: "2026-10-01" },
+        output: {
+          classes: [
+            {
+              id: "c_101",
+              title: "Morning Vinyasa",
+              startsAt: "2026-10-01T14:00:00Z",
+              instructor: "Priya N.",
+              spotsLeft: 6,
+              url: "https://sunriseyoga.example/classes/c_101",
+            },
+          ],
+        },
+      },
+    ],
     // Every handler receives the resolved tenant. Scope every query by tenant.id, and
     // never let an id from one studio's input reach another studio's rows.
     handler: async ({ input, tenant, fail }) => {
-      if (!tenant) return fail("unavailable", "This action is only served on a studio's own domain.");
+      if (!tenant)
+        return fail("unavailable", "This action is only served on a studio's own domain.");
       const classes = await db.searchClasses(tenant.id, input);
       return { classes: classes.map(({ studioId: _studioId, ...c }) => c) };
     },
@@ -218,7 +270,7 @@ Two studios' manifests differ only in those fields:
   "indexUrl": "https://studiohost.example/.well-known/axe-index.json",
   "updatedAt": "2026-09-01T00:00:00Z"
 }
-```
+````
 
 ```jsonc
 // https://moonpilates.example/.well-known/axe.json
@@ -229,16 +281,16 @@ Two studios' manifests differ only in those fields:
   "baseUrl": "https://moonpilates.example",
   "humanFallbackUrl": "https://moonpilates.example",
   "auth": { "modes": ["none", "user"], "userLoginUrl": "https://moonpilates.example/login" },
-  "actions": [ /* identical on every tenant */ ],
+  "actions": [/* identical on every tenant */],
   "policies": {
     "rateLimit": { "requestsPerMinute": 30 },
     "termsUrl": "https://moonpilates.example/terms",
-    "agents": { "deny": ["scraperco"] }
+    "agents": { "deny": ["scraperco"] },
   },
   "contact": { "email": "hello@moonpilates.example" },
   "brand": { "name": "Moon Pilates", "accentColor": "#3b3f8f", "tone": "casual" },
   "indexUrl": "https://studiohost.example/.well-known/axe-index.json",
-  "updatedAt": "2026-09-12T00:00:00Z"
+  "updatedAt": "2026-09-12T00:00:00Z",
 }
 ```
 
@@ -297,7 +349,7 @@ The wire document:
   ],
   "next": "https://studiohost.example/.well-known/axe-index.json?page=2"
 }
-```
+````
 
 Four rules from [spec §3.3](../spec/AXE-PROTOCOL.md#33-platform-index):
 
@@ -390,3 +442,4 @@ Precedence matters. A tenant supplied by the adapter wins. When the adapter supp
 - [Analytics](analytics.md) for the event schema and queries grouped by `tenant`.
 - [Audit](audit.md) for the AXE Score you will run against each pilot tenant.
 - [Protocol spec §3](../spec/AXE-PROTOCOL.md#3-discovery) for the normative index and opt-out rules.
+````

@@ -6,7 +6,8 @@ import { createAXE, action, z } from "@axe/core";
 
 export const axe = createAXE({
   name: "Harbor Goods",
-  description: "Track orders, see delivery estimates, and start a return for the signed-in customer.",
+  description:
+    "Track orders, see delivery estimates, and start a return for the signed-in customer.",
   baseUrl: "https://shop.harborgoods.example",
   auth: { modes: ["none", "user"], userLoginUrl: "https://shop.harborgoods.example/login" },
   secret: process.env.AXE_SECRET,
@@ -24,7 +25,15 @@ const OrderSchema = z.object({
 
 // Stand-in for your existing order service.
 const orders = {
-  async list(_customerId: string, _filters: { status?: string | undefined; placedAfter?: string | undefined; placedBefore?: string | undefined; cursor?: string | undefined }) {
+  async list(
+    _customerId: string,
+    _filters: {
+      status?: string | undefined;
+      placedAfter?: string | undefined;
+      placedBefore?: string | undefined;
+      cursor?: string | undefined;
+    },
+  ) {
     return { orders: [] as z.infer<typeof OrderSchema>[], nextCursor: null as string | null };
   },
 };
@@ -47,8 +56,15 @@ axe.register(
     auth: "user",
     input: z
       .object({
-        status: z.enum(["processing", "shipped", "delivered", "returned"]).optional().describe("Only orders in this state"),
-        placedAfter: z.string().date().optional().describe("Earliest order date, YYYY-MM-DD, e.g. '2026-08-01'"),
+        status: z
+          .enum(["processing", "shipped", "delivered", "returned"])
+          .optional()
+          .describe("Only orders in this state"),
+        placedAfter: z
+          .string()
+          .date()
+          .optional()
+          .describe("Earliest order date, YYYY-MM-DD, e.g. '2026-08-01'"),
         placedBefore: z.string().date().optional().describe("Latest order date, YYYY-MM-DD"),
         cursor: z.string().optional().describe("Opaque cursor from a previous page"),
       })
@@ -66,21 +82,41 @@ axe.register(
           { label: "Placed", path: "/placedAt", format: "datetime" },
           { label: "Status", path: "/status", format: "text" },
           { label: "Items", path: "/itemCount", format: "number" },
-          { label: "Estimated delivery", path: "/estimatedDelivery", format: "date", compare: "lower-better" },
+          {
+            label: "Estimated delivery",
+            path: "/estimatedDelivery",
+            format: "date",
+            compare: "lower-better",
+          },
         ],
       },
       suggestedComparison: ["Status", "Estimated delivery"],
       emptyMessage: "No orders match those filters.",
-      disclaimer: "Delivery estimates come from the carrier and can change. The order page has the latest.",
+      disclaimer:
+        "Delivery estimates come from the carrier and can change. The order page has the latest.",
     },
     affordances: [{ action: "returns.start", title: "Start a return", input: { orderId: "/id" } }],
-    pagination: { cursorIn: "/cursor", cursorOut: "/nextCursor", pageSize: { default: 10, max: 25 } },
+    pagination: {
+      cursorIn: "/cursor",
+      cursorOut: "/nextCursor",
+      pageSize: { default: 10, max: 25 },
+    },
     freshness: { cacheTtlSeconds: 60 },
     examples: [
       {
         input: { status: "shipped" },
         output: {
-          orders: [{ id: "HG-20931", placedAt: "2026-09-18T16:04:00Z", status: "shipped", totalUsd: 84.5, itemCount: 2, estimatedDelivery: "2026-09-25", url: "https://shop.harborgoods.example/orders/HG-20931" }],
+          orders: [
+            {
+              id: "HG-20931",
+              placedAt: "2026-09-18T16:04:00Z",
+              status: "shipped",
+              totalUsd: 84.5,
+              itemCount: 2,
+              estimatedDelivery: "2026-09-25",
+              url: "https://shop.harborgoods.example/orders/HG-20931",
+            },
+          ],
           nextCursor: null,
         },
       },
@@ -99,7 +135,9 @@ axe.register(
     idempotent: true,
     reversible: true,
     auth: "user",
-    input: z.object({ orderId: z.string().describe("Order id from orders.list, e.g. 'HG-20931'") }).strict(),
+    input: z
+      .object({ orderId: z.string().describe("Order id from orders.list, e.g. 'HG-20931'") })
+      .strict(),
     output: z.object({ returnId: z.string(), refundUsd: z.number() }),
     examples: [{ input: { orderId: "HG-20931" }, output: { returnId: "R-1180", refundUsd: 84.5 } }],
     handler: async ({ input }) => ({ returnId: `R-${input.orderId.slice(3)}`, refundUsd: 84.5 }),

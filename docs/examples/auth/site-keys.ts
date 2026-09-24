@@ -18,11 +18,21 @@ interface ApiKeyRecord {
 const keysBySha256 = new Map<string, ApiKeyRecord>([
   [
     "a5d9d9bd022ad27632f3fd4578df098262de607781ddb50c57c2dd521f5b7b1e",
-    { id: "key_northlake_retail", partner: "Northlake Retail Co.", actions: ["stock.check", "purchase-orders.place"], revokedAt: null },
+    {
+      id: "key_northlake_retail",
+      partner: "Northlake Retail Co.",
+      actions: ["stock.check", "purchase-orders.place"],
+      revokedAt: null,
+    },
   ],
   [
     "b8485c89ecc068bef48647d6d64940a19aa8e03091b8bb86d036319cfaa5813f",
-    { id: "key_pricefeed", partner: "PriceFeed aggregator", actions: ["stock.check"], revokedAt: null },
+    {
+      id: "key_pricefeed",
+      partner: "PriceFeed aggregator",
+      actions: ["stock.check"],
+      revokedAt: null,
+    },
   ],
 ]);
 
@@ -41,9 +51,18 @@ function partnerFromRequest(request: Request): ApiKeyRecord {
 // Stand-in for your warehouse and order systems.
 const warehouse = {
   async stock(itemCode: string) {
-    return { itemCode, onHand: 1200, nextInbound: "2026-10-14" as string | null, unitPriceUsd: 4.35 };
+    return {
+      itemCode,
+      onHand: 1200,
+      nextInbound: "2026-10-14" as string | null,
+      unitPriceUsd: 4.35,
+    };
   },
-  async placeOrder(_partnerId: string, lines: { itemCode: string; quantity: number }[], _poReference?: string) {
+  async placeOrder(
+    _partnerId: string,
+    lines: { itemCode: string; quantity: number }[],
+    _poReference?: string,
+  ) {
     return { orderNumber: `PO-${88213 + lines.length}`, expectedShipDate: "2026-10-02" };
   },
 };
@@ -91,7 +110,15 @@ axe.register(
       unitPriceUsd: z.number(),
     }),
     examples: [
-      { input: { itemCode: "KW-10442" }, output: { itemCode: "KW-10442", onHand: 1200, nextInbound: "2026-10-14", unitPriceUsd: 4.35 } },
+      {
+        input: { itemCode: "KW-10442" },
+        output: {
+          itemCode: "KW-10442",
+          onHand: 1200,
+          nextInbound: "2026-10-14",
+          unitPriceUsd: 4.35,
+        },
+      },
     ],
     handler: async ({ input }) => warehouse.stock(input.itemCode),
   }),
@@ -110,7 +137,10 @@ axe.register(
         .array(z.object({ itemCode: z.string(), quantity: z.number().int().positive() }))
         .min(1)
         .describe("Items and quantities"),
-      poReference: z.string().optional().describe("The partner's own PO number, printed on the invoice"),
+      poReference: z
+        .string()
+        .optional()
+        .describe("The partner's own PO number, printed on the invoice"),
     }),
     output: z.object({ orderNumber: z.string(), expectedShipDate: z.string().date() }),
     examples: [

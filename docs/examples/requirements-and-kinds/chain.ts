@@ -25,19 +25,28 @@ axe.register(
     idempotent: true,
     reversible: false,
     auth: "user",
-    input: z.object({ recipient: z.string().describe("Institution that will receive the transcript") }).strict(),
+    input: z
+      .object({ recipient: z.string().describe("Institution that will receive the transcript") })
+      .strict(),
     output: z.object({ releaseId: z.string(), deliveryBy: z.string() }),
     handler: async ({ input, context, needsInput }) =>
       needsInput({
         reason: "identity_required",
         message: "Confirm the applicant's date of birth before a transcript can be released.",
-        accepts: [accept(kinds.identity.dateOfBirth, { description: "Date of birth as entered on the application." })],
+        accepts: [
+          accept(kinds.identity.dateOfBirth, {
+            description: "Date of birth as entered on the application.",
+          }),
+        ],
         state: { applicantId: context.onBehalfOf!, recipient: input.recipient, verified: false },
       }),
     onContinue: async ({ kind, payload, state, needsInput, fail }) => {
       const s = state as { applicantId: string; recipient: string; verified: boolean };
       if (kind === "identity.date-of-birth") {
-        const matches = await registrar.verifyDateOfBirth(s.applicantId, (payload as { dateOfBirth: string }).dateOfBirth);
+        const matches = await registrar.verifyDateOfBirth(
+          s.applicantId,
+          (payload as { dateOfBirth: string }).dateOfBirth,
+        );
         if (!matches) {
           // An error does not consume the token: the agent can correct the value and retry.
           return fail("invalid_input", "The date of birth does not match the application.", {
@@ -58,7 +67,11 @@ axe.register(
         });
       }
       if (kind === "consent.terms" && s.verified) {
-        return registrar.release(s.applicantId, s.recipient, payload as { policyUrl: string; policyVersion: string; acceptedAt: string });
+        return registrar.release(
+          s.applicantId,
+          s.recipient,
+          payload as { policyUrl: string; policyVersion: string; acceptedAt: string },
+        );
       }
       // Unreachable in practice: the server rejects a kind that is not in the token's accepts.
       return fail("conflict", "Requirements were answered out of order. Call the action again.");
@@ -72,7 +85,11 @@ const registrar = {
   async verifyDateOfBirth(_applicantId: string, _dateOfBirth: string) {
     return true;
   },
-  async release(applicantId: string, _recipient: string, _consent: { policyUrl: string; policyVersion: string; acceptedAt: string }) {
+  async release(
+    applicantId: string,
+    _recipient: string,
+    _consent: { policyUrl: string; policyVersion: string; acceptedAt: string },
+  ) {
     return { releaseId: `rel_${applicantId}`, deliveryBy: "2026-10-07" };
   },
 };

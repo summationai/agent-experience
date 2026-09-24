@@ -102,7 +102,7 @@ Claude Desktop spawns stdio servers from its configuration file (Settings, Devel
     }
   }
 }
-```
+````
 
 For actions with `auth: "user"`, add the user's bearer token so it is sent on every call:
 

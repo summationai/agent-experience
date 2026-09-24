@@ -23,7 +23,13 @@ const drafts = {
   },
 };
 const applications = {
-  async submit(_input: { unitId: string; applicant: { fullName: string; phone: string; employer: string; monthlyIncomeUsd: number } }, _applicantId: string) {
+  async submit(
+    _input: {
+      unitId: string;
+      applicant: { fullName: string; phone: string; employer: string; monthlyIncomeUsd: number };
+    },
+    _applicantId: string,
+  ) {
     return { applicationId: "APP-8812", depositStatus: "pending" as const };
   },
 };
@@ -91,7 +97,15 @@ axe.register(
     output: z.object({ applicationId: z.string(), depositStatus: z.enum(["pending", "received"]) }),
     examples: [
       {
-        input: { unitId: "u_204", applicant: { fullName: "Dana Whitfield", phone: "+12065550142", employer: "Cascade Analytics", monthlyIncomeUsd: 7200 } },
+        input: {
+          unitId: "u_204",
+          applicant: {
+            fullName: "Dana Whitfield",
+            phone: "+12065550142",
+            employer: "Cascade Analytics",
+            monthlyIncomeUsd: 7200,
+          },
+        },
         output: { applicationId: "APP-8812", depositStatus: "pending" },
       },
     ],

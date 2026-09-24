@@ -94,7 +94,9 @@ export function wireLikeNames(span: string): WireLikeName[] {
   if (s.startsWith("x-")) return [];
   if (/^axe\/\d+\.\d+$/.test(s)) return [{ name: s, categories: ["protocol"] }];
   if (SNAKE.test(s))
-    return [{ name: s, categories: ["status", "error", "ladder", "reason", "query"], nearMissOnly: true }];
+    return [
+      { name: s, categories: ["status", "error", "ladder", "reason", "query"], nearMissOnly: true },
+    ];
   // Dotted field paths: `display.item.url`, `policies.rateLimit`, `accepts[].kind`, `manifest.auth.modes`
   if (
     /^[a-z][A-Za-z0-9]*(\[\])?(\.[a-z_][A-Za-z0-9_]*(\[\])?)+$/.test(s) &&
@@ -183,7 +185,10 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
     join(root, "packages"),
     (f) => /\/src\/.*\.ts$/.test(f) && !f.endsWith("vocabulary.ts") && !f.endsWith(".d.ts"),
   );
-  const srcText = srcFiles.map((f) => ({ rel: relative(root, f), text: stripComments(readFileSync(f, "utf8")) }));
+  const srcText = srcFiles.map((f) => ({
+    rel: relative(root, f),
+    text: stripComments(readFileSync(f, "utf8")),
+  }));
   const allSrc = srcText.map((s) => s.text).join("\n");
   const unused: string[] = [];
   for (const e of entries) {
@@ -234,7 +239,11 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
 
 /** A path token is covered when a vocabulary path is a prefix of it (`/axe/actions/x.y`) or it is a prefix of one (`/axe/`). */
 function pathCovered(token: string, entries: { category: string; name: string }[]): boolean {
-  return entries.some((e) => e.category === "path" && (token === e.name || token.startsWith(e.name + "/") || e.name.startsWith(token)));
+  return entries.some(
+    (e) =>
+      e.category === "path" &&
+      (token === e.name || token.startsWith(e.name + "/") || e.name.startsWith(token)),
+  );
 }
 
 /** Levenshtein distance, for near-miss detection of snake_case codes. */
@@ -252,8 +261,14 @@ export function editDistance(a: string, b: string): number {
   return dp[b.length]!;
 }
 
-function isNearMiss(token: string, entries: { category: string; name: string }[], categories: string[]): boolean {
-  return entries.some((e) => categories.includes(e.category) && e.name !== token && editDistance(e.name, token) <= 2);
+function isNearMiss(
+  token: string,
+  entries: { category: string; name: string }[],
+  categories: string[],
+): boolean {
+  return entries.some(
+    (e) => categories.includes(e.category) && e.name !== token && editDistance(e.name, token) <= 2,
+  );
 }
 
 /** Remove line and block comments so documentation text is not mistaken for code. */

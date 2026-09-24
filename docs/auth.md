@@ -4,10 +4,10 @@ An action's `auth` says who must be authenticated before it runs: nobody, the op
 
 ## The three modes
 
-| `auth` | Who authenticates | How                                                                                                                                                                                   |
-| ------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `none` | Nobody            | Public read-only actions: search classes, check stock, list units.                                                                                                                    |
-| `site` | The agent         | `Authorization: Bearer <api-key>`, issued by you to the agent operator. Your `verifySiteKey` function says yes, no, or which actions the key may call.                                |
+| `auth` | Who authenticates | How                                                                                                                                                                                                                                                     |
+| ------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `none` | Nobody            | Public read-only actions: search classes, check stock, list units.                                                                                                                                                                                      |
+| `site` | The agent         | `Authorization: Bearer <api-key>`, issued by you to the agent operator. Your `verifySiteKey` function says yes, no, or which actions the key may call.                                                                                                  |
 | `user` | The end user      | The agent acts for one human. Either it passes through a token that human already granted it, which your `authenticate` function maps to `onBehalfOf`, or the runtime sends the human to `userLoginUrl` and binds the resume token to whoever signs in. |
 
 The runtime enforces spec §16 at startup rather than at request time. `register` throws when an action's `auth` is not in the manifest's `auth.modes`. `createAXE` throws when `modes` includes `user` but neither `userLoginUrl` nor `authenticate` is set, or includes `site` without `verifySiteKey`.
@@ -92,7 +92,12 @@ axe.register(
       status: z.enum(["incomplete", "under-review", "decided"]),
       missingDocuments: z.array(z.string()),
     }),
-    examples: [{ input: {}, output: { applicationId: "NU-2027-4471", status: "under-review", missingDocuments: [] } }],
+    examples: [
+      {
+        input: {},
+        output: { applicationId: "NU-2027-4471", status: "under-review", missingDocuments: [] },
+      },
+    ],
     // `context.onBehalfOf` is the identity the adapter established. Whatever the agent
     // put in the request body's context.onBehalfOf was discarded before this ran.
     handler: async ({ context }) => admissions.status(context.onBehalfOf!),
@@ -146,7 +151,7 @@ const axe = createAXE({
 
 Return `null` for an expired or malformed token, not an error. The runtime then treats the request as anonymous, and a `user` action produces a login handoff so the human can sign in again.
 
-Both examples also set claims on the identity (roles in one, an email in the other). The `Identity` type has that slot so your adapter and `authenticate` can carry more than an id, but in v0 the runtime does not forward it: handlers receive `context.onBehalfOf` and the raw `request`, nothing else about the identity. A handler that needs roles looks them up by `onBehalfOf` or re-reads the session from `request`. Claims never go on the wire.
+Both examples also set claims on the identity (roles in one, an email in the other). Handlers receive the whole identity as `identity`, so `claims` on `identity` carries roles or an email without a second lookup; `context.onBehalfOf` stays the one field that is also scoped into tokens and idempotency keys. Claims never go on the wire, never appear in events, and are not stored with tokens: a continuation or resume re-establishes the identity from the request.
 
 Identity is established again on `/axe/continue`, `/axe/resume`, and poll. A token minted for one user and presented with another user's credentials, or anonymously, returns `not_found`, the same as an unknown token, so the response confirms nothing about the token's existence.
 
@@ -218,7 +223,7 @@ Until the login page calls `completeHandoff`, a resume returns `conflict` so the
     "details": { "handoffStatus": "open" }
   }
 }
-```
+````
 
 The handoff id in the URL is the token record's id, not the signed resume token. Knowing it lets a page call `completeHandoff`, a server-side call you control, and nothing else. Resume tokens expire after 24 hours by default; `completeHandoff` returns `false` for an unknown or expired id, and the login page should tell the human to ask the agent to start again. [Human handoff](human-handoff.md#login-handoffs) covers the landing page and how the same mechanism serves handoffs your own handlers create.
 
@@ -244,11 +249,21 @@ interface ApiKeyRecord {
 const keysBySha256 = new Map<string, ApiKeyRecord>([
   [
     "a5d9d9bd022ad27632f3fd4578df098262de607781ddb50c57c2dd521f5b7b1e",
-    { id: "key_northlake_retail", partner: "Northlake Retail Co.", actions: ["stock.check", "purchase-orders.place"], revokedAt: null },
+    {
+      id: "key_northlake_retail",
+      partner: "Northlake Retail Co.",
+      actions: ["stock.check", "purchase-orders.place"],
+      revokedAt: null,
+    },
   ],
   [
     "b8485c89ecc068bef48647d6d64940a19aa8e03091b8bb86d036319cfaa5813f",
-    { id: "key_pricefeed", partner: "PriceFeed aggregator", actions: ["stock.check"], revokedAt: null },
+    {
+      id: "key_pricefeed",
+      partner: "PriceFeed aggregator",
+      actions: ["stock.check"],
+      revokedAt: null,
+    },
   ],
 ]);
 
@@ -309,7 +324,15 @@ axe.register(
       unitPriceUsd: z.number(),
     }),
     examples: [
-      { input: { itemCode: "KW-10442" }, output: { itemCode: "KW-10442", onHand: 1200, nextInbound: "2026-10-14", unitPriceUsd: 4.35 } },
+      {
+        input: { itemCode: "KW-10442" },
+        output: {
+          itemCode: "KW-10442",
+          onHand: 1200,
+          nextInbound: "2026-10-14",
+          unitPriceUsd: 4.35,
+        },
+      },
     ],
     handler: async ({ input }) => warehouse.stock(input.itemCode),
   }),
@@ -328,7 +351,10 @@ axe.register(
         .array(z.object({ itemCode: z.string(), quantity: z.number().int().positive() }))
         .min(1)
         .describe("Items and quantities"),
-      poReference: z.string().optional().describe("The partner's own PO number, printed on the invoice"),
+      poReference: z
+        .string()
+        .optional()
+        .describe("The partner's own PO number, printed on the invoice"),
     }),
     output: z.object({ orderNumber: z.string(), expectedShipDate: z.string().date() }),
     examples: [
@@ -343,7 +369,7 @@ axe.register(
 );```
 <!-- /include -->
 
-Issuing keys is your admin UI's job, not the SDK's: generate a long random key, show it once, store its hash, let the partner name and revoke it. The verdict's `id` labels the key for your own purposes; the runtime does not forward it to handlers or events in v0, which is why the example resolves the partner from the request again.
+Issuing keys is your admin UI's job, not the SDK's: generate a long random key, show it once, store its hash, let the partner name and revoke it. When `verifySiteKey` returns an object, handlers receive it as `siteKey`, so `siteKey.id` identifies the partner without a second lookup, and the runtime scopes idempotency keys and tokens to that id when no user identity is present, so two partners reusing the same `idempotencyKey` never collide. The example still resolves the partner from the request to show that either approach works.
 
 Two details about `site` mode and identity. First, after the key verifies, the runtime still calls `authenticate` or the adapter's `context`, so a `site` action can also carry an `onBehalfOf` when a partner forwards a user's credential. If your `authenticate` treats every bearer as a user token, make it return `null` for API keys. Second, `policies.rateLimit` is declared in the manifest but enforced by you, and `site` mode is where per-key limits belong: key the limiter at your edge on the bearer value and return 429 with `Retry-After`. See [Deploying](deploying.md#rate-limiting).
 
@@ -373,3 +399,4 @@ The open question is how agents become clients. Dynamic client registration lets
 - [Security](security.md): the threat model, including what identity and tokens do and do not protect against.
 - [Platforms](platforms.md): per-tenant manifests and login URLs.
 - [Deploying](deploying.md#rate-limiting): enforcing the rate limit you declare.
+````

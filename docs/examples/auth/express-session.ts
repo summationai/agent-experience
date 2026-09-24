@@ -60,7 +60,12 @@ axe.register(
       status: z.enum(["incomplete", "under-review", "decided"]),
       missingDocuments: z.array(z.string()),
     }),
-    examples: [{ input: {}, output: { applicationId: "NU-2027-4471", status: "under-review", missingDocuments: [] } }],
+    examples: [
+      {
+        input: {},
+        output: { applicationId: "NU-2027-4471", status: "under-review", missingDocuments: [] },
+      },
+    ],
     // `context.onBehalfOf` is the identity the adapter established. Whatever the agent
     // put in the request body's context.onBehalfOf was discarded before this ran.
     handler: async ({ context }) => admissions.status(context.onBehalfOf!),

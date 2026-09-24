@@ -24,9 +24,12 @@ const report = await runConformance(url, options);
 console.log(formatConformanceTable(report));
 
 const failed = report.checks.filter((c) => c.status === "fail");
-for (const c of failed) console.error(`${c.id}: ${c.detail} (see ${c.docs}; spec ${c.requirements.join(", ")})`);
+for (const c of failed)
+  console.error(`${c.id}: ${c.detail} (see ${c.docs}; spec ${c.requirements.join(", ")})`);
 
-const ladderSkipped = report.checks.filter((c) => c.id.startsWith("ladder.") && c.status === "skip");
+const ladderSkipped = report.checks.filter(
+  (c) => c.id.startsWith("ladder.") && c.status === "skip",
+);
 if (ladderSkipped.length > 0) {
   console.warn(`${ladderSkipped.length} ladder checks skipped: ${ladderSkipped[0]!.detail}`);
 }
@@ -37,7 +40,9 @@ process.exitCode = report.ok ? 0 : 1;
 // #region audit
 const audit = await runAudit(url, { ...options, browser: true });
 writeFileSync("axe-audit.html", formatAuditHtml(audit));
-console.log(`AXE Score ${audit.score}; ${audit.fixes.length} fixes; top: ${audit.fixes[0]?.title ?? "none"}`);
+console.log(
+  `AXE Score ${audit.score}; ${audit.fixes.length} fixes; top: ${audit.fixes[0]?.title ?? "none"}`,
+);
 if (audit.hardFailure) console.error(`Hard failure: ${audit.hardFailure}`);
 if (audit.score < 80) process.exitCode = 1;
 // #endregion audit

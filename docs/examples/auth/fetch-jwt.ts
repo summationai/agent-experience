@@ -25,7 +25,11 @@ async function verifyAccessToken(token: string) {
 // Stand-in for your booking service.
 const bookings = {
   async create(memberId: string, classId: string) {
-    return { bookingId: `b_${memberId.slice(-4)}_${classId}`, classId, cancelBy: "2026-10-01T01:00:00Z" };
+    return {
+      bookingId: `b_${memberId.slice(-4)}_${classId}`,
+      classId,
+      cancelBy: "2026-10-01T01:00:00Z",
+    };
   },
 };
 
@@ -64,9 +68,16 @@ axe.register(
     reversible: true,
     auth: "user",
     input: z.object({ classId: z.string().describe("Class id from classes.search") }),
-    output: z.object({ bookingId: z.string(), classId: z.string(), cancelBy: z.string().datetime() }),
+    output: z.object({
+      bookingId: z.string(),
+      classId: z.string(),
+      cancelBy: z.string().datetime(),
+    }),
     examples: [
-      { input: { classId: "c_102" }, output: { bookingId: "b_1088_c_102", classId: "c_102", cancelBy: "2026-10-01T01:00:00Z" } },
+      {
+        input: { classId: "c_102" },
+        output: { bookingId: "b_1088_c_102", classId: "c_102", cancelBy: "2026-10-01T01:00:00Z" },
+      },
     ],
     handler: async ({ input, context }) => bookings.create(context.onBehalfOf!, input.classId),
   }),

@@ -8,7 +8,7 @@
  */
 /** Zod, re-exported so integrators use one version. @hidden */
 export { z } from "zod";
-export { createAXE, AXE } from "./server";
+export { createAXE, AXE, MAX_BASE64_DOCUMENT_BYTES } from "./server";
 export type {
   AXEConfig,
   AuthConfig,

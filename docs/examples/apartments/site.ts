@@ -35,15 +35,32 @@ interface Application {
 const db = {
   units: [] as Unit[],
   applications: new Map<string, Application>(),
-  async searchUnits(_filters: { location: string; bedrooms?: number | undefined; maxRentUsd?: number | undefined; petFriendly?: boolean | undefined; moveInBy?: string | undefined; cursor?: string | undefined }) {
+  async searchUnits(_filters: {
+    location: string;
+    bedrooms?: number | undefined;
+    maxRentUsd?: number | undefined;
+    petFriendly?: boolean | undefined;
+    moveInBy?: string | undefined;
+    cursor?: string | undefined;
+  }) {
     return { units: db.units, nextCursor: null as string | null };
   },
   async hasOpenApplication(unitId: string, applicantId: string) {
-    return [...db.applications.values()].some((a) => a.unitId === unitId && a.applicantId === applicantId);
+    return [...db.applications.values()].some(
+      (a) => a.unitId === unitId && a.applicantId === applicantId,
+    );
   },
   async createApplication(unitId: string, applicantId: string): Promise<Application> {
     const id = `APP-${8812 + db.applications.size}`;
-    const app: Application = { id, unitId, applicantId, depositUsd: 500, depositStatus: "pending", status: "draft", wireInstructions: `Wire $500 to Oakridge Rentals, routing 021000021, account 123456789, memo ${id}.` };
+    const app: Application = {
+      id,
+      unitId,
+      applicantId,
+      depositUsd: 500,
+      depositStatus: "pending",
+      status: "draft",
+      wireInstructions: `Wire $500 to Oakridge Rentals, routing 021000021, account 123456789, memo ${id}.`,
+    };
     db.applications.set(id, app);
     return app;
   },
@@ -131,7 +148,11 @@ axe.register(
         bedrooms: z.number().int().min(0).max(5).optional().describe("Exact bedroom count"),
         maxRentUsd: z.number().int().positive().optional().describe("Monthly rent ceiling in USD"),
         petFriendly: z.boolean().optional().describe("Only units that allow pets"),
-        moveInBy: z.string().date().optional().describe("Latest acceptable move-in date, YYYY-MM-DD"),
+        moveInBy: z
+          .string()
+          .date()
+          .optional()
+          .describe("Latest acceptable move-in date, YYYY-MM-DD"),
         cursor: z.string().optional().describe("Opaque cursor from a previous page"),
       })
       .strict(),
@@ -158,18 +179,29 @@ axe.register(
         badges: ["/badges"],
       },
       suggestedComparison: ["Size", "Available", "Pets"],
-      emptyMessage: "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
-      disclaimer: "Pricing and availability change frequently. Confirm on the listing page before applying.",
+      emptyMessage:
+        "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
+      disclaimer:
+        "Pricing and availability change frequently. Confirm on the listing page before applying.",
     },
     // #endregion display
     // #region affordances
     affordances: [
       { action: "tours.book", title: "Schedule a tour", input: { unitId: "/id" } },
-      { action: "applications.submit", title: "Apply for this unit", input: { unitId: "/id" }, primary: true },
+      {
+        action: "applications.submit",
+        title: "Apply for this unit",
+        input: { unitId: "/id" },
+        primary: true,
+      },
     ],
     // #endregion affordances
     // #region pagination
-    pagination: { cursorIn: "/cursor", cursorOut: "/nextCursor", pageSize: { default: 10, max: 20 } },
+    pagination: {
+      cursorIn: "/cursor",
+      cursorOut: "/nextCursor",
+      pageSize: { default: 10, max: 20 },
+    },
     freshness: { cacheTtlSeconds: 300 },
     // #endregion pagination
     examples: [
@@ -204,7 +236,14 @@ axe.register(
       const units = await Promise.all(
         page.units.map(async (u) =>
           context.onBehalfOf && (await db.hasOpenApplication(u.id, context.onBehalfOf))
-            ? { ...u, _axe: { affordances: [{ action: "tours.book", title: "Schedule a tour", input: { unitId: u.id } }] } }
+            ? {
+                ...u,
+                _axe: {
+                  affordances: [
+                    { action: "tours.book", title: "Schedule a tour", input: { unitId: u.id } },
+                  ],
+                },
+              }
             : u,
         ),
       );
@@ -232,7 +271,12 @@ axe.register(
       })
       .strict(),
     output: z.object({ tourId: z.string(), at: z.string() }),
-    examples: [{ input: { unitId: "u_204", at: "2026-10-02T17:00:00Z" }, output: { tourId: "t_u_204_a1", at: "2026-10-02T17:00:00Z" } }],
+    examples: [
+      {
+        input: { unitId: "u_204", at: "2026-10-02T17:00:00Z" },
+        output: { tourId: "t_u_204_a1", at: "2026-10-02T17:00:00Z" },
+      },
+    ],
     handler: async ({ input, context }) => db.bookTour(input.unitId, input.at, context.onBehalfOf!),
   }),
 );
@@ -251,7 +295,12 @@ axe.register(
     input: z.object({ unitId: z.string().describe("Unit id from units.search") }).strict(),
     output: z.object({ applicationId: z.string(), depositStatus: z.enum(["pending", "received"]) }),
     humanHandoff: { reasons: ["payment_required"] },
-    examples: [{ input: { unitId: "u_204" }, output: { applicationId: "APP-8812", depositStatus: "received" } }],
+    examples: [
+      {
+        input: { unitId: "u_204" },
+        output: { applicationId: "APP-8812", depositStatus: "received" },
+      },
+    ],
     // #region submit-handler
     handler: async ({ input, context, needsInput, handoff }) => {
       const app = await db.createApplication(input.unitId, context.onBehalfOf!);
@@ -259,9 +308,12 @@ axe.register(
         reason: "payment_required",
         message: `A refundable $${app.depositUsd} holding deposit is required to submit. Cards are not accepted.`,
         accepts: [
-          accept(kinds.payment.achDebit, { description: "Authorize a one-time ACH debit for the deposit." }),
+          accept(kinds.payment.achDebit, {
+            description: "Authorize a one-time ACH debit for the deposit.",
+          }),
           accept(kinds.payment.wireConfirmation, {
-            description: "Provide the wire reference number after sending to the instructions below.",
+            description:
+              "Provide the wire reference number after sending to the instructions below.",
             instructions: app.wireInstructions,
           }),
         ],

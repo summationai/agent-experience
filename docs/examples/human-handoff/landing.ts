@@ -33,13 +33,19 @@ app.post("/applications/:id/lease/signed", requireStaff, async (req, res) => {
   if (handoffId) {
     // Records completion. Returns false for an unknown or expired id, which is not an error here:
     // the human still signed; only the agent's resume link has lapsed.
-    await axe.completeHandoff(handoffId, { onBehalfOf: lease.applicantId, data: { leaseId: lease.id } });
+    await axe.completeHandoff(handoffId, {
+      onBehalfOf: lease.applicantId,
+      data: { leaseId: lease.id },
+    });
   }
   res.redirect(`/applications/${id}/lease?signed=1`);
 });
 // #endregion all
 
-function renderLeasePage(application: { id: string; unitName: string }, handoffId: string | undefined) {
+function renderLeasePage(
+  application: { id: string; unitName: string },
+  handoffId: string | undefined,
+) {
   return `<!doctype html><title>Sign your lease</title>
 <h1>Lease for ${escapeHtml(application.unitName)}</h1>
 <p>Bring photo ID to the Oakridge leasing office, 10800 NE 8th St, Bellevue, weekdays 9–5. Signing takes about 20 minutes.</p>

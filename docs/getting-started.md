@@ -39,7 +39,6 @@ export const axe = createAXE({
   secret: process.env.AXE_SECRET ?? "development-only-secret-change-me",
 });
 
-// #region schema
 const ClassSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -49,16 +48,38 @@ const ClassSchema = z.object({
   spotsLeft: z.number().int(),
   url: z.string(),
 });
-// #endregion schema
 
 // In a real integration this is your database or your existing service layer.
 const CLASSES: z.infer<typeof ClassSchema>[] = [
-  { id: "c_101", title: "Morning Vinyasa", style: "vinyasa", startsAt: "2026-10-01T14:00:00Z", instructor: "Priya N.", spotsLeft: 6, url: "http://localhost:3000/classes/c_101" },
-  { id: "c_102", title: "Candlelight Yin", style: "yin", startsAt: "2026-10-01T03:00:00Z", instructor: "Marcus L.", spotsLeft: 2, url: "http://localhost:3000/classes/c_102" },
-  { id: "c_103", title: "Hatha Basics", style: "hatha", startsAt: "2026-10-02T17:00:00Z", instructor: "Priya N.", spotsLeft: 10, url: "http://localhost:3000/classes/c_103" },
+  {
+    id: "c_101",
+    title: "Morning Vinyasa",
+    style: "vinyasa",
+    startsAt: "2026-10-01T14:00:00Z",
+    instructor: "Priya N.",
+    spotsLeft: 6,
+    url: "http://localhost:3000/classes/c_101",
+  },
+  {
+    id: "c_102",
+    title: "Candlelight Yin",
+    style: "yin",
+    startsAt: "2026-10-01T03:00:00Z",
+    instructor: "Marcus L.",
+    spotsLeft: 2,
+    url: "http://localhost:3000/classes/c_102",
+  },
+  {
+    id: "c_103",
+    title: "Hatha Basics",
+    style: "hatha",
+    startsAt: "2026-10-02T17:00:00Z",
+    instructor: "Priya N.",
+    spotsLeft: 10,
+    url: "http://localhost:3000/classes/c_103",
+  },
 ];
 
-// #region action
 axe.register(
   action("classes.search", {
     title: "Search upcoming classes",
@@ -87,17 +108,20 @@ axe.register(
         ],
       },
       suggestedComparison: ["Starts", "Spots left"],
-      disclaimer: "Availability changes quickly. Confirm on the class page before planning around it.",
+      disclaimer:
+        "Availability changes quickly. Confirm on the class page before planning around it.",
     },
     examples: [{ input: { from: "2026-10-01" }, output: { classes: CLASSES } }],
     handler: async ({ input }) => ({
       classes: CLASSES.filter(
-        (c) => c.startsAt.slice(0, 10) >= input.from && (!input.to || c.startsAt.slice(0, 10) <= input.to) && (!input.style || c.style === input.style),
+        (c) =>
+          c.startsAt.slice(0, 10) >= input.from &&
+          (!input.to || c.startsAt.slice(0, 10) <= input.to) &&
+          (!input.style || c.style === input.style),
       ),
     }),
   }),
-);
-// #endregion action```
+);```
 <!-- /include -->
 
 Three things to notice:
@@ -138,7 +162,7 @@ Run it:
 
 ```sh
 npx tsx server.ts
-```
+````
 
 ```
 Listening on http://localhost:3000
@@ -183,7 +207,7 @@ See [fetch integration](integrations/fetch.md) for each framework's exact mount.
 
 ```sh
 npx axe inspect http://localhost:3000
-```
+````
 
 ```
 Sunrise Yoga Studio  (axe/0.1)
@@ -214,7 +238,22 @@ curl -s -X POST http://localhost:3000/axe/actions/classes.search \
 ```
 
 ```json
-{"status":"ok","output":{"classes":[{"id":"c_102","title":"Candlelight Yin","style":"yin","startsAt":"2026-10-01T03:00:00Z","instructor":"Marcus L.","spotsLeft":2,"url":"http://localhost:3000/classes/c_102"}]}}
+{
+  "status": "ok",
+  "output": {
+    "classes": [
+      {
+        "id": "c_102",
+        "title": "Candlelight Yin",
+        "style": "yin",
+        "startsAt": "2026-10-01T03:00:00Z",
+        "instructor": "Marcus L.",
+        "spotsLeft": 2,
+        "url": "http://localhost:3000/classes/c_102"
+      }
+    ]
+  }
+}
 ```
 
 Every response is a result envelope with a `status`. The five statuses and when to return each are in [Concepts](concepts.md#the-result-envelope).

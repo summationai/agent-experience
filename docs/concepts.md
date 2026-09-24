@@ -13,9 +13,15 @@ The manifest is the document an agent reads first: who you are, what you can do,
   "description": "Check application status, upload transcripts and recommendation letters, and schedule campus visits for prospective students.",
   "baseUrl": "https://admissions.northgate.example",
   "humanFallbackUrl": "https://admissions.northgate.example",
-  "auth": { "modes": ["none", "user"], "userLoginUrl": "https://admissions.northgate.example/login" },
+  "auth": {
+    "modes": ["none", "user"],
+    "userLoginUrl": "https://admissions.northgate.example/login"
+  },
   "actions": [],
-  "policies": { "rateLimit": { "requestsPerMinute": 60 }, "termsUrl": "https://admissions.northgate.example/terms" },
+  "policies": {
+    "rateLimit": { "requestsPerMinute": 60 },
+    "termsUrl": "https://admissions.northgate.example/terms"
+  },
   "contact": { "email": "agents@northgate.example" }
 }
 ```
@@ -38,14 +44,29 @@ axe.register(
     readOnly: true,
     risk: "none",
     auth: "user",
-    input: z.object({ term: z.enum(["fall-2027", "spring-2027"]).optional().describe("Admission term; defaults to the most recent application") }),
+    input: z.object({
+      term: z
+        .enum(["fall-2027", "spring-2027"])
+        .optional()
+        .describe("Admission term; defaults to the most recent application"),
+    }),
     output: z.object({
       applicationId: z.string(),
       status: z.enum(["incomplete", "under-review", "decided"]),
       missingDocuments: z.array(z.string()),
       decisionDate: z.string().nullable(),
     }),
-    examples: [{ input: {}, output: { applicationId: "NU-2027-0142", status: "incomplete", missingDocuments: ["transcript"], decisionDate: null } }],
+    examples: [
+      {
+        input: {},
+        output: {
+          applicationId: "NU-2027-0142",
+          status: "incomplete",
+          missingDocuments: ["transcript"],
+          decisionDate: null,
+        },
+      },
+    ],
     handler: async ({ input, context }) => admissions.status(context.onBehalfOf!, input.term),
   }),
 );```
@@ -94,8 +115,10 @@ display: {
     badges: ["/badges"],
   },
   suggestedComparison: ["Size", "Available", "Pets"],
-  emptyMessage: "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
-  disclaimer: "Pricing and availability change frequently. Confirm on the listing page before applying.",
+  emptyMessage:
+    "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
+  disclaimer:
+    "Pricing and availability change frequently. Confirm on the listing page before applying.",
 },```
 <!-- /include -->
 
@@ -103,7 +126,12 @@ display: {
 ```ts
 affordances: [
   { action: "tours.book", title: "Schedule a tour", input: { unitId: "/id" } },
-  { action: "applications.submit", title: "Apply for this unit", input: { unitId: "/id" }, primary: true },
+  {
+    action: "applications.submit",
+    title: "Apply for this unit",
+    input: { unitId: "/id" },
+    primary: true,
+  },
 ],```
 <!-- /include -->
 
@@ -150,7 +178,7 @@ flowchart TD
   C -- no, no fallback --> ASK[Agent asks its user, then continues] --> CONT
   B -- only a human can do it --> NH[needs_human: handoff]
   NH --> H[Human acts on the site] --> RES[POST /axe/resume] --> B
-```
+````
 
 Three rungs:
 
@@ -168,9 +196,12 @@ handler: async ({ input, context, needsInput, handoff }) => {
     reason: "payment_required",
     message: `A refundable $${app.depositUsd} holding deposit is required to submit. Cards are not accepted.`,
     accepts: [
-      accept(kinds.payment.achDebit, { description: "Authorize a one-time ACH debit for the deposit." }),
+      accept(kinds.payment.achDebit, {
+        description: "Authorize a one-time ACH debit for the deposit.",
+      }),
       accept(kinds.payment.wireConfirmation, {
-        description: "Provide the wire reference number after sending to the instructions below.",
+        description:
+          "Provide the wire reference number after sending to the instructions below.",
         instructions: app.wireInstructions,
       }),
     ],
@@ -224,7 +255,7 @@ sequenceDiagram
     A->>X: POST /axe/resume {resumeToken}
     X-->>A: ok
   end
-```
+````
 
 Both tokens are signed, opaque to the agent, bound to the originating action, input, and user, single-use, and expire (continuation tokens in about 15 minutes, resume tokens in about 24 hours). The `state` you attach never crosses the wire; it is stored server-side and delivered back to `onContinue` or `onResume`. [Human handoff](human-handoff.md) covers the landing page and failure modes.
 
@@ -234,10 +265,10 @@ Every mutating action requires an `idempotencyKey` in the request envelope. Repl
 
 ## Auth modes
 
-| Mode   | Who authenticates | How                                                                                                                    |
-| ------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `none` | Nobody            | Public read-only actions.                                                                                              |
-| `site` | The agent         | `Authorization: Bearer <api-key>`; your `verifySiteKey` function says yes, no, or which actions the key may call.       |
+| Mode   | Who authenticates | How                                                                                                                                                                                                                   |
+| ------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `none` | Nobody            | Public read-only actions.                                                                                                                                                                                             |
+| `site` | The agent         | `Authorization: Bearer <api-key>`; your `verifySiteKey` function says yes, no, or which actions the key may call.                                                                                                     |
 | `user` | The end user      | Pass-through of a token the human already granted the agent (your `authenticate` function maps it to `onBehalfOf`), or a `login_required` handoff to your login page that binds the resume token to whoever signs in. |
 
 The agent's claimed `onBehalfOf` in the request body is never trusted; handlers see the identity your code established. No OAuth server is built into v0; [Auth](auth.md) shows where one plugs in.
@@ -248,12 +279,12 @@ A flow is a named, documented path through the affordance graph: `rent-a-unit` i
 
 ## Risk levels
 
-| `risk`   | Use when                                                                                             |
-| -------- | ---------------------------------------------------------------------------------------------------- |
-| `none`   | The action is read-only.                                                                             |
-| `low`    | The effect is small and trivially reversed: save a search, join a waitlist, add a note.              |
-| `medium` | The effect commits the user to something reversible at low cost: a booking with free cancellation.  |
-| `high`   | Money moves, a legal commitment is made, identity is asserted, or the effect is hard to reverse.     |
+| `risk`   | Use when                                                                                           |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| `none`   | The action is read-only.                                                                           |
+| `low`    | The effect is small and trivially reversed: save a search, join a waitlist, add a note.            |
+| `medium` | The effect commits the user to something reversible at low cost: a booking with free cancellation. |
+| `high`   | Money moves, a legal commitment is made, identity is asserted, or the effect is hard to reverse.   |
 
 Agents use `risk` to decide how much to confirm with the user. Declaring it truthfully is part of the [honesty rules](audit.md#honesty-rules).
 

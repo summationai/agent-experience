@@ -10,7 +10,7 @@
 type Wire = typeof WIRE;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:675](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L675)
+Defined in: [packages/core/src/vocabulary.ts:844](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L844)
 
 ***
 
@@ -71,10 +71,47 @@ type WireApi =
   | "runConformance"
   | "runAudit"
   | "createTestClient"
-  | "checkVocabularyDrift";
+  | "checkVocabularyDrift"
+  | "withMimeTypes"
+  | "customKind"
+  | "suggestedReason"
+  | "ttlSeconds"
+  | "requireCompletion"
+  | "appendHandoffId"
+  | "completion"
+  | "identity"
+  | "claims"
+  | "siteKey"
+  | "requireIdempotencyKey"
+  | "idempotencyTtlSeconds"
+  | "manifestCacheSeconds"
+  | "allowCredentials"
+  | "combineSinks"
+  | "parseUserAgent"
+  | "isOk"
+  | "isNeedsInput"
+  | "isNeedsHuman"
+  | "isPending"
+  | "isError"
+  | "allowed"
+  | "retries"
+  | "maxRetryAfterMs"
+  | "maxWaitMs"
+  | "toolNameFor"
+  | "formatResult"
+  | "pollBudgetMs"
+  | "isAxePath"
+  | "toWebRequest"
+  | "sendWebResponse"
+  | "invokeAction"
+  | "samplePayload"
+  | "formatConformanceTable"
+  | "formatAuditTable"
+  | "formatAuditHtml"
+  | "formatDriftReport";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:719](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L719)
+Defined in: [packages/core/src/vocabulary.ts:890](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L890)
 
 Union of every `api` name.
 
@@ -86,7 +123,7 @@ Union of every `api` name.
 type WireAuthMode = "none" | "site" | "user";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:697](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L697)
+Defined in: [packages/core/src/vocabulary.ts:866](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L866)
 
 Union of every `authMode` name.
 
@@ -105,7 +142,7 @@ type WireCli =
   | "axe mcp";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:715](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L715)
+Defined in: [packages/core/src/vocabulary.ts:884](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L884)
 
 Union of every `cli` name.
 
@@ -117,7 +154,7 @@ Union of every `cli` name.
 type WireCompare = "higher-better" | "lower-better" | "neutral";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:703](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L703)
+Defined in: [packages/core/src/vocabulary.ts:872](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L872)
 
 Union of every `compare` name.
 
@@ -129,7 +166,7 @@ Union of every `compare` name.
 type WireDisplayKind = "list" | "item" | "table" | "status" | "document";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:699](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L699)
+Defined in: [packages/core/src/vocabulary.ts:868](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L868)
 
 Union of every `displayKind` name.
 
@@ -150,7 +187,7 @@ type WireError =
   | "unsupported";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:691](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L691)
+Defined in: [packages/core/src/vocabulary.ts:860](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L860)
 
 Union of every `error` name.
 
@@ -271,6 +308,7 @@ type WireField =
   | "retryable"
   | "details"
   | "issues"
+  | "handoffStatus"
   | "expected"
   | "schemaVersion"
   | "ts"
@@ -280,7 +318,7 @@ type WireField =
   | "tenant";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:717](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L717)
+Defined in: [packages/core/src/vocabulary.ts:886](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L886)
 
 Union of every `field` name.
 
@@ -302,7 +340,7 @@ type WireFormat =
   | "list";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:701](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L701)
+Defined in: [packages/core/src/vocabulary.ts:870](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L870)
 
 Union of every `format` name.
 
@@ -321,7 +359,7 @@ type WireHeader =
   | "Content-Type";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:681](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L681)
+Defined in: [packages/core/src/vocabulary.ts:850](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L850)
 
 Union of every `header` name.
 
@@ -347,7 +385,7 @@ type WireKind =
   | "x-";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:709](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L709)
+Defined in: [packages/core/src/vocabulary.ts:878](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L878)
 
 Union of every `kind` name.
 
@@ -366,7 +404,7 @@ type WireLadder =
   | "error";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:693](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L693)
+Defined in: [packages/core/src/vocabulary.ts:862](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L862)
 
 Union of every `ladder` name.
 
@@ -378,7 +416,7 @@ Union of every `ladder` name.
 type WireLink = "axe-manifest";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:683](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L683)
+Defined in: [packages/core/src/vocabulary.ts:852](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L852)
 
 Union of every `link` name.
 
@@ -397,9 +435,65 @@ type WirePath =
   | "/axe/poll";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:679](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L679)
+Defined in: [packages/core/src/vocabulary.ts:848](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L848)
 
 Union of every `path` name.
+
+***
+
+### WirePayload
+
+```ts
+type WirePayload = 
+  | "token"
+  | "provider"
+  | "brand"
+  | "last4"
+  | "expMonth"
+  | "expYear"
+  | "billingPostalCode"
+  | "accountHolderName"
+  | "routingNumber"
+  | "accountNumber"
+  | "accountType"
+  | "authorizedAt"
+  | "authorizationText"
+  | "referenceNumber"
+  | "sentAt"
+  | "bankName"
+  | "companyName"
+  | "billingEmail"
+  | "purchaseOrderNumber"
+  | "netTermsDays"
+  | "taxId"
+  | "documentType"
+  | "documentNumber"
+  | "issuingCountry"
+  | "fullName"
+  | "dateOfBirth"
+  | "expiresOn"
+  | "mimeType"
+  | "filename"
+  | "sizeBytes"
+  | "contentBase64"
+  | "phone"
+  | "canReceiveSms"
+  | "line1"
+  | "line2"
+  | "city"
+  | "region"
+  | "postalCode"
+  | "country"
+  | "policyUrl"
+  | "policyVersion"
+  | "scope"
+  | "acceptedAt"
+  | "acceptedBy";
+```
+
+Defined in: [packages/core/src/vocabulary.ts:888](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L888)
+
+Union of every `payload` name.
 
 ***
 
@@ -409,7 +503,7 @@ Union of every `path` name.
 type WirePeriod = "once" | "hour" | "day" | "month" | "year";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:705](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L705)
+Defined in: [packages/core/src/vocabulary.ts:874](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L874)
 
 Union of every `period` name.
 
@@ -421,7 +515,7 @@ Union of every `period` name.
 type WireProtocol = "axe/0.1";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:677](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L677)
+Defined in: [packages/core/src/vocabulary.ts:846](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L846)
 
 Union of every `protocol` name.
 
@@ -433,7 +527,7 @@ Union of every `protocol` name.
 type WireQuery = "axe_handoff";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:687](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L687)
+Defined in: [packages/core/src/vocabulary.ts:856](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L856)
 
 Union of every `query` name.
 
@@ -450,7 +544,7 @@ type WireReason =
   | "document_required";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:711](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L711)
+Defined in: [packages/core/src/vocabulary.ts:880](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L880)
 
 Union of every `reason` name.
 
@@ -462,7 +556,7 @@ Union of every `reason` name.
 type WireRisk = "none" | "low" | "medium" | "high";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:695](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L695)
+Defined in: [packages/core/src/vocabulary.ts:864](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L864)
 
 Union of every `risk` name.
 
@@ -474,7 +568,7 @@ Union of every `risk` name.
 type WireRobots = "AXE-Manifest" | "AXE-Index";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:685](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L685)
+Defined in: [packages/core/src/vocabulary.ts:854](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L854)
 
 Union of every `robots` name.
 
@@ -486,7 +580,7 @@ Union of every `robots` name.
 type WireStatus = "ok" | "needs_input" | "needs_human" | "pending" | "error";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:689](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L689)
+Defined in: [packages/core/src/vocabulary.ts:858](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L858)
 
 Union of every `status` name.
 
@@ -498,7 +592,7 @@ Union of every `status` name.
 type WireTone = "formal" | "neutral" | "casual";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:707](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L707)
+Defined in: [packages/core/src/vocabulary.ts:876](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L876)
 
 Union of every `tone` name.
 
@@ -510,7 +604,7 @@ Union of every `tone` name.
 type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll";
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:713](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L713)
+Defined in: [packages/core/src/vocabulary.ts:882](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L882)
 
 Union of every `tool` name.
 
@@ -522,13 +616,19 @@ Union of every `tool` name.
 const api: Readonly<{
   accept: "accept";
   action: "action";
+  allowCredentials: "allowCredentials";
+  allowed: "allowed";
+  appendHandoffId: "appendHandoffId";
   authenticate: "authenticate";
   axeExpress: "axeExpress";
   axeFetch: "axeFetch";
   axeNext: "axeNext";
   axeNextPages: "axeNextPages";
   checkVocabularyDrift: "checkVocabularyDrift";
+  claims: "claims";
+  combineSinks: "combineSinks";
   completeHandoff: "completeHandoff";
+  completion: "completion";
   confirm: "confirm";
   consoleSink: "consoleSink";
   continue: "continue";
@@ -536,19 +636,37 @@ const api: Readonly<{
   createAXE: "createAXE";
   createMcpServer: "createMcpServer";
   createTestClient: "createTestClient";
+  customKind: "customKind";
   describe: "describe";
   discover: "discover";
   fetchHandler: "fetchHandler";
+  formatAuditHtml: "formatAuditHtml";
+  formatAuditTable: "formatAuditTable";
+  formatConformanceTable: "formatConformanceTable";
+  formatDriftReport: "formatDriftReport";
+  formatResult: "formatResult";
   fulfillers: "fulfillers";
   handler: "handler";
   idempotencyStore: "idempotencyStore";
+  idempotencyTtlSeconds: "idempotencyTtlSeconds";
+  identity: "identity";
   index: "index";
   invoke: "invoke";
+  invokeAction: "invokeAction";
+  isAxePath: "isAxePath";
+  isError: "isError";
+  isNeedsHuman: "isNeedsHuman";
+  isNeedsInput: "isNeedsInput";
+  isOk: "isOk";
+  isPending: "isPending";
   jsonlFileSink: "jsonlFileSink";
   kinds: "kinds";
   lintAgentText: "lintAgentText";
   lintManifest: "lintManifest";
   manifest: "manifest";
+  manifestCacheSeconds: "manifestCacheSeconds";
+  maxRetryAfterMs: "maxRetryAfterMs";
+  maxWaitMs: "maxWaitMs";
   needsInput: "needsInput";
   onContinue: "onContinue";
   onError: "onError";
@@ -558,26 +676,39 @@ const api: Readonly<{
   onResult: "onResult";
   onResume: "onResume";
   otelSink: "otelSink";
+  parseUserAgent: "parseUserAgent";
   poll: "poll";
+  pollBudgetMs: "pollBudgetMs";
   present: "present";
   register: "register";
+  requireCompletion: "requireCompletion";
+  requireIdempotencyKey: "requireIdempotencyKey";
   resolveDisplay: "resolveDisplay";
   resume: "resume";
+  retries: "retries";
   run: "run";
   runAudit: "runAudit";
   runConformance: "runConformance";
+  samplePayload: "samplePayload";
   secret: "secret";
+  sendWebResponse: "sendWebResponse";
   serveHttp: "serveHttp";
   serveStdio: "serveStdio";
+  siteKey: "siteKey";
   state: "state";
+  suggestedReason: "suggestedReason";
   toHTML: "toHTML";
   tokenStore: "tokenStore";
   toMarkdown: "toMarkdown";
+  toolNameFor: "toolNameFor";
+  toWebRequest: "toWebRequest";
+  ttlSeconds: "ttlSeconds";
   verifySiteKey: "verifySiteKey";
+  withMimeTypes: "withMimeTypes";
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:534](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L534)
+Defined in: [packages/core/src/vocabulary.ts:628](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L628)
 
 `api` names.
 
@@ -593,7 +724,7 @@ const authMode: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:136](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L136)
+Defined in: [packages/core/src/vocabulary.ts:136](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L136)
 
 `authMode` names.
 
@@ -613,7 +744,7 @@ const cli: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:276](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L276)
+Defined in: [packages/core/src/vocabulary.ts:276](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L276)
 
 `cli` names.
 
@@ -629,7 +760,7 @@ const compare: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:184](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L184)
+Defined in: [packages/core/src/vocabulary.ts:184](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L184)
 
 `compare` names.
 
@@ -647,7 +778,7 @@ const displayKind: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:146](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L146)
+Defined in: [packages/core/src/vocabulary.ts:146](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L146)
 
 `displayKind` names.
 
@@ -669,7 +800,7 @@ const error: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:84](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L84)
+Defined in: [packages/core/src/vocabulary.ts:84](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L84)
 
 `error` names.
 
@@ -724,6 +855,7 @@ const field: Readonly<{
   format: "format";
   freshness: "freshness";
   handoff: "handoff";
+  handoffStatus: "handoffStatus";
   humanFallbackUrl: "humanFallbackUrl";
   humanHandoff: "humanHandoff";
   id: "id";
@@ -800,7 +932,7 @@ const field: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:294](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L294)
+Defined in: [packages/core/src/vocabulary.ts:294](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L294)
 
 `field` names.
 
@@ -823,7 +955,7 @@ const format: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:160](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L160)
+Defined in: [packages/core/src/vocabulary.ts:160](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L160)
 
 `format` names.
 
@@ -843,7 +975,7 @@ const header: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:32](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L32)
+Defined in: [packages/core/src/vocabulary.ts:32](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L32)
 
 `header` names.
 
@@ -870,7 +1002,7 @@ const kind: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:218](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L218)
+Defined in: [packages/core/src/vocabulary.ts:218](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L218)
 
 `kind` names.
 
@@ -890,7 +1022,7 @@ const ladder: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:106](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L106)
+Defined in: [packages/core/src/vocabulary.ts:106](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L106)
 
 `ladder` names.
 
@@ -904,7 +1036,7 @@ const link: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:50](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L50)
+Defined in: [packages/core/src/vocabulary.ts:50](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L50)
 
 `link` names.
 
@@ -924,9 +1056,66 @@ const path: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:14](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L14)
+Defined in: [packages/core/src/vocabulary.ts:14](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L14)
 
 `path` names.
+
+***
+
+### payload
+
+```ts
+const payload: Readonly<{
+  acceptedAt: "acceptedAt";
+  acceptedBy: "acceptedBy";
+  accountHolderName: "accountHolderName";
+  accountNumber: "accountNumber";
+  accountType: "accountType";
+  authorizationText: "authorizationText";
+  authorizedAt: "authorizedAt";
+  bankName: "bankName";
+  billingEmail: "billingEmail";
+  billingPostalCode: "billingPostalCode";
+  brand: "brand";
+  canReceiveSms: "canReceiveSms";
+  city: "city";
+  companyName: "companyName";
+  contentBase64: "contentBase64";
+  country: "country";
+  dateOfBirth: "dateOfBirth";
+  documentNumber: "documentNumber";
+  documentType: "documentType";
+  expiresOn: "expiresOn";
+  expMonth: "expMonth";
+  expYear: "expYear";
+  filename: "filename";
+  fullName: "fullName";
+  issuingCountry: "issuingCountry";
+  last4: "last4";
+  line1: "line1";
+  line2: "line2";
+  mimeType: "mimeType";
+  netTermsDays: "netTermsDays";
+  phone: "phone";
+  policyUrl: "policyUrl";
+  policyVersion: "policyVersion";
+  postalCode: "postalCode";
+  provider: "provider";
+  purchaseOrderNumber: "purchaseOrderNumber";
+  referenceNumber: "referenceNumber";
+  region: "region";
+  routingNumber: "routingNumber";
+  scope: "scope";
+  sentAt: "sentAt";
+  sizeBytes: "sizeBytes";
+  taxId: "taxId";
+  token: "token";
+}>;
+```
+
+Defined in: [packages/core/src/vocabulary.ts:536](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L536)
+
+`payload` names.
 
 ***
 
@@ -942,7 +1131,7 @@ const period: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:194](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L194)
+Defined in: [packages/core/src/vocabulary.ts:194](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L194)
 
 `period` names.
 
@@ -956,7 +1145,7 @@ const protocol: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:8](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L8)
+Defined in: [packages/core/src/vocabulary.ts:8](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L8)
 
 `protocol` names.
 
@@ -970,7 +1159,7 @@ const query: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:64](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L64)
+Defined in: [packages/core/src/vocabulary.ts:64](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L64)
 
 `query` names.
 
@@ -988,7 +1177,7 @@ const reason: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:250](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L250)
+Defined in: [packages/core/src/vocabulary.ts:250](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L250)
 
 `reason` names.
 
@@ -1005,7 +1194,7 @@ const risk: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:124](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L124)
+Defined in: [packages/core/src/vocabulary.ts:124](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L124)
 
 `risk` names.
 
@@ -1020,7 +1209,7 @@ const robots: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:56](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L56)
+Defined in: [packages/core/src/vocabulary.ts:56](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L56)
 
 `robots` names.
 
@@ -1038,7 +1227,7 @@ const status: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:70](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L70)
+Defined in: [packages/core/src/vocabulary.ts:70](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L70)
 
 `status` names.
 
@@ -1054,7 +1243,7 @@ const tone: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:208](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L208)
+Defined in: [packages/core/src/vocabulary.ts:208](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L208)
 
 `tone` names.
 
@@ -1071,7 +1260,7 @@ const tool: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:264](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L264)
+Defined in: [packages/core/src/vocabulary.ts:264](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L264)
 
 `tool` names.
 
@@ -1084,13 +1273,19 @@ const WIRE: Readonly<{
   api: Readonly<{
      accept: "accept";
      action: "action";
+     allowCredentials: "allowCredentials";
+     allowed: "allowed";
+     appendHandoffId: "appendHandoffId";
      authenticate: "authenticate";
      axeExpress: "axeExpress";
      axeFetch: "axeFetch";
      axeNext: "axeNext";
      axeNextPages: "axeNextPages";
      checkVocabularyDrift: "checkVocabularyDrift";
+     claims: "claims";
+     combineSinks: "combineSinks";
      completeHandoff: "completeHandoff";
+     completion: "completion";
      confirm: "confirm";
      consoleSink: "consoleSink";
      continue: "continue";
@@ -1098,19 +1293,37 @@ const WIRE: Readonly<{
      createAXE: "createAXE";
      createMcpServer: "createMcpServer";
      createTestClient: "createTestClient";
+     customKind: "customKind";
      describe: "describe";
      discover: "discover";
      fetchHandler: "fetchHandler";
+     formatAuditHtml: "formatAuditHtml";
+     formatAuditTable: "formatAuditTable";
+     formatConformanceTable: "formatConformanceTable";
+     formatDriftReport: "formatDriftReport";
+     formatResult: "formatResult";
      fulfillers: "fulfillers";
      handler: "handler";
      idempotencyStore: "idempotencyStore";
+     idempotencyTtlSeconds: "idempotencyTtlSeconds";
+     identity: "identity";
      index: "index";
      invoke: "invoke";
+     invokeAction: "invokeAction";
+     isAxePath: "isAxePath";
+     isError: "isError";
+     isNeedsHuman: "isNeedsHuman";
+     isNeedsInput: "isNeedsInput";
+     isOk: "isOk";
+     isPending: "isPending";
      jsonlFileSink: "jsonlFileSink";
      kinds: "kinds";
      lintAgentText: "lintAgentText";
      lintManifest: "lintManifest";
      manifest: "manifest";
+     manifestCacheSeconds: "manifestCacheSeconds";
+     maxRetryAfterMs: "maxRetryAfterMs";
+     maxWaitMs: "maxWaitMs";
      needsInput: "needsInput";
      onContinue: "onContinue";
      onError: "onError";
@@ -1120,22 +1333,35 @@ const WIRE: Readonly<{
      onResult: "onResult";
      onResume: "onResume";
      otelSink: "otelSink";
+     parseUserAgent: "parseUserAgent";
      poll: "poll";
+     pollBudgetMs: "pollBudgetMs";
      present: "present";
      register: "register";
+     requireCompletion: "requireCompletion";
+     requireIdempotencyKey: "requireIdempotencyKey";
      resolveDisplay: "resolveDisplay";
      resume: "resume";
+     retries: "retries";
      run: "run";
      runAudit: "runAudit";
      runConformance: "runConformance";
+     samplePayload: "samplePayload";
      secret: "secret";
+     sendWebResponse: "sendWebResponse";
      serveHttp: "serveHttp";
      serveStdio: "serveStdio";
+     siteKey: "siteKey";
      state: "state";
+     suggestedReason: "suggestedReason";
      toHTML: "toHTML";
      tokenStore: "tokenStore";
      toMarkdown: "toMarkdown";
+     toolNameFor: "toolNameFor";
+     toWebRequest: "toWebRequest";
+     ttlSeconds: "ttlSeconds";
      verifySiteKey: "verifySiteKey";
+     withMimeTypes: "withMimeTypes";
   }>;
   authMode: Readonly<{
      none: "none";
@@ -1220,6 +1446,7 @@ const WIRE: Readonly<{
      format: "format";
      freshness: "freshness";
      handoff: "handoff";
+     handoffStatus: "handoffStatus";
      humanFallbackUrl: "humanFallbackUrl";
      humanHandoff: "humanHandoff";
      id: "id";
@@ -1352,6 +1579,52 @@ const WIRE: Readonly<{
      poll: "/axe/poll";
      resume: "/axe/resume";
   }>;
+  payload: Readonly<{
+     acceptedAt: "acceptedAt";
+     acceptedBy: "acceptedBy";
+     accountHolderName: "accountHolderName";
+     accountNumber: "accountNumber";
+     accountType: "accountType";
+     authorizationText: "authorizationText";
+     authorizedAt: "authorizedAt";
+     bankName: "bankName";
+     billingEmail: "billingEmail";
+     billingPostalCode: "billingPostalCode";
+     brand: "brand";
+     canReceiveSms: "canReceiveSms";
+     city: "city";
+     companyName: "companyName";
+     contentBase64: "contentBase64";
+     country: "country";
+     dateOfBirth: "dateOfBirth";
+     documentNumber: "documentNumber";
+     documentType: "documentType";
+     expiresOn: "expiresOn";
+     expMonth: "expMonth";
+     expYear: "expYear";
+     filename: "filename";
+     fullName: "fullName";
+     issuingCountry: "issuingCountry";
+     last4: "last4";
+     line1: "line1";
+     line2: "line2";
+     mimeType: "mimeType";
+     netTermsDays: "netTermsDays";
+     phone: "phone";
+     policyUrl: "policyUrl";
+     policyVersion: "policyVersion";
+     postalCode: "postalCode";
+     provider: "provider";
+     purchaseOrderNumber: "purchaseOrderNumber";
+     referenceNumber: "referenceNumber";
+     region: "region";
+     routingNumber: "routingNumber";
+     scope: "scope";
+     sentAt: "sentAt";
+     sizeBytes: "sizeBytes";
+     taxId: "taxId";
+     token: "token";
+  }>;
   period: Readonly<{
      day: "day";
      hour: "hour";
@@ -1403,7 +1676,7 @@ const WIRE: Readonly<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:650](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L650)
+Defined in: [packages/core/src/vocabulary.ts:818](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L818)
 
 Every wire-level name in the AXE protocol, grouped by category.
 Use these constants instead of string literals for paths, headers, statuses,
@@ -1421,6 +1694,6 @@ const WIRE_ENTRIES: ReadonlyArray<{
 }>;
 ```
 
-Defined in: [packages/core/src/vocabulary.ts:722](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/vocabulary.ts#L722)
+Defined in: [packages/core/src/vocabulary.ts:893](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/vocabulary.ts#L893)
 
 All entries as a flat list, for tooling.

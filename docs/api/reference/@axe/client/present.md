@@ -6,7 +6,7 @@
 
 ### HtmlOptions
 
-Defined in: [packages/client/src/present.ts:198](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L198)
+Defined in: [packages/client/src/present.ts:198](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L198)
 
 #### Properties
 
@@ -16,7 +16,7 @@ Defined in: [packages/client/src/present.ts:198](https://github.com/summationai/
 optional heading?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:205](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L205)
+Defined in: [packages/client/src/present.ts:205](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L205)
 
 Text of the heading above the results.
 
@@ -26,7 +26,7 @@ Text of the heading above the results.
 optional layout?: "table" | "cards";
 ```
 
-Defined in: [packages/client/src/present.ts:203](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L203)
+Defined in: [packages/client/src/present.ts:203](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L203)
 
 `cards` (default for list) or `table`.
 
@@ -36,7 +36,7 @@ Defined in: [packages/client/src/present.ts:203](https://github.com/summationai/
 optional locale?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:199](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L199)
+Defined in: [packages/client/src/present.ts:199](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L199)
 
 ##### title?
 
@@ -44,7 +44,7 @@ Defined in: [packages/client/src/present.ts:199](https://github.com/summationai/
 optional title?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:201](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L201)
+Defined in: [packages/client/src/present.ts:201](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L201)
 
 Page title. Defaults to the brand name or the action name.
 
@@ -52,7 +52,7 @@ Page title. Defaults to the brand name or the action name.
 
 ### MarkdownOptions
 
-Defined in: [packages/client/src/present.ts:110](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L110)
+Defined in: [packages/client/src/present.ts:110](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L110)
 
 #### Properties
 
@@ -62,7 +62,7 @@ Defined in: [packages/client/src/present.ts:110](https://github.com/summationai/
 optional affordances?: boolean;
 ```
 
-Defined in: [packages/client/src/present.ts:113](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L113)
+Defined in: [packages/client/src/present.ts:113](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L113)
 
 Include the affordances list under the table. Default true.
 
@@ -72,7 +72,7 @@ Include the affordances list under the table. Default true.
 optional locale?: string;
 ```
 
-Defined in: [packages/client/src/present.ts:111](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L111)
+Defined in: [packages/client/src/present.ts:111](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L111)
 
 ##### maxColumns?
 
@@ -80,7 +80,7 @@ Defined in: [packages/client/src/present.ts:111](https://github.com/summationai/
 optional maxColumns?: number;
 ```
 
-Defined in: [packages/client/src/present.ts:115](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L115)
+Defined in: [packages/client/src/present.ts:115](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L115)
 
 Cap the number of attribute columns. Default 6.
 
@@ -346,7 +346,7 @@ Defined in: packages/core/dist/display.d.ts:38
 function escapeHtml(s): string;
 ```
 
-Defined in: [packages/client/src/present.ts:208](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L208)
+Defined in: [packages/client/src/present.ts:208](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L208)
 
 #### Parameters
 
@@ -366,7 +366,7 @@ Defined in: [packages/client/src/present.ts:208](https://github.com/summationai/
 function formatPrice(price, locale?): string;
 ```
 
-Defined in: [packages/client/src/present.ts:91](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L91)
+Defined in: [packages/client/src/present.ts:91](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L91)
 
 #### Parameters
 
@@ -390,7 +390,7 @@ Defined in: [packages/client/src/present.ts:91](https://github.com/summationai/c
 function formatValue(attr, locale?): string;
 ```
 
-Defined in: [packages/client/src/present.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L37)
+Defined in: [packages/client/src/present.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L37)
 
 Format an attribute for humans. Locale-aware where it can be, plain otherwise.
 
@@ -420,7 +420,7 @@ function present(
 ): PresentedResult;
 ```
 
-Defined in: [packages/client/src/present.ts:19](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L19)
+Defined in: [packages/client/src/present.ts:19](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L19)
 
 Apply an action's `display` to an `ok` result. Throws when the result is not `ok`.
 
@@ -450,7 +450,7 @@ Apply an action's `display` to an `ok` result. Throws when the result is not `ok
 function toHTML(presented, options?): string;
 ```
 
-Defined in: [packages/client/src/present.ts:266](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L266)
+Defined in: [packages/client/src/present.ts:266](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L266)
 
 A self-contained, dependency-free comparison page. Cards or a table, responsive,
 brand-aware, with the disclaimer, a link per item, and affordance buttons that dispatch
@@ -478,7 +478,7 @@ brand-aware, with the disclaimer, a link per item, and affordance buttons that d
 function toMarkdown(presented, options?): string;
 ```
 
-Defined in: [packages/client/src/present.ts:123](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/client/src/present.ts#L123)
+Defined in: [packages/client/src/present.ts:123](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/client/src/present.ts#L123)
 
 A comparison table for chat surfaces, with links, badges, the disclaimer, and each item's affordances.
 

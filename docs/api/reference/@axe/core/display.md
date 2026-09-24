@@ -6,7 +6,7 @@
 
 ### DisplayValidationError
 
-Defined in: [packages/core/src/display.ts:37](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L37)
+Defined in: [packages/core/src/display.ts:37](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L37)
 
 Thrown when display, affordance, pagination, or freshness declarations do not fit the schemas.
 
@@ -26,7 +26,7 @@ new DisplayValidationError(
 ): DisplayValidationError;
 ```
 
-Defined in: [packages/core/src/display.ts:38](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L38)
+Defined in: [packages/core/src/display.ts:38](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L38)
 
 ###### Parameters
 
@@ -60,7 +60,7 @@ Error.constructor
 readonly action: string;
 ```
 
-Defined in: [packages/core/src/display.ts:39](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L39)
+Defined in: [packages/core/src/display.ts:39](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L39)
 
 ##### cause?
 
@@ -82,7 +82,7 @@ Error.cause
 readonly location: string;
 ```
 
-Defined in: [packages/core/src/display.ts:40](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L40)
+Defined in: [packages/core/src/display.ts:40](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L40)
 
 ##### message
 
@@ -260,7 +260,7 @@ Error.prepareStackTrace
 
 ### PresentedAttribute
 
-Defined in: [packages/core/src/display.ts:339](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L339)
+Defined in: [packages/core/src/display.ts:339](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L339)
 
 #### Properties
 
@@ -270,7 +270,7 @@ Defined in: [packages/core/src/display.ts:339](https://github.com/summationai/co
 optional compare?: WireCompare;
 ```
 
-Defined in: [packages/core/src/display.ts:343](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L343)
+Defined in: [packages/core/src/display.ts:343](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L343)
 
 ##### format
 
@@ -278,7 +278,7 @@ Defined in: [packages/core/src/display.ts:343](https://github.com/summationai/co
 format: WireFormat;
 ```
 
-Defined in: [packages/core/src/display.ts:342](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L342)
+Defined in: [packages/core/src/display.ts:342](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L342)
 
 ##### label
 
@@ -286,7 +286,7 @@ Defined in: [packages/core/src/display.ts:342](https://github.com/summationai/co
 label: string;
 ```
 
-Defined in: [packages/core/src/display.ts:340](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L340)
+Defined in: [packages/core/src/display.ts:340](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L340)
 
 ##### value
 
@@ -294,13 +294,13 @@ Defined in: [packages/core/src/display.ts:340](https://github.com/summationai/co
 value: unknown;
 ```
 
-Defined in: [packages/core/src/display.ts:341](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L341)
+Defined in: [packages/core/src/display.ts:341](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L341)
 
 ***
 
 ### PresentedItem
 
-Defined in: [packages/core/src/display.ts:352](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L352)
+Defined in: [packages/core/src/display.ts:352](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L352)
 
 #### Properties
 
@@ -310,7 +310,7 @@ Defined in: [packages/core/src/display.ts:352](https://github.com/summationai/co
 affordances: ResolvedAffordance[];
 ```
 
-Defined in: [packages/core/src/display.ts:362](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L362)
+Defined in: [packages/core/src/display.ts:362](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L362)
 
 ##### attributes
 
@@ -318,7 +318,7 @@ Defined in: [packages/core/src/display.ts:362](https://github.com/summationai/co
 attributes: PresentedAttribute[];
 ```
 
-Defined in: [packages/core/src/display.ts:360](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L360)
+Defined in: [packages/core/src/display.ts:360](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L360)
 
 ##### badges
 
@@ -326,7 +326,7 @@ Defined in: [packages/core/src/display.ts:360](https://github.com/summationai/co
 badges: string[];
 ```
 
-Defined in: [packages/core/src/display.ts:361](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L361)
+Defined in: [packages/core/src/display.ts:361](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L361)
 
 ##### id
 
@@ -334,7 +334,7 @@ Defined in: [packages/core/src/display.ts:361](https://github.com/summationai/co
 id: string;
 ```
 
-Defined in: [packages/core/src/display.ts:353](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L353)
+Defined in: [packages/core/src/display.ts:353](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L353)
 
 ##### images
 
@@ -342,7 +342,7 @@ Defined in: [packages/core/src/display.ts:353](https://github.com/summationai/co
 images: string[];
 ```
 
-Defined in: [packages/core/src/display.ts:357](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L357)
+Defined in: [packages/core/src/display.ts:357](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L357)
 
 ##### price?
 
@@ -350,7 +350,7 @@ Defined in: [packages/core/src/display.ts:357](https://github.com/summationai/co
 optional price?: PresentedPrice;
 ```
 
-Defined in: [packages/core/src/display.ts:359](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L359)
+Defined in: [packages/core/src/display.ts:359](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L359)
 
 ##### raw
 
@@ -358,7 +358,7 @@ Defined in: [packages/core/src/display.ts:359](https://github.com/summationai/co
 raw: unknown;
 ```
 
-Defined in: [packages/core/src/display.ts:364](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L364)
+Defined in: [packages/core/src/display.ts:364](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L364)
 
 The raw item with `_axe` removed.
 
@@ -368,7 +368,7 @@ The raw item with `_axe` removed.
 optional subtitle?: string;
 ```
 
-Defined in: [packages/core/src/display.ts:355](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L355)
+Defined in: [packages/core/src/display.ts:355](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L355)
 
 ##### summary?
 
@@ -376,7 +376,7 @@ Defined in: [packages/core/src/display.ts:355](https://github.com/summationai/co
 optional summary?: string;
 ```
 
-Defined in: [packages/core/src/display.ts:356](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L356)
+Defined in: [packages/core/src/display.ts:356](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L356)
 
 ##### title
 
@@ -384,7 +384,7 @@ Defined in: [packages/core/src/display.ts:356](https://github.com/summationai/co
 title: string;
 ```
 
-Defined in: [packages/core/src/display.ts:354](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L354)
+Defined in: [packages/core/src/display.ts:354](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L354)
 
 ##### url?
 
@@ -392,13 +392,13 @@ Defined in: [packages/core/src/display.ts:354](https://github.com/summationai/co
 optional url?: string;
 ```
 
-Defined in: [packages/core/src/display.ts:358](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L358)
+Defined in: [packages/core/src/display.ts:358](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L358)
 
 ***
 
 ### PresentedPrice
 
-Defined in: [packages/core/src/display.ts:346](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L346)
+Defined in: [packages/core/src/display.ts:346](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L346)
 
 #### Properties
 
@@ -408,7 +408,7 @@ Defined in: [packages/core/src/display.ts:346](https://github.com/summationai/co
 amount: number;
 ```
 
-Defined in: [packages/core/src/display.ts:347](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L347)
+Defined in: [packages/core/src/display.ts:347](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L347)
 
 ##### currency
 
@@ -416,7 +416,7 @@ Defined in: [packages/core/src/display.ts:347](https://github.com/summationai/co
 currency: string;
 ```
 
-Defined in: [packages/core/src/display.ts:348](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L348)
+Defined in: [packages/core/src/display.ts:348](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L348)
 
 ##### period?
 
@@ -424,13 +424,13 @@ Defined in: [packages/core/src/display.ts:348](https://github.com/summationai/co
 optional period?: WirePeriod;
 ```
 
-Defined in: [packages/core/src/display.ts:349](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L349)
+Defined in: [packages/core/src/display.ts:349](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L349)
 
 ***
 
 ### PresentedResult
 
-Defined in: [packages/core/src/display.ts:368](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L368)
+Defined in: [packages/core/src/display.ts:368](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L368)
 
 The normalized, renderer-ready form of an `ok` result.
 
@@ -442,7 +442,7 @@ The normalized, renderer-ready form of an `ok` result.
 action: string;
 ```
 
-Defined in: [packages/core/src/display.ts:369](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L369)
+Defined in: [packages/core/src/display.ts:369](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L369)
 
 ##### brand?
 
@@ -450,7 +450,7 @@ Defined in: [packages/core/src/display.ts:369](https://github.com/summationai/co
 optional brand?: Brand;
 ```
 
-Defined in: [packages/core/src/display.ts:375](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L375)
+Defined in: [packages/core/src/display.ts:375](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L375)
 
 ##### disclaimer?
 
@@ -458,7 +458,7 @@ Defined in: [packages/core/src/display.ts:375](https://github.com/summationai/co
 optional disclaimer?: string;
 ```
 
-Defined in: [packages/core/src/display.ts:374](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L374)
+Defined in: [packages/core/src/display.ts:374](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L374)
 
 ##### emptyMessage?
 
@@ -466,7 +466,7 @@ Defined in: [packages/core/src/display.ts:374](https://github.com/summationai/co
 optional emptyMessage?: string;
 ```
 
-Defined in: [packages/core/src/display.ts:373](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L373)
+Defined in: [packages/core/src/display.ts:373](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L373)
 
 ##### items
 
@@ -474,7 +474,7 @@ Defined in: [packages/core/src/display.ts:373](https://github.com/summationai/co
 items: PresentedItem[];
 ```
 
-Defined in: [packages/core/src/display.ts:371](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L371)
+Defined in: [packages/core/src/display.ts:371](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L371)
 
 ##### kind
 
@@ -482,7 +482,7 @@ Defined in: [packages/core/src/display.ts:371](https://github.com/summationai/co
 kind: WireDisplayKind | "generic";
 ```
 
-Defined in: [packages/core/src/display.ts:370](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L370)
+Defined in: [packages/core/src/display.ts:370](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L370)
 
 ##### output
 
@@ -490,7 +490,7 @@ Defined in: [packages/core/src/display.ts:370](https://github.com/summationai/co
 output: unknown;
 ```
 
-Defined in: [packages/core/src/display.ts:377](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L377)
+Defined in: [packages/core/src/display.ts:377](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L377)
 
 The output with every `_axe` key removed.
 
@@ -500,13 +500,13 @@ The output with every `_axe` key removed.
 suggestedComparison: string[];
 ```
 
-Defined in: [packages/core/src/display.ts:372](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L372)
+Defined in: [packages/core/src/display.ts:372](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L372)
 
 ***
 
 ### ResolvedAffordance
 
-Defined in: [packages/core/src/display.ts:332](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L332)
+Defined in: [packages/core/src/display.ts:332](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L332)
 
 #### Properties
 
@@ -516,7 +516,7 @@ Defined in: [packages/core/src/display.ts:332](https://github.com/summationai/co
 action: string;
 ```
 
-Defined in: [packages/core/src/display.ts:333](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L333)
+Defined in: [packages/core/src/display.ts:333](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L333)
 
 ##### input
 
@@ -524,7 +524,7 @@ Defined in: [packages/core/src/display.ts:333](https://github.com/summationai/co
 input: Record<string, unknown>;
 ```
 
-Defined in: [packages/core/src/display.ts:335](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L335)
+Defined in: [packages/core/src/display.ts:335](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L335)
 
 ##### primary
 
@@ -532,7 +532,7 @@ Defined in: [packages/core/src/display.ts:335](https://github.com/summationai/co
 primary: boolean;
 ```
 
-Defined in: [packages/core/src/display.ts:336](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L336)
+Defined in: [packages/core/src/display.ts:336](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L336)
 
 ##### title
 
@@ -540,7 +540,7 @@ Defined in: [packages/core/src/display.ts:336](https://github.com/summationai/co
 title: string;
 ```
 
-Defined in: [packages/core/src/display.ts:334](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L334)
+Defined in: [packages/core/src/display.ts:334](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L334)
 
 ## Variables
 
@@ -550,7 +550,7 @@ Defined in: [packages/core/src/display.ts:334](https://github.com/summationai/co
 const MAX_AFFORDANCES: 6 = 6;
 ```
 
-Defined in: [packages/core/src/display.ts:29](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L29)
+Defined in: [packages/core/src/display.ts:29](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L29)
 
 ## Functions
 
@@ -564,7 +564,7 @@ function resolveDisplay(
 ): PresentedResult;
 ```
 
-Defined in: [packages/core/src/display.ts:559](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L559)
+Defined in: [packages/core/src/display.ts:559](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L559)
 
 Apply an action's `display` and `affordances` to an output. Dynamic `_axe.affordances`
 on an item replace the static list for that item. Works for any action: one without
@@ -596,7 +596,7 @@ on an item replace the static list for that item. Works for any action: one with
 function schemaMentionsReserved(schema): boolean;
 ```
 
-Defined in: [packages/core/src/display.ts:308](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L308)
+Defined in: [packages/core/src/display.ts:308](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L308)
 
 Whether a JSON Schema mentions the reserved `_axe` key anywhere in `properties`.
 
@@ -618,7 +618,7 @@ Whether a JSON Schema mentions the reserved `_axe` key anywhere in `properties`.
 function splitReserved(value): object;
 ```
 
-Defined in: [packages/core/src/display.ts:402](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L402)
+Defined in: [packages/core/src/display.ts:402](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L402)
 
 Remove the reserved `_axe` key from an object (shallow) and return it separately.
 
@@ -652,7 +652,7 @@ value: unknown;
 function stripReserved(output, itemsPointer?): unknown;
 ```
 
-Defined in: [packages/core/src/display.ts:419](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L419)
+Defined in: [packages/core/src/display.ts:419](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L419)
 
 Remove `_axe` from an output and from every element of the array at `itemsPointer`.
 
@@ -683,7 +683,7 @@ function validateAffordanceBinding(
 ): void;
 ```
 
-Defined in: [packages/core/src/display.ts:244](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L244)
+Defined in: [packages/core/src/display.ts:244](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L244)
 
 Check that every bound key exists at the top level of the target action's input schema.
 
@@ -723,7 +723,7 @@ function validateAffordances(
 ): string[];
 ```
 
-Defined in: [packages/core/src/display.ts:198](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L198)
+Defined in: [packages/core/src/display.ts:198](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L198)
 
 Validate static affordances. `targetInput` returns the target action's input
 schema, or `undefined` when the target is not (yet) registered; unresolved targets
@@ -767,7 +767,7 @@ function validateDisplay(
 ): JsonSchema;
 ```
 
-Defined in: [packages/core/src/display.ts:87](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L87)
+Defined in: [packages/core/src/display.ts:87](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L87)
 
 Validate an action's `display` against its output schema. Returns the schema of
 one item (the element schema at `display.items`, or the output schema itself).
@@ -802,7 +802,7 @@ function validateFreshness(
 ): void;
 ```
 
-Defined in: [packages/core/src/display.ts:285](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L285)
+Defined in: [packages/core/src/display.ts:285](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L285)
 
 Validate freshness pointers against the output schema.
 
@@ -837,7 +837,7 @@ function validatePagination(
 ): void;
 ```
 
-Defined in: [packages/core/src/display.ts:263](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/core/src/display.ts#L263)
+Defined in: [packages/core/src/display.ts:263](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/core/src/display.ts#L263)
 
 Validate pagination pointers against the input and output schemas.
 

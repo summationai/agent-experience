@@ -115,3 +115,11 @@ If you disagree with something here, open an issue that quotes the entry. Most o
 **The drift test scans inline code spans in `spec/`, `docs/` (excluding `docs/api/`), and the README.** Example action names (`units.search`) and custom kinds (`x-oakridge.…`) are exempt by classification, not by allowlist. Dotted paths such as `policies.rateLimit` are checked segment by segment for camelCase segments only.
 
 **Drift classification details.** snake_case tokens are only an error when they are within edit distance 2 of a vocabulary status, error code, ladder value, reason, or query name (`need_input`, `not_founds`), because site-specific reason codes and example ids (`u_204`) are legitimate. camelCase tokens are strict. Kind payload field names are vocabulary (`payload` category) because they are wire names agents must spell exactly. Enumeration members count as "used in source" when the whole enumeration is consumed (`z.enum(Object.values(WIRE.risk))`).
+
+**Handlers receive `identity` and `siteKey`, and tokens are scoped to the acting principal.** Documentation review found that `Identity.claims` and the `id` returned by `verifySiteKey` were declared but never reached handlers. Both now arrive on every handler context. When a `site` call carries no user identity, the key's `id` (as `site:<id>`) scopes idempotency keys and tokens so two partners reusing the same `idempotencyKey` never collide; `context.onBehalfOf` remains the end user only.
+
+**Runtime agent-read text is checked for agent-directed instructions.** Registration already rejects them in static text; text built at runtime (`message`, `instructions`, `whatAgentShouldSayToUser`, `accepts[].description`) is checked when the result is materialized. A match becomes an `internal` error and an `onError` report, so a site bug never reaches an agent as an instruction.
+
+**`document.base64` payloads are capped at 10 MiB decoded, enforced on `/axe/continue`.** The spec said so; the code now does. Larger documents use `document.url`.
+
+**Prettier does not format `docs/**/*.md` or the README.** It reformatted included code blocks (and turned fences into four backticks), which made every include stale. The include script owns those blocks.

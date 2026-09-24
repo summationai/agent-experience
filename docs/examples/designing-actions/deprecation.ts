@@ -5,7 +5,8 @@ import { createAXE, action, z } from "@axe/core";
 
 export const axe = createAXE({
   name: "Harbor Goods",
-  description: "Track orders, see delivery estimates, and start a return for the signed-in customer.",
+  description:
+    "Track orders, see delivery estimates, and start a return for the signed-in customer.",
   baseUrl: "https://shop.harborgoods.example",
   auth: { modes: ["none", "user"], userLoginUrl: "https://shop.harborgoods.example/login" },
   secret: process.env.AXE_SECRET,
@@ -38,7 +39,12 @@ axe.register(
     deprecated: { since: "2026-09-01", replacedBy: "orders.status" },
     input: z.object({ orderId: z.string().describe("Order id, e.g. 'HG-20931'") }).strict(),
     output: z.object({ status: z.string(), trackingNumber: z.string().nullable() }),
-    examples: [{ input: { orderId: "HG-20931" }, output: { status: "shipped", trackingNumber: "1Z999AA10123456784" } }],
+    examples: [
+      {
+        input: { orderId: "HG-20931" },
+        output: { status: "shipped", trackingNumber: "1Z999AA10123456784" },
+      },
+    ],
     handler: async ({ input, context }) => {
       const o = await orders.status(context.onBehalfOf!, input.orderId);
       return { status: o.status, trackingNumber: o.trackingNumber };
@@ -54,7 +60,9 @@ axe.register(
     readOnly: true,
     risk: "none",
     auth: "user",
-    input: z.object({ orderId: z.string().describe("Order id from orders.list, e.g. 'HG-20931'") }).strict(),
+    input: z
+      .object({ orderId: z.string().describe("Order id from orders.list, e.g. 'HG-20931'") })
+      .strict(),
     output: z.object({
       orderId: z.string(),
       status: z.enum(["processing", "shipped", "delivered", "returned"]),

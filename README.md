@@ -23,11 +23,14 @@ export const axe = createAXE({
 axe.register(
   action("classes.search", {
     title: "Search upcoming classes",
-    description: "Find classes by date and style. Returns up to 50 classes with start time, instructor, and spots left.",
+    description:
+      "Find classes by date and style. Returns up to 50 classes with start time, instructor, and spots left.",
     readOnly: true,
     risk: "none",
     input: z.object({ from: z.string().date().describe("Earliest date, YYYY-MM-DD") }),
-    output: z.object({ classes: z.array(z.object({ id: z.string(), title: z.string(), startsAt: z.string() })) }),
+    output: z.object({
+      classes: z.array(z.object({ id: z.string(), title: z.string(), startsAt: z.string() })),
+    }),
     handler: async ({ input }) => ({ classes: await findClasses(input.from) }),
   }),
 );
@@ -45,15 +48,15 @@ Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line e
 
 ## Packages
 
-| Package        | What it is                                                                          |
-| -------------- | ----------------------------------------------------------------------------------- |
-| `@axe/core`    | Protocol types, schemas, well-known kinds, and the framework-free server runtime.   |
-| `@axe/client`  | Agent-side client: discover, invoke, continue, resume, present.                     |
-| `@axe/mcp`     | Derive an MCP server (stdio or Streamable HTTP) from any AXE site.                  |
-| `@axe/express` | Express and Connect adapter.                                                        |
-| `@axe/next`    | Next.js App Router and Pages API adapter.                                           |
-| `@axe/fetch`   | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.      |
-| `@axe/testing` | Conformance suite, AXE audit, drift check, and test helpers.                        |
+| Package        | What it is                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------- |
+| `@axe/core`    | Protocol types, schemas, well-known kinds, and the framework-free server runtime.                         |
+| `@axe/client`  | Agent-side client: discover, invoke, continue, resume, present.                                           |
+| `@axe/mcp`     | Derive an MCP server (stdio or Streamable HTTP) from any AXE site.                                        |
+| `@axe/express` | Express and Connect adapter.                                                                              |
+| `@axe/next`    | Next.js App Router and Pages API adapter.                                                                 |
+| `@axe/fetch`   | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                            |
+| `@axe/testing` | Conformance suite, AXE audit, drift check, and test helpers.                                              |
 | `axe`          | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`. |
 
 ## Developing

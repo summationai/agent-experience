@@ -106,7 +106,10 @@ const orders = {
     };
   },
   async startReturn(orderNumber: string, _email: string, _reason: string) {
-    return { returnId: `R-${orderNumber}`, labelUrl: `https://bramblegoods.example/returns/R-${orderNumber}/label` };
+    return {
+      returnId: `R-${orderNumber}`,
+      labelUrl: `https://bramblegoods.example/returns/R-${orderNumber}/label`,
+    };
   },
 };
 // #endregion all

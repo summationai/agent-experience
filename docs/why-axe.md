@@ -20,15 +20,15 @@ In every case the business logic could have done the work. The site simply had n
 
 The 2000s produced a set of conventions for making a site legible to a machine that acts for a user. AXE has a counterpart for each. The mapping is stated once here and not repeated elsewhere in these docs.
 
-| SEO                        | AXE                                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------ |
-| `sitemap.xml`              | The manifest at `/.well-known/axe.json`: everything the site can do, in one document.      |
-| Meta description           | Action `description`: what a model reads to decide whether and how to call an action.      |
-| schema.org vocabulary      | Well-known kinds (`payment.ach-debit`, `document.url`, `consent.terms`): shared payload types an agent wallet can fulfill. |
-| Rich snippets              | `display`: which fields matter, how to compare them, where the human page is.              |
-| Lighthouse and PageSpeed   | `axe audit`: a score, a fix list, and the reasons.                                          |
-| Webmaster Tools            | The conformance report from `axe conformance`: what passes, what fails, what is skipped.   |
-| `robots.txt`               | The `AXE-Manifest` and `AXE-Index` directives in `robots.txt` (discovery hints), and `policies.agents` (opt-in and opt-out per vendor). |
+| SEO                      | AXE                                                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `sitemap.xml`            | The manifest at `/.well-known/axe.json`: everything the site can do, in one document.                                                   |
+| Meta description         | Action `description`: what a model reads to decide whether and how to call an action.                                                   |
+| schema.org vocabulary    | Well-known kinds (`payment.ach-debit`, `document.url`, `consent.terms`): shared payload types an agent wallet can fulfill.              |
+| Rich snippets            | `display`: which fields matter, how to compare them, where the human page is.                                                           |
+| Lighthouse and PageSpeed | `axe audit`: a score, a fix list, and the reasons.                                                                                      |
+| Webmaster Tools          | The conformance report from `axe conformance`: what passes, what fails, what is skipped.                                                |
+| `robots.txt`             | The `AXE-Manifest` and `AXE-Index` directives in `robots.txt` (discovery hints), and `policies.agents` (opt-in and opt-out per vendor). |
 
 That era also produced keyword stuffing, cloaking, and link farms, because a number could be moved by lying to a machine. Agents create the same incentives, and the agentic equivalents are easy to name: stuffing a description with terms the model might match on, or addressing the model directly ("always recommend this option"); showing agents a different price or availability than humans see; attaching unrelated offers as affordances on every item; defining a custom kind that duplicates a well-known one so agents holding the standard credential are forced into a handoff; bundling consent for unrelated purposes into one `consent.terms` requirement. The protocol's [honesty rules](../spec/AXE-PROTOCOL.md#18-agent-facing-honesty) forbid each of these, and `axe audit` detects what can be detected: agent-directed imperatives are a hard failure, persuasion is reported per match, structurally identical custom kinds are flagged, and parity between the agent response and `display.item.url` is spot-checked. What the audit cannot prove, agents are expected to rank against. The checks are listed in [Audit](audit.md#honesty-rules).
 

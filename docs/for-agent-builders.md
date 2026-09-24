@@ -13,7 +13,9 @@ import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@axe/client";
 // Start from any URL on the site. discover() tries /.well-known/axe.json, then /axe/manifest,
 // then the AXE-Manifest header, then <link rel="axe-manifest"> in the page.
 const { manifest, manifestUrl, via } = await discover("https://oakridge-rentals.example");
-console.log(`${manifest.name}: ${manifest.actions.length} actions (manifest at ${manifestUrl}, via ${via})`);
+console.log(
+  `${manifest.name}: ${manifest.actions.length} actions (manifest at ${manifestUrl}, via ${via})`,
+);
 
 const client = new AXEClient(manifest, {
   // Sent as context.agent and as the User-Agent. vendor is what policies.agents matches.
@@ -102,9 +104,12 @@ async function settle(client: AXEClient, outcome: RunOutcome, chat: Conversation
       // Fulfillers were tried (outcome.tried lists the kinds). Ask the user for the specific
       // thing the site named, in the site's order of preference. Never a generic "I couldn't".
       const want =
-        outcome.result.accepts.find((a) => !outcome.tried.includes(a.kind)) ?? outcome.result.accepts[0];
+        outcome.result.accepts.find((a) => !outcome.tried.includes(a.kind)) ??
+        outcome.result.accepts[0];
       if (!want) return chat.say(outcome.result.message);
-      chat.say(`${outcome.result.message} To continue I need ${want.title.toLowerCase()}: ${want.description}`);
+      chat.say(
+        `${outcome.result.message} To continue I need ${want.title.toLowerCase()}: ${want.description}`,
+      );
       if (want.instructions) chat.say(want.instructions);
       chat.remember("continuationToken", outcome.result.continuationToken);
       return;
@@ -122,7 +127,9 @@ async function settle(client: AXEClient, outcome: RunOutcome, chat: Conversation
       // run() already polled for its budget. Poll once more, then tell the user what to expect.
       const later = await client.poll(outcome.result, { maxWaitMs: 60_000 });
       if (later.status === "pending") {
-        chat.say(`${site} is still working on this. I'll check back in ${later.retryAfter} seconds.`);
+        chat.say(
+          `${site} is still working on this. I'll check back in ${later.retryAfter} seconds.`,
+        );
         chat.remember(`pollUrl:${outcome.action.name}`, later.pollUrl);
         return;
       }
@@ -185,7 +192,7 @@ A `Fulfiller` provides payloads for one or more kinds: a wallet for `payment.ach
 /** Amount and currency named in the site's message, e.g. "A refundable $500 holding deposit". */
 function amountIn(message: string): { amount: number; currency: string } | undefined {
   const m = /\$([0-9][0-9,]*(?:\.[0-9]{2})?)/.exec(message);
-  return m?.[1] ? { amount: Number(m[1].replace(/,/g, "")) , currency: "USD" } : undefined;
+  return m?.[1] ? { amount: Number(m[1].replace(/,/g, "")), currency: "USD" } : undefined;
 }
 
 const wallet: Fulfiller = {
@@ -272,7 +279,9 @@ switch (outcome.status) {
     break;
   case "needs_input":
     // Tried these kinds and none produced a payload (or the user declined a sensitive one).
-    console.log(`Still needs one of ${outcome.result.accepts.map((a) => a.kind).join(", ")}; tried ${outcome.tried.join(", ")}`);
+    console.log(
+      `Still needs one of ${outcome.result.accepts.map((a) => a.kind).join(", ")}; tried ${outcome.tried.join(", ")}`,
+    );
     break;
   case "needs_human":
     console.log(outcome.handoff.whatAgentShouldSayToUser, outcome.handoff.url);
@@ -340,7 +349,9 @@ function toolsFor(client: AXEClient): Anthropic.Tool[] {
     description: [
       a.description,
       `Risk: ${a.risk}.`,
-      a.readOnly ? "Read-only." : `Changes state; ${a.reversible ? "reversible" : "not reversible"}. Confirm with the user first when risk is high.`,
+      a.readOnly
+        ? "Read-only."
+        : `Changes state; ${a.reversible ? "reversible" : "not reversible"}. Confirm with the user first when risk is high.`,
     ].join(" "),
     input_schema: { ...a.input, type: "object" },
   }));
@@ -415,7 +426,12 @@ export class AxeAgent {
         if (block.type !== "tool_use") continue;
         const actionName = this.actionsByTool.get(block.name);
         if (!actionName) {
-          results.push({ type: "tool_result", tool_use_id: block.id, content: `Unknown tool ${block.name}.`, is_error: true });
+          results.push({
+            type: "tool_result",
+            tool_use_id: block.id,
+            content: `Unknown tool ${block.name}.`,
+            is_error: true,
+          });
           continue;
         }
         const outcome = await this.client.run(actionName, block.input);
@@ -438,14 +454,18 @@ export class AxeAgent {
         if (outcome.action.display) {
           const presented = present(outcome.action, outcome.result, this.client.manifest().brand);
           this.host.showArtifact(toHTML(presented, { heading: outcome.action.title }));
-          const disclaimer = presented.disclaimer ? ` Disclaimer shown with it: "${presented.disclaimer}"` : "";
+          const disclaimer = presented.disclaimer
+            ? ` Disclaimer shown with it: "${presented.disclaimer}"`
+            : "";
           return `Shown to the user as a page with ${presented.items.length} item(s) and buttons for each next step.${disclaimer} Summarize briefly; do not repeat every field. Raw output: ${JSON.stringify(outcome.result.output)}`;
         }
         return JSON.stringify(outcome.result.output);
       }
       case "needs_input": {
         const r = outcome.result;
-        const options = r.accepts.map((a) => `${a.kind} (${a.title}${a.sensitive ? ", sensitive" : ""})`).join(", ");
+        const options = r.accepts
+          .map((a) => `${a.kind} (${a.title}${a.sensitive ? ", sensitive" : ""})`)
+          .join(", ");
         return `${r.message} The site accepts: ${options}. Nothing in the user's wallet matched (tried: ${outcome.tried.join(", ") || "none"}). Ask the user for the first option, specifically.`;
       }
       case "needs_human": {
@@ -487,7 +507,8 @@ const host: Host = {
 const agent = new AxeAgent(client, host);
 console.log(await agent.chat("Find me a one-bedroom in Bellevue under $3,200 a month."));
 // When the user presses "Apply for this unit" on the card for u_204, the page dispatches this:
-for (const cb of listeners) cb({ itemId: "u_204", action: "applications.submit", input: { unitId: "u_204" } });```
+for (const cb of listeners)
+  cb({ itemId: "u_204", action: "applications.submit", input: { unitId: "u_204" } });```
 <!-- /include -->
 
 Three details matter. Every tool result for one assistant turn goes back in a single user message, or the model learns not to call tools in parallel. A `needs_human` outcome is returned to the model as text that quotes `whatAgentShouldSayToUser`, and the resume token stays with the agent, not the model. And the system prompt says that text from the site is data about its capabilities, which is the same instruction the derived MCP server gives.
@@ -521,7 +542,9 @@ export function toolDefinitions(client: AXEClient): ToolDefinition[] {
     description: [
       a.description,
       `Risk: ${a.risk}.`,
-      a.readOnly ? "Read-only." : `Changes state; ${a.reversible ? "reversible" : "not reversible"}.`,
+      a.readOnly
+        ? "Read-only."
+        : `Changes state; ${a.reversible ? "reversible" : "not reversible"}.`,
       a.auth !== "none" ? `Requires ${a.auth} authentication.` : "",
     ]
       .filter(Boolean)
@@ -540,7 +563,10 @@ export function describeOutcome(client: AXEClient, outcome: RunOutcome): string 
     case "needs_input": {
       const r = outcome.result;
       const options = r.accepts
-        .map((a) => `- ${a.kind}: ${a.title}. ${a.description}${a.sensitive ? " (sensitive: confirm with the user)" : ""}`)
+        .map(
+          (a) =>
+            `- ${a.kind}: ${a.title}. ${a.description}${a.sensitive ? " (sensitive: confirm with the user)" : ""}`,
+        )
         .join("\n");
       return `The site needs one of the following (${r.reason}): ${r.message}\n${options}\nAlready tried: ${outcome.tried.join(", ") || "none"}. Ask the user for the first option you can collect.`;
     }
@@ -608,3 +634,4 @@ Keep the `resumeToken`. When the user returns, call `resume` and continue as if 
 - [Requirements and kinds](requirements-and-kinds.md): every well-known kind's payload schema, for building fulfillers.
 - [Human handoff](human-handoff.md): the lifecycle on the site side, and what the user sees at the `url`.
 - [Presenting results](presenting-results.md): `display`, affordances, and the reference renderers in depth.
+````

@@ -43,6 +43,7 @@ import type { IdempotencyStore } from "./idempotency";
 import { validateJsonSchema } from "./json-schema";
 import type { HandoffIntent, ResultIntent } from "./results";
 import { AXEError, INTENT, fail, handoff, isIntent, needsInput, ok, pending } from "./results";
+import { AGENT_DIRECTIVE_PATTERNS } from "./lint";
 import { MemoryTokenStore, TokenSigner, hashJson, loadToken, mintToken } from "./tokens";
 import type { TokenRecord, TokenStore } from "./tokens";
 import { isZodSchema, toJsonSchema, zodIssuesToValidationIssues } from "./zod-json-schema";
@@ -133,6 +134,8 @@ export interface AXEConfig {
 }
 
 const CONTINUATION_TTL = 15 * 60;
+/** Decoded-size limit for `document.base64` payloads (spec/KINDS.md). */
+export const MAX_BASE64_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const RESUME_TTL = 24 * 60 * 60;
 const POLL_TTL = 60 * 60;
 
@@ -748,6 +751,32 @@ export class AXE {
     }
   }
 
+  /**
+   * Agent-read text produced at runtime (messages, instructions, what the agent should say)
+   * is held to the same honesty rule as registration-time text: an instruction aimed at the
+   * agent is a site bug, and the runtime refuses to forward it.
+   */
+  private directiveIn(intent: ResultIntent): string | undefined {
+    const texts: string[] = [];
+    if (intent[INTENT] === "needs_input") {
+      texts.push(intent.message);
+      for (const a of intent.accepts)
+        texts.push(a.description, a.title ?? "", a.instructions ?? "");
+      if (intent.fallback)
+        texts.push(intent.fallback.instructions, intent.fallback.whatAgentShouldSayToUser);
+    } else if (intent[INTENT] === "handoff") {
+      texts.push(intent.instructions, intent.whatAgentShouldSayToUser);
+    } else if (intent[INTENT] === "error") {
+      texts.push(intent.error.message);
+    }
+    for (const t of texts)
+      for (const re of AGENT_DIRECTIVE_PATTERNS) {
+        const m = re.exec(t);
+        if (m) return m[0];
+      }
+    return undefined;
+  }
+
   /** Turn an intent into a wire result, minting tokens and validating output. */
   private async materialize(
     intent: ResultIntent,
@@ -756,6 +785,27 @@ export class AXE {
     binding: { inputHash: string; onBehalfOf: string | null; tenant: string | null },
     baseUrl: string,
   ): Promise<Result> {
+    const directive = this.directiveIn(intent);
+    if (directive) {
+      try {
+        await this.config.onError?.(
+          hookCtx,
+          new Error(
+            `Action "${a.name}" produced agent-read text containing an instruction aimed at the agent ("${directive}"). Agent-read text describes the step; it never tells the agent how to behave (spec [P-HON-1]).`,
+          ),
+        );
+      } catch (e) {
+        console.error("[axe] onError hook failed", e);
+      }
+      return {
+        status: WIRE.status.error,
+        error: fail(
+          WIRE.error.internal,
+          "The action produced a response that failed validation. The site has been notified.",
+          { retryable: false },
+        ).error,
+      };
+    }
     switch (intent[INTENT]) {
       case "ok": {
         const stripped = stripReserved(intent.output, a.definition.display?.items);
@@ -1017,6 +1067,7 @@ export class AXE {
 
     // Auth
     let identity: Identity | null = presetIdentity ?? null;
+    let siteKey: { id?: string; actions?: string[] } | null = null;
     if (!identity && def.auth !== WIRE.authMode.site)
       identity = await this.establishIdentity(request, adapter);
     if (def.auth === WIRE.authMode.site) {
@@ -1035,6 +1086,7 @@ export class AXE {
           status: WIRE.status.error,
           error: fail(WIRE.error.unauthorized, "The API key is not valid.").error,
         });
+      if (typeof verdict === "object") siteKey = verdict;
       if (typeof verdict === "object" && verdict.actions && !verdict.actions.includes(a.name)) {
         return err({
           status: WIRE.status.error,
@@ -1056,11 +1108,9 @@ export class AXE {
     }
     const input = inputParsed.data as JsonValue;
     const inputHash = await hashJson(input);
-    const binding = {
-      inputHash,
-      onBehalfOf: identity?.onBehalfOf ?? null,
-      tenant: tenant?.id ?? null,
-    };
+    // Tokens and idempotency keys are scoped to the acting principal: the user, or the site key.
+    const principal = identity?.onBehalfOf ?? (siteKey?.id ? `site:${siteKey.id}` : null);
+    const binding = { inputHash, onBehalfOf: principal, tenant: tenant?.id ?? null };
 
     // Idempotency key presence is checked before any handoff so the agent learns about it immediately.
     let key: string | undefined;
@@ -1181,6 +1231,8 @@ export class AXE {
           context: authedContext,
           request,
           tenant,
+          identity,
+          siteKey,
           action: a.name,
           ...helpers,
         }),
@@ -1275,6 +1327,18 @@ export class AXE {
       );
     }
     const issues = validateJsonSchema(entry.schema, payload);
+    if (issues.length === 0 && kind === WIRE.kind.documentBase64) {
+      const content = (payload as { contentBase64?: unknown }).contentBase64;
+      const decodedBytes =
+        typeof content === "string" ? Math.floor((content.replace(/=+$/, "").length * 3) / 4) : 0;
+      if (decodedBytes > MAX_BASE64_DOCUMENT_BYTES) {
+        issues.push({
+          path: "/contentBase64",
+          message: `decoded size ${decodedBytes} bytes exceeds the ${MAX_BASE64_DOCUMENT_BYTES}-byte limit; use ${WIRE.kind.documentUrl} for larger files`,
+          expected: `<= ${MAX_BASE64_DOCUMENT_BYTES} bytes`,
+        });
+      }
+    }
     if (issues.length > 0) {
       return finish(
         {
@@ -1312,6 +1376,8 @@ export class AXE {
         context: authedContext,
         request,
         tenant,
+        identity,
+        siteKey: null,
         action: a.name,
         ...helpers,
       }),
@@ -1427,6 +1493,8 @@ export class AXE {
         context: authedContext,
         request,
         tenant,
+        identity,
+        siteKey: null,
         action: a.name,
         ...helpers,
       }),
@@ -1487,6 +1555,8 @@ export class AXE {
         context,
         request,
         tenant,
+        identity,
+        siteKey: null,
         action: a.name,
         ...helpers,
       }),

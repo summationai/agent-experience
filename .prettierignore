@@ -9,3 +9,5 @@ CHANGELOG.md
 .changeset
 docs/images
 packages/core/src/vocabulary.ts
+docs/**/*.md
+README.md

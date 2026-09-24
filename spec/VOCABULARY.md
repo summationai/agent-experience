@@ -290,6 +290,7 @@ Every JSON property name on the wire. `Where` uses dotted paths from the enclosi
 | field    | retryable                | `retryable`                | `error.retryable`                                                                                                  | Whether an identical retry could succeed.                                          |
 | field    | details                  | `details`                  | `error.details`                                                                                                    | Structured extra data; `issues` for `invalid_input`.                               |
 | field    | issues                   | `issues`                   | `error.details.issues`                                                                                             | Array of `{ path, message, expected? }` validation problems.                       |
+| field    | handoffStatus            | `handoffStatus`            | `error.details.handoffStatus`                                                                                      | `open` on a `conflict` returned by `/axe/resume` before the human finished.        |
 | field    | expected                 | `expected`                 | `error.details.issues[].expected`                                                                                  | What the schema wanted at `path`.                                                  |
 | field    | schemaVersion            | `schemaVersion`            | `event.schemaVersion`                                                                                              | Event schema version, currently `1`.                                               |
 | field    | ts                       | `ts`                       | `event.ts`                                                                                                         | ISO 8601 timestamp of the event.                                                   |
@@ -302,110 +303,147 @@ Every JSON property name on the wire. `Where` uses dotted paths from the enclosi
 
 Property names inside well-known kind payloads (`spec/KINDS.md`). `Where` names the kinds that carry the field.
 
-| Category | Key | Name | Where | Meaning |
-| -------- | --- | ---- | ----- | ------- |
-| payload | token | `token` | `payment.card` | PSP-issued single-use or network token. |
-| payload | provider | `provider` | `payment.card` | Payment service provider identifier. |
-| payload | brand | `brand` | `payment.card` | Card network, lowercase. (Also `manifest.brand`, listed under fields.) |
-| payload | last4 | `last4` | `payment.card`, `identity.ssn-last-4` | Last four digits. |
-| payload | expMonth | `expMonth` | `payment.card` | Expiry month, 1–12. |
-| payload | expYear | `expYear` | `payment.card` | Four-digit expiry year. |
-| payload | billingPostalCode | `billingPostalCode` | `payment.card` | Billing postal code. |
-| payload | accountHolderName | `accountHolderName` | `payment.ach-debit` | Name on the bank account. |
-| payload | routingNumber | `routingNumber` | `payment.ach-debit` | ABA routing number. |
-| payload | accountNumber | `accountNumber` | `payment.ach-debit` | Bank account number. |
-| payload | accountType | `accountType` | `payment.ach-debit` | `checking` or `savings`. |
-| payload | authorizedAt | `authorizedAt` | `payment.ach-debit` | When the user authorized the debit. |
-| payload | authorizationText | `authorizationText` | `payment.ach-debit` | The exact authorization text the user agreed to. |
-| payload | referenceNumber | `referenceNumber` | `payment.wire-confirmation` | Bank reference, IMAD, or OMAD. |
-| payload | sentAt | `sentAt` | `payment.wire-confirmation` | When the wire was sent. |
-| payload | bankName | `bankName` | `payment.wire-confirmation` | Sending bank. |
-| payload | companyName | `companyName` | `payment.invoice` | Company to invoice. |
-| payload | billingEmail | `billingEmail` | `payment.invoice` | Accounts-payable email. |
-| payload | purchaseOrderNumber | `purchaseOrderNumber` | `payment.invoice` | Purchase order reference. |
-| payload | netTermsDays | `netTermsDays` | `payment.invoice` | Requested payment terms in days. |
-| payload | taxId | `taxId` | `payment.invoice` | VAT or EIN. |
-| payload | documentType | `documentType` | `identity.government-id` | `passport`, `drivers-license`, `national-id`, or `residence-permit`. |
-| payload | documentNumber | `documentNumber` | `identity.government-id` | Document number. |
-| payload | issuingCountry | `issuingCountry` | `identity.government-id` | ISO 3166-1 alpha-2 country. |
-| payload | fullName | `fullName` | `identity.government-id` | Name as printed on the document. |
-| payload | dateOfBirth | `dateOfBirth` | `identity.government-id`, `identity.date-of-birth` | Date of birth. |
-| payload | expiresOn | `expiresOn` | `identity.government-id` | Document expiry date. |
-| payload | mimeType | `mimeType` | `document.url`, `document.base64` | MIME type of the document. |
-| payload | filename | `filename` | `document.url`, `document.base64` | File name. |
-| payload | sizeBytes | `sizeBytes` | `document.url` | Size in bytes. |
-| payload | contentBase64 | `contentBase64` | `document.base64` | Base64-encoded content. |
-| payload | phone | `phone` | `contact.phone` | E.164 phone number. |
-| payload | canReceiveSms | `canReceiveSms` | `contact.phone` | Whether the number receives SMS. |
-| payload | line1 | `line1` | `contact.address` | Address line 1. |
-| payload | line2 | `line2` | `contact.address` | Address line 2. |
-| payload | city | `city` | `contact.address` | City. |
-| payload | region | `region` | `contact.address` | State, province, or prefecture. |
-| payload | postalCode | `postalCode` | `contact.address` | Postal code. |
-| payload | country | `country` | `contact.address` | ISO 3166-1 alpha-2 country. |
-| payload | policyUrl | `policyUrl` | `consent.terms` | The policy document agreed to. |
-| payload | policyVersion | `policyVersion` | `consent.terms` | Exact version identifier or date. |
-| payload | scope | `scope` | `consent.terms` | What the consent covers. |
-| payload | acceptedAt | `acceptedAt` | `consent.terms` | When consent was given. |
-| payload | acceptedBy | `acceptedBy` | `consent.terms` | Who consented, when the site requires it. |
+| Category | Key                 | Name                  | Where                                              | Meaning                                                                |
+| -------- | ------------------- | --------------------- | -------------------------------------------------- | ---------------------------------------------------------------------- |
+| payload  | token               | `token`               | `payment.card`                                     | PSP-issued single-use or network token.                                |
+| payload  | provider            | `provider`            | `payment.card`                                     | Payment service provider identifier.                                   |
+| payload  | brand               | `brand`               | `payment.card`                                     | Card network, lowercase. (Also `manifest.brand`, listed under fields.) |
+| payload  | last4               | `last4`               | `payment.card`, `identity.ssn-last-4`              | Last four digits.                                                      |
+| payload  | expMonth            | `expMonth`            | `payment.card`                                     | Expiry month, 1–12.                                                    |
+| payload  | expYear             | `expYear`             | `payment.card`                                     | Four-digit expiry year.                                                |
+| payload  | billingPostalCode   | `billingPostalCode`   | `payment.card`                                     | Billing postal code.                                                   |
+| payload  | accountHolderName   | `accountHolderName`   | `payment.ach-debit`                                | Name on the bank account.                                              |
+| payload  | routingNumber       | `routingNumber`       | `payment.ach-debit`                                | ABA routing number.                                                    |
+| payload  | accountNumber       | `accountNumber`       | `payment.ach-debit`                                | Bank account number.                                                   |
+| payload  | accountType         | `accountType`         | `payment.ach-debit`                                | `checking` or `savings`.                                               |
+| payload  | authorizedAt        | `authorizedAt`        | `payment.ach-debit`                                | When the user authorized the debit.                                    |
+| payload  | authorizationText   | `authorizationText`   | `payment.ach-debit`                                | The exact authorization text the user agreed to.                       |
+| payload  | referenceNumber     | `referenceNumber`     | `payment.wire-confirmation`                        | Bank reference, IMAD, or OMAD.                                         |
+| payload  | sentAt              | `sentAt`              | `payment.wire-confirmation`                        | When the wire was sent.                                                |
+| payload  | bankName            | `bankName`            | `payment.wire-confirmation`                        | Sending bank.                                                          |
+| payload  | companyName         | `companyName`         | `payment.invoice`                                  | Company to invoice.                                                    |
+| payload  | billingEmail        | `billingEmail`        | `payment.invoice`                                  | Accounts-payable email.                                                |
+| payload  | purchaseOrderNumber | `purchaseOrderNumber` | `payment.invoice`                                  | Purchase order reference.                                              |
+| payload  | netTermsDays        | `netTermsDays`        | `payment.invoice`                                  | Requested payment terms in days.                                       |
+| payload  | taxId               | `taxId`               | `payment.invoice`                                  | VAT or EIN.                                                            |
+| payload  | documentType        | `documentType`        | `identity.government-id`                           | `passport`, `drivers-license`, `national-id`, or `residence-permit`.   |
+| payload  | documentNumber      | `documentNumber`      | `identity.government-id`                           | Document number.                                                       |
+| payload  | issuingCountry      | `issuingCountry`      | `identity.government-id`                           | ISO 3166-1 alpha-2 country.                                            |
+| payload  | fullName            | `fullName`            | `identity.government-id`                           | Name as printed on the document.                                       |
+| payload  | dateOfBirth         | `dateOfBirth`         | `identity.government-id`, `identity.date-of-birth` | Date of birth.                                                         |
+| payload  | expiresOn           | `expiresOn`           | `identity.government-id`                           | Document expiry date.                                                  |
+| payload  | mimeType            | `mimeType`            | `document.url`, `document.base64`                  | MIME type of the document.                                             |
+| payload  | filename            | `filename`            | `document.url`, `document.base64`                  | File name.                                                             |
+| payload  | sizeBytes           | `sizeBytes`           | `document.url`                                     | Size in bytes.                                                         |
+| payload  | contentBase64       | `contentBase64`       | `document.base64`                                  | Base64-encoded content.                                                |
+| payload  | phone               | `phone`               | `contact.phone`                                    | E.164 phone number.                                                    |
+| payload  | canReceiveSms       | `canReceiveSms`       | `contact.phone`                                    | Whether the number receives SMS.                                       |
+| payload  | line1               | `line1`               | `contact.address`                                  | Address line 1.                                                        |
+| payload  | line2               | `line2`               | `contact.address`                                  | Address line 2.                                                        |
+| payload  | city                | `city`                | `contact.address`                                  | City.                                                                  |
+| payload  | region              | `region`              | `contact.address`                                  | State, province, or prefecture.                                        |
+| payload  | postalCode          | `postalCode`          | `contact.address`                                  | Postal code.                                                           |
+| payload  | country             | `country`             | `contact.address`                                  | ISO 3166-1 alpha-2 country.                                            |
+| payload  | policyUrl           | `policyUrl`           | `consent.terms`                                    | The policy document agreed to.                                         |
+| payload  | policyVersion       | `policyVersion`       | `consent.terms`                                    | Exact version identifier or date.                                      |
+| payload  | scope               | `scope`               | `consent.terms`                                    | What the consent covers.                                               |
+| payload  | acceptedAt          | `acceptedAt`          | `consent.terms`                                    | When consent was given.                                                |
+| payload  | acceptedBy          | `acceptedBy`          | `consent.terms`                                    | Who consented, when the site requires it.                              |
 
 ## SDK API
 
 Public TypeScript identifiers that the docs refer to. Each must exist with this spelling in a package's exported types.
 
-| Category | Key                  | Name                   | Where                 | Meaning                                                                    |
-| -------- | -------------------- | ---------------------- | --------------------- | -------------------------------------------------------------------------- |
-| api      | createAXE            | `createAXE`            | `@axe/core`           | Create a server instance from site configuration.                          |
-| api      | action               | `action`               | `@axe/core`           | Define an action with schemas, metadata, and handlers.                     |
-| api      | register             | `register`             | `@axe/core`           | Add an action to a server.                                                 |
-| api      | describe             | `describe`             | `@axe/core`           | Return the manifest object, optionally for a tenant.                       |
-| api      | fetchHandler         | `fetchHandler`         | `@axe/core`           | Get a `(Request) => Promise<Response>` for the whole protocol surface.     |
-| api      | handler              | `handler`              | `@axe/core`           | The function that runs when an action is invoked.                          |
-| api      | needsInput           | `needsInput`           | `@axe/core`           | Helper passed to handlers that mints a `needs_input` result.               |
-| api      | onContinue           | `onContinue`           | `@axe/core`           | Action hook that receives a validated continuation.                        |
-| api      | onResume             | `onResume`             | `@axe/core`           | Action hook that runs after a human handoff.                               |
-| api      | onPoll               | `onPoll`               | `@axe/core`           | Action hook that produces the current result for a `pending` action.       |
-| api      | state                | `state`                | `@axe/core`           | Server-side object attached to a token and delivered back to hooks.        |
-| api      | completeHandoff      | `completeHandoff`      | `@axe/core`           | Record that the human finished a handoff, optionally binding identity.     |
-| api      | resolveDisplay       | `resolveDisplay`       | `@axe/core/display`   | Apply `display` pointers to an output and return a `PresentedResult`.      |
-| api      | kinds                | `kinds`                | `@axe/core/kinds`     | Typed definitions of every well-known kind.                                |
-| api      | accept               | `accept`               | `@axe/core/kinds`     | Build an `accepts[]` entry from a kind definition.                         |
-| api      | lintAgentText        | `lintAgentText`        | `@axe/core/lint`      | Apply the honesty rules to one string.                                     |
-| api      | lintManifest         | `lintManifest`         | `@axe/core/lint`      | Apply all lint rules to a manifest.                                        |
-| api      | onRequest            | `onRequest`            | `@axe/core`           | Hook called before an action runs; may short-circuit with a result.        |
-| api      | onResult             | `onResult`             | `@axe/core`           | Hook called with every result envelope.                                    |
-| api      | onError              | `onError`              | `@axe/core`           | Hook called when a handler throws.                                         |
-| api      | onEvent              | `onEvent`              | `@axe/core`           | Hook receiving every analytics event; sinks attach here.                   |
-| api      | consoleSink          | `consoleSink`          | `@axe/core/events`    | Event sink that prints one JSON line per event to stdout.                  |
-| api      | jsonlFileSink        | `jsonlFileSink`        | `@axe/core/events`    | Event sink that appends JSON lines to a file.                              |
-| api      | otelSink             | `otelSink`             | `@axe/core/events`    | Event sink that records OpenTelemetry metrics and spans.                   |
-| api      | tokenStore           | `tokenStore`           | `@axe/core`           | Configuration slot for a `TokenStore` implementation.                      |
-| api      | idempotencyStore     | `idempotencyStore`     | `@axe/core`           | Configuration slot for an `IdempotencyStore` implementation.               |
-| api      | secret               | `secret`               | `@axe/core`           | HMAC secret used to sign tokens.                                           |
-| api      | cors                 | `cors`                 | `@axe/core`           | Opt-in CORS configuration.                                                 |
-| api      | authenticate         | `authenticate`         | `@axe/core`           | Site-supplied function that turns a request into an `onBehalfOf` identity. |
-| api      | verifySiteKey        | `verifySiteKey`        | `@axe/core`           | Site-supplied function that validates a `site` mode bearer key.            |
-| api      | index                | `index`                | `@axe/core`           | Configuration for serving a platform index.                                |
-| api      | discover             | `discover`             | `@axe/client`         | Find a manifest from any URL.                                              |
-| api      | manifest             | `manifest`             | `@axe/client`         | Return the loaded manifest.                                                |
-| api      | invoke               | `invoke`               | `@axe/client`         | Call an action and return the result envelope.                             |
-| api      | continue             | `continue`             | `@axe/client`         | Satisfy a `needs_input` requirement.                                       |
-| api      | resume               | `resume`               | `@axe/client`         | Resume after a handoff.                                                    |
-| api      | poll                 | `poll`                 | `@axe/client`         | Poll a `pending` result until it settles.                                  |
-| api      | run                  | `run`                  | `@axe/client`         | Drive the whole escalation ladder with registered fulfillers.              |
-| api      | fulfillers           | `fulfillers`           | `@axe/client`         | Client option: providers keyed by kind.                                    |
-| api      | confirm              | `confirm`              | `@axe/client`         | Client callback invoked before sending a `sensitive` payload.              |
-| api      | present              | `present`              | `@axe/client/present` | Turn an `ok` result into a `PresentedResult`.                              |
-| api      | toMarkdown           | `toMarkdown`           | `@axe/client/present` | Render a `PresentedResult` as a Markdown comparison table.                 |
-| api      | toHTML               | `toHTML`               | `@axe/client/present` | Render a `PresentedResult` as a self-contained HTML page.                  |
-| api      | createMcpServer      | `createMcpServer`      | `@axe/mcp`            | Derive an MCP server from an AXE server or manifest URL.                   |
-| api      | serveStdio           | `serveStdio`           | `@axe/mcp`            | Connect an MCP server to stdio.                                            |
-| api      | serveHttp            | `serveHttp`            | `@axe/mcp`            | Get a fetch handler for the Streamable HTTP transport.                     |
-| api      | axeExpress           | `axeExpress`           | `@axe/express`        | Express and Connect middleware.                                            |
-| api      | axeNext              | `axeNext`              | `@axe/next`           | App Router route handlers.                                                 |
-| api      | axeNextPages         | `axeNextPages`         | `@axe/next`           | Pages API route handler.                                                   |
-| api      | axeFetch             | `axeFetch`             | `@axe/fetch`          | Web-standard fetch handler with context injection.                         |
-| api      | runConformance       | `runConformance`       | `@axe/testing`        | Run the conformance suite against a URL.                                   |
-| api      | runAudit             | `runAudit`             | `@axe/testing`        | Produce an AXE Score report for a URL.                                     |
-| api      | createTestClient     | `createTestClient`     | `@axe/testing`        | In-process client bound to an AXE server for unit tests.                   |
-| api      | checkVocabularyDrift | `checkVocabularyDrift` | `@axe/testing`        | The drift test as a function, for use in other repositories.               |
+| Category | Key                    | Name                     | Where                 | Meaning                                                                           |
+| -------- | ---------------------- | ------------------------ | --------------------- | --------------------------------------------------------------------------------- |
+| api      | createAXE              | `createAXE`              | `@axe/core`           | Create a server instance from site configuration.                                 |
+| api      | action                 | `action`                 | `@axe/core`           | Define an action with schemas, metadata, and handlers.                            |
+| api      | register               | `register`               | `@axe/core`           | Add an action to a server.                                                        |
+| api      | describe               | `describe`               | `@axe/core`           | Return the manifest object, optionally for a tenant.                              |
+| api      | fetchHandler           | `fetchHandler`           | `@axe/core`           | Get a `(Request) => Promise<Response>` for the whole protocol surface.            |
+| api      | handler                | `handler`                | `@axe/core`           | The function that runs when an action is invoked.                                 |
+| api      | needsInput             | `needsInput`             | `@axe/core`           | Helper passed to handlers that mints a `needs_input` result.                      |
+| api      | onContinue             | `onContinue`             | `@axe/core`           | Action hook that receives a validated continuation.                               |
+| api      | onResume               | `onResume`               | `@axe/core`           | Action hook that runs after a human handoff.                                      |
+| api      | onPoll                 | `onPoll`                 | `@axe/core`           | Action hook that produces the current result for a `pending` action.              |
+| api      | state                  | `state`                  | `@axe/core`           | Server-side object attached to a token and delivered back to hooks.               |
+| api      | completeHandoff        | `completeHandoff`        | `@axe/core`           | Record that the human finished a handoff, optionally binding identity.            |
+| api      | resolveDisplay         | `resolveDisplay`         | `@axe/core/display`   | Apply `display` pointers to an output and return a `PresentedResult`.             |
+| api      | kinds                  | `kinds`                  | `@axe/core/kinds`     | Typed definitions of every well-known kind.                                       |
+| api      | accept                 | `accept`                 | `@axe/core/kinds`     | Build an `accepts[]` entry from a kind definition.                                |
+| api      | lintAgentText          | `lintAgentText`          | `@axe/core/lint`      | Apply the honesty rules to one string.                                            |
+| api      | lintManifest           | `lintManifest`           | `@axe/core/lint`      | Apply all lint rules to a manifest.                                               |
+| api      | onRequest              | `onRequest`              | `@axe/core`           | Hook called before an action runs; may short-circuit with a result.               |
+| api      | onResult               | `onResult`               | `@axe/core`           | Hook called with every result envelope.                                           |
+| api      | onError                | `onError`                | `@axe/core`           | Hook called when a handler throws.                                                |
+| api      | onEvent                | `onEvent`                | `@axe/core`           | Hook receiving every analytics event; sinks attach here.                          |
+| api      | consoleSink            | `consoleSink`            | `@axe/core/events`    | Event sink that prints one JSON line per event to stdout.                         |
+| api      | jsonlFileSink          | `jsonlFileSink`          | `@axe/core/events`    | Event sink that appends JSON lines to a file.                                     |
+| api      | otelSink               | `otelSink`               | `@axe/core/events`    | Event sink that records OpenTelemetry metrics and spans.                          |
+| api      | tokenStore             | `tokenStore`             | `@axe/core`           | Configuration slot for a `TokenStore` implementation.                             |
+| api      | idempotencyStore       | `idempotencyStore`       | `@axe/core`           | Configuration slot for an `IdempotencyStore` implementation.                      |
+| api      | secret                 | `secret`                 | `@axe/core`           | HMAC secret used to sign tokens.                                                  |
+| api      | cors                   | `cors`                   | `@axe/core`           | Opt-in CORS configuration.                                                        |
+| api      | authenticate           | `authenticate`           | `@axe/core`           | Site-supplied function that turns a request into an `onBehalfOf` identity.        |
+| api      | verifySiteKey          | `verifySiteKey`          | `@axe/core`           | Site-supplied function that validates a `site` mode bearer key.                   |
+| api      | index                  | `index`                  | `@axe/core`           | Configuration for serving a platform index.                                       |
+| api      | discover               | `discover`               | `@axe/client`         | Find a manifest from any URL.                                                     |
+| api      | manifest               | `manifest`               | `@axe/client`         | Return the loaded manifest.                                                       |
+| api      | invoke                 | `invoke`                 | `@axe/client`         | Call an action and return the result envelope.                                    |
+| api      | continue               | `continue`               | `@axe/client`         | Satisfy a `needs_input` requirement.                                              |
+| api      | resume                 | `resume`                 | `@axe/client`         | Resume after a handoff.                                                           |
+| api      | poll                   | `poll`                   | `@axe/client`         | Poll a `pending` result until it settles.                                         |
+| api      | run                    | `run`                    | `@axe/client`         | Drive the whole escalation ladder with registered fulfillers.                     |
+| api      | fulfillers             | `fulfillers`             | `@axe/client`         | Client option: providers keyed by kind.                                           |
+| api      | confirm                | `confirm`                | `@axe/client`         | Client callback invoked before sending a `sensitive` payload.                     |
+| api      | present                | `present`                | `@axe/client/present` | Turn an `ok` result into a `PresentedResult`.                                     |
+| api      | toMarkdown             | `toMarkdown`             | `@axe/client/present` | Render a `PresentedResult` as a Markdown comparison table.                        |
+| api      | toHTML                 | `toHTML`                 | `@axe/client/present` | Render a `PresentedResult` as a self-contained HTML page.                         |
+| api      | createMcpServer        | `createMcpServer`        | `@axe/mcp`            | Derive an MCP server from an AXE server or manifest URL.                          |
+| api      | serveStdio             | `serveStdio`             | `@axe/mcp`            | Connect an MCP server to stdio.                                                   |
+| api      | serveHttp              | `serveHttp`              | `@axe/mcp`            | Get a fetch handler for the Streamable HTTP transport.                            |
+| api      | axeExpress             | `axeExpress`             | `@axe/express`        | Express and Connect middleware.                                                   |
+| api      | axeNext                | `axeNext`                | `@axe/next`           | App Router route handlers.                                                        |
+| api      | axeNextPages           | `axeNextPages`           | `@axe/next`           | Pages API route handler.                                                          |
+| api      | axeFetch               | `axeFetch`               | `@axe/fetch`          | Web-standard fetch handler with context injection.                                |
+| api      | runConformance         | `runConformance`         | `@axe/testing`        | Run the conformance suite against a URL.                                          |
+| api      | runAudit               | `runAudit`               | `@axe/testing`        | Produce an AXE Score report for a URL.                                            |
+| api      | createTestClient       | `createTestClient`       | `@axe/testing`        | In-process client bound to an AXE server for unit tests.                          |
+| api      | checkVocabularyDrift   | `checkVocabularyDrift`   | `@axe/testing`        | The drift test as a function, for use in other repositories.                      |
+| api      | withMimeTypes          | `withMimeTypes`          | `@axe/core/kinds`     | Restrict a document kind to specific MIME types.                                  |
+| api      | customKind             | `customKind`             | `@axe/core/kinds`     | Define a site-specific kind under `x-<org>.`.                                     |
+| api      | suggestedReason        | `suggestedReason`        | `@axe/core/kinds`     | Conventional `reason` string for a kind's namespace.                              |
+| api      | ttlSeconds             | `ttlSeconds`             | `@axe/core`           | Token lifetime option on `needsInput`, `handoff`, and `pending`.                  |
+| api      | requireCompletion      | `requireCompletion`      | `@axe/core`           | Handoff option: refuse resume until `completeHandoff` is called.                  |
+| api      | appendHandoffId        | `appendHandoffId`        | `@axe/core`           | Handoff option: append `axe_handoff` to the URL (default true).                   |
+| api      | completion             | `completion`             | `@axe/core`           | What `completeHandoff` recorded, delivered to `onResume`.                         |
+| api      | identity               | `identity`               | `@axe/core`           | Handler context member: the authenticated identity with `claims`, or null.        |
+| api      | claims                 | `claims`                 | `@axe/core`           | Extra site-defined data on an `Identity`, visible to handlers, never on the wire. |
+| api      | siteKey                | `siteKey`                | `@axe/core`           | Handler context member: what `verifySiteKey` returned for a `site` call.          |
+| api      | requireIdempotencyKey  | `requireIdempotencyKey`  | `@axe/core`           | Config: reject mutating calls without `idempotencyKey` (default true).            |
+| api      | idempotencyTtlSeconds  | `idempotencyTtlSeconds`  | `@axe/core`           | Config: idempotency window (default 86400).                                       |
+| api      | manifestCacheSeconds   | `manifestCacheSeconds`   | `@axe/core`           | Config: `Cache-Control` max-age for the manifest (default 300).                   |
+| api      | allowCredentials       | `allowCredentials`       | `@axe/core`           | CORS option: send `Access-Control-Allow-Credentials`.                             |
+| api      | combineSinks           | `combineSinks`           | `@axe/core/events`    | Fan events out to several sinks, isolating failures.                              |
+| api      | parseUserAgent         | `parseUserAgent`         | `@axe/core/events`    | Parse the recommended `User-Agent` form into an event agent.                      |
+| api      | isOk                   | `isOk`                   | `@axe/client`         | Narrow a result to `ok`.                                                          |
+| api      | isNeedsInput           | `isNeedsInput`           | `@axe/client`         | Narrow a result to `needs_input`.                                                 |
+| api      | isNeedsHuman           | `isNeedsHuman`           | `@axe/client`         | Narrow a result to `needs_human`.                                                 |
+| api      | isPending              | `isPending`              | `@axe/client`         | Narrow a result to `pending`.                                                     |
+| api      | isError                | `isError`                | `@axe/client`         | Narrow a result to `error`.                                                       |
+| api      | allowed                | `allowed`                | `@axe/client`         | Whether `policies.agents` permits this client's vendor.                           |
+| api      | retries                | `retries`                | `@axe/client`         | Client option: retries after `rate_limited` or `unavailable` (default 1).         |
+| api      | maxRetryAfterMs        | `maxRetryAfterMs`        | `@axe/client`         | Client option: longest `Retry-After` honored automatically.                       |
+| api      | maxWaitMs              | `maxWaitMs`              | `@axe/client`         | Poll option: give up after this long.                                             |
+| api      | toolNameFor            | `toolNameFor`            | `@axe/mcp`            | MCP tool name for an action (dots become underscores).                            |
+| api      | formatResult           | `formatResult`           | `@axe/mcp`            | Render a result envelope as MCP tool content.                                     |
+| api      | pollBudgetMs           | `pollBudgetMs`           | `@axe/mcp`            | How long a tool call polls `pending` before returning (default 20000).            |
+| api      | isAxePath              | `isAxePath`              | `@axe/fetch`          | Whether a path is one AXE serves.                                                 |
+| api      | toWebRequest           | `toWebRequest`           | `@axe/express`        | Convert a Node request to a Web `Request`.                                        |
+| api      | sendWebResponse        | `sendWebResponse`        | `@axe/express`        | Write a Web `Response` to a Node response.                                        |
+| api      | invokeAction           | `invokeAction`           | `@axe/testing`        | Invoke an action in-process and return the envelope.                              |
+| api      | samplePayload          | `samplePayload`          | `@axe/testing`        | A valid sample payload for a well-known kind.                                     |
+| api      | formatConformanceTable | `formatConformanceTable` | `@axe/testing`        | Terminal table for a conformance report.                                          |
+| api      | formatAuditTable       | `formatAuditTable`       | `@axe/testing`        | Terminal table for an audit report.                                               |
+| api      | formatAuditHtml        | `formatAuditHtml`        | `@axe/testing`        | Self-contained HTML audit report.                                                 |
+| api      | formatDriftReport      | `formatDriftReport`      | `@axe/testing`        | Human-readable drift report.                                                      |

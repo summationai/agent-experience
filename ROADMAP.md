@@ -12,7 +12,7 @@ What v0 deliberately leaves out, why, and what v0 does instead. Items are not or
 
 ## Payment execution and tokenization
 
-**Deferred because** moving money is regulated and already solved by payment service providers; the SDK should never hold card numbers. **v0 instead** defines payment *kinds* (`payment.card` as a PSP token, `payment.ach-debit` as an authorization, `payment.wire-confirmation`, `payment.invoice`) so an agent wallet can hand the site a credential it can charge through its existing PSP. The SDK validates the payload shape and never logs it.
+**Deferred because** moving money is regulated and already solved by payment service providers; the SDK should never hold card numbers. **v0 instead** defines payment _kinds_ (`payment.card` as a PSP token, `payment.ach-debit` as an authorization, `payment.wire-confirmation`, `payment.invoice`) so an agent wallet can hand the site a credential it can charge through its existing PSP. The SDK validates the payload shape and never logs it.
 
 ## Governance for the well-known kind registry
 

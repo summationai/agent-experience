@@ -6,7 +6,7 @@
 
 ### CommandContext
 
-Defined in: [index.ts:42](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/cli/src/index.ts#L42)
+Defined in: [index.ts:42](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L42)
 
 #### Properties
 
@@ -16,7 +16,7 @@ Defined in: [index.ts:42](https://github.com/summationai/code/blob/54a1262160105
 args: string[];
 ```
 
-Defined in: [index.ts:43](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/cli/src/index.ts#L43)
+Defined in: [index.ts:43](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L43)
 
 ##### stderr
 
@@ -24,7 +24,7 @@ Defined in: [index.ts:43](https://github.com/summationai/code/blob/54a1262160105
 stderr: (line) => void;
 ```
 
-Defined in: [index.ts:45](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/cli/src/index.ts#L45)
+Defined in: [index.ts:45](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L45)
 
 ###### Parameters
 
@@ -42,7 +42,7 @@ Defined in: [index.ts:45](https://github.com/summationai/code/blob/54a1262160105
 stdout: (line) => void;
 ```
 
-Defined in: [index.ts:44](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/cli/src/index.ts#L44)
+Defined in: [index.ts:44](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L44)
 
 ###### Parameters
 
@@ -62,7 +62,7 @@ Defined in: [index.ts:44](https://github.com/summationai/code/blob/54a1262160105
 function run(argv, io?): Promise<number>;
 ```
 
-Defined in: [index.ts:60](https://github.com/summationai/code/blob/54a1262160105150fe4db73da113f831554c9fbe/axe/packages/cli/src/index.ts#L60)
+Defined in: [index.ts:60](https://github.com/summationai/code/blob/543afa0f64e4b716a23823cff19857d3afccd6d0/axe/packages/cli/src/index.ts#L60)
 
 Run the CLI with the given argv (without node and script). Returns the exit code.
 

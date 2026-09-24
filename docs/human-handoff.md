@@ -34,14 +34,14 @@ Every member is required.
 }
 ```
 
-| Member                     | Meaning                                                                                                                                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reason`                   | A short code: `login_required` (emitted by the SDK), or a site-specific code such as the one above for a signature, or one for a CAPTCHA. Stable across calls.                          |
-| `instructions`             | What the human must do on the site. Agent-read text.                                                                                                                                     |
-| `url`                      | Where the human goes. Lands on the step, not the home page. The SDK appends `axe_handoff=<id>`.                                                                                          |
-| `resumeToken`              | Signed and opaque. The agent presents it to `/axe/resume` after the human is done.                                                                                                       |
-| `expiresAt`                | When the token stops working. At least an hour; a human is involved. Twenty-four hours by default.                                                                                       |
-| `whatAgentShouldSayToUser` | How the agent frames the request to its user: one precise ask, in plain language.                                                                                                        |
+| Member                     | Meaning                                                                                                                                                        |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reason`                   | A short code: `login_required` (emitted by the SDK), or a site-specific code such as the one above for a signature, or one for a CAPTCHA. Stable across calls. |
+| `instructions`             | What the human must do on the site. Agent-read text.                                                                                                           |
+| `url`                      | Where the human goes. Lands on the step, not the home page. The SDK appends `axe_handoff=<id>`.                                                                |
+| `resumeToken`              | Signed and opaque. The agent presents it to `/axe/resume` after the human is done.                                                                             |
+| `expiresAt`                | When the token stops working. At least an hour; a human is involved. Twenty-four hours by default.                                                             |
+| `whatAgentShouldSayToUser` | How the agent frames the request to its user: one precise ask, in plain language.                                                                              |
 
 In code you return `handoff` from a handler with `reason`, `instructions`, `url`, `whatAgentShouldSayToUser`, and optionally `state`, a token lifetime, and the completion gate described below. The runtime mints the token, appends the handoff id to the URL, and stores `state` server-side.
 
@@ -151,7 +151,10 @@ app.post("/applications/:id/lease/signed", requireStaff, async (req, res) => {
   if (handoffId) {
     // Records completion. Returns false for an unknown or expired id, which is not an error here:
     // the human still signed; only the agent's resume link has lapsed.
-    await axe.completeHandoff(handoffId, { onBehalfOf: lease.applicantId, data: { leaseId: lease.id } });
+    await axe.completeHandoff(handoffId, {
+      onBehalfOf: lease.applicantId,
+      data: { leaseId: lease.id },
+    });
   }
   res.redirect(`/applications/${id}/lease?signed=1`);
 });```
@@ -188,8 +191,14 @@ axe.register(
     readOnly: true,
     risk: "none",
     auth: "user",
-    input: z.object({ orderNumber: z.string().describe("Order number from the confirmation email") }).strict(),
-    output: z.object({ status: z.string(), carrier: z.string().nullable(), expectedBy: z.string().nullable() }),
+    input: z
+      .object({ orderNumber: z.string().describe("Order number from the confirmation email") })
+      .strict(),
+    output: z.object({
+      status: z.string(),
+      carrier: z.string().nullable(),
+      expectedBy: z.string().nullable(),
+    }),
     handler: async ({ input, context }) => orders.track(context.onBehalfOf!, input.orderNumber),
   }),
 );```
@@ -208,7 +217,11 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { email, password, handoffId } = req.body as { email: string; password: string; handoffId?: string };
+  const { email, password, handoffId } = req.body as {
+    email: string;
+    password: string;
+    handoffId?: string;
+  };
   const user = await accounts.signIn(email, password);
   if (!user) {
     res.status(401).send(loginForm(handoffId ?? "", "Wrong email or password."));
@@ -275,7 +288,12 @@ export class RedisTokenStore implements TokenStore {
   // The runtime passes the remaining lifetime on every write, including the write that marks
   // a token consumed, so the key expires exactly when the token does.
   async set(id: string, record: TokenRecord, ttlSeconds: number): Promise<void> {
-    await this.redis.set(this.prefix + id, JSON.stringify(record), "EX", Math.max(1, Math.ceil(ttlSeconds)));
+    await this.redis.set(
+      this.prefix + id,
+      JSON.stringify(record),
+      "EX",
+      Math.max(1, Math.ceil(ttlSeconds)),
+    );
   }
 
   async delete(id: string): Promise<void> {
@@ -328,3 +346,4 @@ The second and third weak examples break [P-HON-1] and [P-HON-2], not just style
 - [Auth](auth.md): pass-through tokens, API keys, and the login handoff in the context of the three auth modes.
 - [For agent builders](for-agent-builders.md): how an agent phrases a handoff and when it retries a resume.
 - [Deploying](deploying.md): persistent `secret`, a shared `TokenStore`, and the rest of the production checklist.
+````

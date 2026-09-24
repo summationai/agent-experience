@@ -33,7 +33,6 @@ export type {
   Accept,
   JsonValue,
 } from "@axe/core/types";
-export { WIRE } from "@axe/core/vocabulary";
 
 type MaybePromise<T> = T | Promise<T>;
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;

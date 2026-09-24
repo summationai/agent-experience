@@ -27,7 +27,12 @@ export class RedisTokenStore implements TokenStore {
   // The runtime passes the remaining lifetime on every write, including the write that marks
   // a token consumed, so the key expires exactly when the token does.
   async set(id: string, record: TokenRecord, ttlSeconds: number): Promise<void> {
-    await this.redis.set(this.prefix + id, JSON.stringify(record), "EX", Math.max(1, Math.ceil(ttlSeconds)));
+    await this.redis.set(
+      this.prefix + id,
+      JSON.stringify(record),
+      "EX",
+      Math.max(1, Math.ceil(ttlSeconds)),
+    );
   }
 
   async delete(id: string): Promise<void> {
