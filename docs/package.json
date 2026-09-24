@@ -1,0 +1,26 @@
+{
+  "name": "body-spray-docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "echo docs have no build step",
+    "test": "echo docs have no tests"
+  },
+  "dependencies": {
+    "axe": "workspace:*",
+    "@axe/client": "workspace:*",
+    "@axe/core": "workspace:*",
+    "@axe/express": "workspace:*",
+    "@axe/fetch": "workspace:*",
+    "@axe/mcp": "workspace:*",
+    "@axe/next": "workspace:*",
+    "@axe/testing": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "express": "^5.2.1",
+    "hono": "^4.13.8"
+  }
+}

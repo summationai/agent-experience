@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+docs/api
+spec/schemas
+.turbo
+CHANGELOG.md
+.changeset
+docs/images

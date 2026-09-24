@@ -1,0 +1,60 @@
+{
+  "name": "@axe/express",
+  "version": "0.1.0",
+  "description": "Mount an AXE server in Express or any Connect-style framework.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@axe/core": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/body-spray/body-spray",
+    "directory": "packages/express"
+  },
+  "keywords": [
+    "axe",
+    "agents",
+    "ai",
+    "protocol"
+  ],
+  "peerDependencies": {
+    "express": ">=4.18.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "express": "^5.2.1",
+    "@types/express": "^5.0.6",
+    "@types/express-serve-static-core": "^5.1.0"
+  }
+}
