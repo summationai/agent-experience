@@ -82,6 +82,6 @@ export {
 } from "./lint";
 export type { LintIssue, LintRule, LintSeverity, LintTextOptions } from "./lint";
 export { consoleSink, jsonlFileSink, otelSink, combineSinks, parseUserAgent } from "./events";
-export type { EventSink, MeterLike, TracerLike } from "./events";
+export type { ActionEventSink, EventSink, MeterLike, TracerLike } from "./events";
 export { WIRE, WIRE_ENTRIES } from "./vocabulary";
 export type * from "./types";

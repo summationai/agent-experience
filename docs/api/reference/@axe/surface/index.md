@@ -184,6 +184,16 @@ id: string;
 rev: number;
 ```
 
+<a id="seq"></a>
+
+##### seq
+
+```ts
+seq: number;
+```
+
+The ledger entry this act wrote.
+
 ***
 
 <a id="actrequest"></a>
@@ -622,6 +632,150 @@ whatAgentShouldSayToUser: string;
 
 ***
 
+<a id="ledgerentry"></a>
+
+### LedgerEntry
+
+One line of the ledger: an act that ran, or a refusal, with who asked and which revisions it spanned (spec [S-LED-*]).
+
+#### Properties
+
+<a id="actor-2"></a>
+
+##### actor
+
+```ts
+actor: string;
+```
+
+<a id="at"></a>
+
+##### at
+
+```ts
+at: string;
+```
+
+When the entry was written.
+
+<a id="changed-1"></a>
+
+##### changed
+
+```ts
+changed: string[];
+```
+
+Entry ids whose state the act moved; empty for a refusal.
+
+<a id="op-1"></a>
+
+##### op
+
+```ts
+op: string;
+```
+
+The `op` as requested.
+
+<a id="revafter"></a>
+
+##### revAfter
+
+```ts
+revAfter: number;
+```
+
+The revision when the entry was written: after the handler ran, or unchanged for a refusal.
+
+<a id="revbefore"></a>
+
+##### revBefore
+
+```ts
+revBefore: number;
+```
+
+The revision when the act arrived.
+
+<a id="seq-1"></a>
+
+##### seq
+
+```ts
+seq: number;
+```
+
+1-based, increasing by one per act; never reused.
+
+<a id="status"></a>
+
+##### status
+
+```ts
+status: WireError | "ok";
+```
+
+`ok` when the handler ran and returned; otherwise the error code the act was refused with (`internal` when the handler threw).
+
+<a id="target-1"></a>
+
+##### target
+
+```ts
+target: string | number | null;
+```
+
+The entry id the act resolved to; for a refusal before the target resolved, the target as requested.
+
+<a id="text-2"></a>
+
+##### text?
+
+```ts
+optional text?: string;
+```
+
+***
+
+<a id="ledgerquery"></a>
+
+### LedgerQuery
+
+#### Properties
+
+<a id="actor-3"></a>
+
+##### actor?
+
+```ts
+optional actor?: string;
+```
+
+Only entries by this actor.
+
+<a id="limit"></a>
+
+##### limit?
+
+```ts
+optional limit?: number;
+```
+
+At most this many entries: the oldest after `since` when `since` is given (so a reader can page forward), else the newest.
+
+<a id="since"></a>
+
+##### since?
+
+```ts
+optional since?: number;
+```
+
+Only entries with `seq` greater than this, oldest first, so an agent can ask what happened since it looked.
+
+***
+
 <a id="observation"></a>
 
 ### Observation
@@ -636,7 +790,7 @@ whatAgentShouldSayToUser: string;
 app: string;
 ```
 
-<a id="at"></a>
+<a id="at-1"></a>
 
 ##### at
 
@@ -651,6 +805,16 @@ at: string;
 ```ts
 entries: ObservedEntry[];
 ```
+
+<a id="ledgerseq"></a>
+
+##### ledgerSeq
+
+```ts
+ledgerSeq: number;
+```
+
+The latest ledger `seq`, so an agent can ask `ledger({ since })` for what happened since it looked.
 
 <a id="objects"></a>
 
@@ -994,7 +1158,7 @@ currentRev(): number;
 expose(host?, options?): void;
 ```
 
-Publish `observe`, `act`, and `rev` on a host object (`window.__surface`) for browser agents.
+Publish `observe`, `act`, `ledger`, and `rev` on a host object (`window.__surface`) for browser agents.
 
 ###### Parameters
 
@@ -1031,6 +1195,26 @@ Look up a registered entry.
 ###### Returns
 
 [`Entry`](#entry) \| `undefined`
+
+<a id="ledger"></a>
+
+##### ledger()
+
+```ts
+ledger(query?): LedgerEntry[];
+```
+
+The ledger: every act and every refusal, oldest first. See `LedgerQuery` for `since`, `actor`, and `limit`.
+
+###### Parameters
+
+###### query?
+
+[`LedgerQuery`](#ledgerquery)
+
+###### Returns
+
+[`LedgerEntry`](#ledgerentry)[]
 
 <a id="observe"></a>
 
@@ -1210,6 +1394,22 @@ unregister(id): void;
 optional app?: string;
 ```
 
+<a id="ledger-1"></a>
+
+##### ledger?
+
+```ts
+optional ledger?: object;
+```
+
+Ledger retention. `max` is the number of most recent entries kept; default 1000.
+
+###### max?
+
+```ts
+optional max?: number;
+```
+
 <a id="now"></a>
 
 ##### now?
@@ -1236,7 +1436,7 @@ type ActResult =
   | ErrorResult;
 ```
 
-`act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`.
+`act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`. Every result carries the `seq` of its ledger entry (`output.seq`, or `error.details.seq`).
 
 ***
 
@@ -1411,7 +1611,7 @@ type MaybePromise<T> = T | Promise<T>;
 
 ***
 
-<a id="op-1"></a>
+<a id="op-2"></a>
 
 ### Op
 
@@ -1546,7 +1746,7 @@ currentRev: () => number;
 expose: (host?, options?) => void;
 ```
 
-Publish `observe`, `act`, and `rev` on a host object (`window.__surface`) for browser agents.
+Publish `observe`, `act`, `ledger`, and `rev` on a host object (`window.__surface`) for browser agents.
 
 #### Parameters
 
@@ -1563,6 +1763,28 @@ Publish `observe`, `act`, and `rev` on a host object (`window.__surface`) for br
 #### Returns
 
 `void`
+
+***
+
+<a id="ledger-2"></a>
+
+### ledger
+
+```ts
+ledger: (query?) => LedgerEntry[];
+```
+
+The ledger: every act and every refusal, oldest first. See `LedgerQuery` for `since`, `actor`, and `limit`.
+
+#### Parameters
+
+##### query?
+
+[`LedgerQuery`](#ledgerquery)
+
+#### Returns
+
+[`LedgerEntry`](#ledgerentry)[]
 
 ***
 

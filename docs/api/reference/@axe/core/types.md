@@ -382,13 +382,159 @@ path: string;
 
 ***
 
+<a id="axeactionevent"></a>
+
+### AXEActionEvent
+
+An event an action emits about its own work (spec/EVENTS.md, "Action events"): a ledger line
+rather than a request metric. Unlike `AXEEvent` it names the `actor`, because attribution is
+its purpose, so it goes to `onActionEvent` sinks and never to the analytics `onEvent` sinks.
+
+#### Properties
+
+<a id="action-1"></a>
+
+##### action
+
+```ts
+action: string;
+```
+
+The action whose handler emitted the event; for a continue or resume, the originating action.
+
+<a id="actor"></a>
+
+##### actor
+
+```ts
+actor: string | null;
+```
+
+Who the work was done as, in the application's terms; `null` when the action has no actor.
+
+<a id="details"></a>
+
+##### details
+
+```ts
+details: Record<string, JsonValue>;
+```
+
+What the action chooses to record: ids, revisions, sequence numbers. Never a payload.
+
+<a id="errorcode"></a>
+
+##### errorCode
+
+```ts
+errorCode: WireError | null;
+```
+
+<a id="event"></a>
+
+##### event
+
+```ts
+event: string;
+```
+
+What happened, as a dotted name in the action's namespace: `surface.act`.
+
+<a id="schemaversion"></a>
+
+##### schemaVersion
+
+```ts
+schemaVersion: 1;
+```
+
+<a id="status"></a>
+
+##### status
+
+```ts
+status: WireStatus;
+```
+
+Outcome of the work the event records.
+
+<a id="tenant"></a>
+
+##### tenant
+
+```ts
+tenant: string | null;
+```
+
+<a id="ts"></a>
+
+##### ts
+
+```ts
+ts: string;
+```
+
+***
+
+<a id="axeactioneventinput"></a>
+
+### AXEActionEventInput
+
+What a handler passes to `emit`; the server fills in `schemaVersion`, `ts`, `action`, and `tenant`.
+
+#### Properties
+
+<a id="actor-1"></a>
+
+##### actor?
+
+```ts
+optional actor?: string | null;
+```
+
+<a id="details-1"></a>
+
+##### details?
+
+```ts
+optional details?: Record<string, JsonValue>;
+```
+
+<a id="errorcode-1"></a>
+
+##### errorCode?
+
+```ts
+optional errorCode?: WireError | null;
+```
+
+<a id="event-1"></a>
+
+##### event
+
+```ts
+event: string;
+```
+
+<a id="status-1"></a>
+
+##### status?
+
+```ts
+optional status?: WireStatus;
+```
+
+Default `ok`.
+
+***
+
 <a id="axeevent"></a>
 
 ### AXEEvent
 
 #### Properties
 
-<a id="action-1"></a>
+<a id="action-2"></a>
 
 ##### action
 
@@ -404,7 +550,7 @@ action: string;
 agent: EventAgent | null;
 ```
 
-<a id="errorcode"></a>
+<a id="errorcode-2"></a>
 
 ##### errorCode
 
@@ -436,7 +582,7 @@ ladder: WireLadder;
 latencyMs: number;
 ```
 
-<a id="schemaversion"></a>
+<a id="schemaversion-1"></a>
 
 ##### schemaVersion
 
@@ -444,7 +590,7 @@ latencyMs: number;
 schemaVersion: 1;
 ```
 
-<a id="status"></a>
+<a id="status-2"></a>
 
 ##### status
 
@@ -452,7 +598,7 @@ schemaVersion: 1;
 status: WireStatus;
 ```
 
-<a id="tenant"></a>
+<a id="tenant-1"></a>
 
 ##### tenant
 
@@ -460,7 +606,7 @@ status: WireStatus;
 tenant: string | null;
 ```
 
-<a id="ts"></a>
+<a id="ts-1"></a>
 
 ##### ts
 
@@ -672,7 +818,7 @@ A dynamic affordance returned under `_axe`. `input` values are concrete.
 
 #### Properties
 
-<a id="action-2"></a>
+<a id="action-3"></a>
 
 ##### action
 
@@ -720,7 +866,7 @@ title: string;
 code: WireError;
 ```
 
-<a id="details"></a>
+<a id="details-2"></a>
 
 ##### details?
 
@@ -768,7 +914,7 @@ retryable: boolean;
 error: ErrorBody;
 ```
 
-<a id="status-1"></a>
+<a id="status-3"></a>
 
 ##### status
 
@@ -1200,7 +1346,7 @@ optional userLoginUrl?: string;
 handoff: Handoff;
 ```
 
-<a id="status-2"></a>
+<a id="status-4"></a>
 
 ##### status
 
@@ -1264,7 +1410,7 @@ message: string;
 reason: string;
 ```
 
-<a id="status-3"></a>
+<a id="status-5"></a>
 
 ##### status
 
@@ -1294,7 +1440,7 @@ status: "needs_input";
 output: O;
 ```
 
-<a id="status-4"></a>
+<a id="status-6"></a>
 
 ##### status
 
@@ -1378,7 +1524,7 @@ pollUrl: string;
 retryAfter: number;
 ```
 
-<a id="status-5"></a>
+<a id="status-7"></a>
 
 ##### status
 
@@ -1720,7 +1866,7 @@ type DisplayKind = WireDisplayKind;
 
 ***
 
-<a id="errorcode-1"></a>
+<a id="errorcode-3"></a>
 
 ### ErrorCode
 

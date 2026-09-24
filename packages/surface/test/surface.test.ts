@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSurface } from "../src/index";
-import type { ActResult } from "../src/index";
+import type { ActResult, LedgerEntry, LedgerQuery } from "../src/index";
 import { kinds, accept } from "@axe/core/kinds";
 import { z } from "@axe/core";
 import { board } from "./fixtures/board";
@@ -157,6 +157,7 @@ describe("act returns the AXE result envelope", () => {
       id: "pick:me:Gibbs",
       actor: "agent",
       changed: ["pick:me:Gibbs"],
+      seq: 1,
     });
     expect(b.log).toEqual([{ p: "Gibbs", actor: "agent", rev: 1 }]);
   });
@@ -167,7 +168,7 @@ describe("act returns the AXE result envelope", () => {
     expect(codeOf(r)).toBe("conflict");
     if (r.status === "error") {
       expect(r.error.retryable).toBe(true);
-      expect(r.error.details).toEqual({ rev: 0, expectedRev: 5 });
+      expect(r.error.details).toEqual({ rev: 0, expectedRev: 5, seq: 1 });
     }
     expect(b.log).toEqual([]);
   });
@@ -442,5 +443,181 @@ describe("two participants on one application [S-REV-1..4]", () => {
     });
     expect(b.log.map((e) => `${e.p}:${e.actor}`)).toEqual(["Robinson:agent", "Chase:user"]);
     expect(b.log.every((e) => typeof e.rev === "number")).toBe(true);
+  });
+});
+
+describe("the ledger [S-LED-1..7]", () => {
+  const at = "2026-10-01T00:00:00.000Z";
+
+  it("records every act: ok with the revisions it spanned, refusals with the code and nothing changed [S-LED-1] [S-LED-3] [S-LED-4] [S-LED-5]", async () => {
+    const b = board({ now: () => new Date(at) });
+    const v = b.surface.observe();
+    expect(v.ledgerSeq).toBe(0);
+    const ok = await b.surface.act({
+      op: "CLICK",
+      target: b.idx("Draft Gibbs")!,
+      expectedRev: v.rev,
+      actor: "dana",
+    });
+    expect(okOf(ok)?.seq).toBe(1);
+    const stale = await b.surface.act({
+      op: "CLICK",
+      target: "pick:me:Robinson",
+      expectedRev: v.rev,
+    });
+    expect(codeOf(stale)).toBe("conflict");
+    if (stale.status === "error") expect(stale.error.details?.seq).toBe(2);
+    expect(codeOf(await b.surface.act({ op: "CLICK", target: "nope", expectedRev: 1 }))).toBe(
+      "not_found",
+    );
+    b.setDrafting(false);
+    expect(
+      codeOf(await b.surface.act({ op: "CLICK", target: "pick:me:Chase", expectedRev: 2 })),
+    ).toBe("unavailable");
+    expect(b.surface.ledger()).toEqual([
+      {
+        seq: 1,
+        at,
+        op: "CLICK",
+        // An index target is recorded as the id it resolved to.
+        target: "pick:me:Gibbs",
+        actor: "dana",
+        revBefore: 0,
+        revAfter: 1,
+        status: "ok",
+        changed: ["pick:me:Gibbs"],
+      },
+      {
+        seq: 2,
+        at,
+        op: "CLICK",
+        target: "pick:me:Robinson",
+        actor: "agent",
+        revBefore: 1,
+        revAfter: 1,
+        status: "conflict",
+        changed: [],
+      },
+      {
+        seq: 3,
+        at,
+        op: "CLICK",
+        target: "nope",
+        actor: "agent",
+        revBefore: 1,
+        revAfter: 1,
+        status: "not_found",
+        changed: [],
+      },
+      {
+        seq: 4,
+        at,
+        op: "CLICK",
+        target: "pick:me:Chase",
+        actor: "agent",
+        revBefore: 2,
+        revAfter: 2,
+        status: "unavailable",
+        changed: [],
+      },
+    ]);
+    expect(b.surface.observe().ledgerSeq).toBe(4);
+    // The handler saw the same actor the ledger names.
+    expect(b.log).toEqual([{ p: "Gibbs", actor: "dana", rev: 1 }]);
+  });
+
+  it("since, actor, and limit select entries, oldest first [S-LED-2]", async () => {
+    const s = createSurface();
+    let n = 0;
+    s.register({
+      id: "inc",
+      kind: "action",
+      role: "button",
+      name: "Increment",
+      state: { available: true },
+      effect: { mutates: "n" },
+      handler: () => {
+        n++;
+        s.bump();
+      },
+    });
+    for (const actor of ["agent", "user", "agent", "agent", "user"])
+      await s.act({ op: "CLICK", target: "inc", expectedRev: s.currentRev(), actor });
+    const seqs = (q?: LedgerQuery) => s.ledger(q).map((e) => e.seq);
+    expect(n).toBe(5);
+    expect(seqs()).toEqual([1, 2, 3, 4, 5]);
+    expect(seqs({ since: 3 })).toEqual([4, 5]);
+    expect(seqs({ since: 5 })).toEqual([]);
+    expect(seqs({ actor: "user" })).toEqual([2, 5]);
+    // Without since, limit keeps the newest; with since, the oldest after it, so a reader pages forward.
+    expect(seqs({ limit: 2 })).toEqual([4, 5]);
+    expect(seqs({ since: 1, limit: 2 })).toEqual([2, 3]);
+    expect(seqs({ since: 0, actor: "user", limit: 1 })).toEqual([2]);
+    expect(s.ledger()[0]).toMatchObject({ revBefore: 0, revAfter: 1 });
+    expect(s.ledger()[4]).toMatchObject({ revBefore: 4, revAfter: 5 });
+  });
+
+  it("keeps only the most recent `ledger.max` entries; seq never restarts [S-LED-6]", async () => {
+    const s = createSurface({ ledger: { max: 3 } });
+    s.register({
+      id: "noop",
+      kind: "action",
+      role: "button",
+      name: "Do nothing",
+      state: { available: true },
+      effect: { mutates: "nothing", idempotent: true },
+      handler: () => {},
+    });
+    for (let i = 0; i < 5; i++) await s.act({ op: "CLICK", target: "noop", expectedRev: 0 });
+    expect(s.ledger().map((e) => e.seq)).toEqual([3, 4, 5]);
+    expect(s.observe().ledgerSeq).toBe(5);
+    expect(s.ledger()[0]).toMatchObject({ status: "ok", changed: [], revBefore: 0, revAfter: 0 });
+  });
+
+  it("a handler that throws is recorded as internal and the error still propagates [S-LED-4]", async () => {
+    const s = createSurface();
+    s.register({
+      id: "boom",
+      kind: "action",
+      role: "button",
+      name: "Explode",
+      state: { available: true },
+      effect: { mutates: "everything", risk: "high" },
+      handler: () => {
+        throw new Error("db down");
+      },
+    });
+    await expect(
+      s.act({ op: "CLICK", target: "boom", expectedRev: 0, actor: "u" }),
+    ).rejects.toThrow("db down");
+    expect(s.ledger()).toMatchObject([
+      { seq: 1, target: "boom", actor: "u", status: "internal", changed: [] },
+    ]);
+  });
+
+  it("records the text a field was given; reset clears the ledger", async () => {
+    const s = createSurface();
+    s.register({ id: "note", kind: "field", role: "textbox", name: "Note", edit: { set() {} } });
+    await s.act({ op: "TYPE_TEXT", target: "note", expectedRev: 0, text: "hello" });
+    expect(s.ledger()[0]).toMatchObject({ op: "TYPE_TEXT", text: "hello", status: "ok" });
+    s.reset();
+    expect(s.ledger()).toEqual([]);
+    expect(s.observe().ledgerSeq).toBe(0);
+  });
+
+  it("expose publishes the ledger beside observe, act, and rev [S-DOM-2]", async () => {
+    const b = board();
+    const host: {
+      __surface?: {
+        act: (r: unknown) => Promise<ActResult>;
+        ledger: (q?: LedgerQuery) => LedgerEntry[];
+      };
+    } = {};
+    b.surface.expose(host);
+    await host.__surface!.act({ op: "CLICK", target: "pick:me:Chase", expectedRev: 0 });
+    expect(host.__surface!.ledger().map((e) => [e.seq, e.target, e.status])).toEqual([
+      [1, "pick:me:Chase", "ok"],
+    ]);
+    expect(host.__surface!.ledger({ since: 1 })).toEqual([]);
   });
 });

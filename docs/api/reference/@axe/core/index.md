@@ -1487,6 +1487,18 @@ optional manifestCacheSeconds?: number;
 name: string;
 ```
 
+<a id="onactionevent"></a>
+
+##### onActionEvent?
+
+```ts
+optional onActionEvent?: 
+  | ActionEventSink
+  | ActionEventSink[];
+```
+
+Sinks for action events, the ledger lines a handler records with `context.emit`. They name actors, so they are not analytics.
+
 <a id="onerror"></a>
 
 ##### onError?
@@ -1669,6 +1681,33 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="emit"></a>
+
+##### emit
+
+```ts
+emit: (event) => void;
+```
+
+Record what the action did as an action event (spec/EVENTS.md, "Action events") for the
+server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the result.
+
+###### Parameters
+
+###### event
+
+[`AXEActionEventInput`](types.md#axeactioneventinput)
+
+###### Returns
+
+`void`
+
+###### Inherited from
+
+```ts
+BaseContext.emit
 ```
 
 <a id="fail"></a>
@@ -2044,6 +2083,33 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="emit-1"></a>
+
+##### emit
+
+```ts
+emit: (event) => void;
+```
+
+Record what the action did as an action event (spec/EVENTS.md, "Action events") for the
+server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the result.
+
+###### Parameters
+
+###### event
+
+[`AXEActionEventInput`](types.md#axeactioneventinput)
+
+###### Returns
+
+`void`
+
+###### Inherited from
+
+```ts
+BaseContext.emit
 ```
 
 <a id="fail-1"></a>
@@ -2786,6 +2852,33 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 BaseContext.context
 ```
 
+<a id="emit-2"></a>
+
+##### emit
+
+```ts
+emit: (event) => void;
+```
+
+Record what the action did as an action event (spec/EVENTS.md, "Action events") for the
+server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the result.
+
+###### Parameters
+
+###### event
+
+[`AXEActionEventInput`](types.md#axeactioneventinput)
+
+###### Returns
+
+`void`
+
+###### Inherited from
+
+```ts
+BaseContext.emit
+```
+
 <a id="fail-2"></a>
 
 ##### fail
@@ -3265,6 +3358,33 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="emit-3"></a>
+
+##### emit
+
+```ts
+emit: (event) => void;
+```
+
+Record what the action did as an action event (spec/EVENTS.md, "Action events") for the
+server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the result.
+
+###### Parameters
+
+###### event
+
+[`AXEActionEventInput`](types.md#axeactioneventinput)
+
+###### Returns
+
+`void`
+
+###### Inherited from
+
+```ts
+BaseContext.emit
 ```
 
 <a id="fail-4"></a>
@@ -4497,6 +4617,14 @@ Re-exports [ActionDefinition](types.md#actiondefinition)
 
 ***
 
+<a id="actioneventsink"></a>
+
+### ActionEventSink
+
+Re-exports [ActionEventSink](events.md#actioneventsink)
+
+***
+
 <a id="actionexample"></a>
 
 ### ActionExample
@@ -4566,6 +4694,22 @@ Re-exports [AttributeFormat](types.md#attributeformat)
 ### AuthMode
 
 Re-exports [AuthMode](types.md#authmode)
+
+***
+
+<a id="axeactionevent"></a>
+
+### AXEActionEvent
+
+Re-exports [AXEActionEvent](types.md#axeactionevent)
+
+***
+
+<a id="axeactioneventinput"></a>
+
+### AXEActionEventInput
+
+Re-exports [AXEActionEventInput](types.md#axeactioneventinput)
 
 ***
 
@@ -4701,7 +4845,7 @@ Re-exports [ErrorBody](types.md#errorbody)
 
 ### ErrorCode
 
-Re-exports [ErrorCode](types.md#errorcode-1)
+Re-exports [ErrorCode](types.md#errorcode-3)
 
 ***
 
