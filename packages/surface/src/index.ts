@@ -569,3 +569,95 @@ export const {
 } = surface;
 
 export type { Result, Accept, JsonValue, Risk };
+
+// ---------------------------------------------------------------------------------------------
+// DOM mirror (spec §7). Framework-free: these read an entry (registered or observed) and return
+// strings, so any renderer can carry the same names a browser agent reads through `observe()`.
+// ---------------------------------------------------------------------------------------------
+
+/** Attributes a rendered control carries, as `surfaceAttributes` returns them. Values are strings; React callers use `useSurfaceProps`. */
+export type SurfaceAttributes = Record<string, string>;
+
+function isObserved(entry: Entry | ObservedEntry): entry is ObservedEntry {
+  return "index" in entry && "rev" in entry;
+}
+
+/**
+ * The attributes the control for `entry` carries [S-DOM-1]: `aria-label` (the entry name, so
+ * browser agents and screen readers read the outcome), `data-surface-id`, `data-surface-kind`,
+ * `data-surface-object` when the entry has one, `aria-disabled="true"` plus `data-surface-reason`
+ * on an unavailable action, and `aria-readonly="true"` plus `data-surface-reason` on a read-only
+ * field. Collections carry the common set only. Set them on the element that receives the
+ * interaction; `surfaceSelector(id)` finds it again.
+ */
+export function surfaceAttributes(entry: Entry | ObservedEntry): SurfaceAttributes {
+  const name = isObserved(entry) ? entry.name : nameOf(entry);
+  const out: SurfaceAttributes = {
+    [WIRE.domAttribute.label]: name,
+    [WIRE.domAttribute.surfaceId]: entry.id,
+    [WIRE.domAttribute.surfaceKind]: entry.kind,
+  };
+  if (entry.object) out[WIRE.domAttribute.surfaceObject] = entry.object;
+  if (entry.kind === "action") {
+    const s = entry.state ?? { available: true, reason: null };
+    if (!s.available) {
+      out[WIRE.domAttribute.disabled] = "true";
+      out[WIRE.domAttribute.surfaceReason] = s.reason || "unavailable";
+    }
+  } else if (entry.kind === "field" && entry.edit?.readOnly) {
+    out[WIRE.domAttribute.readOnly] = "true";
+    out[WIRE.domAttribute.surfaceReason] = entry.edit.reason ?? "read only";
+  }
+  return out;
+}
+
+/**
+ * A CSS selector for the control that carries `data-surface-id` equal to `id` [S-DOM-3]. The id
+ * is quoted and escaped, so ids with colons, spaces, quotes, or backslashes work as they are.
+ */
+export function surfaceSelector(id: string): string {
+  const escaped = String(id).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\a ");
+  return `[${WIRE.domAttribute.surfaceId}="${escaped}"]`;
+}
+
+/**
+ * One plain-text line about an entry, for a screen reader or an agent log [S-DOM-4]:
+ * `Draft Jahmyr Gibbs (RB): unavailable, already drafted by another team; mutates draft, reversible, risk medium`.
+ */
+export function describeEntry(entry: Entry | ObservedEntry): string {
+  const name = isObserved(entry) ? entry.name : nameOf(entry);
+  if (entry.kind === "action") {
+    const s = entry.state ?? { available: true, reason: null };
+    const f = entry.effect;
+    const parts = [`mutates ${f?.mutates ?? "state"}`];
+    if (f?.idempotent) parts.push("idempotent");
+    const reversible = isObserved(entry)
+      ? !!f?.reversible
+      : !!((f as Effect | undefined)?.reversible ?? (f as Effect | undefined)?.undoable);
+    parts.push(reversible ? "reversible" : "not reversible");
+    parts.push(`risk ${f?.risk ?? WIRE.risk.medium}`);
+    if (f?.confirm) parts.push("confirm required");
+    const availability = s.available ? "available" : `unavailable, ${s.reason || "unavailable"}`;
+    return `${name}: ${availability}; ${parts.join(", ")}`;
+  }
+  if (entry.kind === "field") {
+    const ed = entry.edit;
+    const parts: string[] = [];
+    parts.push(ed?.readOnly ? `read only, ${ed.reason ?? "read only"}` : "editable");
+    if (entry.value !== undefined && entry.value !== null)
+      parts.push(`value ${JSON.stringify(entry.value)}`);
+    const max = ed && !ed.readOnly ? ed.maxLength : null;
+    if (max) parts.push(`up to ${max} characters`);
+    return `${name}: ${parts.join(", ")}`;
+  }
+  const total = entry.total ?? null;
+  const loaded = entry.loaded ?? null;
+  const parts: string[] = [];
+  if (loaded !== null && total !== null) parts.push(`${loaded} of ${total} loaded`);
+  else if (total !== null) parts.push(`${total} items`);
+  else if (loaded !== null) parts.push(`${loaded} loaded`);
+  else parts.push("collection");
+  const more = isObserved(entry) ? entry.index !== null : typeof entry.more === "function";
+  parts.push(more ? "can load more" : "cannot load more");
+  return `${name}: ${parts.join(", ")}`;
+}

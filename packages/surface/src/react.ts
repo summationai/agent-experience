@@ -8,7 +8,8 @@
 import { useEffect, useRef } from "react";
 import type { DependencyList } from "react";
 import type { Entry, Surface } from "./index";
-import { surface as defaultSurface } from "./index";
+import { surface as defaultSurface, surfaceAttributes } from "./index";
+import * as WIRE from "@axe/core/vocabulary";
 
 /**
  * `entry` is the object `register` takes. `deps` are the values it was computed from; the entry is
@@ -26,4 +27,50 @@ export function useSurface(
     target.register(entry);
   }, deps);
   useEffect(() => () => target.unregister(id.current), [target]);
+}
+
+/**
+ * The DOM attributes of one entry as React props [S-DOM-1]: what `surfaceAttributes` returns, with
+ * `aria-disabled` and `aria-readonly` as booleans. Spreads onto `button`, `input`, `div`, or any
+ * element that receives the control's interaction.
+ */
+export interface SurfaceProps {
+  "aria-label": string;
+  "aria-disabled"?: boolean;
+  "aria-readonly"?: boolean;
+  "data-surface-id": string;
+  "data-surface-kind": string;
+  "data-surface-object"?: string;
+  "data-surface-reason"?: string;
+}
+
+/**
+ * `useSurface` plus the control's attributes: registers `entry` while mounted (refreshing it in
+ * place when `deps` change) and returns the props the rendered control spreads, so the accessible
+ * name a browser agent or screen reader reads is the name `observe()` reports.
+ *
+ * ```tsx
+ * const props = useSurfaceProps(entry, [available, reason]);
+ * return <button {...props} disabled={!available} onClick={draft}>Draft</button>;
+ * ```
+ */
+export function useSurfaceProps(
+  entry: Entry,
+  deps: DependencyList,
+  target: Surface = defaultSurface,
+): SurfaceProps {
+  useSurface(entry, deps, target);
+  return toSurfaceProps(surfaceAttributes(entry));
+}
+
+/** Convert the string attributes into React props: boolean-valued ARIA attributes become booleans. */
+export function toSurfaceProps(attributes: Record<string, string>): SurfaceProps {
+  const out: Record<string, string | boolean> = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    out[key] =
+      key === WIRE.domAttribute.disabled || key === WIRE.domAttribute.readOnly
+        ? value === "true"
+        : value;
+  }
+  return out as unknown as SurfaceProps;
 }

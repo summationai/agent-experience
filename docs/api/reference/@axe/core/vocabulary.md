@@ -88,6 +88,10 @@ type WireApi =
   | "expose"
   | "useSurface"
   | "surfaceActions"
+  | "surfaceAttributes"
+  | "surfaceSelector"
+  | "describeEntry"
+  | "useSurfaceProps"
   | "withMimeTypes"
   | "customKind"
   | "suggestedReason"
@@ -183,6 +187,25 @@ type WireDisplayKind = "list" | "item" | "table" | "status" | "document";
 ```
 
 Union of every `displayKind` name.
+
+***
+
+<a id="wiredomattribute"></a>
+
+### WireDomAttribute
+
+```ts
+type WireDomAttribute = 
+  | "data-surface-id"
+  | "data-surface-kind"
+  | "data-surface-object"
+  | "data-surface-reason"
+  | "aria-label"
+  | "aria-disabled"
+  | "aria-readonly";
+```
+
+Union of every `domAttribute` name.
 
 ***
 
@@ -709,6 +732,7 @@ const api: Readonly<{
   currentRev: "currentRev";
   customKind: "customKind";
   describe: "describe";
+  describeEntry: "describeEntry";
   discover: "discover";
   expose: "expose";
   fetchHandler: "fetchHandler";
@@ -776,6 +800,8 @@ const api: Readonly<{
   state: "state";
   suggestedReason: "suggestedReason";
   surfaceActions: "surfaceActions";
+  surfaceAttributes: "surfaceAttributes";
+  surfaceSelector: "surfaceSelector";
   toHTML: "toHTML";
   tokenStore: "tokenStore";
   toMarkdown: "toMarkdown";
@@ -784,6 +810,7 @@ const api: Readonly<{
   ttlSeconds: "ttlSeconds";
   unregister: "unregister";
   useSurface: "useSurface";
+  useSurfaceProps: "useSurfaceProps";
   verifySiteKey: "verifySiteKey";
   withMimeTypes: "withMimeTypes";
 }>;
@@ -860,6 +887,26 @@ const displayKind: Readonly<{
 ```
 
 `displayKind` names.
+
+***
+
+<a id="domattribute"></a>
+
+### domAttribute
+
+```ts
+const domAttribute: Readonly<{
+  disabled: "aria-disabled";
+  label: "aria-label";
+  readOnly: "aria-readonly";
+  surfaceId: "data-surface-id";
+  surfaceKind: "data-surface-kind";
+  surfaceObject: "data-surface-object";
+  surfaceReason: "data-surface-reason";
+}>;
+```
+
+`domAttribute` names.
 
 ***
 
@@ -1440,6 +1487,7 @@ const WIRE: Readonly<{
      currentRev: "currentRev";
      customKind: "customKind";
      describe: "describe";
+     describeEntry: "describeEntry";
      discover: "discover";
      expose: "expose";
      fetchHandler: "fetchHandler";
@@ -1507,6 +1555,8 @@ const WIRE: Readonly<{
      state: "state";
      suggestedReason: "suggestedReason";
      surfaceActions: "surfaceActions";
+     surfaceAttributes: "surfaceAttributes";
+     surfaceSelector: "surfaceSelector";
      toHTML: "toHTML";
      tokenStore: "tokenStore";
      toMarkdown: "toMarkdown";
@@ -1515,6 +1565,7 @@ const WIRE: Readonly<{
      ttlSeconds: "ttlSeconds";
      unregister: "unregister";
      useSurface: "useSurface";
+     useSurfaceProps: "useSurfaceProps";
      verifySiteKey: "verifySiteKey";
      withMimeTypes: "withMimeTypes";
   }>;
@@ -1543,6 +1594,15 @@ const WIRE: Readonly<{
      list: "list";
      status: "status";
      table: "table";
+  }>;
+  domAttribute: Readonly<{
+     disabled: "aria-disabled";
+     label: "aria-label";
+     readOnly: "aria-readonly";
+     surfaceId: "data-surface-id";
+     surfaceKind: "data-surface-kind";
+     surfaceObject: "data-surface-object";
+     surfaceReason: "data-surface-reason";
   }>;
   entryKind: Readonly<{
      action: "action";

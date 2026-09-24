@@ -564,6 +564,24 @@ export const field = /* @__PURE__ */ Object.freeze({
   tenant: "tenant",
 } as const);
 
+/** `domAttribute` names. */
+export const domAttribute = /* @__PURE__ */ Object.freeze({
+  /** The entry id on the element that receives the interaction; one element per entry. */
+  surfaceId: "data-surface-id",
+  /** The entry kind: `action`, `field`, or `collection`. */
+  surfaceKind: "data-surface-kind",
+  /** The entry's `object`, when it has one. */
+  surfaceObject: "data-surface-object",
+  /** Why the control is unavailable or read only, in the application's words. */
+  surfaceReason: "data-surface-reason",
+  /** The entry name as the control's accessible name: the outcome, never the widget. */
+  label: "aria-label",
+  /** `true` on an unavailable action; the application keeps its own `disabled`. */
+  disabled: "aria-disabled",
+  /** `true` on a read-only field. */
+  readOnly: "aria-readonly",
+} as const);
+
 /** `reason` names. */
 export const reason = /* @__PURE__ */ Object.freeze({
   /** Emitted by the SDK when a `user` action is called without identity. */
@@ -838,6 +856,14 @@ export const api = /* @__PURE__ */ Object.freeze({
   useSurface: "useSurface",
   /** Derive AXE actions (observe and act) from a surface. */
   surfaceActions: "surfaceActions",
+  /** The attributes a rendered control carries for an entry (name, id, kind, reason). */
+  surfaceAttributes: "surfaceAttributes",
+  /** CSS selector that finds the rendered control for an entry id. */
+  surfaceSelector: "surfaceSelector",
+  /** One plain-text line for an entry: name, availability and reason, effect. */
+  describeEntry: "describeEntry",
+  /** React hook that registers an entry and returns its attributes as props. */
+  useSurfaceProps: "useSurfaceProps",
   /** Restrict a document kind to specific MIME types. */
   withMimeTypes: "withMimeTypes",
   /** Define a site-specific kind under `x-<org>.`. */
@@ -940,6 +966,7 @@ export const WIRE = /* @__PURE__ */ Object.freeze({
   entryKind,
   op,
   field,
+  domAttribute,
   reason,
   tool,
   cli,
@@ -988,6 +1015,8 @@ export type WireEntryKind = "action" | "field" | "collection";
 export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 /** Union of every `field` name. */
 export type WireField = "app" | "rev" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "available" | "requires" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "expectedRev" | "actor" | "changed" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
+/** Union of every `domAttribute` name. */
+export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-surface-object" | "data-surface-reason" | "aria-label" | "aria-disabled" | "aria-readonly";
 /** Union of every `reason` name. */
 export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required";
 /** Union of every `tool` name. */
@@ -997,7 +1026,7 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1122,6 +1151,13 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "expectedRev", name: "expectedRev" },
   { category: "field", key: "actor", name: "actor" },
   { category: "field", key: "changed", name: "changed" },
+  { category: "domAttribute", key: "surfaceId", name: "data-surface-id" },
+  { category: "domAttribute", key: "surfaceKind", name: "data-surface-kind" },
+  { category: "domAttribute", key: "surfaceObject", name: "data-surface-object" },
+  { category: "domAttribute", key: "surfaceReason", name: "data-surface-reason" },
+  { category: "domAttribute", key: "label", name: "aria-label" },
+  { category: "domAttribute", key: "disabled", name: "aria-disabled" },
+  { category: "domAttribute", key: "readOnly", name: "aria-readonly" },
   { category: "reason", key: "loginRequired", name: "login_required" },
   { category: "reason", key: "paymentRequired", name: "payment_required" },
   { category: "reason", key: "consentRequired", name: "consent_required" },
@@ -1369,6 +1405,10 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "expose", name: "expose" },
   { category: "api", key: "useSurface", name: "useSurface" },
   { category: "api", key: "surfaceActions", name: "surfaceActions" },
+  { category: "api", key: "surfaceAttributes", name: "surfaceAttributes" },
+  { category: "api", key: "surfaceSelector", name: "surfaceSelector" },
+  { category: "api", key: "describeEntry", name: "describeEntry" },
+  { category: "api", key: "useSurfaceProps", name: "useSurfaceProps" },
   { category: "api", key: "withMimeTypes", name: "withMimeTypes" },
   { category: "api", key: "customKind", name: "customKind" },
   { category: "api", key: "suggestedReason", name: "suggestedReason" },

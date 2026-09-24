@@ -1452,6 +1452,18 @@ The result envelope: every AXE response body is one of these.
 type Risk = WireRisk;
 ```
 
+***
+
+<a id="surfaceattributes"></a>
+
+### SurfaceAttributes
+
+```ts
+type SurfaceAttributes = Record<string, string>;
+```
+
+Attributes a rendered control carries, as `surfaceAttributes` returns them. Values are strings; React callers use `useSurfaceProps`.
+
 ## Variables
 
 <a id="act-1"></a>
@@ -1761,3 +1773,76 @@ Create a surface. Applications usually create one per page and call `expose()`.
 #### Returns
 
 [`Surface`](#surface)
+
+***
+
+<a id="describeentry"></a>
+
+### describeEntry()
+
+```ts
+function describeEntry(entry): string;
+```
+
+One plain-text line about an entry, for a screen reader or an agent log [S-DOM-4]:
+`Draft Jahmyr Gibbs (RB): unavailable, already drafted by another team; mutates draft, reversible, risk medium`.
+
+#### Parameters
+
+##### entry
+
+[`Entry`](#entry) \| [`ObservedEntry`](#observedentry)
+
+#### Returns
+
+`string`
+
+***
+
+<a id="surfaceattributes-1"></a>
+
+### surfaceAttributes()
+
+```ts
+function surfaceAttributes(entry): SurfaceAttributes;
+```
+
+The attributes the control for `entry` carries [S-DOM-1]: `aria-label` (the entry name, so
+browser agents and screen readers read the outcome), `data-surface-id`, `data-surface-kind`,
+`data-surface-object` when the entry has one, `aria-disabled="true"` plus `data-surface-reason`
+on an unavailable action, and `aria-readonly="true"` plus `data-surface-reason` on a read-only
+field. Collections carry the common set only. Set them on the element that receives the
+interaction; `surfaceSelector(id)` finds it again.
+
+#### Parameters
+
+##### entry
+
+[`Entry`](#entry) \| [`ObservedEntry`](#observedentry)
+
+#### Returns
+
+[`SurfaceAttributes`](#surfaceattributes)
+
+***
+
+<a id="surfaceselector"></a>
+
+### surfaceSelector()
+
+```ts
+function surfaceSelector(id): string;
+```
+
+A CSS selector for the control that carries `data-surface-id` equal to `id` [S-DOM-3]. The id
+is quoted and escaped, so ids with colons, spaces, quotes, or backslashes work as they are.
+
+#### Parameters
+
+##### id
+
+`string`
+
+#### Returns
+
+`string`

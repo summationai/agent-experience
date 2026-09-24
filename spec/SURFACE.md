@@ -85,6 +85,30 @@ Surface came out of two trials on business applications with opposite shapes (st
 
 ## 7. Browser agents
 
-**[S-DOM-1]** Applications SHOULD mirror entry names to the DOM as accessible names (`aria-label`) and mark controls with `data-surface-id`, so browser-driving agents and screen readers read the same outcome-stating names. Two of three gains in the first trial came from the names alone.
+Browser-driving agents and screen readers read a control's accessible name, not its registration. Surface mirrors each entry onto the element that receives its interaction, so the page, `observe()`, and the screen reader all read the same outcome-stating name. Two of three gains in the first trial came from the names alone.
+
+**[S-DOM-1] The DOM mirror.** The rules below hold for every entry that has a control on screen.
+
+1. An entry's `name` states the outcome in the application's own words ("Draft Jahmyr Gibbs (RB)", "Lock March", "Load more players"). It MUST NOT name the widget ("button", "Draft button"), repeat the `role`, or carry the state ("disabled", "already drafted"): the role is `role`, the state is `state`. The same string is the control's accessible name and the `name` in `observe()`.
+2. The element that receives the entry's interaction (the button, the input, the scrolling container) carries these attributes, and no other element in the document carries its `data-surface-id`:
+
+   | Attribute             | Value                                    | When                                     |
+   | --------------------- | ---------------------------------------- | ---------------------------------------- |
+   | `aria-label`          | the entry `name`                         | always                                   |
+   | `data-surface-id`     | the entry `id`                           | always; exactly one element per entry    |
+   | `data-surface-kind`   | `action`, `field`, or `collection`       | always                                   |
+   | `data-surface-object` | the entry `object`                       | when the entry has one                   |
+   | `aria-disabled`       | `true`                                   | an action whose `state` is not available |
+   | `aria-readonly`       | `true`                                   | a read-only field                        |
+   | `data-surface-reason` | the `reason`, in the application's words | with `aria-disabled` or `aria-readonly`  |
+
+   Collections carry the common set only.
+
+3. `surfaceAttributes(entry)` returns that set as strings from a registered entry or an observed row; `useSurfaceProps(entry, deps)` (`@axe/surface/react`) registers the entry like `useSurface` and returns the set as props, with `aria-disabled` and `aria-readonly` as booleans. An application that uses either MUST render every attribute returned on that element and MUST NOT replace `aria-label` or `data-surface-id` with other values. An application that renders by hand SHOULD carry the same set.
+4. The mirror reports; it does not disable [S-RULE-1]. The helper sets `aria-disabled`, never `disabled`, so the application keeps its own disabling logic, and an `aria-disabled` control stays focusable, so a screen reader reaches the reason beside it.
 
 **[S-DOM-2]** `expose(window)` publishes `observe`, `act`, and `rev` at `window.__surface` for agents that drive the page.
+
+**[S-DOM-3] The selector contract.** `surfaceSelector(id)` returns `[data-surface-id="<id>"]` with the id as a double-quoted CSS string: backslashes and double quotes are escaped with a backslash, a newline becomes `\a `, and everything else (colons, spaces, dots, brackets) is left as it is. On a page that follows [S-DOM-1], `document.querySelector(surfaceSelector(row.id))` MUST return the control for `row.id` from any observation, whatever the id contains. Ids are stable [S-ACT-5], so a selector computed from one observation still finds the control after the revision moves; a stale selector is never an error, a stale act is [S-ACT-2].
+
+**[S-DOM-4] One-line description.** `describeEntry(entry)` returns one line of plain text: the `name`, a colon, then the entry's availability in the application's words (`available`, or `unavailable, <reason>`; for a field `editable` or `read only, <reason>`, followed by its value and length; for a collection what is loaded and whether it can load more), and for an action a semicolon and its effect (`mutates <state>`, `idempotent` when set, `reversible` or `not reversible`, `risk <level>`, `confirm required` when set): "Draft Jahmyr Gibbs (RB): unavailable, already drafted by another team; mutates draft, reversible, risk medium". It is agent-read text [S-AV-4]. Applications MAY render it as `aria-description` on the control or log it beside each act; the helper does not render it by default.
