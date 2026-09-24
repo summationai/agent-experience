@@ -149,6 +149,20 @@ Invoke an action. Generates an idempotency key for mutating actions when none is
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="live"></a>
+
+##### live()
+
+```ts
+live(): Live | undefined;
+```
+
+The manifest's `live` member, when the site publishes live state.
+
+###### Returns
+
+[`Live`](#live-1) \| `undefined`
+
 <a id="manifest"></a>
 
 ##### manifest()
@@ -239,6 +253,10 @@ Drive the whole escalation ladder: invoke, satisfy each `needs_input` from
 registered fulfillers (confirming sensitive payloads), poll pending work, and
 surface a handoff only when nothing else works.
 
+When `expectedRev` is passed, the revision is tracked through the ladder: the first call
+carries it, and each continuation carries the `rev` of the result it continues from, so a
+change by someone else between two rungs is caught as `conflict` rather than applied blind.
+
 ###### Type Parameters
 
 ###### O
@@ -262,6 +280,29 @@ surface a handoff only when nothing else works.
 ###### Returns
 
 `Promise`\<[`RunOutcome`](#runoutcome)\<`O`\>\>
+
+<a id="state"></a>
+
+##### state()
+
+```ts
+state(options?): Promise<LiveState>;
+```
+
+What can be done right now, and why not the rest: `GET /axe/state` (never cached), computed for
+the caller `auth` identifies. Throws `AXEClientError` when the site publishes no live state.
+
+###### Parameters
+
+###### options?
+
+###### signal?
+
+`AbortSignal`
+
+###### Returns
+
+`Promise`\<[`LiveState`](#livestate)\>
 
 <a id="discover"></a>
 
@@ -599,6 +640,16 @@ optional affordances?: Affordance[];
 auth: WireAuthMode;
 ```
 
+<a id="availability"></a>
+
+##### availability?
+
+```ts
+optional availability?: Availability;
+```
+
+Computed at render time: whether the action can be done right now (the anonymous view in the manifest).
+
 <a id="deprecated"></a>
 
 ##### deprecated?
@@ -927,6 +978,16 @@ optional headers?: Record<string, string>;
 error: ErrorBody;
 ```
 
+<a id="rev"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The site's current revision, when it has one. On a stale `conflict` it equals `details.currentRev`.
+
 <a id="status"></a>
 
 ##### status
@@ -1103,6 +1164,17 @@ whatAgentShouldSayToUser: string;
 optional context?: Partial<RequestContext>;
 ```
 
+<a id="expectedrev"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision you observed (from `state()`, `manifest().live.rev`, or a previous result's
+`rev`). A site with live state refuses the call with `conflict` when it moved, applying nothing.
+
 <a id="idempotencykey"></a>
 
 ##### idempotencyKey?
@@ -1121,13 +1193,71 @@ optional signal?: AbortSignal;
 
 ***
 
+<a id="live-1"></a>
+
+### Live
+
+`manifest.live`: where live state is served, and the revision when the manifest was rendered.
+
+#### Properties
+
+<a id="rev-1"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The revision at manifest render time. Manifests are cached; prefer `url`.
+
+<a id="url-1"></a>
+
+##### url?
+
+```ts
+optional url?: string;
+```
+
+Absolute URL of the state endpoint (`/axe/state`), served with `Cache-Control: no-store`.
+
+***
+
+<a id="livestate"></a>
+
+### LiveState
+
+The document at `/axe/state`.
+
+#### Properties
+
+<a id="actions"></a>
+
+##### actions
+
+```ts
+actions: Record<string, Availability>;
+```
+
+Every action in the manifest; one that declares no availability is `{ available: true }`.
+
+<a id="rev-2"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+***
+
 <a id="manifest-1"></a>
 
 ### Manifest
 
 #### Properties
 
-<a id="actions"></a>
+<a id="actions-1"></a>
 
 ##### actions
 
@@ -1199,6 +1329,16 @@ optional humanFallbackUrl?: string;
 optional indexUrl?: string;
 ```
 
+<a id="live-2"></a>
+
+##### live?
+
+```ts
+optional live?: Live;
+```
+
+The site publishes live state: a revision and per-action availability. See spec §21.
+
 <a id="name-2"></a>
 
 ##### name
@@ -1245,6 +1385,14 @@ optional updatedAt?: string;
 
 ```ts
 handoff: Handoff;
+```
+
+<a id="rev-3"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
 ```
 
 <a id="status-1"></a>
@@ -1311,6 +1459,14 @@ message: string;
 reason: string;
 ```
 
+<a id="rev-4"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
 <a id="status-2"></a>
 
 ##### status
@@ -1340,6 +1496,16 @@ status: "needs_input";
 ```ts
 output: O;
 ```
+
+<a id="rev-5"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The revision the change produced, when the site has one.
 
 <a id="status-3"></a>
 
@@ -1379,6 +1545,14 @@ pollUrl: string;
 
 ```ts
 retryAfter: number;
+```
+
+<a id="rev-6"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
 ```
 
 <a id="status-4"></a>
@@ -1460,6 +1634,21 @@ optional context?: Partial<RequestContext>;
 ###### Inherited from
 
 [`InvokeOptions`](#invokeoptions).[`context`](#context)
+
+<a id="expectedrev-1"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision you observed (from `state()`, `manifest().live.rev`, or a previous result's
+`rev`). A site with live state refuses the call with `conflict` when it moved, applying nothing.
+
+###### Inherited from
+
+[`InvokeOptions`](#invokeoptions).[`expectedRev`](#expectedrev)
 
 <a id="idempotencykey-1"></a>
 
@@ -1543,6 +1732,86 @@ optional signal?: AbortSignal;
 
 ## Type Aliases
 
+<a id="availability-1"></a>
+
+### Availability
+
+```ts
+type Availability = 
+  | {
+  available: true;
+  handoff?: undefined;
+  reason?: undefined;
+  requires?: undefined;
+}
+  | {
+  available: false;
+  handoff?: HandoffSpec;
+  reason: string;
+  requires?: Accept[];
+};
+```
+
+Whether an action can be done right now, and if not, why and what would change that.
+
+#### Union Members
+
+##### Type Literal
+
+```ts
+{
+  available: true;
+  handoff?: undefined;
+  reason?: undefined;
+  requires?: undefined;
+}
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  available: false;
+  handoff?: HandoffSpec;
+  reason: string;
+  requires?: Accept[];
+}
+```
+
+###### available
+
+```ts
+available: false;
+```
+
+###### handoff?
+
+```ts
+optional handoff?: HandoffSpec;
+```
+
+A step only a human can take.
+
+###### reason
+
+```ts
+reason: string;
+```
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+```ts
+optional requires?: Accept[];
+```
+
+`accepts`-shaped kinds that would make the action available.
+
+***
+
 <a id="jsonvalue"></a>
 
 ### JsonValue
@@ -1583,6 +1852,18 @@ The result envelope: every AXE response body is one of these.
 ##### O
 
 `O` = [`JsonValue`](#jsonvalue)
+
+***
+
+<a id="revision"></a>
+
+### Revision
+
+```ts
+type Revision = string | number;
+```
+
+A site's revision: an opaque string or number that moves with every change an agent could observe.
 
 ***
 

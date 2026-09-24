@@ -26,6 +26,8 @@ export const path = /* @__PURE__ */ Object.freeze({
   resume: "/axe/resume",
   /** Prefix for the SDK's default `pending` poll URLs: `GET /axe/poll/{token}`. */
   poll: "/axe/poll",
+  /** `GET` returns the live state: the current `rev` and every action's `availability`. Served with `Cache-Control: no-store`. */
+  state: "/axe/state",
 } as const);
 
 /** `header` names. */
@@ -272,8 +274,6 @@ export const op = /* @__PURE__ */ Object.freeze({
 export const field = /* @__PURE__ */ Object.freeze({
   /** The application name the surface belongs to. */
   app: "app",
-  /** The application's single revision counter. */
-  rev: "rev",
   /** When the snapshot was taken. */
   at: "at",
   /** The indexed table of controls. */
@@ -288,10 +288,6 @@ export const field = /* @__PURE__ */ Object.freeze({
   object: "object",
   /** `{ available, reason?, requires?, handoff? }` for action entries. */
   state: "state",
-  /** Whether the control can be activated right now. */
-  available: "available",
-  /** `accepts`-shaped list of kinds that would make the control available. */
-  requires: "requires",
   /** `{ mutates, idempotent, reversible, risk, confirm?, text? }`. */
   effect: "effect",
   /** Name of the state the action changes. */
@@ -318,8 +314,6 @@ export const field = /* @__PURE__ */ Object.freeze({
   op: "op",
   /** Entry id or index to act on. */
   target: "target",
-  /** The revision the agent observed; the act is refused if it moved. */
-  expectedRev: "expectedRev",
   /** Who is acting: `agent`, `user`, or an identity. */
   actor: "actor",
   /** Entry ids whose state the act changed. */
@@ -452,7 +446,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   summary: "summary",
   /** JSON Pointer (or array of pointers) to absolute image URLs. */
   image: "image",
-  /** The human-facing page for an item, a handoff, a contact, or a document. */
+  /** The human-facing page for an item, a handoff, a contact, or a document; on `live`, the state endpoint. */
   url: "url",
   /** `{ amount, currency, period? }`. */
   price: "price",
@@ -506,7 +500,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   idempotencyKey: "idempotencyKey",
   /** Result discriminator. */
   status: "status",
-  /** Short machine-readable code for why input or a human is needed. */
+  /** Short machine-readable code for why input or a human is needed; on `availability` and `unavailable` details, plain language for why an action cannot be done right now. */
   reason: "reason",
   /** Agent-facing explanation. */
   message: "message",
@@ -526,7 +520,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   fallback: "fallback",
   /** The value satisfying the chosen kind. */
   payload: "payload",
-  /** `{ reason, instructions, url, resumeToken, expiresAt, whatAgentShouldSayToUser }`. */
+  /** `{ reason, instructions, url, resumeToken, expiresAt, whatAgentShouldSayToUser }`; without the token members on `availability`. */
   handoff: "handoff",
   /** Signed, opaque token to resume after the human acts. */
   resumeToken: "resumeToken",
@@ -562,6 +556,20 @@ export const field = /* @__PURE__ */ Object.freeze({
   errorCode: "errorCode",
   /** Tenant id on multi-tenant platforms. */
   tenant: "tenant",
+  /** `{ rev?, url? }`: the site publishes live state and a revision. */
+  live: "live",
+  /** `{ available, reason?, requires?, handoff? }`: whether the action can be done right now, and why not. */
+  availability: "availability",
+  /** Whether the action or control can be done right now. */
+  available: "available",
+  /** `accepts`-shaped list of kinds that would make the action available. */
+  requires: "requires",
+  /** The site's single revision: an opaque string or number that moves with every observable change. */
+  rev: "rev",
+  /** The revision the agent observed; the call is refused with `conflict` if it moved. */
+  expectedRev: "expectedRev",
+  /** The site's revision at the time a stale `expectedRev` was refused. */
+  currentRev: "currentRev",
 } as const);
 
 /** `reason` names. */
@@ -588,6 +596,8 @@ export const tool = /* @__PURE__ */ Object.freeze({
   manifest: "axe_manifest",
   /** Poll a `pending` result's `pollUrl` until it settles. */
   poll: "axe_poll",
+  /** Fetch `/axe/state`: the current revision and what can be done right now. */
+  state: "axe_state",
 } as const);
 
 /** `cli` names. */
@@ -722,7 +732,7 @@ export const api = /* @__PURE__ */ Object.freeze({
   onResume: "onResume",
   /** Action hook that produces the current result for a `pending` action. */
   onPoll: "onPoll",
-  /** Server-side object attached to a token and delivered back to hooks. */
+  /** Core: server-side object attached to a token and delivered back to hooks. Client: fetch `/axe/state`. */
   state: "state",
   /** Record that the human finished a handoff, optionally binding identity. */
   completeHandoff: "completeHandoff",
@@ -764,6 +774,12 @@ export const api = /* @__PURE__ */ Object.freeze({
   verifySiteKey: "verifySiteKey",
   /** Configuration for serving a platform index. */
   index: "index",
+  /** Config: returns the site's current revision; enables `rev` on envelopes, the `expectedRev` check, and `/axe/state`. */
+  revision: "revision",
+  /** Return the manifest with `live.rev` and each action's `availability` computed for a request. */
+  describeLive: "describeLive",
+  /** Helper that turns an `Availability` into an `unavailable` error with `details`. */
+  unavailable: "unavailable",
   /** Find a manifest from any URL. */
   discover: "discover",
   /** Return the loaded manifest. */
@@ -788,6 +804,8 @@ export const api = /* @__PURE__ */ Object.freeze({
   toMarkdown: "toMarkdown",
   /** Render a `PresentedResult` as a self-contained HTML page. */
   toHTML: "toHTML",
+  /** Render a `/axe/state` document as Markdown: what can be done now, and why not. */
+  stateToMarkdown: "stateToMarkdown",
   /** Derive an MCP server from an AXE server or manifest URL. */
   createMcpServer: "createMcpServer",
   /** Connect an MCP server to stdio. */
@@ -951,7 +969,7 @@ export type Wire = typeof WIRE;
 /** Union of every `protocol` name. */
 export type WireProtocol = "axe/0.1";
 /** Union of every `path` name. */
-export type WirePath = "/.well-known/axe.json" | "/axe/manifest" | "/.well-known/axe-index.json" | "/axe/actions" | "/axe/continue" | "/axe/resume" | "/axe/poll";
+export type WirePath = "/.well-known/axe.json" | "/axe/manifest" | "/.well-known/axe-index.json" | "/axe/actions" | "/axe/continue" | "/axe/resume" | "/axe/poll" | "/axe/state";
 /** Union of every `header` name. */
 export type WireHeader = "AXE-Protocol" | "AXE-Manifest" | "Retry-After" | "RateLimit-Policy" | "Authorization" | "User-Agent" | "Content-Type";
 /** Union of every `link` name. */
@@ -987,17 +1005,17 @@ export type WireEntryKind = "action" | "field" | "collection";
 /** Union of every `op` name. */
 export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 /** Union of every `field` name. */
-export type WireField = "app" | "rev" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "available" | "requires" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "expectedRev" | "actor" | "changed" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
+export type WireField = "app" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "actor" | "changed" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant" | "live" | "availability" | "available" | "requires" | "rev" | "expectedRev" | "currentRev";
 /** Union of every `reason` name. */
 export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required";
 /** Union of every `tool` name. */
-export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll";
+export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
 export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1009,6 +1027,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "path", key: "continue", name: "/axe/continue" },
   { category: "path", key: "resume", name: "/axe/resume" },
   { category: "path", key: "poll", name: "/axe/poll" },
+  { category: "path", key: "state", name: "/axe/state" },
   { category: "header", key: "protocol", name: "AXE-Protocol" },
   { category: "header", key: "manifest", name: "AXE-Manifest" },
   { category: "header", key: "retryAfter", name: "Retry-After" },
@@ -1096,7 +1115,6 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "op", key: "typeText", name: "TYPE_TEXT" },
   { category: "op", key: "scrollDown", name: "SCROLL_DOWN" },
   { category: "field", key: "app", name: "app" },
-  { category: "field", key: "rev", name: "rev" },
   { category: "field", key: "at", name: "at" },
   { category: "field", key: "entries", name: "entries" },
   { category: "field", key: "objects", name: "objects" },
@@ -1104,8 +1122,6 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "role", name: "role" },
   { category: "field", key: "object", name: "object" },
   { category: "field", key: "state", name: "state" },
-  { category: "field", key: "available", name: "available" },
-  { category: "field", key: "requires", name: "requires" },
   { category: "field", key: "effect", name: "effect" },
   { category: "field", key: "mutates", name: "mutates" },
   { category: "field", key: "confirm", name: "confirm" },
@@ -1119,7 +1135,6 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "sort", name: "sort" },
   { category: "field", key: "op", name: "op" },
   { category: "field", key: "target", name: "target" },
-  { category: "field", key: "expectedRev", name: "expectedRev" },
   { category: "field", key: "actor", name: "actor" },
   { category: "field", key: "changed", name: "changed" },
   { category: "reason", key: "loginRequired", name: "login_required" },
@@ -1131,6 +1146,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "tool", key: "resume", name: "axe_resume" },
   { category: "tool", key: "manifest", name: "axe_manifest" },
   { category: "tool", key: "poll", name: "axe_poll" },
+  { category: "tool", key: "state", name: "axe_state" },
   { category: "cli", key: "init", name: "axe init" },
   { category: "cli", key: "validate", name: "axe validate" },
   { category: "cli", key: "inspect", name: "axe inspect" },
@@ -1257,6 +1273,13 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "ladder", name: "ladder" },
   { category: "field", key: "errorCode", name: "errorCode" },
   { category: "field", key: "tenant", name: "tenant" },
+  { category: "field", key: "live", name: "live" },
+  { category: "field", key: "availability", name: "availability" },
+  { category: "field", key: "available", name: "available" },
+  { category: "field", key: "requires", name: "requires" },
+  { category: "field", key: "rev", name: "rev" },
+  { category: "field", key: "expectedRev", name: "expectedRev" },
+  { category: "field", key: "currentRev", name: "currentRev" },
   { category: "payload", key: "token", name: "token" },
   { category: "payload", key: "provider", name: "provider" },
   { category: "payload", key: "brand", name: "brand" },
@@ -1332,6 +1355,9 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "authenticate", name: "authenticate" },
   { category: "api", key: "verifySiteKey", name: "verifySiteKey" },
   { category: "api", key: "index", name: "index" },
+  { category: "api", key: "revision", name: "revision" },
+  { category: "api", key: "describeLive", name: "describeLive" },
+  { category: "api", key: "unavailable", name: "unavailable" },
   { category: "api", key: "discover", name: "discover" },
   { category: "api", key: "manifest", name: "manifest" },
   { category: "api", key: "invoke", name: "invoke" },
@@ -1344,6 +1370,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "present", name: "present" },
   { category: "api", key: "toMarkdown", name: "toMarkdown" },
   { category: "api", key: "toHTML", name: "toHTML" },
+  { category: "api", key: "stateToMarkdown", name: "stateToMarkdown" },
   { category: "api", key: "createMcpServer", name: "createMcpServer" },
   { category: "api", key: "serveStdio", name: "serveStdio" },
   { category: "api", key: "serveHttp", name: "serveHttp" },

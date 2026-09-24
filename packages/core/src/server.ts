@@ -8,6 +8,7 @@ import type {
   Accept,
   ActionDefinition,
   AgentIdentification,
+  Availability,
   Brand,
   Contact,
   ErrorBody,
@@ -18,6 +19,8 @@ import type {
   JsonSchema,
   JsonValue,
   Ladder,
+  Live,
+  LiveState,
   Manifest,
   ManifestAuth,
   PlatformIndex,
@@ -25,8 +28,15 @@ import type {
   RequestContext,
   Result,
   ResultStatus,
+  Revision,
 } from "./types";
-import type { RegisteredAction, TenantInfo, MaybePromise, ResultHelpers } from "./action";
+import type {
+  AvailabilityContext,
+  RegisteredAction,
+  TenantInfo,
+  MaybePromise,
+  ResultHelpers,
+} from "./action";
 import { ActionDefinitionError } from "./action";
 import { validateAffordanceBinding } from "./display";
 import { stripReserved } from "./display";
@@ -42,7 +52,17 @@ import {
 import type { IdempotencyStore } from "./idempotency";
 import { validateJsonSchema } from "./json-schema";
 import type { HandoffIntent, ResultIntent } from "./results";
-import { AXEError, INTENT, fail, handoff, isIntent, needsInput, ok, pending } from "./results";
+import {
+  AXEError,
+  INTENT,
+  fail,
+  handoff,
+  isIntent,
+  needsInput,
+  ok,
+  pending,
+  unavailable,
+} from "./results";
 import { AGENT_DIRECTIVE_PATTERNS } from "./lint";
 import { MemoryTokenStore, TokenSigner, hashJson, loadToken, mintToken } from "./tokens";
 import type { TokenRecord, TokenStore } from "./tokens";
@@ -100,6 +120,19 @@ export interface AdapterContext {
   tenant?: TenantInfo | null;
 }
 
+/** Passed to the `revision` provider. */
+export interface RevisionContext {
+  /** The request being served; null when the manifest is described outside a request. */
+  request: Request | null;
+  tenant: TenantInfo | null;
+}
+
+/**
+ * Returns the site's current revision: one opaque string or number for the whole site (or tenant)
+ * that moves with every change an agent could observe, whoever made it. `surface.currentRev` fits.
+ */
+export type RevisionProvider = (ctx: RevisionContext) => MaybePromise<Revision>;
+
 export interface AXEConfig {
   name: string;
   description: string;
@@ -127,6 +160,12 @@ export interface AXEConfig {
   index?: IndexConfig;
   /** `Cache-Control` max-age for the manifest, in seconds. Default 300. */
   manifestCacheSeconds?: number;
+  /**
+   * Live state (spec §21). When set, every envelope carries `rev`, a request whose `expectedRev`
+   * differs from the current revision is refused with `conflict` before anything runs, and
+   * `/axe/state` is served.
+   */
+  revision?: RevisionProvider;
   onRequest?: (ctx: HookContext) => MaybePromise<void | ResultIntent>;
   onResult?: (ctx: HookContext, result: Result) => MaybePromise<void>;
   onError?: (ctx: HookContext, error: unknown) => MaybePromise<void>;
@@ -151,7 +190,16 @@ const HTTP_STATUS: Record<ErrorCode, number> = {
   unavailable: 503,
 };
 
-const helpers: ResultHelpers = { ok, needsInput, handoff, pending, fail };
+const helpers: ResultHelpers = { ok, needsInput, handoff, pending, fail, unavailable };
+
+/** Two revisions are equal when they are the same value; a numeric string equals its number. */
+function sameRevision(a: Revision, b: Revision): boolean {
+  return a === b || String(a) === String(b);
+}
+
+function isRevision(v: unknown): v is Revision {
+  return (typeof v === "string" && v.length > 0) || (typeof v === "number" && Number.isFinite(v));
+}
 
 type WithoutUndefined<T> = { [K in keyof T]: Exclude<T[K], undefined> };
 
@@ -334,7 +382,184 @@ export class AXE {
       brand: t?.brand ?? c.brand,
       indexUrl: t?.indexUrl ?? c.indexUrl,
       updatedAt: t?.updatedAt ?? c.updatedAt,
+      live: this.hasLive()
+        ? ({ url: `${this.tenantBaseUrl(t)}${WIRE.path.state}` } as Live)
+        : undefined,
     }) as Manifest;
+  }
+
+  /** Whether the site publishes live state: a `revision` provider or any action with `availability`. */
+  hasLive(): boolean {
+    if (this.config.revision) return true;
+    for (const a of this.actions.values()) if (a.spec.availability) return true;
+    return false;
+  }
+
+  /**
+   * The manifest as the HTTP endpoint serves it: `describe()` plus `live.rev` and each declaring
+   * action's `availability`, computed for an anonymous caller (the manifest is cacheable and shared).
+   * Per-caller availability is served by `/axe/state`.
+   */
+  async describeLive(
+    tenant?: TenantInfo | null,
+    request: Request | null = null,
+  ): Promise<Manifest> {
+    const m = this.describe(tenant);
+    if (!this.hasLive()) return m;
+    const t = tenant ?? null;
+    const rev = await this.currentRevision(request, t);
+    if (rev !== undefined) m.live = { ...m.live, rev };
+    const actions: ActionDefinition[] = [];
+    for (const a of this.actions.values()) {
+      if (!a.spec.availability) {
+        actions.push(a.definition);
+        continue;
+      }
+      const availability = await this.availabilityOf(a, {
+        action: a.name,
+        identity: null,
+        tenant: t,
+        request,
+      });
+      actions.push(availability ? { ...a.definition, availability } : a.definition);
+    }
+    m.actions = actions;
+    return m;
+  }
+
+  /** The document served at `/axe/state`, for one caller. */
+  async liveState(
+    identity: Identity | null,
+    tenant: TenantInfo | null,
+    request: Request | null = null,
+  ): Promise<LiveState> {
+    const state: LiveState = { actions: {} };
+    const rev = await this.currentRevision(request, tenant);
+    if (rev !== undefined) state.rev = rev;
+    for (const a of this.actions.values()) {
+      state.actions[a.name] = a.spec.availability
+        ? ((await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? {
+            available: false,
+            reason: "unavailable",
+          })
+        : { available: true };
+    }
+    return state;
+  }
+
+  /** The current revision from the provider, or undefined when there is none or it failed (reported to `onError`). */
+  private async currentRevision(
+    request: Request | null,
+    tenant: TenantInfo | null,
+  ): Promise<Revision | undefined> {
+    if (!this.config.revision) return undefined;
+    try {
+      const rev = await this.config.revision({ request, tenant });
+      if (isRevision(rev)) return rev;
+      throw new Error(
+        `revision() returned ${JSON.stringify(rev)}; a revision is a non-empty string or a finite number.`,
+      );
+    } catch (e) {
+      try {
+        await this.config.onError?.(
+          {
+            endpoint: "action",
+            action: "",
+            request: request ?? new Request(this.config.baseUrl),
+            context: {},
+            tenant,
+          },
+          e,
+        );
+      } catch (hookErr) {
+        console.error("[axe] onError hook failed", hookErr);
+      }
+      return undefined;
+    }
+  }
+
+  /**
+   * Run an action's `availability` hook and normalize it to the wire shape. Agent-read text in it is
+   * held to [P-HON-1]; a violation is reported to `onError` and the availability is withheld (undefined).
+   */
+  private async availabilityOf(
+    a: RegisteredAction,
+    ctx: AvailabilityContext,
+  ): Promise<Availability | undefined> {
+    if (!a.spec.availability) return undefined;
+    const hookCtx: HookContext = {
+      endpoint: "action",
+      action: a.name,
+      request: ctx.request ?? new Request(this.config.baseUrl),
+      context: {},
+      tenant: ctx.tenant,
+    };
+    try {
+      const raw = await a.spec.availability(ctx);
+      if (raw.available) return { available: true };
+      if (!raw.reason?.trim())
+        throw new Error(
+          `Action "${a.name}" reported available: false without a reason (spec [P-LIVE-5]).`,
+        );
+      const out: Availability = { available: false, reason: raw.reason };
+      if (raw.requires?.length)
+        out.requires = raw.requires.map((e) => this.toWireAccept(a.name, e));
+      if (raw.handoff) out.handoff = { ...raw.handoff };
+      const texts = [
+        out.reason,
+        ...(out.requires ?? []).flatMap((r) => [r.title, r.description, r.instructions ?? ""]),
+        out.handoff?.instructions ?? "",
+        out.handoff?.whatAgentShouldSayToUser ?? "",
+      ];
+      for (const t of texts)
+        for (const re of AGENT_DIRECTIVE_PATTERNS) {
+          const m = re.exec(t);
+          if (m)
+            throw new Error(
+              `Action "${a.name}" availability text contains an instruction aimed at the agent ("${m[0]}") (spec [P-HON-1]).`,
+            );
+        }
+      return out;
+    } catch (e) {
+      try {
+        await this.config.onError?.(hookCtx, e);
+      } catch (hookErr) {
+        console.error("[axe] onError hook failed", hookErr);
+      }
+      return undefined;
+    }
+  }
+
+  /**
+   * The stale check (spec [P-LIVE-3]): when the site has a revision and the request carried
+   * `expectedRev`, refuse with `conflict` unless they match. Returns undefined when the call may proceed.
+   */
+  private async staleCheck(
+    expectedRev: Revision | undefined,
+    request: Request,
+    tenant: TenantInfo | null,
+  ): Promise<Result | undefined> {
+    if (expectedRev === undefined || !this.config.revision) return undefined;
+    const current = await this.currentRevision(request, tenant);
+    if (current === undefined)
+      return {
+        status: WIRE.status.error,
+        error: fail(
+          WIRE.error.internal,
+          "The site could not determine its current revision. The site has been notified.",
+          { retryable: true },
+        ).error,
+      };
+    if (sameRevision(expectedRev, current)) return undefined;
+    return {
+      status: WIRE.status.error,
+      error: fail(
+        WIRE.error.conflict,
+        `The site changed since you observed it (you saw revision ${String(expectedRev)}, it is now ${String(current)}). Nothing was applied; read the current state and decide again.`,
+        { retryable: true, details: { expectedRev, currentRev: current } },
+      ).error,
+      rev: current,
+    };
   }
 
   /** A `(Request) => Promise<Response>` for the whole protocol surface. Adapters wrap this. */
@@ -392,8 +617,17 @@ export class AXE {
     if (method === "OPTIONS") return this.preflight(request);
 
     if (method === "GET" && (path === WIRE.path.manifest || path === WIRE.path.manifestAlias)) {
-      return this.json(request, this.describe(tenant), 200, {
+      return this.json(request, await this.describeLive(tenant, request), 200, {
         "Cache-Control": `public, max-age=${this.config.manifestCacheSeconds ?? 300}`,
+      });
+    }
+    if (path === WIRE.path.state && this.hasLive()) {
+      if (method !== "GET") return this.methodNotAllowed(request, "GET, OPTIONS");
+      const identity = await this.establishIdentity(request, adapter);
+      const state = await this.liveState(identity, tenant, request);
+      return this.json(request, state, 200, {
+        "Cache-Control": "no-store",
+        Vary: WIRE.header.authorization,
       });
     }
     if (method === "GET" && path === WIRE.path.index) {
@@ -700,6 +934,12 @@ export class AXE {
     ladder: Ladder,
     kind: string | null,
   ): Promise<Response> {
+    // Every envelope carries the site's revision when it has one ([P-LIVE-2]). A replayed
+    // envelope keeps the revision its change produced.
+    if (this.config.revision && result.rev === undefined) {
+      const rev = await this.currentRevision(hookCtx.request, hookCtx.tenant);
+      if (rev !== undefined) result.rev = rev;
+    }
     try {
       await this.config.onResult?.(hookCtx, result);
     } catch (e) {
@@ -1033,6 +1273,10 @@ export class AXE {
       );
     }
 
+    const expectedRev = this.readExpectedRev(body);
+    if (expectedRev === false)
+      return this.runHooksAndFinish(hookCtx, badExpectedRev(), startedAt, WIRE.ladder.error, null);
+
     const outcome = await this.invokeAction(
       a,
       body["input"],
@@ -1042,8 +1286,21 @@ export class AXE {
       adapter,
       body["idempotencyKey"],
       hookCtx,
+      undefined,
+      expectedRev,
     );
     return this.runHooksAndFinish(hookCtx, outcome.result, startedAt, outcome.ladder, outcome.kind);
+  }
+
+  /** `expectedRev` from a request body: a revision, undefined when absent, or false when malformed. */
+  private readExpectedRev(body: Record<string, unknown>): Revision | undefined | false {
+    if (
+      !("expectedRev" in body) ||
+      body["expectedRev"] === undefined ||
+      body["expectedRev"] === null
+    )
+      return undefined;
+    return isRevision(body["expectedRev"]) ? body["expectedRev"] : false;
   }
 
   /** The action pipeline, shared by the action endpoint and the login-handoff resume. */
@@ -1057,6 +1314,7 @@ export class AXE {
     idempotencyKey: unknown,
     hookCtx: HookContext,
     presetIdentity?: Identity,
+    expectedRev?: Revision,
   ): Promise<{ result: Result; ladder: Ladder; kind: string | null }> {
     const def = a.definition;
     const err = (result: Result): { result: Result; ladder: Ladder; kind: string | null } => ({
@@ -1162,6 +1420,12 @@ export class AXE {
             `Action "${a.name}" acts on behalf of a user; send the user's bearer token in Authorization.`,
           ).error,
         });
+      // A stale observation is refused before a human is asked to sign in ([P-LIVE-3]).
+      const stale = await this.staleCheck(expectedRev, request, tenant);
+      if (stale) return err(stale);
+      const login: NonNullable<TokenRecord["login"]> = { input, context };
+      if (key !== undefined) login.idempotencyKey = key;
+      if (expectedRev !== undefined) login.expectedRev = expectedRev;
       const h = await this.mintHandoff(
         {
           [INTENT]: "handoff",
@@ -1173,7 +1437,7 @@ export class AXE {
         },
         a.name,
         binding,
-        key !== undefined ? { input, context, idempotencyKey: key } : { input, context },
+        login,
       );
       return {
         result: { status: WIRE.status.needsHuman, handoff: h },
@@ -1215,6 +1479,13 @@ export class AXE {
       }
     }
 
+    // The state the agent saw: refused before the handler runs, after the replay lookup so a
+    // retried request is answered from the stored envelope ([P-LIVE-3], [P-LIVE-4]).
+    const stale = await this.staleCheck(expectedRev, request, tenant);
+    if (stale) return err(stale);
+    const availability =
+      (await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? null;
+
     // onRequest hook may short-circuit.
     let intent: ResultIntent | undefined;
     try {
@@ -1234,6 +1505,8 @@ export class AXE {
           identity,
           siteKey,
           action: a.name,
+          availability,
+          ...(expectedRev !== undefined ? { expectedRev } : {}),
           ...helpers,
         }),
       );
@@ -1275,6 +1548,8 @@ export class AXE {
           .error,
       });
     }
+    const expectedRev = this.readExpectedRev(read.body);
+    if (expectedRev === false) return finish(badExpectedRev());
     const loaded = await loadToken(this.signer, this.tokens, continuationToken, "continuation");
     if (loaded.kind === "invalid")
       return finish({
@@ -1368,6 +1643,9 @@ export class AXE {
       ? { ...context, onBehalfOf: identity.onBehalfOf }
       : context;
     hookCtx.context = authedContext;
+    // A stale observation is refused before the hook runs and does not consume the token.
+    const stale = await this.staleCheck(expectedRev, request, tenant);
+    if (stale) return finish(stale, kind);
     const intent = await this.runHandler(hookCtx, () =>
       a.spec.onContinue!({
         kind,
@@ -1379,6 +1657,8 @@ export class AXE {
         identity,
         siteKey: null,
         action: a.name,
+        availability: null,
+        ...(expectedRev !== undefined ? { expectedRev } : {}),
         ...helpers,
       }),
     );
@@ -1413,6 +1693,8 @@ export class AXE {
         status: WIRE.status.error,
         error: fail(WIRE.error.invalidInput, "Body must be { resumeToken }.").error,
       });
+    const expectedRev = this.readExpectedRev(read.body);
+    if (expectedRev === false) return finish(badExpectedRev());
     const loaded = await loadToken(this.signer, this.tokens, resumeToken, "resume");
     if (loaded.kind === "invalid")
       return finish({
@@ -1459,6 +1741,8 @@ export class AXE {
             details: { handoffStatus: "open" },
           }).error,
         });
+      // The action has not run yet, so the revision the agent observed on the original call still
+      // stands unless the resume presents a fresher one.
       const outcome = await this.invokeAction(
         a,
         record.login.input,
@@ -1469,6 +1753,7 @@ export class AXE {
         record.login.idempotencyKey,
         hookCtx,
         { onBehalfOf: who },
+        expectedRev ?? record.login.expectedRev,
       );
       if (outcome.result.status !== WIRE.status.error) await this.consume(record);
       return finish(outcome.result);
@@ -1486,6 +1771,8 @@ export class AXE {
       ? { ...context, onBehalfOf: identity.onBehalfOf }
       : context;
     hookCtx.context = authedContext;
+    const stale = await this.staleCheck(expectedRev, request, tenant);
+    if (stale) return finish(stale);
     const intent = await this.runHandler(hookCtx, () =>
       a.spec.onResume!({
         state: record.state as JsonValue,
@@ -1496,6 +1783,8 @@ export class AXE {
         identity,
         siteKey: null,
         action: a.name,
+        availability: null,
+        ...(expectedRev !== undefined ? { expectedRev } : {}),
         ...helpers,
       }),
     );
@@ -1558,6 +1847,7 @@ export class AXE {
         identity,
         siteKey: null,
         action: a.name,
+        availability: null,
         ...helpers,
       }),
     );
@@ -1587,6 +1877,25 @@ export class AXE {
     }
     return finish(result);
   }
+}
+
+function badExpectedRev(): Result {
+  return {
+    status: WIRE.status.error,
+    error: fail(
+      WIRE.error.invalidInput,
+      "expectedRev must be the revision you observed: a non-empty string or a number (spec [P-LIVE-1]).",
+      {
+        issues: [
+          {
+            path: "/expectedRev",
+            message: "must be a string or a number",
+            expected: "string | number",
+          },
+        ],
+      },
+    ).error,
+  };
 }
 
 function ladderFor(result: Result): Ladder {

@@ -20,6 +20,15 @@ Initial release of the Body Spray SDK and the `axe/0.1` protocol.
 - `@axe/surface`: `createSurface` (registry, `observe`, `act`, revision, ledger, `expose`), `@axe/surface/react` (`useSurface`), and `@axe/surface/axe` (`surfaceActions`: any surface becomes an AXE manifest with `<ns>.observe` and `<ns>.act`, refusals mapped onto the ladder, `continue` running the application's `fulfill`).
 - Vocabulary: a "Surface" section in `spec/VOCABULARY.md` (entry kinds, ops, field names, API names) so the drift test covers the new package.
 
+### Live state
+
+- Protocol §21 (additive, still `axe/0.1`): a site MAY publish a revision. Every result envelope gains optional top-level `rev`; requests to `/axe/actions/{name}`, `/axe/continue`, and `/axe/resume` gain optional `expectedRev`; a stale `expectedRev` is `conflict` with `details: { expectedRev, currentRev }` and nothing applied, checked after the idempotency replay and before the handler or a login handoff. Actions gain optional `availability` (`{ available, reason?, requires?, handoff? }`), the manifest gains `live: { rev?, url? }`, and `GET /axe/state` serves `{ rev?, actions }` per caller with `Cache-Control: no-store`. `unavailable` errors MAY carry `details: { reason, requires?, handoff? }`. Rules P-LIVE-1 to P-LIVE-10; `spec/schemas/state.schema.json`.
+- `@axe/core`: `createAXE({ revision })`, `action({ availability })`, handler context `availability` and `expectedRev`, `unavailable()` helper, `describeLive()`, lint rule `unavailable-without-reason`.
+- `@axe/client`: `expectedRev` on `invoke`, `continue`, `resume`, and `run` (tracked through the ladder), `state()`, `live()`, `stateToMarkdown`; `present` carries `rev` into `toMarkdown` and `toHTML`.
+- `@axe/mcp`: `axe_state` tool when the manifest carries `live`, `expectedRev` argument on action tools, availability in tool descriptions, stale `conflict` and `unavailable` explained.
+- `@axe/testing`: six `live.*` conformance checks (skipped without `live`), audit check `actionable.live-state`.
+- `@axe/surface`: a stale act's `details` are `{ expectedRev, currentRev }` (was `{ rev, expectedRev }`); `surfaceActions` reads the envelope's `expectedRev` and accepts `input.expectedRev` as a deprecated fallback; pass `revision: surface.currentRev` to `createAXE`.
+
 ### Website
 
 - `site/`: a static marketing and documentation site built from `docs/`, `spec/`, and the root Markdown files. Runs from `file://` with no network; `site/dist/` is committed and reproducible. Landing page with the escalation-ladder demo (real envelopes), the search → present → select demo (real `toHTML()` output), an embedded `axe audit` report, and a docs hub generated from `docs/README.md`. Tests: reproducible build, offline load in Chromium/Firefox/WebKit, link check, demo behavior, responsive screenshots, Lighthouse ≥ 95.

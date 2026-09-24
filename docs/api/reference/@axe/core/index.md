@@ -349,6 +349,32 @@ The manifest, optionally for a tenant.
 
 [`Manifest`](types.md#manifest)
 
+<a id="describelive"></a>
+
+##### describeLive()
+
+```ts
+describeLive(tenant?, request?): Promise<Manifest>;
+```
+
+The manifest as the HTTP endpoint serves it: `describe()` plus `live.rev` and each declaring
+action's `availability`, computed for an anonymous caller (the manifest is cacheable and shared).
+Per-caller availability is served by `/axe/state`.
+
+###### Parameters
+
+###### tenant?
+
+[`TenantInfo`](#tenantinfo) \| `null`
+
+###### request?
+
+`Request` \| `null`
+
+###### Returns
+
+`Promise`\<[`Manifest`](types.md#manifest)\>
+
 <a id="fetchhandler"></a>
 
 ##### fetchHandler()
@@ -424,6 +450,52 @@ Handle one request. Prefer `fetchHandler()`; this is the same thing as a method.
 ###### Returns
 
 `Promise`\<`Response`\>
+
+<a id="haslive"></a>
+
+##### hasLive()
+
+```ts
+hasLive(): boolean;
+```
+
+Whether the site publishes live state: a `revision` provider or any action with `availability`.
+
+###### Returns
+
+`boolean`
+
+<a id="livestate"></a>
+
+##### liveState()
+
+```ts
+liveState(
+   identity, 
+   tenant, 
+   request?
+): Promise<LiveState>;
+```
+
+The document served at `/axe/state`, for one caller.
+
+###### Parameters
+
+###### identity
+
+[`Identity`](#identity-4) \| `null`
+
+###### tenant
+
+[`TenantInfo`](#tenantinfo) \| `null`
+
+###### request?
+
+`Request` \| `null`
+
+###### Returns
+
+`Promise`\<[`LiveState`](types.md#livestate)\>
 
 <a id="register"></a>
 
@@ -1057,6 +1129,29 @@ optional auth?: WireAuthMode;
 
 Default `none`.
 
+<a id="availability"></a>
+
+##### availability?
+
+```ts
+optional availability?: (ctx) => MaybePromise<AvailabilityInput>;
+```
+
+Whether the action can be done right now, and if not, why (spec §21). Rendered into the
+manifest (anonymous view) and `/axe/state` (per caller), and delivered to the handler as
+`availability`. The runtime does not refuse the call for you: the handler stays the one door,
+and returns `unavailable(availability)` or climbs the ladder.
+
+###### Parameters
+
+###### ctx
+
+[`AvailabilityContext`](#availabilitycontext)
+
+###### Returns
+
+[`MaybePromise`](#maybepromise)\<[`AvailabilityInput`](#availabilityinput)\>
+
 <a id="deprecated"></a>
 
 ##### deprecated?
@@ -1317,7 +1412,7 @@ Map a request to the acting user, for `user` mode pass-through. Return `null` wh
 
 ###### Returns
 
-[`MaybePromise`](#maybepromise)\<[`Identity`](#identity-3) \| `null` \| `undefined`\>
+[`MaybePromise`](#maybepromise)\<[`Identity`](#identity-4) \| `null` \| `undefined`\>
 
 <a id="modes"></a>
 
@@ -1360,6 +1455,50 @@ Validate a `site` mode bearer key.
 ###### Returns
 
 [`MaybePromise`](#maybepromise)\<[`SiteKeyVerdict`](#sitekeyverdict)\>
+
+***
+
+<a id="availabilitycontext"></a>
+
+### AvailabilityContext
+
+Passed to an action's `availability` hook. Identity is null for the manifest's anonymous view.
+
+#### Properties
+
+<a id="action-1"></a>
+
+##### action
+
+```ts
+action: string;
+```
+
+<a id="identity-1"></a>
+
+##### identity
+
+```ts
+identity: Identity | null;
+```
+
+<a id="request"></a>
+
+##### request
+
+```ts
+request: Request | null;
+```
+
+The request being served; null when the manifest is described outside a request.
+
+<a id="tenant-1"></a>
+
+##### tenant
+
+```ts
+tenant: TenantInfo | null;
+```
 
 ***
 
@@ -1575,6 +1714,18 @@ optional requireIdempotencyKey?: boolean;
 
 Reject mutating calls without `idempotencyKey`. Default true.
 
+<a id="revision"></a>
+
+##### revision?
+
+```ts
+optional revision?: RevisionProvider;
+```
+
+Live state (spec §21). When set, every envelope carries `rev`, a request whose `expectedRev`
+differs from the current revision is refused with `conflict` before anything runs, and
+`/axe/state` is served.
+
 <a id="secret"></a>
 
 ##### secret?
@@ -1585,7 +1736,7 @@ optional secret?: string;
 
 HMAC secret for tokens, at least 16 characters. Omit only in development: a random per-process secret is used and tokens do not survive restarts.
 
-<a id="tenant-1"></a>
+<a id="tenant-2"></a>
 
 ##### tenant?
 
@@ -1639,7 +1790,7 @@ optional updatedAt?: string;
 
 #### Properties
 
-<a id="action-1"></a>
+<a id="action-2"></a>
 
 ##### action
 
@@ -1653,6 +1804,22 @@ The action name.
 
 ```ts
 BaseContext.action
+```
+
+<a id="availability-1"></a>
+
+##### availability
+
+```ts
+availability: Availability | null;
+```
+
+The action's current availability for this caller, when the action declares an `availability` hook; null otherwise.
+
+###### Inherited from
+
+```ts
+BaseContext.availability
 ```
 
 <a id="context"></a>
@@ -1669,6 +1836,22 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="expectedrev"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the agent said it observed, when the request carried `expectedRev`. Already checked against `revision` when one is configured.
+
+###### Inherited from
+
+```ts
+BaseContext.expectedRev
 ```
 
 <a id="fail"></a>
@@ -1731,7 +1914,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
-<a id="identity-1"></a>
+<a id="identity-2"></a>
 
 ##### identity
 
@@ -1851,7 +2034,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 BaseContext.pending
 ```
 
-<a id="request"></a>
+<a id="request-1"></a>
 
 ##### request
 
@@ -1898,7 +2081,7 @@ state: S;
 
 The `state` passed to `needsInput`.
 
-<a id="tenant-2"></a>
+<a id="tenant-3"></a>
 
 ##### tenant
 
@@ -1912,6 +2095,64 @@ The tenant, on platforms.
 
 ```ts
 BaseContext.tenant
+```
+
+<a id="unavailable"></a>
+
+##### unavailable
+
+```ts
+unavailable: (availability, options) => ErrorIntent;
+```
+
+Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+change that. The message defaults to the reason.
+
+###### Parameters
+
+###### availability
+
+###### available
+
+`false`
+
+###### handoff?
+
+[`HandoffSpec`](types.md#handoffspec)
+
+A step only a human can take.
+
+###### reason
+
+`string`
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+[`Accept`](types.md#accept)[]
+
+`accepts`-shaped kinds that would make the action available.
+
+###### options?
+
+###### message?
+
+`string`
+
+###### retryable?
+
+`boolean`
+
+###### Returns
+
+[`ErrorIntent`](#errorintent)
+
+###### Inherited from
+
+```ts
+BaseContext.unavailable
 ```
 
 ***
@@ -2014,7 +2255,7 @@ optional retryable?: boolean;
 
 #### Properties
 
-<a id="action-2"></a>
+<a id="action-3"></a>
 
 ##### action
 
@@ -2028,6 +2269,22 @@ The action name.
 
 ```ts
 BaseContext.action
+```
+
+<a id="availability-2"></a>
+
+##### availability
+
+```ts
+availability: Availability | null;
+```
+
+The action's current availability for this caller, when the action declares an `availability` hook; null otherwise.
+
+###### Inherited from
+
+```ts
+BaseContext.availability
 ```
 
 <a id="context-1"></a>
@@ -2044,6 +2301,22 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="expectedrev-1"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the agent said it observed, when the request carried `expectedRev`. Already checked against `revision` when one is configured.
+
+###### Inherited from
+
+```ts
+BaseContext.expectedRev
 ```
 
 <a id="fail-1"></a>
@@ -2106,7 +2379,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
-<a id="identity-2"></a>
+<a id="identity-3"></a>
 
 ##### identity
 
@@ -2214,7 +2487,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 BaseContext.pending
 ```
 
-<a id="request-1"></a>
+<a id="request-2"></a>
 
 ##### request
 
@@ -2251,7 +2524,7 @@ For `site` mode: what `verifySiteKey` returned about the key, when it returned a
 BaseContext.siteKey
 ```
 
-<a id="tenant-3"></a>
+<a id="tenant-4"></a>
 
 ##### tenant
 
@@ -2265,6 +2538,64 @@ The tenant, on platforms.
 
 ```ts
 BaseContext.tenant
+```
+
+<a id="unavailable-1"></a>
+
+##### unavailable
+
+```ts
+unavailable: (availability, options) => ErrorIntent;
+```
+
+Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+change that. The message defaults to the reason.
+
+###### Parameters
+
+###### availability
+
+###### available
+
+`false`
+
+###### handoff?
+
+[`HandoffSpec`](types.md#handoffspec)
+
+A step only a human can take.
+
+###### reason
+
+`string`
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+[`Accept`](types.md#accept)[]
+
+`accepts`-shaped kinds that would make the action available.
+
+###### options?
+
+###### message?
+
+`string`
+
+###### retryable?
+
+`boolean`
+
+###### Returns
+
+[`ErrorIntent`](#errorintent)
+
+###### Inherited from
+
+```ts
+BaseContext.unavailable
 ```
 
 ***
@@ -2367,7 +2698,7 @@ Passed to hooks.
 
 #### Properties
 
-<a id="action-3"></a>
+<a id="action-4"></a>
 
 ##### action
 
@@ -2391,7 +2722,7 @@ context: RequestContext;
 endpoint: Endpoint;
 ```
 
-<a id="request-2"></a>
+<a id="request-3"></a>
 
 ##### request
 
@@ -2399,7 +2730,7 @@ endpoint: Endpoint;
 request: Request;
 ```
 
-<a id="tenant-4"></a>
+<a id="tenant-5"></a>
 
 ##### tenant
 
@@ -2500,7 +2831,7 @@ set(
 
 ***
 
-<a id="identity-3"></a>
+<a id="identity-4"></a>
 
 ### Identity
 
@@ -2754,7 +3085,7 @@ How long the poll token stays valid. Default 1 hour.
 
 #### Properties
 
-<a id="action-4"></a>
+<a id="action-5"></a>
 
 ##### action
 
@@ -2768,6 +3099,22 @@ The action name.
 
 ```ts
 BaseContext.action
+```
+
+<a id="availability-3"></a>
+
+##### availability
+
+```ts
+availability: Availability | null;
+```
+
+The action's current availability for this caller, when the action declares an `availability` hook; null otherwise.
+
+###### Inherited from
+
+```ts
+BaseContext.availability
 ```
 
 <a id="context-3"></a>
@@ -2784,6 +3131,22 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="expectedrev-2"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the agent said it observed, when the request carried `expectedRev`. Already checked against `revision` when one is configured.
+
+###### Inherited from
+
+```ts
+BaseContext.expectedRev
 ```
 
 <a id="fail-2"></a>
@@ -2846,7 +3209,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
-<a id="identity-4"></a>
+<a id="identity-5"></a>
 
 ##### identity
 
@@ -2946,7 +3309,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 BaseContext.pending
 ```
 
-<a id="request-3"></a>
+<a id="request-4"></a>
 
 ##### request
 
@@ -2993,7 +3356,7 @@ state: S;
 
 The `state` passed to `pending`.
 
-<a id="tenant-5"></a>
+<a id="tenant-6"></a>
 
 ##### tenant
 
@@ -3007,6 +3370,64 @@ The tenant, on platforms.
 
 ```ts
 BaseContext.tenant
+```
+
+<a id="unavailable-2"></a>
+
+##### unavailable
+
+```ts
+unavailable: (availability, options) => ErrorIntent;
+```
+
+Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+change that. The message defaults to the reason.
+
+###### Parameters
+
+###### availability
+
+###### available
+
+`false`
+
+###### handoff?
+
+[`HandoffSpec`](types.md#handoffspec)
+
+A step only a human can take.
+
+###### reason
+
+`string`
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+[`Accept`](types.md#accept)[]
+
+`accepts`-shaped kinds that would make the action available.
+
+###### options?
+
+###### message?
+
+`string`
+
+###### retryable?
+
+`boolean`
+
+###### Returns
+
+[`ErrorIntent`](#errorintent)
+
+###### Inherited from
+
+```ts
+BaseContext.unavailable
 ```
 
 ***
@@ -3201,6 +3622,58 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 
 [`PendingIntent`](#pendingintent)
 
+<a id="unavailable-3"></a>
+
+##### unavailable
+
+```ts
+unavailable: (availability, options) => ErrorIntent;
+```
+
+Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+change that. The message defaults to the reason.
+
+###### Parameters
+
+###### availability
+
+###### available
+
+`false`
+
+###### handoff?
+
+[`HandoffSpec`](types.md#handoffspec)
+
+A step only a human can take.
+
+###### reason
+
+`string`
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+[`Accept`](types.md#accept)[]
+
+`accepts`-shaped kinds that would make the action available.
+
+###### options?
+
+###### message?
+
+`string`
+
+###### retryable?
+
+`boolean`
+
+###### Returns
+
+[`ErrorIntent`](#errorintent)
+
 ***
 
 <a id="resumecontext"></a>
@@ -3219,7 +3692,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 
 #### Properties
 
-<a id="action-5"></a>
+<a id="action-6"></a>
 
 ##### action
 
@@ -3233,6 +3706,22 @@ The action name.
 
 ```ts
 BaseContext.action
+```
+
+<a id="availability-4"></a>
+
+##### availability
+
+```ts
+availability: Availability | null;
+```
+
+The action's current availability for this caller, when the action declares an `availability` hook; null otherwise.
+
+###### Inherited from
+
+```ts
+BaseContext.availability
 ```
 
 <a id="completion"></a>
@@ -3265,6 +3754,22 @@ The sanitized request context. `onBehalfOf` is the authenticated identity, never
 
 ```ts
 BaseContext.context
+```
+
+<a id="expectedrev-3"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the agent said it observed, when the request carried `expectedRev`. Already checked against `revision` when one is configured.
+
+###### Inherited from
+
+```ts
+BaseContext.expectedRev
 ```
 
 <a id="fail-4"></a>
@@ -3327,7 +3832,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
-<a id="identity-5"></a>
+<a id="identity-6"></a>
 
 ##### identity
 
@@ -3427,7 +3932,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 BaseContext.pending
 ```
 
-<a id="request-4"></a>
+<a id="request-5"></a>
 
 ##### request
 
@@ -3474,7 +3979,7 @@ state: S;
 
 The `state` passed to `handoff`.
 
-<a id="tenant-6"></a>
+<a id="tenant-7"></a>
 
 ##### tenant
 
@@ -3488,6 +3993,92 @@ The tenant, on platforms.
 
 ```ts
 BaseContext.tenant
+```
+
+<a id="unavailable-4"></a>
+
+##### unavailable
+
+```ts
+unavailable: (availability, options) => ErrorIntent;
+```
+
+Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+change that. The message defaults to the reason.
+
+###### Parameters
+
+###### availability
+
+###### available
+
+`false`
+
+###### handoff?
+
+[`HandoffSpec`](types.md#handoffspec)
+
+A step only a human can take.
+
+###### reason
+
+`string`
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+[`Accept`](types.md#accept)[]
+
+`accepts`-shaped kinds that would make the action available.
+
+###### options?
+
+###### message?
+
+`string`
+
+###### retryable?
+
+`boolean`
+
+###### Returns
+
+[`ErrorIntent`](#errorintent)
+
+###### Inherited from
+
+```ts
+BaseContext.unavailable
+```
+
+***
+
+<a id="revisioncontext"></a>
+
+### RevisionContext
+
+Passed to the `revision` provider.
+
+#### Properties
+
+<a id="request-6"></a>
+
+##### request
+
+```ts
+request: Request | null;
+```
+
+The request being served; null when the manifest is described outside a request.
+
+<a id="tenant-8"></a>
+
+##### tenant
+
+```ts
+tenant: TenantInfo | null;
 ```
 
 ***
@@ -3610,7 +4201,7 @@ optional accepts?: Accept[];
 
 Continuation only: the accepted entries, with JSON Schemas.
 
-<a id="action-6"></a>
+<a id="action-7"></a>
 
 ##### action
 
@@ -3706,6 +4297,14 @@ Resume only: whether the handoff was created by the SDK for login.
 context: RequestContext;
 ```
 
+###### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the agent observed on the original call; re-checked when the action runs after sign-in.
+
 ###### idempotencyKey?
 
 ```ts
@@ -3746,7 +4345,7 @@ state: JsonValue | undefined;
 
 Site-provided state for `onContinue` / `onResume` / `onPoll`.
 
-<a id="tenant-7"></a>
+<a id="tenant-9"></a>
 
 ##### tenant
 
@@ -3851,6 +4450,29 @@ set(
 
 ## Type Aliases
 
+<a id="availabilityinput"></a>
+
+### AvailabilityInput
+
+```ts
+type AvailabilityInput = 
+  | {
+  available: true;
+}
+  | {
+  available: false;
+  handoff?: HandoffSpec;
+  reason: string;
+  requires?: AcceptInput[];
+};
+```
+
+What an action's `availability` hook returns: available, or unavailable with a reason in the
+site's own words and, optionally, the kinds that would make it available (`requires`, with Zod or
+JSON Schemas) and a step only a human can take (`handoff`).
+
+***
+
 <a id="endpoint-1"></a>
 
 ### Endpoint
@@ -3916,6 +4538,29 @@ type ResultIntent<O> =
 
 ***
 
+<a id="revisionprovider"></a>
+
+### RevisionProvider
+
+```ts
+type RevisionProvider = (ctx) => MaybePromise<Revision>;
+```
+
+Returns the site's current revision: one opaque string or number for the whole site (or tenant)
+that moves with every change an agent could observe, whoever made it. `surface.currentRev` fits.
+
+#### Parameters
+
+##### ctx
+
+[`RevisionContext`](#revisioncontext)
+
+#### Returns
+
+[`MaybePromise`](#maybepromise)\<[`Revision`](types.md#revision)\>
+
+***
+
 <a id="sitekeyverdict"></a>
 
 ### SiteKeyVerdict
@@ -3977,7 +4622,7 @@ Decoded-size limit for `document.base64` payloads (spec/KINDS.md).
 
 ## Functions
 
-<a id="action-7"></a>
+<a id="action-8"></a>
 
 ### action()
 
@@ -4438,6 +5083,60 @@ Convert a Zod schema to JSON Schema draft 2020-12.
 
 ***
 
+<a id="unavailable-5"></a>
+
+### unavailable()
+
+```ts
+function unavailable(availability, options?): ErrorIntent;
+```
+
+Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+change that. The message defaults to the reason.
+
+#### Parameters
+
+##### availability
+
+###### available
+
+`false`
+
+###### handoff?
+
+[`HandoffSpec`](types.md#handoffspec)
+
+A step only a human can take.
+
+###### reason
+
+`string`
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+[`Accept`](types.md#accept)[]
+
+`accepts`-shaped kinds that would make the action available.
+
+##### options?
+
+###### message?
+
+`string`
+
+###### retryable?
+
+`boolean`
+
+#### Returns
+
+[`ErrorIntent`](#errorintent)
+
+***
+
 <a id="validatejsonschema"></a>
 
 ### validateJsonSchema()
@@ -4566,6 +5265,14 @@ Re-exports [AttributeFormat](types.md#attributeformat)
 ### AuthMode
 
 Re-exports [AuthMode](types.md#authmode)
+
+***
+
+<a id="availability-5"></a>
+
+### Availability
+
+Re-exports [Availability](types.md#availability-1)
 
 ***
 
@@ -4753,6 +5460,14 @@ Re-exports [Handoff](types.md#handoff)
 
 ***
 
+<a id="handoffspec"></a>
+
+### HandoffSpec
+
+Re-exports [HandoffSpec](types.md#handoffspec)
+
+***
+
 <a id="haslinterrors"></a>
 
 ### hasLintErrors
@@ -4926,6 +5641,22 @@ Re-exports [LintSeverity](lint.md#lintseverity)
 ### LintTextOptions
 
 Re-exports [LintTextOptions](lint.md#linttextoptions)
+
+***
+
+<a id="live"></a>
+
+### Live
+
+Re-exports [Live](types.md#live)
+
+***
+
+<a id="livestate-1"></a>
+
+### LiveState
+
+Re-exports [LiveState](types.md#livestate)
 
 ***
 
@@ -5150,6 +5881,14 @@ Re-exports [ResultStatus](types.md#resultstatus)
 ### ResumeRequest
 
 Re-exports [ResumeRequest](types.md#resumerequest)
+
+***
+
+<a id="revision-1"></a>
+
+### Revision
+
+Re-exports [Revision](types.md#revision)
 
 ***
 

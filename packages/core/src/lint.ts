@@ -34,7 +34,8 @@ export type LintRule =
   | "missing-display-url"
   | "missing-disclaimer"
   | "readonly-contradiction"
-  | "risk-none-on-mutation";
+  | "risk-none-on-mutation"
+  | "unavailable-without-reason";
 
 const DOCS = "docs/audit.md#honesty-rules";
 
@@ -203,6 +204,36 @@ export function agentReadText(
       isDescription: false,
     });
   }
+  const av = action.availability;
+  if (av && !av.available) {
+    if (typeof av.reason === "string")
+      out.push({ location: `${a}.availability.reason`, text: av.reason, isDescription: false });
+    for (const req of av.requires ?? []) {
+      out.push({
+        location: `${a}.availability.requires[${req.kind}].description`,
+        text: req.description,
+        isDescription: false,
+      });
+      if (req.instructions)
+        out.push({
+          location: `${a}.availability.requires[${req.kind}].instructions`,
+          text: req.instructions,
+          isDescription: false,
+        });
+    }
+    if (av.handoff) {
+      out.push({
+        location: `${a}.availability.handoff.instructions`,
+        text: av.handoff.instructions,
+        isDescription: false,
+      });
+      out.push({
+        location: `${a}.availability.handoff.whatAgentShouldSayToUser`,
+        text: av.handoff.whatAgentShouldSayToUser,
+        isDescription: false,
+      });
+    }
+  }
   return out;
 }
 
@@ -335,6 +366,20 @@ export function lintAction(action: ActionDefinition): LintIssue[] {
       message:
         "display.disclaimer is missing. State the accuracy or pricing caveat that must accompany any rendering.",
       docs: "docs/presenting-results.md#url-and-disclaimer",
+    });
+  }
+  if (
+    action.availability &&
+    !action.availability.available &&
+    !action.availability.reason?.trim()
+  ) {
+    issues.push({
+      rule: "unavailable-without-reason",
+      severity: "error",
+      location: `${action.name}.availability.reason`,
+      message:
+        "The action is declared unavailable without a reason. Say why, in plain language, so the agent can tell the user (spec §21 [P-LIVE-5]).",
+      docs: "docs/live-state.md#availability",
     });
   }
   if (!action.readOnly && action.risk === "none") {

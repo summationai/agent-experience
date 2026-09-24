@@ -59,7 +59,7 @@ Surface came out of two trials on business applications with opposite shapes (st
 
 **[S-ACT-1]** `act({ op, target, text?, expectedRev, actor?, confirm? })` returns an AXE result envelope. On success it returns `ok` with `{ rev, id, actor, changed }`, where `changed` lists the entry ids whose state the act moved.
 
-**[S-ACT-2]** When `expectedRev` differs from the current revision, `act` MUST return `error` with `code: "conflict"`, `retryable: true`, and `details: { rev, expectedRev }`, and MUST apply nothing.
+**[S-ACT-2]** When `expectedRev` differs from the current revision, `act` MUST return `error` with `code: "conflict"`, `retryable: true`, and `details: { expectedRev, currentRev }` (the protocol's stale shape, [P-LIVE-3]), and MUST apply nothing.
 
 **[S-ACT-3]** A missing `expectedRev`, an unknown `op`, an `op` that does not fit the entry's kind, a `confirm` that is required and absent, text longer than `maxLength`, or text that fails the field's schema is `invalid_input` with `details.issues`. An unknown `target` is `not_found`.
 
@@ -82,6 +82,8 @@ Surface came out of two trials on business applications with opposite shapes (st
 **[S-AXE-2]** Refusals map onto the ladder: an unavailable action with `requires` becomes `needs_input` with those `accepts` (and the declared `handoff` as `fallback` when present); one with only a `handoff` becomes `needs_human`; a stale revision is `error` `conflict`; other refusals stay `error` with their reason. On `/axe/continue`, the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume`, the act is retried at the current revision.
 
 **[S-AXE-3]** The `actor` recorded for an act that arrives through AXE is the authenticated `onBehalfOf` when there is one, else `agent`.
+
+**[S-AXE-4]** Served through AXE, the surface's revision is the site's revision (protocol §21): the server is created with `revision: surface.currentRev`, so every envelope carries `rev`, the protocol's stale check ([P-LIVE-3]) runs before the handler, and `/axe/state` reports the revision. The revision the agent observed travels as the request envelope's `expectedRev`; `<ns>.act` still accepts it inside `input` for one release, deprecated.
 
 ## 7. Browser agents
 

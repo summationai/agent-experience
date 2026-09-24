@@ -365,6 +365,19 @@ Below is every check the suite emits, grouped by prefix, with the spec requireme
 | `runtime.token-tamper` | A continuation token with its last characters altered returns `not_found`. | P-TOK-3 |
 | `runtime.error-hygiene` | No error body seen during the run contains a stack trace, a node_modules path, or an HTML error page. | P-ERR-2 |
 
+### live.*
+
+Live state (spec §21). Every check skips when the manifest has no `live` member.
+
+| Check | Verifies | Requirements |
+| --- | --- | --- |
+| `live.state-endpoint` | `GET` on `live.url` (or `/axe/state`) returns a valid state document listing every action, with `Cache-Control: no-store`. | P-LIVE-7, P-LIVE-8 |
+| `live.rev-on-envelopes` | A read action's envelope carries `rev` when the state reports a revision. | P-LIVE-2 |
+| `live.stale-conflict` | Calling with an `expectedRev` that differs returns 409 `conflict`, `retryable`, with `expectedRev` and `currentRev` in `details`. | P-LIVE-1, P-LIVE-3 |
+| `live.fresh-accepted` | Calling with the current `rev` as `expectedRev` is not refused. Warns when the revision moved between the two requests. | P-LIVE-3 |
+| `live.reasons` | Every unavailable action in the manifest and the state has a plain-language `reason` with no instruction aimed at the agent. | P-LIVE-5 |
+| `live.availability-honored` | An action the state reports unavailable does not return `ok` for its example. Skips with `--no-mutate` unless the action is read-only. | P-LIVE-6 |
+
 ### ladder.*
 
 | Check | Verifies | Requirements |
@@ -391,7 +404,7 @@ The getting-started example skips 18 checks. That is expected, not a problem. Ea
 - **No example returns needs_input.** Examples show the `ok` output, so the suite may call every mutating action and see only `ok`. Pass `--ladder` with an action and input that reach the requirement, such as an application for a unit whose deposit is unpaid.
 - **No fallback handoff.** `ladder.fallback-resume` and `ladder.resume-replay` need a `needs_input` that carries a `fallback`. If your requirement has no human alternative, these stay skipped; that is a design choice, not a defect.
 - **Only custom kinds offered.** The suite has sample payloads for well-known kinds only, so `ladder.continue-valid` skips when every `accepts` entry is an `x-` kind. Offer a well-known kind first where one fits; see [Designing requirements](designing-actions.md#designing-requirements).
-- **Feature not used.** `runtime.cors`, `runtime.pagination-roundtrip`, `manifest.index`, and `ladder.consent-scope` skip when your site does not enable CORS, paginate, publish an index, or ask for consent.
+- **Feature not used.** `runtime.cors`, `runtime.pagination-roundtrip`, `manifest.index`, `ladder.consent-scope`, and every `live.*` check skip when your site does not enable CORS, paginate, publish an index, ask for consent, or publish live state.
 - **`--no-mutate`.** Every check that would call a mutating action skips with that reason.
 
 ## The drift check

@@ -213,7 +213,9 @@ export const handler = axe.fetchHandler();
 ```
 <!-- /include -->
 
-Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback`); one with only a `handoff` returns `needs_human`; a stale revision is `conflict`; everything else stays an `error` with the application's reason. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
+Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback`); one with only a `handoff` returns `needs_human`; a stale revision is `conflict` with `expectedRev` and `currentRev` in `details`; everything else stays an `error` with the application's reason. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
+
+Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. Sending `expectedRev` inside the `act` input still works and is deprecated.
 
 ## Using it from React
 

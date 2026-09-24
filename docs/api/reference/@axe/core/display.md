@@ -494,6 +494,16 @@ output: unknown;
 
 The output with every `_axe` key removed.
 
+<a id="rev"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The revision the result carried, when the site has one.
+
 <a id="suggestedcomparison"></a>
 
 ##### suggestedComparison

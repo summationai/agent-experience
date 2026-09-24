@@ -61,6 +61,26 @@ const ActionSchema: ZodObject<{
      site: "site";
      user: "user";
   }>;
+  availability: ZodOptional<ZodDiscriminatedUnion<[ZodObject<{
+     available: ZodLiteral<true>;
+   }, $strict>, ZodObject<{
+     available: ZodLiteral<false>;
+     handoff: ZodOptional<ZodObject<{
+        instructions: ZodString;
+        reason: ZodString;
+        url: ZodString;
+        whatAgentShouldSayToUser: ZodString;
+     }, $strict>>;
+     reason: ZodString;
+     requires: ZodOptional<ZodArray<ZodObject<{
+        description: ...;
+        instructions: ...;
+        kind: ...;
+        schema: ...;
+        sensitive: ...;
+        title: ...;
+     }, $strict>>>;
+  }, $strict>], "available">>;
   deprecated: ZodOptional<ZodObject<{
      replacedBy: ZodOptional<ZodString>;
      since: ZodString;
@@ -205,6 +225,37 @@ const AuthModeSchema: ZodEnum<{
 
 ***
 
+<a id="availabilityschema"></a>
+
+### AvailabilitySchema
+
+```ts
+const AvailabilitySchema: ZodDiscriminatedUnion<[ZodObject<{
+  available: ZodLiteral<true>;
+}, $strict>, ZodObject<{
+  available: ZodLiteral<false>;
+  handoff: ZodOptional<ZodObject<{
+     instructions: ZodString;
+     reason: ZodString;
+     url: ZodString;
+     whatAgentShouldSayToUser: ZodString;
+  }, $strict>>;
+  reason: ZodString;
+  requires: ZodOptional<ZodArray<ZodObject<{
+     description: ZodString;
+     instructions: ZodOptional<ZodString>;
+     kind: ZodString;
+     schema: ZodRecord<ZodString, ZodUnknown>;
+     sensitive: ZodBoolean;
+     title: ZodString;
+  }, $strict>>>;
+}, $strict>], "available">;
+```
+
+`action.availability` and the entries of `/axe/state`. A reason is required when unavailable.
+
+***
+
 <a id="brandschema"></a>
 
 ### BrandSchema
@@ -258,6 +309,7 @@ const ContactSchema: ZodObject<{
 ```ts
 const ContinueRequestSchema: ZodObject<{
   continuationToken: ZodString;
+  expectedRev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   kind: ZodString;
   payload: ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>;
 }, $strict>;
@@ -411,6 +463,7 @@ const ErrorResultSchema: ZodObject<{
      message: ZodString;
      retryable: ZodBoolean;
   }, $strict>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"error">;
 }, $strict>;
 ```
@@ -532,6 +585,23 @@ const HandoffSchema: ZodObject<{
 
 ***
 
+<a id="handoffspecschema"></a>
+
+### HandoffSpecSchema
+
+```ts
+const HandoffSpecSchema: ZodObject<{
+  instructions: ZodString;
+  reason: ZodString;
+  url: ZodString;
+  whatAgentShouldSayToUser: ZodString;
+}, $strict>;
+```
+
+A handoff declared on an unavailable action: the Handoff object without the token members.
+
+***
+
 <a id="indexsiteschema"></a>
 
 ### IndexSiteSchema
@@ -625,6 +695,55 @@ const LadderSchema: ZodEnum<{
 
 ***
 
+<a id="liveschema"></a>
+
+### LiveSchema
+
+```ts
+const LiveSchema: ZodObject<{
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
+  url: ZodOptional<ZodString>;
+}, $strict>;
+```
+
+`manifest.live`.
+
+***
+
+<a id="livestateschema"></a>
+
+### LiveStateSchema
+
+```ts
+const LiveStateSchema: ZodObject<{
+  actions: ZodRecord<ZodString, ZodDiscriminatedUnion<[ZodObject<{
+     available: ZodLiteral<true>;
+   }, $strict>, ZodObject<{
+     available: ZodLiteral<false>;
+     handoff: ZodOptional<ZodObject<{
+        instructions: ZodString;
+        reason: ZodString;
+        url: ZodString;
+        whatAgentShouldSayToUser: ZodString;
+     }, $strict>>;
+     reason: ZodString;
+     requires: ZodOptional<ZodArray<ZodObject<{
+        description: ...;
+        instructions: ...;
+        kind: ...;
+        schema: ...;
+        sensitive: ...;
+        title: ...;
+     }, $strict>>>;
+  }, $strict>], "available">>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
+}, $strict>;
+```
+
+The document served at `/axe/state`.
+
+***
+
 <a id="manifestauthschema"></a>
 
 ### ManifestAuthSchema
@@ -660,6 +779,14 @@ const ManifestSchema: ZodObject<{
         site: "site";
         user: "user";
      }>;
+     availability: ZodOptional<ZodDiscriminatedUnion<[ZodObject<{
+        available: ZodLiteral<...>;
+      }, $strict>, ZodObject<{
+        available: ZodLiteral<...>;
+        handoff: ZodOptional<...>;
+        reason: ZodString;
+        requires: ZodOptional<...>;
+     }, $strict>], "available">>;
      deprecated: ZodOptional<ZodObject<{
         replacedBy: ZodOptional<ZodString>;
         since: ZodString;
@@ -754,6 +881,10 @@ const ManifestSchema: ZodObject<{
   }, $strict>>>;
   humanFallbackUrl: ZodOptional<ZodString>;
   indexUrl: ZodOptional<ZodString>;
+  live: ZodOptional<ZodObject<{
+     rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
+     url: ZodOptional<ZodString>;
+  }, $strict>>;
   name: ZodString;
   policies: ZodOptional<ZodObject<{
      agents: ZodOptional<ZodObject<{
@@ -788,6 +919,7 @@ const NeedsHumanResultSchema: ZodObject<{
      url: ZodString;
      whatAgentShouldSayToUser: ZodString;
   }, $strict>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"needs_human">;
 }, $strict>;
 ```
@@ -820,6 +952,7 @@ const NeedsInputResultSchema: ZodObject<{
   }, $strict>>;
   message: ZodString;
   reason: ZodString;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"needs_input">;
 }, $strict>;
 ```
@@ -833,6 +966,7 @@ const NeedsInputResultSchema: ZodObject<{
 ```ts
 const OkResultSchema: ZodObject<{
   output: ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"ok">;
 }, $strict>;
 ```
@@ -865,6 +999,7 @@ const PendingResultSchema: ZodObject<{
   expiresAt: ZodOptional<ZodString>;
   pollUrl: ZodString;
   retryAfter: ZodNumber;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"pending">;
 }, $strict>;
 ```
@@ -1000,6 +1135,7 @@ const RequestEnvelopeSchema: ZodObject<{
      sessionId: ZodOptional<ZodString>;
      timezone: ZodOptional<ZodString>;
   }, $strict>>;
+  expectedRev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   idempotencyKey: ZodOptional<ZodString>;
   input: ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>;
 }, $strict>;
@@ -1014,6 +1150,7 @@ const RequestEnvelopeSchema: ZodObject<{
 ```ts
 const ResultSchema: ZodDiscriminatedUnion<[ZodObject<{
   output: ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"ok">;
 }, $strict>, ZodObject<{
   accepts: ZodArray<ZodObject<{
@@ -1036,6 +1173,7 @@ const ResultSchema: ZodDiscriminatedUnion<[ZodObject<{
   }, $strict>>;
   message: ZodString;
   reason: ZodString;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"needs_input">;
 }, $strict>, ZodObject<{
   handoff: ZodObject<{
@@ -1046,11 +1184,13 @@ const ResultSchema: ZodDiscriminatedUnion<[ZodObject<{
      url: ZodString;
      whatAgentShouldSayToUser: ZodString;
   }, $strict>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"needs_human">;
 }, $strict>, ZodObject<{
   expiresAt: ZodOptional<ZodString>;
   pollUrl: ZodString;
   retryAfter: ZodNumber;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"pending">;
 }, $strict>, ZodObject<{
   error: ZodObject<{
@@ -1069,6 +1209,7 @@ const ResultSchema: ZodDiscriminatedUnion<[ZodObject<{
      message: ZodString;
      retryable: ZodBoolean;
   }, $strict>;
+  rev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   status: ZodLiteral<"error">;
 }, $strict>], "status">;
 ```
@@ -1081,9 +1222,22 @@ const ResultSchema: ZodDiscriminatedUnion<[ZodObject<{
 
 ```ts
 const ResumeRequestSchema: ZodObject<{
+  expectedRev: ZodOptional<ZodUnion<readonly [ZodString, ZodNumber]>>;
   resumeToken: ZodString;
 }, $strict>;
 ```
+
+***
+
+<a id="revisionschema"></a>
+
+### RevisionSchema
+
+```ts
+const RevisionSchema: ZodUnion<readonly [ZodString, ZodNumber]>;
+```
+
+A site revision: an opaque string or number.
 
 ***
 

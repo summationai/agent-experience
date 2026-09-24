@@ -51,6 +51,9 @@ type WireApi =
   | "authenticate"
   | "verifySiteKey"
   | "index"
+  | "revision"
+  | "describeLive"
+  | "unavailable"
   | "discover"
   | "manifest"
   | "invoke"
@@ -63,6 +66,7 @@ type WireApi =
   | "present"
   | "toMarkdown"
   | "toHTML"
+  | "stateToMarkdown"
   | "createMcpServer"
   | "serveStdio"
   | "serveHttp"
@@ -226,7 +230,6 @@ Union of every `error` name.
 ```ts
 type WireField = 
   | "app"
-  | "rev"
   | "at"
   | "entries"
   | "objects"
@@ -234,8 +237,6 @@ type WireField =
   | "role"
   | "object"
   | "state"
-  | "available"
-  | "requires"
   | "effect"
   | "mutates"
   | "confirm"
@@ -249,7 +250,6 @@ type WireField =
   | "sort"
   | "op"
   | "target"
-  | "expectedRev"
   | "actor"
   | "changed"
   | "protocol"
@@ -370,7 +370,14 @@ type WireField =
   | "latencyMs"
   | "ladder"
   | "errorCode"
-  | "tenant";
+  | "tenant"
+  | "live"
+  | "availability"
+  | "available"
+  | "requires"
+  | "rev"
+  | "expectedRev"
+  | "currentRev";
 ```
 
 Union of every `field` name.
@@ -499,7 +506,8 @@ type WirePath =
   | "/axe/actions"
   | "/axe/continue"
   | "/axe/resume"
-  | "/axe/poll";
+  | "/axe/poll"
+  | "/axe/state";
 ```
 
 Union of every `path` name.
@@ -668,7 +676,12 @@ Union of every `tone` name.
 ### WireTool
 
 ```ts
-type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll";
+type WireTool = 
+  | "axe_continue"
+  | "axe_resume"
+  | "axe_manifest"
+  | "axe_poll"
+  | "axe_state";
 ```
 
 Union of every `tool` name.
@@ -709,6 +722,7 @@ const api: Readonly<{
   currentRev: "currentRev";
   customKind: "customKind";
   describe: "describe";
+  describeLive: "describeLive";
   discover: "discover";
   expose: "expose";
   fetchHandler: "fetchHandler";
@@ -761,6 +775,7 @@ const api: Readonly<{
   resolveDisplay: "resolveDisplay";
   resume: "resume";
   retries: "retries";
+  revision: "revision";
   run: "run";
   runAudit: "runAudit";
   runConformance: "runConformance";
@@ -774,6 +789,7 @@ const api: Readonly<{
   setRev: "setRev";
   siteKey: "siteKey";
   state: "state";
+  stateToMarkdown: "stateToMarkdown";
   suggestedReason: "suggestedReason";
   surfaceActions: "surfaceActions";
   toHTML: "toHTML";
@@ -782,6 +798,7 @@ const api: Readonly<{
   toolNameFor: "toolNameFor";
   toWebRequest: "toWebRequest";
   ttlSeconds: "ttlSeconds";
+  unavailable: "unavailable";
   unregister: "unregister";
   useSurface: "useSurface";
   verifySiteKey: "verifySiteKey";
@@ -921,6 +938,7 @@ const field: Readonly<{
   at: "at";
   attributes: "attributes";
   auth: "auth";
+  availability: "availability";
   available: "available";
   axeReserved: "_axe";
   badges: "badges";
@@ -936,6 +954,7 @@ const field: Readonly<{
   context: "context";
   continuationToken: "continuationToken";
   currency: "currency";
+  currentRev: "currentRev";
   cursorIn: "cursorIn";
   cursorOut: "cursorOut";
   dataRetention: "dataRetention";
@@ -981,6 +1000,7 @@ const field: Readonly<{
   label: "label";
   ladder: "ladder";
   latencyMs: "latencyMs";
+  live: "live";
   loaded: "loaded";
   locale: "locale";
   logoUrl: "logoUrl";
@@ -1194,6 +1214,7 @@ const path: Readonly<{
   manifestAlias: "/axe/manifest";
   poll: "/axe/poll";
   resume: "/axe/resume";
+  state: "/axe/state";
 }>;
 ```
 
@@ -1398,6 +1419,7 @@ const tool: Readonly<{
   manifest: "axe_manifest";
   poll: "axe_poll";
   resume: "axe_resume";
+  state: "axe_state";
 }>;
 ```
 
@@ -1440,6 +1462,7 @@ const WIRE: Readonly<{
      currentRev: "currentRev";
      customKind: "customKind";
      describe: "describe";
+     describeLive: "describeLive";
      discover: "discover";
      expose: "expose";
      fetchHandler: "fetchHandler";
@@ -1492,6 +1515,7 @@ const WIRE: Readonly<{
      resolveDisplay: "resolveDisplay";
      resume: "resume";
      retries: "retries";
+     revision: "revision";
      run: "run";
      runAudit: "runAudit";
      runConformance: "runConformance";
@@ -1505,6 +1529,7 @@ const WIRE: Readonly<{
      setRev: "setRev";
      siteKey: "siteKey";
      state: "state";
+     stateToMarkdown: "stateToMarkdown";
      suggestedReason: "suggestedReason";
      surfaceActions: "surfaceActions";
      toHTML: "toHTML";
@@ -1513,6 +1538,7 @@ const WIRE: Readonly<{
      toolNameFor: "toolNameFor";
      toWebRequest: "toWebRequest";
      ttlSeconds: "ttlSeconds";
+     unavailable: "unavailable";
      unregister: "unregister";
      useSurface: "useSurface";
      verifySiteKey: "verifySiteKey";
@@ -1575,6 +1601,7 @@ const WIRE: Readonly<{
      at: "at";
      attributes: "attributes";
      auth: "auth";
+     availability: "availability";
      available: "available";
      axeReserved: "_axe";
      badges: "badges";
@@ -1590,6 +1617,7 @@ const WIRE: Readonly<{
      context: "context";
      continuationToken: "continuationToken";
      currency: "currency";
+     currentRev: "currentRev";
      cursorIn: "cursorIn";
      cursorOut: "cursorOut";
      dataRetention: "dataRetention";
@@ -1635,6 +1663,7 @@ const WIRE: Readonly<{
      label: "label";
      ladder: "ladder";
      latencyMs: "latencyMs";
+     live: "live";
      loaded: "loaded";
      locale: "locale";
      logoUrl: "logoUrl";
@@ -1771,6 +1800,7 @@ const WIRE: Readonly<{
      manifestAlias: "/axe/manifest";
      poll: "/axe/poll";
      resume: "/axe/resume";
+     state: "/axe/state";
   }>;
   payload: Readonly<{
      acceptedAt: "acceptedAt";
@@ -1865,6 +1895,7 @@ const WIRE: Readonly<{
      manifest: "axe_manifest";
      poll: "axe_poll";
      resume: "axe_resume";
+     state: "axe_state";
   }>;
 }>;
 ```

@@ -6,6 +6,7 @@
 import type {
   Accept,
   ActionDefinition,
+  LiveState,
   Manifest,
   NeedsInputResult,
   Result,
@@ -13,6 +14,7 @@ import type {
   JsonSchema,
 } from "@axe/core/types";
 import {
+  LiveStateSchema,
   ManifestSchema,
   PlatformIndexSchema,
   ResultSchema,
@@ -28,7 +30,7 @@ import {
   schemaMentionsReserved,
   validateAffordanceBinding,
 } from "@axe/core/display";
-import { lintManifest, isBareQuerySearch } from "@axe/core/lint";
+import { lintManifest, isBareQuerySearch, lintAgentText } from "@axe/core/lint";
 import { WELL_KNOWN_KINDS, isCustomKind, kindJsonSchema, suggestedReason } from "@axe/core/kinds";
 import { getPointer } from "@axe/core";
 import * as WIRE from "@axe/core/vocabulary";
@@ -75,6 +77,8 @@ export interface Observations {
   idempotencyReplayWorked: boolean | null;
   tokenTamperRejected: boolean | null;
   hintFound: "link" | "robots" | "header" | null;
+  /** The `/axe/state` document, when the manifest advertises live state and the endpoint answered. */
+  liveState: LiveState | null;
 }
 
 export interface ConformanceOptions {
@@ -105,6 +109,7 @@ const DOCS = {
   auth: "docs/auth.md",
   cors: "docs/deploying.md#cors",
   security: "docs/security.md",
+  live: "docs/live-state.md",
 };
 
 class Runner {
@@ -119,6 +124,7 @@ class Runner {
     idempotencyReplayWorked: null,
     tokenTamperRejected: null,
     hintFound: null,
+    liveState: null,
   };
   private readonly f: (input: string | URL, init?: RequestInit) => Promise<Response>;
   manifest: Manifest | null = null;
@@ -196,9 +202,11 @@ class Runner {
     action: ActionDefinition,
     input: unknown,
     idempotencyKey?: string,
+    expectedRev?: string | number,
   ): Promise<{ res: Response; result: Result | null }> {
     const body: Record<string, unknown> = { input, context: this.context() };
     if (!action.readOnly) body["idempotencyKey"] = idempotencyKey ?? crypto.randomUUID();
+    if (expectedRev !== undefined) body["expectedRev"] = expectedRev;
     const { res, json } = await this.post(
       `${WIRE.path.actions}/${encodeURIComponent(action.name)}`,
       body,
@@ -1709,6 +1717,200 @@ async function ladder(r: Runner): Promise<void> {
   }
 }
 
+const LIVE_CHECKS: [string, string, string[]][] = [
+  [
+    "live.state-endpoint",
+    `${WIRE.path.state} returns the live state, uncached`,
+    ["P-LIVE-7", "P-LIVE-8"],
+  ],
+  ["live.rev-on-envelopes", "Every envelope carries rev", ["P-LIVE-2"]],
+  [
+    "live.stale-conflict",
+    "A stale expectedRev → 409 conflict with expectedRev and currentRev",
+    ["P-LIVE-1", "P-LIVE-3"],
+  ],
+  ["live.fresh-accepted", "The current rev as expectedRev is accepted", ["P-LIVE-3"]],
+  ["live.reasons", "Every unavailable action says why, in plain language", ["P-LIVE-5"]],
+  [
+    "live.availability-honored",
+    "An action reported unavailable does not complete with ok",
+    ["P-LIVE-6"],
+  ],
+];
+
+/** Live state and revisions (spec §21). Every check skips when the manifest does not advertise `live`. */
+async function live(r: Runner): Promise<void> {
+  const m = r.manifest!;
+  const skipAll = (why: string) => {
+    for (const [id, title, reqs] of LIVE_CHECKS) r.add(id, title, "skip", reqs, why, DOCS.live);
+  };
+  if (!m.live) return skipAll("The manifest does not advertise live state (no `live` member).");
+  const byId = new Map(LIVE_CHECKS.map((c) => [c[0], c] as const));
+  const add = (id: string, status: CheckStatus, detail: string) => {
+    const [, title, reqs] = byId.get(id)!;
+    r.add(id, title, status, reqs, detail, DOCS.live);
+  };
+
+  // State endpoint.
+  const stateUrl = m.live.url ?? `${r.base}${WIRE.path.state}`;
+  let state: LiveState | null = null;
+  try {
+    const res = await r.request(stateUrl);
+    const text = await res.text();
+    let json: unknown = null;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+    const parsed = LiveStateSchema.safeParse(json);
+    const cc = (res.headers.get("cache-control") ?? "").toLowerCase();
+    const noStore = cc.includes("no-store");
+    if (res.ok && parsed.success) {
+      state = parsed.data as LiveState;
+      r.obs.liveState = state;
+    }
+    const missing = m.actions.filter((a) => !state?.actions[a.name]).map((a) => a.name);
+    add(
+      "live.state-endpoint",
+      res.ok && parsed.success && noStore && missing.length === 0 ? "pass" : "fail",
+      !res.ok
+        ? `HTTP ${res.status} at ${stateUrl}`
+        : !parsed.success
+          ? `Invalid state document: ${parsed.error.issues
+              .slice(0, 3)
+              .map((i) => `${i.path.join(".") || "/"}: ${i.message}`)
+              .join("; ")}`
+          : [
+              `rev ${state?.rev === undefined ? "(none)" : String(state?.rev)}; ${Object.keys(state?.actions ?? {}).length} actions`,
+              noStore ? "" : `Cache-Control is "${cc || "(none)"}"; it must be no-store.`,
+              missing.length ? `Actions missing from state: ${missing.join(", ")}` : "",
+            ]
+              .filter(Boolean)
+              .join(". "),
+    );
+  } catch (e) {
+    add("live.state-endpoint", "fail", `Request to ${stateUrl} failed: ${(e as Error).message}`);
+  }
+
+  // Reasons: every unavailable entry (manifest and state) has a plain-language reason with no directive.
+  {
+    const entries: { where: string; reason: string | undefined }[] = [];
+    for (const a of m.actions)
+      if (a.availability && !a.availability.available)
+        entries.push({ where: `manifest ${a.name}`, reason: a.availability.reason });
+    for (const [name, av] of Object.entries(state?.actions ?? {}))
+      if (!av.available) entries.push({ where: `state ${name}`, reason: av.reason });
+    const missing = entries.filter((e) => !e.reason?.trim());
+    const directives = entries.filter(
+      (e) =>
+        e.reason &&
+        lintAgentText(e.reason, { location: e.where }).some((i) => i.rule === "agent-directive"),
+    );
+    add(
+      "live.reasons",
+      missing.length || directives.length ? "fail" : "pass",
+      entries.length === 0
+        ? "No unavailable actions observed."
+        : [
+            missing.length ? `No reason: ${missing.map((e) => e.where).join(", ")}` : "",
+            directives.length
+              ? `Agent-directed text in reason: ${directives.map((e) => e.where).join(", ")}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("; ") || `${entries.length} unavailable action(s), each with a reason`,
+    );
+  }
+
+  const readable = m.actions.find((a) => a.readOnly && a.examples?.length && r.callable(a));
+  const rev = state?.rev;
+  if (!readable) {
+    const why = "No callable read-only action with an example.";
+    add("live.rev-on-envelopes", "skip", why);
+    add("live.stale-conflict", "skip", why);
+    add("live.fresh-accepted", "skip", why);
+  } else if (rev === undefined) {
+    const why = "The site publishes availability but no revision (state.rev is absent).";
+    add("live.rev-on-envelopes", "skip", why);
+    add("live.stale-conflict", "skip", why);
+    add("live.fresh-accepted", "skip", why);
+  } else {
+    const input = readable.examples![0]!.input;
+    const { result } = await r.invoke(readable, input);
+    add(
+      "live.rev-on-envelopes",
+      result && result.rev !== undefined ? "pass" : "fail",
+      result
+        ? result.rev !== undefined
+          ? `${readable.name} → ${result.status} at rev ${String(result.rev)}`
+          : `${readable.name} → ${result.status} without rev; a site with a revision stamps every envelope.`
+        : "No envelope.",
+    );
+    const stale = typeof rev === "number" ? rev - 1 : `${rev}-axe-conformance-stale`;
+    const { res, result: conflict } = await r.invoke(readable, input, undefined, stale);
+    const details =
+      conflict?.status === WIRE.status.error ? (conflict.error.details ?? {}) : undefined;
+    const ok =
+      conflict?.status === WIRE.status.error &&
+      conflict.error.code === WIRE.error.conflict &&
+      res.status === 409 &&
+      conflict.error.retryable === true &&
+      details?.[WIRE.field.expectedRev] === stale &&
+      details?.[WIRE.field.currentRev] !== undefined;
+    add(
+      "live.stale-conflict",
+      ok ? "pass" : "fail",
+      ok
+        ? `expectedRev ${String(stale)} → conflict; currentRev ${String(details?.[WIRE.field.currentRev])}`
+        : `expectedRev ${String(stale)} → HTTP ${res.status}, ${conflict ? (conflict.status === WIRE.status.error ? `${conflict.error.code} (retryable ${conflict.error.retryable}, details ${JSON.stringify(conflict.error.details ?? null)})` : conflict.status) : "no envelope"}`,
+    );
+    const { result: fresh } = await r.invoke(readable, input, undefined, rev);
+    const freshOk = fresh && fresh.status !== WIRE.status.error;
+    const moved = fresh?.status === WIRE.status.error && fresh.error.code === WIRE.error.conflict;
+    add(
+      "live.fresh-accepted",
+      freshOk ? "pass" : moved ? "warn" : "fail",
+      freshOk
+        ? `expectedRev ${String(rev)} → ${fresh.status}`
+        : moved
+          ? `The revision moved between reading state and calling (now ${String(fresh.error.details?.[WIRE.field.currentRev])}); run again on a quiet site.`
+          : `expectedRev ${String(rev)} → ${fresh ? (fresh.status === WIRE.status.error ? fresh.error.code : fresh.status) : "no envelope"}`,
+    );
+  }
+
+  // Availability honored: an action the state reports unavailable must not complete with ok.
+  {
+    const unavailable = m.actions.filter((a) => {
+      const av = state?.actions[a.name];
+      return av && !av.available && a.examples?.length && r.callable(a);
+    });
+    const targets = r.options.noMutate ? unavailable.filter((a) => a.readOnly) : unavailable;
+    if (targets.length === 0) {
+      add(
+        "live.availability-honored",
+        "skip",
+        unavailable.length
+          ? "Skipped: --no-mutate."
+          : "No callable action with an example is reported unavailable.",
+      );
+    } else {
+      const completed: string[] = [];
+      for (const a of targets) {
+        const { result } = await r.invoke(a, a.examples![0]!.input);
+        if (result?.status === WIRE.status.ok) completed.push(a.name);
+      }
+      add(
+        "live.availability-honored",
+        completed.length ? "fail" : "pass",
+        completed.length
+          ? `Reported unavailable but returned ok: ${completed.join(", ")}`
+          : `${targets.length} unavailable action(s) refused`,
+      );
+    }
+  }
+}
+
 /** Run the conformance suite against a site. */
 export async function runConformance(
   url: string,
@@ -1721,6 +1923,7 @@ export async function runConformance(
     const schemaOk = r.checks.find((c) => c.id === "manifest.schema")?.status === "pass";
     if (schemaOk) {
       await runtime(r);
+      await live(r);
       await ladder(r);
     }
   }

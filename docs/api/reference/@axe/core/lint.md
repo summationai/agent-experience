@@ -115,7 +115,8 @@ type LintRule =
   | "missing-display-url"
   | "missing-disclaimer"
   | "readonly-contradiction"
-  | "risk-none-on-mutation";
+  | "risk-none-on-mutation"
+  | "unavailable-without-reason";
 ```
 
 ***

@@ -131,4 +131,39 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-HON-5": [{ check: "ladder.fake-kinds" }],
   "P-HON-6": [{ check: "ladder.consent-scope" }],
   "P-HON-7": [{ check: "manifest.truthful-metadata" }],
+  "P-LIVE-1": [
+    { check: "live.stale-conflict" },
+    { test: "@axe/core expectedRev is ignored by a site without a revision" },
+  ],
+  "P-LIVE-2": [
+    { check: "live.rev-on-envelopes" },
+    { test: "@axe/core rev is stamped on every envelope when a revision provider exists" },
+  ],
+  "P-LIVE-3": [
+    { check: "live.stale-conflict" },
+    { check: "live.fresh-accepted" },
+    {
+      test: "@axe/core a stale expectedRev is conflict with expectedRev and currentRev, and nothing is applied",
+    },
+  ],
+  "P-LIVE-4": [
+    {
+      test: "@axe/core an idempotent replay wins over a stale expectedRev, and a stale call does not burn the key",
+    },
+  ],
+  "P-LIVE-5": [{ check: "live.reasons" }],
+  "P-LIVE-6": [
+    { check: "live.availability-honored" },
+    { test: "@axe/core handlers receive availability and refuse with unavailable()" },
+  ],
+  "P-LIVE-7": [
+    { check: "live.state-endpoint" },
+    { test: "@axe/core the manifest advertises live and renders the anonymous availability" },
+  ],
+  "P-LIVE-8": [
+    { check: "live.state-endpoint" },
+    { test: "@axe/core /axe/state is served per caller with no-store" },
+  ],
+  "P-LIVE-9": [{ test: "@axe/core handlers receive availability and refuse with unavailable()" }],
+  "P-LIVE-10": [{ test: "@axe/core revisions are compared for equality only" }],
 });

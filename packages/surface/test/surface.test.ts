@@ -167,7 +167,7 @@ describe("act returns the AXE result envelope", () => {
     expect(codeOf(r)).toBe("conflict");
     if (r.status === "error") {
       expect(r.error.retryable).toBe(true);
-      expect(r.error.details).toEqual({ rev: 0, expectedRev: 5 });
+      expect(r.error.details).toEqual({ expectedRev: 5, currentRev: 0 });
     }
     expect(b.log).toEqual([]);
   });

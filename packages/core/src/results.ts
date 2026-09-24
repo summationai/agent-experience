@@ -3,7 +3,14 @@
  * turns them into wire envelopes (minting and storing tokens as needed).
  */
 import type { AcceptInput } from "./kinds";
-import type { ErrorBody, ErrorCode, JsonObject, JsonValue, ValidationIssue } from "./types";
+import type {
+  Availability,
+  ErrorBody,
+  ErrorCode,
+  JsonObject,
+  JsonValue,
+  ValidationIssue,
+} from "./types";
 import { WIRE } from "./vocabulary";
 
 export const INTENT: unique symbol = Symbol.for("axe.intent");
@@ -123,6 +130,24 @@ export function fail(code: ErrorCode, message: string, options: FailOptions = {}
     if (options.issues) error.details.issues = options.issues;
   }
   return { [INTENT]: "error", error };
+}
+
+/**
+ * Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+ * availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+ * change that. The message defaults to the reason.
+ */
+export function unavailable(
+  availability: Extract<Availability, { available: false }>,
+  options: { message?: string; retryable?: boolean } = {},
+): ErrorIntent {
+  const details: JsonObject = { reason: availability.reason };
+  if (availability.requires) details.requires = availability.requires as unknown as JsonValue;
+  if (availability.handoff) details.handoff = { ...availability.handoff };
+  return fail(WIRE.error.unavailable, options.message ?? availability.reason, {
+    retryable: options.retryable ?? true,
+    details,
+  });
 }
 
 /** Throwable form of `fail()`, for code paths deep inside a handler. The runtime converts it. */

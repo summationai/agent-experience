@@ -19,6 +19,8 @@ export type {
   HookContext,
   AdapterContext,
   Endpoint,
+  RevisionContext,
+  RevisionProvider,
 } from "./server";
 export { action, ActionDefinitionError, ACTION_NAME_PATTERN } from "./action";
 export type {
@@ -32,8 +34,10 @@ export type {
   ResultHelpers,
   TenantInfo,
   MaybePromise,
+  AvailabilityInput,
+  AvailabilityContext,
 } from "./action";
-export { ok, needsInput, handoff, pending, fail, AXEError, isIntent } from "./results";
+export { ok, needsInput, handoff, pending, fail, unavailable, AXEError, isIntent } from "./results";
 export type {
   ResultIntent,
   OkIntent,

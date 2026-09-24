@@ -4,6 +4,10 @@
  * revision-guarded). Refusals map onto the escalation ladder: an unavailable control that declares
  * `requires` becomes `needs_input`; one that declares a `handoff` becomes `needs_human`; a stale
  * revision is `conflict`.
+ *
+ * The revision the agent observed travels as the request envelope's `expectedRev` (protocol §21);
+ * pass `revision: surface.currentRev` to `createAXE` so the server checks it and stamps `rev` on
+ * every envelope. `input.expectedRev` is still accepted for one release and is deprecated.
  */
 import { action, z } from "@axe/core";
 import type { RegisteredAction } from "@axe/core";
@@ -140,7 +144,13 @@ export function surfaceActions(
           .enum([WIRE.op.click, WIRE.op.toggle, WIRE.op.typeText, WIRE.op.scrollDown])
           .describe("Operation for the entry's kind"),
         text: z.string().optional().describe("Text for a field, or free text an action asks for"),
-        expectedRev: z.number().int().describe("The rev from the observation you are acting on"),
+        expectedRev: z
+          .number()
+          .int()
+          .optional()
+          .describe(
+            "Deprecated: send the rev from the observation as the request envelope's expectedRev instead",
+          ),
         confirm: z
           .boolean()
           .optional()
@@ -154,11 +164,15 @@ export function surfaceActions(
       changed: z.array(z.string()),
     }),
     humanHandoff: { reasons: ["unavailable"] },
-    handler: async ({ input, context, needsInput, handoff, fail }) => {
+    handler: async ({ input, context, expectedRev, needsInput, handoff, fail }) => {
+      // The envelope's expectedRev is first-class; input.expectedRev is the deprecated path.
+      const seen = expectedRev ?? input.expectedRev;
       const request: ActRequest = {
         op: input.op,
         target: input.target,
-        expectedRev: input.expectedRev,
+        expectedRev: (typeof seen === "string" && /^-?\d+$/.test(seen)
+          ? Number(seen)
+          : seen) as number,
         actor: actorFor(context),
       };
       if (input.text !== undefined) request.text = input.text;
