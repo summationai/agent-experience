@@ -55,6 +55,8 @@ Start at the top and read down. Each page ends with next steps.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 
+For agents implementing this: [llms.txt](../llms.txt) at the repository root is the integration guide, and the site publishes it with a full-text companion.
+
 ## How these docs are written
 
 - Short paragraphs. Code before prose where a reader can learn from the code.

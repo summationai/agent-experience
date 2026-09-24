@@ -50,3 +50,7 @@ Initial release of the Body Spray SDK and the `axe/0.1` protocol.
 ### Website
 
 - `site/`: a static marketing and documentation site built from `docs/`, `spec/`, and the root Markdown files. Runs from `file://` with no network; `site/dist/` is committed and reproducible. Landing page with the escalation-ladder demo (real envelopes), the search → present → select demo (real `toHTML()` output), an embedded `axe audit` report, and a docs hub generated from `docs/README.md`. Tests: reproducible build, offline load in Chromium/Firefox/WebKit, link check, demo behavior, responsive screenshots, Lighthouse ≥ 95.
+
+### llms.txt
+
+- `llms.txt` at the repository root: an integration guide for agents, in the llms.txt convention (an H1, a summary, H2 sections of links with one-line descriptions). Sections: what this is and the three Surface rules, decide your shape, rules that are scars, packaging, ship behind a flag, tests to write, reading order, API at a glance, what does not exist yet. The site build writes `site/dist/llms.txt` (links rewritten to the published pages) and `site/dist/llms-full.txt` (the index followed by every doc and spec page in navigation order); a site test checks that every link resolves and every page is carried.

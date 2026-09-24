@@ -1,0 +1,165 @@
+# Body Spray SDK: AXE and Surface
+
+> AXE (`axe/0.1`) is an HTTP protocol and a TypeScript SDK that let a website publish an agent-specific interface next to its human one: a manifest of typed actions, one result envelope with an escalation ladder (`needs_input`, `needs_human`), and a derived MCP server. Surface is the inside-out half: a running application registers its own live controls, with a reason for every unavailable one and one revision for the whole application, and `@axe/surface/axe` serves that registry as ordinary AXE actions. This file is for an agent about to integrate the SDK into an existing application. Every name below exists in this repository; each link points at the source of the claim.
+
+AXE is outside-in. A site declares actions with `createAXE` and `action()`, wrapping functions it already has; agents discover `/.well-known/axe.json`, call `POST /axe/actions/{name}`, continue at `/axe/continue`, resume at `/axe/resume`, and read what can be done right now at `/axe/state`. Surface is inside-out. The application registers each control that matters (an `action`, a `field`, or a `collection`) with a stable `id`, a `name` that states the outcome, its `state` with a `reason`, its `effect`, and the very handler the control runs; `observe()` is an indexed snapshot at a revision and `act()` runs one control under a revision guard. Surface has three rules ([spec/SURFACE.md](spec/SURFACE.md) section 2): Surface reports, it never decides ([S-RULE-1]); same door, an act runs the control's own handler ([S-RULE-2]); one revision, every observation carries it and every act presents it ([S-RULE-3]). The seam is `surfaceActions(surface, { namespace })`: an `ActionProvider` for `axe.addProvider` whose set is `<ns>.observe`, `<ns>.ledger`, and one action per entry, with the entry's live `state` as the action's `availability` and its refusals mapped onto the ladder. Discovery, MCP, kinds, conformance, and the audit then apply unchanged.
+
+## Decide your shape
+
+Pick by where the truth of "can this be done right now" lives. Most applications combine one of the first three with the fourth.
+
+- React components own the controls: call `useSurface(entry, deps)` or `useSurfaceProps(entry, deps)` from `@axe/surface/react` once per control, inside the component that already computes the control's disabled state. `deps` names every value the entry was computed from, including transient flags (saving, loading, a modal open); left out, the surface keeps reporting a control available while the UI has frozen it ([S-REV-5]). Rows rendered from a `.map` get a component that renders nothing and holds the hooks, so a row that leaves the page leaves the table. Spread `useSurfaceProps` onto the element that receives the interaction so the accessible name is the entry name ([S-DOM-1]). Refresh replaces the entry in place; only unmount unregisters, so an agent's index never jumps because a sibling re-rendered.
+- Legacy or non-React DOM (HTML from string builders, jQuery, Web Components): write a pure re-scan adapter. After each render, read the application's own facts (data attributes, `disabled`, `readOnly`, lock records: the same state the renderer used to disable the control) into plain descriptors, then hand them to a module with no DOM access that calls `register` per control, `reconcile(prefix, keep)` per id prefix so rows that left the render leave the table, `setRev(appRevision)` or `bump()`, and `setObjects(() => domainObjects)`. Reasons come from one function that maps a descriptor to the application's words or null. The field setter and the action handler run the exact commit the change event or the button runs. Because the module takes descriptors and callbacks, it is testable without a browser.
+- Server-side operations with no UI control: write `action()`s by hand ([docs/designing-actions.md](docs/designing-actions.md)), or derive them with `@axe/generate` from an OpenAPI 3.x document (`fromOpenAPI`), a table of zod-typed functions (`fromFunctions`), or a tRPC router (`fromTRPCRouter`), then `generate` and `registerGenerated`. The generator leaves out any operation without a description or a risk for a mutation and says so in a warning; it never invents them.
+- Serving a surface as AXE actions: `createAXE({ ..., revision: surface.currentRev })`, then `axe.addProvider(surfaceActions(surface, { namespace }))`, then mount with `axeExpress`, `axeNext` or `axeNextPages`, `axeFetch`, or `axe.fetchHandler()`. The surface's revision becomes the site's: every envelope carries `rev`, a stale `expectedRev` is `conflict` before any handler runs, and `/axe/state` answers per control. For a page with no server of its own, `expose(window)` publishes `observe`, `act`, `ledger`, and `rev` at `window.__surface` for agents that drive the browser ([S-DOM-2]).
+- Where the surface comes from: `createSurface({ app })` for an instance, or the module-level `surface` and its bound functions (`configure`, `register`, `unregister`, `reconcile`, `freeze`, `seedRev`, `setRev`, `currentRev`, `bump`, `onChange`, `setObjects`, `observe`, `act`, `ledger`, `expose`) exported from `@axe/surface`. `useSurface` and `useSurfaceProps` take an optional third argument naming the instance; the default is the module-level one.
+- Who owns the revision: an application whose state lives in the browser calls `bump()` after every change an agent could observe, whoever made it; an application with a server revision adopts it with `setRev()` and keeps its own stale check as the second gate ([S-REV-1]). Never derive a revision from a content hash.
+- [docs/surface.md](docs/surface.md): the guide to Surface, from registration to serving it through AXE.
+- [spec/SURFACE.md](spec/SURFACE.md): the normative contract (v0.3): terms, the three rules, entries, availability, observe and act, the ledger, freezes, the seam, browser agents.
+- [packages/surface/src/react.ts](packages/surface/src/react.ts): `useSurface`, `useSurfaceProps`, `toSurfaceProps`, with the reason refresh replaces in place.
+- [packages/surface/src/axe.ts](packages/surface/src/axe.ts): `surfaceActions`, its options, the name map, the ladder mapping.
+- [packages/surface/test/fixtures/board.ts](packages/surface/test/fixtures/board.ts): the draft-board fixture that mirrors a real React row registration.
+- [docs/examples/surface/serve.ts](docs/examples/surface/serve.ts): the code that serves a surface as a manifest, and the name map in both directions.
+- [docs/examples/surface/save.ts](docs/examples/surface/save.ts): `freeze` around a save in flight.
+- [docs/generating.md](docs/generating.md): deriving actions from OpenAPI, functions, or tRPC; overrides and policy; what the generator refuses to invent.
+- [docs/live-state.md](docs/live-state.md): revisions, `expectedRev`, `availability`, `/axe/state`, and how Surface plugs into them.
+
+## Rules that are scars
+
+Each rule below was paid for on a real application. The rule ids are in [spec/SURFACE.md](spec/SURFACE.md) and [spec/AXE-PROTOCOL.md](spec/AXE-PROTOCOL.md).
+
+- Report, never decide ([S-RULE-1]): an entry's `state` and `reason` are whatever the application computed to enable or disable its own control. The adapter adds no authorization, validation, or business logic. Through AXE, `availability` is a report, not a gate: the handler is still the one door, and an unavailable action must not return `ok` ([P-LIVE-6]); `unavailable()` in `@axe/core` is the honest refusal with the same `reason`, `requires`, and `handoff` in `error.details`.
+- Same door ([S-RULE-2]): the handler an agent triggers is the handler a click or a change event runs, so authorization, validation, and persistence stay where they are. A Surface adapter that calls a service directly instead of the control's commit has opened a second path to state.
+- One revision ([S-RULE-3]): every observation and every entry carries `rev`; every act presents `expectedRev`; a stale act is `error` `conflict` with `details: { expectedRev, currentRev }` and applies nothing ([S-ACT-2], [P-LIVE-3]). Through AXE the revision travels only as the request envelope's `expectedRev`, never in `input`; the per-row affordances that `<ns>.observe` returns carry it for the agent ([S-AXE-4]). A retried act with the same `expectedRev` after a success is refused, so a lost response cannot double-apply ([S-REV-2]).
+- Bad targets, the first staging defect: an act whose `target` was `null` matched a row that was not actionable. Now `target` must be a non-empty string id or a non-negative integer index, and anything else is `invalid_input` at `/target` before any lookup ([S-ACT-6]); an index resolves only to the row whose `index` in the observation at that revision is that number, and a row without an index is unreachable by number ([S-ACT-7]); the revision guard runs before the target is resolved, so an index observed at an older revision is `conflict`, never the row that slid into its slot; an id that names an unavailable entry is `unavailable` with its reason, not `not_found` ([S-ACT-8]). Prefer ids ([S-ACT-5]).
+- Frozen tables, the second staging defect: the table kept reporting cells editable while the application had disabled editing during a save, so an act ran into the frozen UI. Now the application must re-register or `reconcile` on every transient state ([S-REV-5]), and `freeze(reason)` makes the page-wide case one call: every entry reports unavailable with that reason, `observe()` carries `frozen: { reason }`, no row carries an `index`, an act is `unavailable` with `retryable: true`, the revision moves on `freeze` and again on `thaw`, and freezes nest and are counted ([S-FRZ-1] to [S-FRZ-4]). The shape is `const thaw = surface.freeze("saving"); try { await persist(); } finally { thaw(); }`.
+- Replace in place ([S-ENT-5]): re-registering an entry by id keeps its position. Unregister-then-register on refresh moves the row to the end and an agent's index with it.
+- Reasons are the application's own words: `reason` is plain language a person would recognize from the UI ("this version is locked", "already drafted by another team"), never a code and never an instruction to the agent. `requires` names AXE kinds the application can `fulfill`; `handoff` names a step a human can take at a URL that exists. Never invent a URL, a kind, a description, or a risk; when a definition does not say, leave the action out (the generator's rule) or ask the owner.
+- Names state the outcome, not the widget ([S-DOM-1]): "Lock March", not "Lock button"; the role is `role`, the state is `state`. The same string is the control's `aria-label` and the `name` in `observe()`.
+- No agent-directed text and no persuasion ([P-HON-1], [P-HON-2]): every string an agent reads (`name`, `reason`, `instructions`, `whatAgentShouldSayToUser`, every `description`) is linted with `lintAgentText`; an entry whose text fails is reported through the bridge's `onError` and left out of the action set, and the audit zeroes its Trustworthy category on an agent-directed imperative.
+- Effect metadata is truthful ([S-EFF-1], [S-EFF-2], [P-HON-7]): `risk` is never `none` for an action entry and defaults to `medium`; `reversible` is the name, `undoable` a deprecated alias; a control that changes state is never presented as read-only.
+- The ledger keeps refusals ([S-LED-4]): an agent that observed at one revision and was refused at another did nothing, and the record says so. The ledger is in memory and bounded (`ledger.max`, default 1000); the durable trail is the `surface.act` action events on the server's `onActionEvent` sinks ([S-AXE-5]).
+- [spec/SURFACE.md](spec/SURFACE.md): the rules by id, and the Provenance section that names the two defects.
+- [DECISIONS.md](DECISIONS.md): "Two staging defects are rules, not fixes", "The revision stays application-owned", "Per-action availability is a report, not a gate", "The generator refuses to invent what the definition does not say".
+- [docs/audit.md](docs/audit.md): the honesty rules and what the audit rejects.
+
+## Packaging
+
+- Workspace: pnpm 10 (via corepack) and Turborepo, Node 20 or newer, packages under `packages/*`. `pnpm install`, then `pnpm -r build`, `pnpm -r typecheck`, `pnpm -r test`, `pnpm lint`. Every package is built by tsup from `tsup.base.ts` (`platform: "neutral"`, `target: "node20"`) as ESM plus CJS with `exports` conditions and declares `sideEffects: false`.
+- Subpaths: `@axe/core` exports `.`, `./types`, `./vocabulary`, `./kinds`, `./events`, `./display`, `./lint`, and `./schemas`; `./types`, `./display`, `./vocabulary`, and `./lint` are zod-free. `@axe/surface` exports `.`, `./react`, and `./axe`; `react` (18 or newer) is an optional peer dependency, so a server-only surface carries no React.
+- npm: releases go through changesets (`pnpm release` runs `pnpm build && changeset publish`, `access: public`, all packages version together as `@axe/*` and `axe`). Version 0.1.0 is unreleased at the time of writing; nothing in this repository shows a published `@axe` scope, so do not `npm install @axe/surface` and expect it to resolve.
+- Vendored tarballs while unpublished: run `pnpm pack --pack-destination <dir>` in `packages/core` and `packages/surface` (after `pnpm -r build`) to get `axe-core-0.1.0.tgz` and `axe-surface-0.1.0.tgz`. pnpm rewrites `"@axe/core": "workspace:*"` to `"@axe/core": "0.1.0"` in the packed manifest, so the consumer must install `@axe/core` from its tarball as well (a `file:` dependency in its `package.json`), or the surface tarball's dependency will not resolve. Record the commit (`git rev-parse HEAD`) next to the tarballs; the tarball carries the version, not the commit, and 0.1.0 covers every pre-release commit.
+- GitHub Packages: its npm registry requires a package scope equal to the GitHub owner. `@axe/*` in a `summationai` repository cannot be published there without renaming the packages; use npm or tarballs.
+- Browser bundling: `@axe/core` is built platform-neutral and reaches for one Node module, `jsonlFileSink` dynamically imports `fs/promises` when it is called. Unused, it is dropped by tree-shaking; if a browser bundler resolves the dynamic import eagerly, mark `fs/promises` external. `@axe/surface` imports `isZodSchema` and `toJsonSchema` from `@axe/core` and `validateJsonSchema` from `@axe/core/schemas`, so a client bundle that includes the surface includes `zod`. `@axe/client` has no runtime dependencies and runs in browsers and Node 20.
+- [package.json](package.json): scripts, `packageManager`, engines.
+- [tsup.base.ts](tsup.base.ts): the shared build options.
+- [packages/surface/package.json](packages/surface/package.json): exports, the optional React peer.
+- [packages/core/package.json](packages/core/package.json): the subpath exports.
+- [.changeset/config.json](.changeset/config.json): release configuration.
+- [docs/api/README.md](docs/api/README.md): the package table and entry points.
+
+## Ship behind a flag, staging first
+
+- Grow the manifest one action at a time behind a flag: a read-only action always on, a mutating action registered only when its flag is on; flip the flag in one environment, run `axe conformance` there, then flip it everywhere ([docs/deploying.md](docs/deploying.md), "Rolling out one action at a time"). Agents read the manifest and act on it, so an action that appears in production is in production.
+- Gate a Surface adapter the same way: one runtime flag checked at the top of the sync function, so with the flag off nothing registers and no provider is added. The first planning-grid adapter did exactly this.
+- `axe conformance` calls mutating actions: it replays for idempotency, continues a `needs_input` with a sample payload, and resumes a fallback handoff. Run it against staging or a local instance with a disposable database; `--no-mutate` for an environment you cannot reset; never production with credentials.
+- Staging is where the seam shows its defects. Both scars above were found on staging, in the seam between Surface and the application, not in either alone. Watch the ledger and the `surface.act` events during the trial, then widen.
+- Before production: `secret` from a secret manager (16 characters or more), a durable `tokenStore` and `idempotencyStore` (the in-memory defaults lose every open continuation, handoff, and idempotency record on restart), `axe audit --min-score` as a CI gate, and `deprecated: { since, replacedBy }` instead of removing an action.
+- [docs/deploying.md](docs/deploying.md): secrets and stores, discovery, CORS, caching, rate limiting, observability hooks, rollout, the checklist.
+- [docs/examples/deploying/flags.ts](docs/examples/deploying/flags.ts): the flag gate and the deprecation, as code.
+- [docs/testing-and-conformance.md](docs/testing-and-conformance.md): running conformance locally and in CI, every check and what it verifies.
+- [docs/security.md](docs/security.md): the threat model, what the SDK mitigates, what the site must provide, known gaps.
+
+## Tests to write
+
+- Pure adapter tests, no browser: feed plain descriptors to the adapter and assert on `observe()`. Reasons are the application's words; `index` is set only on rows that can be acted on; the application's revision is adopted as `rev`; a re-sync drops rows that left the render (`reconcile`) and moves the revision with the application; an act with a stale `expectedRev` runs nothing; a fresh one runs the application's own commit with the text and the actor. A test runner with no DOM is enough.
+- Two-actor conflict: observe at one revision, let the other participant change state (`bump` or `setRev`), act with the old revision, and assert `conflict` with `details.expectedRev` and `details.currentRev`, nothing applied, and a ledger entry with that status; re-observe and continue from the new state. Add the index-shift case (a row that slid into an observed slot is not hit) and the lost-response case (the same revision retried after a success applies at most once).
+- Freeze: `freeze("saving")` makes every entry unavailable with that reason, `observe().frozen` is set, an act is `unavailable` and `retryable`, `thaw()` restores the entries and moves the revision again; nested freezes report the newest reason and thaw on the last release.
+- Bad targets: `null`, `""`, `-1`, `1.5`, an object, and a missing target are `invalid_input` at `/target`; a number no row carries is `not_found`; an id that names an unavailable entry is `unavailable` with its reason.
+- In-process AXE tests with `@axe/testing`: `createTestClient(axe, { identity })` and `invokeAction(axe, name, input)` run the same code path as `/axe/actions/{name}`, `/axe/continue`, and `/axe/resume` without a port. Then `runConformance(url)` against the running application; when the manifest carries `live`, the six `live.*` checks run: `live.state-endpoint`, `live.rev-on-envelopes`, `live.stale-conflict`, `live.fresh-accepted`, `live.reasons`, `live.availability-honored`. `runAudit` with a floor completes the gate.
+- DOM mirror: for every observed row, `document.querySelector(surfaceSelector(row.id))` finds exactly one element, its `aria-label` equals the row's `name`, and an unavailable action carries `aria-disabled` with `data-surface-reason` ([S-DOM-1], [S-DOM-3]).
+- Honesty: run `lintAgentText` over your names and reasons in a unit test, so a persuasive or agent-directed string fails in CI rather than being dropped by the bridge at runtime.
+- Drift and vocabulary, in this repository: `cd packages/testing && pnpm exec vitest run test/drift.test.ts`. Every inline code span in `spec/`, `docs/`, and the README that looks like a wire name must be in `spec/VOCABULARY.md`, and every vocabulary name must be mentioned in the docs and used in source. In another repository, `checkVocabularyDrift({ root, docPaths, allowlistPath, maxAllowlist })` from `@axe/testing` does the same.
+- [packages/surface/test/surface.test.ts](packages/surface/test/surface.test.ts): the two-participant, target-validation, freeze, and ledger tests, one per rule id.
+- [packages/surface/test/axe.test.ts](packages/surface/test/axe.test.ts): the bridge tests, ending with a surface served through AXE passing the conformance suite including the live checks.
+- [packages/surface/test/dom.test.ts](packages/surface/test/dom.test.ts): `surfaceAttributes`, `surfaceSelector`, `describeEntry`.
+- [docs/examples/testing/classes.test-example.ts](docs/examples/testing/classes.test-example.ts): an action under test with `createTestClient`, `invokeAction`, and `samplePayload`.
+- [docs/examples/testing/drift.ts](docs/examples/testing/drift.ts): the drift check as a script for another repository.
+- [packages/testing/test/drift.test.ts](packages/testing/test/drift.test.ts): the drift test itself.
+
+## Reading order
+
+Repository paths below map to the published site as `docs/<name>.md` to `site/dist/docs/<name>.html`, `spec/<NAME>.md` to `site/dist/docs/spec/<NAME>.html`, and root Markdown files to `site/dist/docs/repo/<NAME>.html`.
+
+- [docs/surface.md](docs/surface.md): start here for a live application: registration, observe and act, the ledger, freezes, the DOM mirror, serving through AXE.
+- [spec/SURFACE.md](spec/SURFACE.md): the contract you are implementing against; read sections 2, 5, and 6 before writing an adapter.
+- [docs/live-state.md](docs/live-state.md): the protocol side of revisions and availability.
+- [docs/concepts.md](docs/concepts.md): manifest, action, display, the result envelope, the escalation ladder, idempotency, auth, risk.
+- [docs/designing-actions.md](docs/designing-actions.md): decomposing a human flow into actions, writing descriptions for a model, choosing risk, anti-patterns.
+- [docs/generating.md](docs/generating.md): when the application already has an OpenAPI document, typed functions, or a tRPC router.
+- [docs/getting-started.md](docs/getting-started.md): install, one action, mount, `axe inspect`, `axe conformance`, connect an MCP client.
+- [docs/integrations/express.md](docs/integrations/express.md): mounting with `axeExpress`, passing the session in, proxies.
+- [docs/integrations/next.md](docs/integrations/next.md): `axeNext` for the App Router, `axeNextPages` for the Pages API.
+- [docs/integrations/fetch.md](docs/integrations/fetch.md): `axeFetch` for Hono, Remix, Workers, Bun, Deno, SvelteKit.
+- [docs/testing-and-conformance.md](docs/testing-and-conformance.md): unit tests, conformance locally and in CI, every check.
+- [docs/deploying.md](docs/deploying.md): production configuration and rollout.
+- [docs/security.md](docs/security.md): what the SDK mitigates and what the site must do.
+- [spec/AXE-PROTOCOL.md](spec/AXE-PROTOCOL.md): the normative protocol; section 21 is live state.
+- [spec/KINDS.md](spec/KINDS.md): the well-known kinds an unavailable control can `requires`.
+- [spec/EVENTS.md](spec/EVENTS.md): analytics events and action events, including `surface.act`.
+- [spec/VOCABULARY.md](spec/VOCABULARY.md): every wire name, CLI command, and API identifier; the drift test enforces it.
+- [docs/mcp.md](docs/mcp.md): the derived MCP server and how a surface's actions appear as tools.
+- [docs/for-agent-builders.md](docs/for-agent-builders.md): the agent side, if you also write the consumer.
+- [docs/api/README.md](docs/api/README.md): the generated API reference, per package.
+- [DECISIONS.md](DECISIONS.md): why each non-obvious choice was made; the Surface, Live state, and Generate sections are the ones an integrator needs.
+- [CHANGELOG.md](CHANGELOG.md): what shipped, by area.
+- [ROADMAP.md](ROADMAP.md): what v0 leaves out and what it does instead.
+
+## API at a glance
+
+Exact exported names, checked against `packages/*/src`. Wire names are spelled as in [spec/VOCABULARY.md](spec/VOCABULARY.md).
+
+- `@axe/core`: `createAXE`, `action`, `ok`, `needsInput`, `handoff`, `pending`, `fail`, `unavailable`, `kinds`, `accept`, `customKind`, `withMimeTypes`, `lintAgentText`, `lintAction`, `lintManifest`, `resolveDisplay`, `consoleSink`, `jsonlFileSink`, `otelSink`, `combineSinks`, `MemoryTokenStore`, `MemoryIdempotencyStore`, `validateJsonSchema`, `toJsonSchema`, `isZodSchema`, `WIRE`, `z`. On the `AXE` instance: `register`, `addProvider`, `onActionsChanged`, `describe`, `describeLive`, `fetchHandler`, `handle`, `completeHandoff`. `createAXE` options that matter here: `revision`, `secret`, `tokenStore`, `idempotencyStore`, `requireIdempotencyKey`, `cors`, `tenant`, `onRequest`, `onResult`, `onError`, `onEvent`, `onActionEvent`; `auth: { modes, userLoginUrl, authenticate, verifySiteKey }`. `action()` takes `availability` beside `input`, `output`, `handler`, `onContinue`, `onResume`, `onPoll`.
+- `@axe/surface`: `createSurface({ app, now, ledger })`; on a surface: `configure`, `register`, `unregister`, `reconcile`, `freeze`, `seedRev`, `setRev`, `currentRev`, `bump`, `onChange`, `setObjects`, `observe`, `act`, `ledger`, `expose`, `get`, `entries`, `registryVersion`, `availability`, `reset`; the module-level `surface` with the first fifteen of those bound; `surfaceAttributes`, `surfaceSelector`, `describeEntry`. Types: `Entry`, `ActionEntry`, `FieldEntry`, `CollectionEntry`, `Effect`, `Availability`, `Observation`, `ObservedEntry`, `ActRequest`, `ActResult`, `ActOutput`, `LedgerEntry`, `LedgerQuery`, `Op`, `EntryKind`, `Thaw`.
+- `@axe/surface/react`: `useSurface(entry, deps, target?)`, `useSurfaceProps(entry, deps, target?)`, `toSurfaceProps`; type `SurfaceProps`.
+- `@axe/surface/axe`: `surfaceActions(surface, { namespace, actor, run, fields, onError })` returning a `SurfaceBridge` (`actions`, `get`, `onChange`, `actionNameFor`, `entryIdFor`); `entrySlug`; `SURFACE_ACT_EVENT` (the string `surface.act`).
+- `@axe/generate`: `fromOpenAPI`, `fromFunctions`, `fromTRPCRouter`, `generate`, `registerGenerated`, `formatWarnings`, `jsonSchemaToZod`.
+- Adapters: `axeExpress`, `toWebRequest`, `sendWebResponse` (`@axe/express`); `axeNext`, `axeNextPages` (`@axe/next`); `axeFetch`, `isAxePath` (`@axe/fetch`).
+- `@axe/client`: `discover`, `AXEClient` (`invoke`, `continue`, `resume`, `poll`, `run`, `state`, `live`, `allowed`, `manifest`, `action`), `isOk`, `isNeedsInput`, `isNeedsHuman`, `isPending`, `isError`, `AXEClientError`; `@axe/client/present`: `present`, `toMarkdown`, `toHTML`, `stateToMarkdown`.
+- `@axe/mcp`: `createMcpServer`, `serveStdio`, `serveHttp`, `toolNameFor`, `formatResult`.
+- `@axe/testing`: `runConformance`, `formatConformanceTable`, `runAudit`, `formatAuditTable`, `formatAuditHtml`, `checkVocabularyDrift`, `formatDriftReport`, `createTestClient`, `invokeAction`, `samplePayload`, `REQUIREMENTS`, `WEIGHTS`.
+- CLI `axe`: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`.
+- Wire: paths `/.well-known/axe.json`, `/axe/manifest`, `/axe/actions`, `/axe/continue`, `/axe/resume`, `/axe/poll`, `/axe/state`; header `AXE-Protocol`; statuses `ok`, `needs_input`, `needs_human`, `pending`, `error`; error codes `invalid_input`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `unavailable`, `internal`, `unsupported`; Surface ops `CLICK`, `TOGGLE`, `TYPE_TEXT`, `SCROLL_DOWN`; DOM attributes `data-surface-id`, `data-surface-kind`, `data-surface-object`, `data-surface-reason`, `aria-label`, `aria-disabled`, `aria-readonly`.
+- [packages/core/src/index.ts](packages/core/src/index.ts): the `@axe/core` export list.
+- [packages/surface/src/index.ts](packages/surface/src/index.ts): the `Surface` interface and the entry types.
+- [packages/testing/src/index.ts](packages/testing/src/index.ts): the `@axe/testing` export list.
+
+## What does not exist yet
+
+- No AXE server in any language but TypeScript. A Python, Go, or Ruby middleware cannot serve the manifest with a package from this repository today. The wire protocol is JSON over HTTPS with JSON Schemas for every document under `spec/schemas/`, so a port is glue (serve a manifest, validate input, sign HMAC-SHA256 tokens, return envelopes), and `axe conformance` verifies a port the same way it verifies the reference ([docs/faq.md](docs/faq.md), "Can I use it from Python or Go?"; [ROADMAP.md](ROADMAP.md), "Multi-language SDKs").
+- No Surface outside JavaScript. `act` runs in-process handlers, so a surface for a page rendered by a Python or Java backend lives in the page's JavaScript (`expose(window)`) or in a Node process that owns the handlers and serves it through AXE.
+- Nothing is published to npm; 0.1.0 is unreleased. See Packaging for tarballs.
+- Surface bindings for React only. Vue, Svelte, Angular, and Web Components use the framework-free `register`, `unregister`, `reconcile`, and `surfaceAttributes` directly.
+- Adapters for Express and Connect, Next.js, and Web-standard fetch handlers only. Fastify and Koa have no adapter of their own; `toWebRequest` and `sendWebResponse` from `@axe/express` are exported for writing one.
+- One surface per process or page, in memory: the ledger is bounded and not persisted (the `surface.act` action events are the durable channel), and there is no shared registry across processes.
+- One site-wide revision; no per-resource revisions or ETags.
+- No browser-driving agent ships here. `expose(window)` publishes the surface; the code that drives a page from `window.__surface` is the agent's.
+- No OAuth 2.1 authorization server, no manifest signing, no agent attestation, no webhooks or push, no streaming results, no server-side flow state machine, no hosted registry, no platform plugins; each has its reason and its v0 substitute in [ROADMAP.md](ROADMAP.md).
+- The honesty lints are regular expressions over known phrasings and the parity check is a spot-check ([docs/security.md](docs/security.md), "Known gaps").
+- `axe generate` reads JSON only (no YAML), converts a deliberate subset of JSON Schema, and skips cookie parameters and non-JSON request bodies with a warning.
+
+## Optional
+
+- [docs/why-axe.md](docs/why-axe.md): the argument for the protocol, and when not to use it yet.
+- [docs/faq.md](docs/faq.md): MCP, OpenAPI, llms.txt, schema.org, A2A, other languages.
+- [docs/presenting-results.md](docs/presenting-results.md): `display`, affordances, pagination, the reference renderers.
+- [docs/requirements-and-kinds.md](docs/requirements-and-kinds.md): the `needs_input` contract and custom kinds.
+- [docs/human-handoff.md](docs/human-handoff.md): the handoff lifecycle and the resume landing page.
+- [docs/auth.md](docs/auth.md): `none`, `site`, and `user` modes; passing a session in.
+- [docs/platforms.md](docs/platforms.md): multi-tenant hosts and the platform index.
+- [docs/analytics.md](docs/analytics.md): the event schema and sinks.
+- [docs/audit.md](docs/audit.md): the AXE Score.
+- [docs/glossary.md](docs/glossary.md): terms.
+- [docs/site.md](docs/site.md): how the static site is built from these pages.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how changes are made and checked.
+- [SECURITY.md](SECURITY.md): reporting vulnerabilities.

@@ -112,6 +112,9 @@ const ROOT_FILES = [
   "SECURITY.md",
 ];
 
+/** The agent-facing index at the repository root, and the full-text file the build derives from it. */
+export const LLMS_FILES = ["llms.txt", "llms-full.txt"];
+
 /** Every Markdown source, as a repo-relative posix path. */
 function collectSources() {
   const docs = walk(join(ROOT, "docs"), (p) => p.endsWith(".md")).map((p) =>
@@ -241,6 +244,7 @@ export async function build({ out = OUT, skipOg = SKIP_OG, log = console.log } =
       const target = posix.normalize(posix.join(posix.dirname(sourcePath), pathPart));
       const suffix = anchor ? `#${anchor}` : "";
       if (sourceSet.has(target)) return posix.relative(fromDir, outPathFor(target)) + suffix;
+      if (LLMS_FILES.includes(target)) return posix.relative(fromDir, target) || target;
       const abs = join(ROOT, target);
       if (existsSync(abs) && statSync(abs).isFile()) {
         if (opts.asset || /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(target)) {
@@ -421,6 +425,19 @@ export async function build({ out = OUT, skipOg = SKIP_OG, log = console.log } =
 
   // sitemap.txt
   writeFileSync(join(out, "sitemap.txt"), [...pages.keys()].sort().join("\n") + "\n");
+
+  // llms.txt and llms-full.txt: the root index with links rewritten to the published pages, and the
+  // same index followed by every doc and spec page in navigation order (docs/README.md, then the
+  // ordered list it holds, then the spec). The generated API reference is left out; it is derived
+  // from the .d.ts files, which are the better source for an agent that needs a signature.
+  const llms = readFileSync(join(ROOT, "llms.txt"), "utf8");
+  writeFileSync(join(out, "llms.txt"), rewriteLlmsLinks(llms, sourceSet));
+  const llmsSources = llmsFullSources(ordered);
+  const full = [llms.trimEnd()];
+  for (const source of llmsSources) {
+    full.push(`\n\n# ${source}\n\n${readFileSync(join(ROOT, source), "utf8").trim()}`);
+  }
+  writeFileSync(join(out, "llms-full.txt"), full.join("") + "\n");
 
   // OG image (Playwright; skipped in reproducibility tests that compare byte-for-byte).
   if (!skipOg)
@@ -614,6 +631,34 @@ function sanitizeReferenceLinks(html, file, knownPages) {
   });
 }
 let OUT_FOR_SANITIZE = OUT;
+
+// ---------------------------------------------------------------------------
+// llms.txt
+// ---------------------------------------------------------------------------
+
+/**
+ * The root llms.txt with its repository-relative links rewritten for a copy served at the site's
+ * root: a Markdown source becomes its published page, the llms files stay as they are, anything
+ * else (source files, directories) becomes a link into the repository on GitHub.
+ */
+export function rewriteLlmsLinks(text, sourceSet) {
+  return text.replace(/\]\(([^)\s]+)\)/g, (m, href) => {
+    if (/^(https?:|mailto:|#)/.test(href)) return m;
+    const [pathPart, anchor] = href.split("#");
+    const target = posix.normalize(pathPart);
+    const suffix = anchor ? `#${anchor}` : "";
+    if (sourceSet.has(target)) return `](${outPathFor(target)}${suffix})`;
+    if (LLMS_FILES.includes(target)) return m;
+    return `](${GITHUB_REPO}/blob/main/${target}${suffix})`;
+  });
+}
+
+/** The sources llms-full.txt carries, in the site's order: docs and spec pages, without the generated API reference. */
+export function llmsFullSources(ordered) {
+  return ordered.filter(
+    (s) => (s.startsWith("docs/") || s.startsWith("spec/")) && !s.startsWith("docs/api/reference/"),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Link check

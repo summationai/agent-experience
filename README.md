@@ -45,6 +45,7 @@ Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line e
 - **[Concepts](docs/concepts.md)** — manifest, actions, display and affordances, the result envelope, the escalation ladder.
 - **[Protocol spec](spec/AXE-PROTOCOL.md)** — normative, with [well-known kinds](spec/KINDS.md), [events](spec/EVENTS.md), and the [vocabulary](spec/VOCABULARY.md).
 - **[All docs](docs/README.md)** — designing actions, presenting results, requirements and kinds, human handoff, auth, integrations, MCP, agent builders, testing, security, audit, analytics, platforms, deploying, API reference, FAQ.
+- **For agents implementing this:** [llms.txt](llms.txt) — how to integrate AXE and Surface into an existing application, with the rules, the packaging, the tests, and the reading order.
 
 ## Website
 
