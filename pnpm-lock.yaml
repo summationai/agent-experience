@@ -202,6 +202,15 @@ importers:
 
   site:
     devDependencies:
+      '@axe/client':
+        specifier: workspace:*
+        version: link:../packages/client
+      '@axe/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@axe/testing':
+        specifier: workspace:*
+        version: link:../packages/testing
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
