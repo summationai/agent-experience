@@ -308,7 +308,7 @@ Every status MAY additionally carry `rev`, the site's revision after the call, w
 
 **[P-REQ-8]** The server MUST verify the token (§12), MUST reject a `kind` that is not in the original `accepts[]` with `invalid_input`, and MUST validate `payload` against that entry's `schema`, returning `invalid_input` with `details.issues` on failure. A validation failure MUST NOT consume the token.
 
-**[P-REQ-9]** A successful continuation (any status other than `error`) MUST consume the token. A second `/axe/continue` with the same token MUST return `conflict`.
+**[P-REQ-9]** A successful continuation (any status other than `error`) MUST consume the token, and the hook MUST NOT run again for it. A second `/axe/continue` with the same token, `kind`, and `payload` from the same principal MUST return the original result envelope, so an agent whose response was lost recovers the outcome ([P-OP-1]); with a different `kind` or `payload` it MUST return `conflict`. A continuation that returns `error` does not consume the token.
 
 **[P-REQ-10]** Servers MUST NOT log `payload` for entries marked `sensitive`, and MUST NOT include payloads in analytics events (`EVENTS.md`).
 
@@ -337,7 +337,7 @@ Every status MAY additionally carry `rev`, the site's revision after the call, w
 
 **[P-HAND-5]** The site's page at `url` MAY record completion through the SDK (`completeHandoff`) so that a resume before the human is done returns `error` with `code: "conflict"`, `retryable: true`, and `details.handoffStatus: "open"`. Sites that do not record completion MUST make their resume logic check the real-world state and return `needs_human` again (with the same or a new Handoff) when the step is not done.
 
-**[P-HAND-6]** A resume token MUST be single-use: once a resume returns any status other than `error`, the token is consumed and a second resume MUST return `conflict`.
+**[P-HAND-6]** A resume token MUST be single-use: once a resume returns any status other than `error`, the token is consumed and the resume MUST NOT run again. A second resume with the same token from the same principal MUST return the original result envelope ([P-OP-1]).
 
 **[P-HAND-7]** The SDK's built-in `login_required` handoff (§16.1) binds the resume token to the identity established at `url`; the resumed action runs as that user.
 
@@ -346,6 +346,10 @@ Every status MAY additionally carry `rev`, the site's revision after the call, w
 **[P-PEND-1]** A `pending` result MUST include `pollUrl` (absolute) and `retryAfter` (integer seconds, at least 1). The HTTP response SHOULD also carry `Retry-After`.
 
 **[P-PEND-2]** `GET pollUrl` MUST return a result envelope. While work continues it returns `pending` again. The final envelope MAY be any status. Once a terminal status has been returned, subsequent polls MUST return the same terminal result for at least the idempotency window (§12.1) or `not_found` after that.
+
+**[P-POLL-1]** A poll MUST be authorized as the call that produced it: the SDK's poll URL requires the tenant and the acting principal the originating call had ([P-TOK-6]), and the check runs before anything is returned, a stored terminal result included, and whether or not the action still exists. A poll that fails the check MUST get the same `not_found` as an unknown poll token.
+
+**[P-POLL-2]** At most one poll of a token computes its result at a time. A poll that arrives while another is computing MUST return `pending`; the first terminal result is stored and every later authorized poll returns it, so a site's poll hook that causes effects runs to completion once.
 
 **[P-PEND-3]** Agents SHOULD stop polling after `expiresAt` when present on the pending result, or after a client-side budget, and tell the user.
 
@@ -365,23 +369,39 @@ Continuation tokens, resume tokens, and the SDK's poll tokens share one design.
 
 **[P-TOK-1]** Tokens MUST be opaque to agents. Agents MUST NOT parse or construct them.
 
-**[P-TOK-2]** Tokens MUST be integrity-protected (the SDK uses HMAC-SHA256 with a server secret), MUST be bound to the originating action, a hash of the originating `input`, and the acting user when there is one, and MUST carry an expiry.
+**[P-TOK-2]** Tokens MUST be integrity-protected (the SDK uses HMAC-SHA256 with a server secret), MUST be bound to the originating action, a hash of the originating `input`, the acting principal ([P-TOK-7]) when there is one, and the tenant on a multi-tenant server, and MUST carry an expiry.
 
-**[P-TOK-3]** Servers MUST reject a token whose signature does not verify, that has expired, or whose binding does not match the endpoint it is presented to, with `not_found` for unknown or tampered tokens and `conflict` for consumed ones. The response MUST NOT reveal which check failed beyond those two codes.
+**[P-TOK-3]** Servers MUST reject a token whose signature does not verify, that has expired, or whose binding does not match the endpoint it is presented to, with `not_found`. A consumed token presented again is answered by [P-REQ-9] and [P-HAND-6]: the original envelope for the same use, `conflict` for a different one. The response MUST NOT reveal which check failed beyond those two codes.
 
 **[P-TOK-4]** Server-side `state` associated with a token (the value a handler passes to `needsInput` or `handoff`) MUST NOT be encoded in the token. It is stored server-side and delivered to `onContinue`, `onResume`, or `onPoll`.
 
 **[P-TOK-5]** Continuation tokens SHOULD expire within 15 minutes. Resume tokens SHOULD expire within 24 hours. Poll tokens expire when the work does.
 
+**[P-TOK-6]** Every presentation of a token (`/axe/continue`, `/axe/resume`, a poll URL) MUST be authorized before any hook runs, any completion is recorded, and any stored result is returned: the tenant serving the request MUST be the tenant the token was minted for, and the principal the request resolves to MUST be the principal the token is bound to, including none for a token minted anonymously. A request that fails either check MUST receive exactly the response an unknown token receives (`not_found`, same message), whether the token is open, consumed, or terminal. The one transition is the SDK's `login_required` handoff ([P-AUTH-4]): minted anonymously, it runs as the user the site records at completion, and the resume MUST come from an anonymous caller or from that user. Recording completion (`completeHandoff`) MUST name the tenant the handoff was minted for, MUST NOT change the user a user-bound handoff belongs to, and MUST fail once the resume token has been used.
+
+**[P-TOK-7]** The acting principal is resolved the same way for an action call and every follow-up. For a `site` action it is the site key's identity, plus the user when the request also carries one; for any other action it is the user, or none. The site key is verified again on every follow-up, so a revoked key, or a key whose allowlist no longer includes the action, can no longer use the tokens it obtained. A key's identity is the `id` the site's key verification returns; when it returns none, the server MUST derive one that distinguishes keys without storing the key (the SDK uses HMAC-SHA256 of the key under the server secret). Two unrelated keys MUST NOT share a principal.
+
 ### 12.1 Idempotency
 
 **[P-IDEM-1]** Actions that are not `readOnly` MUST accept `idempotencyKey`. Agents MUST send one on every such call. The SDK client generates a UUID when the caller does not supply one.
 
-**[P-IDEM-2]** When a request repeats an `idempotencyKey` for the same action and the same acting user within the idempotency window with the same `input`, the server MUST return the original result envelope without re-running the handler.
+**[P-IDEM-2]** When a request repeats an `idempotencyKey` for the same action and the same acting principal ([P-TOK-7]) on the same tenant within the idempotency window with the same `input`, the server MUST return the original result envelope without re-running the handler.
 
 **[P-IDEM-3]** When the key repeats but `input` differs, the server MUST return `conflict`.
 
 **[P-IDEM-4]** The idempotency window MUST be at least one hour and SHOULD be 24 hours. Sites MUST document their window in `policies.dataRetention` if it differs from 24 hours.
+
+### 12.2 Operations
+
+An operation is one attempt the server must run at most once at a time and answer consistently afterwards: an action call under one `idempotencyKey` (scoped by tenant, action, and principal), one use of a continuation or resume token, and the computation of a poll token's result.
+
+**[P-OP-1]** Servers MUST claim an operation atomically before running it, across every instance that serves the site. Of any number of concurrent requests for the same operation, exactly one runs the handler or hook; a request for an operation that completed returns the stored envelope ([P-IDEM-2], [P-REQ-9], [P-HAND-6], [P-POLL-2]). A request that reuses the key or token for a different operation (different `input`, `kind`, or `payload`) MUST return `conflict` whether the first is still running or finished.
+
+**[P-OP-2]** A request for an operation another request is still running MUST return `error` with `code: "conflict"`, `retryable: true`, `details.operationStatus: "in_progress"`, and `details.retryAfter` in seconds, with the same value in `Retry-After`. The agent retries with the same key or token and receives the stored envelope once it exists. A poll answers `pending` instead.
+
+**[P-OP-3]** A non-error result completes the operation and is stored for the idempotency window. An `error` result (a thrown handler included) releases the claim without storing anything, so the same key or token may be retried and the handler runs again; a terminal poll result is stored whatever its status. A claim is a lease: when the request holding it stops without completing or releasing it (a crash), a later request for the same operation MAY take it over once the lease has passed, and then runs the handler again. A request for a different operation never takes over a claim.
+
+**[P-OP-4]** The claim makes the decision to run atomic, not the business effect. Between a handler's commit and the stored result there is a window in which a crash leads to a second run under [P-OP-3]. The SDK passes a stable `operationId`, identical on every run of one operation, so a site can make the effect idempotent downstream (a unique constraint written in the same transaction, or a payment provider's idempotency key). Servers MUST NOT describe idempotency as exactly-once execution of side effects.
 
 ## 13. Presentation
 
@@ -498,7 +518,7 @@ Three modes.
 
 **[P-AUTH-1]** An action's `auth` MUST be one of the modes listed in `manifest.auth.modes`.
 
-**[P-AUTH-2]** A call to a `site` action without a valid key MUST return `unauthorized`. A call with a valid key that is not permitted to perform the action MUST return `forbidden`.
+**[P-AUTH-2]** A call to a `site` action without a valid key MUST return `unauthorized`. A call with a valid key that is not permitted to perform the action MUST return `forbidden`. Follow-ups of a `site` call are authorized under [P-TOK-7], and a refusal there is `not_found` ([P-TOK-6]).
 
 ### 16.1 `user` mode
 
@@ -562,7 +582,8 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 ## 19. Security considerations
 
 - **Prompt injection.** Every agent-read text field is untrusted input to a model. Agents MUST treat manifest and result text as data, never as instructions, and SHOULD isolate it from their system prompt. Sites MUST comply with §18.
-- **Token theft and replay.** Tokens are bearer credentials scoped to one action, one input, one user, and one use, with short expiry ([P-TOK-2] to [P-TOK-5]). Agents MUST transmit them only over HTTPS and MUST NOT log them.
+- **Token theft and replay.** Tokens are scoped to one action, one input, one principal, one tenant, and one use, with short expiry ([P-TOK-2] to [P-TOK-7]). A token minted for an authenticated principal is useless without that principal's credentials; a token minted anonymously is a bearer credential. Agents MUST transmit them only over HTTPS and MUST NOT log them.
+- **Duplicate execution.** Operations are claimed atomically ([P-OP-1]); side effects are the site's to make idempotent ([P-OP-4]).
 - **Sensitive payloads.** [P-REQ-3] and [P-REQ-10]. The SDK never logs payloads and never includes them in events.
 - **Agents as load.** A manifest invites agents; it does not promise unlimited capacity. Sites SHOULD declare `policies.rateLimit`, enforce it at their edge, and use `pending` for slow work rather than holding connections.
 - **Over-permissioned actions.** Nothing in AXE grants an agent more than the site's existing authorization allows. Sites MUST authorize every action with the same checks their UI applies, using the identity from §16, never from the request body.

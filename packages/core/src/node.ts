@@ -53,7 +53,9 @@ interface OperationRow {
  * number of runtimes, in one process or several, that open the same database file share claims.
  * Open each connection with `PRAGMA busy_timeout` set, so a writer waits for another process's
  * write instead of failing. The same statements port to PostgreSQL (`ON CONFLICT` with a `WHERE`
- * on the update, `RETURNING` in place of `changes`); see docs/deploying.md.
+ * on the update, `RETURNING` in place of `changes`); see docs/deploying.md. The default table is
+ * `axe_operations_v1`; the suffix is the layout version, so a later layout gets a new table rather
+ * than altering this one.
  */
 export class SqliteIdempotencyStore implements IdempotencyStore {
   private readonly now: () => number;
@@ -63,7 +65,7 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
     private readonly db: SqliteDatabaseLike,
     options: { table?: string; now?: () => number } = {},
   ) {
-    this.table = options.table ?? "axe_operations";
+    this.table = options.table ?? "axe_operations_v1";
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(this.table))
       throw new Error(`SqliteIdempotencyStore: table name "${this.table}" is not an identifier.`);
     this.now = options.now ?? Date.now;

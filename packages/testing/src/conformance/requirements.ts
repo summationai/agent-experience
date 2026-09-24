@@ -61,7 +61,12 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-REQ-6": [{ check: "ladder.fallback-resume" }],
   "P-REQ-7": [{ check: "ladder.continue-valid" }],
   "P-REQ-8": [{ check: "ladder.continue-invalid" }],
-  "P-REQ-9": [{ check: "ladder.continue-replay" }],
+  "P-REQ-9": [
+    { check: "ladder.continue-replay" },
+    {
+      test: "@axe/core concurrent uses of one continuation token run onContinue once; a lost response is recovered; an altered payload conflicts",
+    },
+  ],
   "P-REQ-10": [{ test: "@axe/core events contain no payloads" }],
   "P-HAND-1": [{ check: "ladder.handoff-shape" }],
   "P-HAND-2": [{ check: "ladder.needs-human-avoidable" }],
@@ -79,6 +84,23 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-PEND-1": [{ test: "@axe/core pending and poll" }],
   "P-PEND-2": [{ test: "@axe/core pending and poll" }],
   "P-PEND-3": [{ test: "@axe/client poll honors maxWaitMs" }],
+  "P-POLL-1": [
+    {
+      test: "@axe/core a user-authenticated terminal result is not returned anonymously or to another user",
+    },
+    { test: "@axe/core a site-authenticated terminal result needs the same site key" },
+    {
+      test: "@axe/core the terminal result of an action that has since been removed is still authorized",
+    },
+    {
+      test: "@axe/core a poll token minted on tenant A is not_found on tenant B, pending and terminal",
+    },
+  ],
+  "P-POLL-2": [
+    {
+      test: "@axe/core concurrent polls run onPoll once; the other poll is pending; both then see one terminal result",
+    },
+  ],
   "P-ERR-1": [{ check: "runtime.envelope-schema" }],
   "P-ERR-2": [{ check: "runtime.error-hygiene" }],
   "P-ERR-3": [{ check: "runtime.invalid-input" }],
@@ -93,10 +115,72 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
     { test: "@axe/core token record holds state; wire token carries only binding fields" },
   ],
   "P-TOK-5": [{ check: "ladder.token-ttl" }],
+  "P-TOK-6": [
+    { check: "ladder.token-principal" },
+    {
+      test: "@axe/core a continuation minted on tenant A is not_found on tenant B for the same local user id, and nothing runs",
+    },
+    {
+      test: "@axe/core a resume token minted on tenant A is not_found on tenant B, before and after use",
+    },
+    {
+      test: "@axe/core wrong user and anonymous presentations get exactly the unknown-token response, and nothing runs",
+    },
+    {
+      test: "@axe/core the login handoff is the one identity transition: anonymous to the user the site recorded",
+    },
+    { test: "@axe/core completeHandoff refuses a handoff minted for another tenant" },
+  ],
+  "P-TOK-7": [
+    {
+      test: "@axe/core a workflow started with a site key continues with the same key and the handler sees its id",
+    },
+    {
+      test: "@axe/core another partner, a revoked key, a narrowed key, or no key gets the unknown-token response",
+    },
+    {
+      test: "@axe/core keys verified as `true` or without an id are scoped by a keyed hash, never shared, never stored raw",
+    },
+    {
+      test: "@axe/core a site key with a forwarded user binds both: the same key with another user, or without the user, is refused",
+    },
+    {
+      test: "@axe/core a resume token obtained with one site key is not_found with another key, open or consumed",
+    },
+  ],
   "P-IDEM-1": [{ check: "runtime.idempotency-required" }],
   "P-IDEM-2": [{ check: "runtime.idempotency-replay" }],
   "P-IDEM-3": [{ check: "runtime.idempotency-conflict" }],
   "P-IDEM-4": [{ test: "@axe/core DEFAULT_IDEMPOTENCY_TTL_SECONDS is 24 hours" }],
+  "P-OP-1": [
+    { check: "ladder.continue-replay" },
+    { check: "ladder.resume-replay" },
+    {
+      test: "@axe/core run once; the concurrent caller gets a retryable conflict with Retry-After, then the stored envelope",
+    },
+    { test: "@axe/core two runtime instances sharing the stores run the operation once" },
+    {
+      test: "@axe/core two runtimes on one database run a call once, and a crash after the business commit is recovered by operationId",
+    },
+  ],
+  "P-OP-2": [
+    {
+      test: "@axe/core run once; the concurrent caller gets a retryable conflict with Retry-After, then the stored envelope",
+    },
+  ],
+  "P-OP-3": [
+    {
+      test: "@axe/core a handler that throws releases the claim: the retry runs again and its success is stored",
+    },
+    {
+      test: "@axe/core an abandoned claim blocks retries until its lease passes, then the same operation takes it over",
+    },
+  ],
+  "P-OP-4": [
+    {
+      test: "@axe/core a crash after the business commit and before the result is stored: the retry re-runs, and operationId keeps the effect single",
+    },
+  ],
   "P-DISP-1": [{ check: "manifest.display-pointers" }],
   "P-DISP-2": [{ check: "manifest.display-pointers" }, { check: "runtime.example-roundtrip" }],
   "P-DISP-3": [{ check: "manifest.display-pointers" }],

@@ -42,6 +42,9 @@ describe("requirement coverage", () => {
       "packages/core/test/pending.test.ts",
       "packages/core/test/tokens.test.ts",
       "packages/core/test/live.test.ts",
+      "packages/core/test/token-binding.test.ts",
+      "packages/core/test/operations.test.ts",
+      "packages/core/test/sqlite-store.test.ts",
       "packages/client/test/client.test.ts",
       "packages/client/test/narrowing.test.ts",
     ]
