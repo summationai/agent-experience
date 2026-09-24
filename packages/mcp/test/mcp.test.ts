@@ -246,6 +246,70 @@ describe("@axe/mcp", () => {
     expect(text(gone)).toContain("Unknown tool");
   });
 
+  it("axe_poll polls only a pollUrl this server returned; a model-supplied URL is refused unfetched [P-AGENT-9]", async () => {
+    const core = await import("../../core/src/index");
+    const axe = core.createAXE({
+      name: "Registrar",
+      description: "University registrar that generates enrollment verification letters.",
+      baseUrl: "https://registrar.example",
+      auth: { modes: ["none"] },
+      secret: "0123456789abcdef0123456789abcdef",
+    });
+    let ready = false;
+    axe.register(
+      core.action("letters.request", {
+        title: "Request a letter",
+        description:
+          "Generates an enrollment verification letter and returns its download URL; the result is delivered by polling.",
+        risk: "low",
+        input: core.z.object({ studentId: core.z.string() }),
+        output: core.z.object({ url: core.z.string() }),
+        handler: async ({ pending }) => pending({ retryAfter: 1 }),
+        onPoll: async ({ pending }) =>
+          ready ? { url: "https://registrar.example/l.pdf" } : pending({ retryAfter: 1 }),
+      }),
+    );
+    const fetched: { url: string; authorization: string | null }[] = [];
+    const derived = await createMcpServer(axe.describe(), {
+      pollBudgetMs: 50,
+      client: {
+        auth: "private-token",
+        fetch: async (input, init) => {
+          fetched.push({
+            url: String(input),
+            authorization: new Headers(init?.headers).get("authorization"),
+          });
+          return axe.handle(new Request(input, init));
+        },
+      },
+    });
+    const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+    await derived.server.connect(serverT);
+    const client = new Client({ name: "test", version: "0" });
+    await client.connect(clientT);
+    for (const pollUrl of [
+      "https://attacker.example/steal",
+      "https://registrar.example/axe/poll/forged",
+    ]) {
+      const refused = await client.callTool({ name: "axe_poll", arguments: { pollUrl } });
+      expect(refused.isError).toBe(true);
+      expect(text(refused)).toContain("only polls a pollUrl this server returned");
+    }
+    expect(fetched).toEqual([]);
+    const started = await client.callTool({
+      name: "letters_request",
+      arguments: { studentId: "s1" },
+    });
+    const { pollUrl } = started.structuredContent as { status: string; pollUrl: string };
+    expect((started.structuredContent as { status: string }).status).toBe("pending");
+    ready = true;
+    const done = await client.callTool({ name: "axe_poll", arguments: { pollUrl } });
+    expect(done.isError).toBeUndefined();
+    expect((done.structuredContent as { status: string }).status).toBe("ok");
+    expect(fetched.every((f) => f.url.startsWith("https://registrar.example/"))).toBe(true);
+    expect(fetched.every((f) => f.authorization === "Bearer private-token")).toBe(true);
+  });
+
   it("rejects colliding or reserved tool names", async () => {
     const { axe } = apartmentsAXE();
     const core = await import("../../core/src/index");

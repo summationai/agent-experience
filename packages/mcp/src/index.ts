@@ -103,6 +103,7 @@ export async function createMcpServer(
   }
   const manifest = client.manifest();
   const tools = buildTools(manifest);
+  const pollUrls = new IssuedPollUrls();
   const dynamic = typeof axe?.onActionsChanged === "function";
   const server = new Server(
     { name: options.name ?? manifest.name, version: options.version ?? "0.1.0" },
@@ -118,7 +119,14 @@ export async function createMcpServer(
     const name = req.params.name;
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
     try {
-      return await callTool(client, dynamic ? await manifestNow() : manifest, name, args, options);
+      return await callTool(
+        client,
+        dynamic ? await manifestNow() : manifest,
+        name,
+        args,
+        options,
+        pollUrls,
+      );
     } catch (e) {
       return errorContent(`Tool "${name}" failed: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -250,7 +258,7 @@ function buildTools(manifest: Manifest): Tool[] {
     {
       name: WIRE.tool.poll,
       title: "Poll a pending AXE result",
-      description: `Fetch the current state of long-running work from a pending result's pollUrl. Wait retryAfter seconds between calls.`,
+      description: `Fetch the current state of long-running work from a pending result's pollUrl, exactly as this server returned it. Wait retryAfter seconds between calls.`,
       inputSchema: {
         type: "object",
         properties: {
@@ -274,12 +282,38 @@ function buildTools(manifest: Manifest): Tool[] {
   return tools;
 }
 
+// --- axe_poll trust boundary (review item 3, 2026-09-24) -------------------------------------
+// `axe_poll` takes a `pollUrl` argument, and a tool argument is model-supplied: prompt-injected
+// text could ask for any URL, and the client would fetch it with its credentials. The tool
+// therefore polls only a `pollUrl` this server itself returned in a `pending` result. The client's
+// destination policy (`ClientOptions.trust`) applies on top. The tool's schema is unchanged.
+// Kept self-contained so the MCP HTTP lifecycle can be rewritten around it.
+
+/** The `pollUrl`s this server has returned, most recent last, bounded. */
+class IssuedPollUrls {
+  private readonly urls = new Set<string>();
+  constructor(private readonly max = 1000) {}
+  /** Remember the `pollUrl` of a `pending` result; return the result unchanged. */
+  record<R extends Result>(result: R): R {
+    if (result.status === WIRE.status.pending) {
+      this.urls.delete(result.pollUrl);
+      this.urls.add(result.pollUrl);
+      if (this.urls.size > this.max) this.urls.delete(this.urls.values().next().value!);
+    }
+    return result;
+  }
+  has(url: string): boolean {
+    return this.urls.has(url);
+  }
+}
+
 async function callTool(
   client: AXEClient,
   manifest: Manifest,
   name: string,
   args: Record<string, unknown>,
   options: McpServerOptions,
+  pollUrls: IssuedPollUrls,
 ): Promise<CallToolResult> {
   if (name === WIRE.tool.manifest) {
     return {
@@ -296,23 +330,28 @@ async function callTool(
       );
     }
     const result = await client.continue(token, kind, args[WIRE.field.payload] as JsonValue);
-    return formatResult(result, undefined, manifest.brand);
+    return formatResult(pollUrls.record(result), undefined, manifest.brand);
   }
   if (name === WIRE.tool.resume) {
     const token = args[WIRE.field.resumeToken];
     if (typeof token !== "string")
       return errorContent(`${WIRE.tool.resume} needs resumeToken (string).`);
-    return formatResult(await client.resume(token), undefined, manifest.brand);
+    return formatResult(pollUrls.record(await client.resume(token)), undefined, manifest.brand);
   }
   if (name === WIRE.tool.poll) {
     const pollUrl = args[WIRE.field.pollUrl];
     if (typeof pollUrl !== "string")
       return errorContent(`${WIRE.tool.poll} needs pollUrl (string).`);
+    if (!pollUrls.has(pollUrl)) {
+      return errorContent(
+        `${WIRE.tool.poll} only polls a pollUrl this server returned in a pending result; "${pollUrl}" is not one. Nothing was fetched.`,
+      );
+    }
     const result = await client.poll(
       { status: WIRE.status.pending, pollUrl, retryAfter: 1 },
       { maxWaitMs: options.pollBudgetMs ?? 20_000 },
     );
-    return formatResult(result, undefined, manifest.brand);
+    return formatResult(pollUrls.record(result), undefined, manifest.brand);
   }
   if (name === WIRE.tool.state && manifest.live) {
     const state = await client.state();
@@ -347,7 +386,7 @@ async function callTool(
   if (result.status === WIRE.status.pending) {
     result = await client.poll(result, { maxWaitMs: options.pollBudgetMs ?? 20_000 });
   }
-  return formatResult(result, action, manifest.brand);
+  return formatResult(pollUrls.record(result), action, manifest.brand);
 }
 
 function errorContent(text: string): CallToolResult {
