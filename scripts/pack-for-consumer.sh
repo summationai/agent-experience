@@ -36,6 +36,11 @@ for pkg in $PACKAGES; do
 done
 
 REPO="$(git -C "$ROOT" remote get-url origin 2>/dev/null || echo unknown)"
+# Record a browsable URL: an SSH remote becomes its https form.
+case "$REPO" in
+  git@github.com:*) REPO="https://github.com/${REPO#git@github.com:}" ;;
+esac
+REPO="${REPO%.git}"
 BRANCH="$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)"
 COMMIT="$(git -C "$ROOT" rev-parse HEAD)"
 DIRTY=""
