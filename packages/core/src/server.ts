@@ -136,6 +136,13 @@ export interface RevisionContext {
   /** The request being served; null when the manifest is described outside a request. */
   request: Request | null;
   tenant: TenantInfo | null;
+  /**
+   * The user the runtime established for this request, once it has: on an action call, a continue,
+   * a resume, a poll, and `/axe/state`. Absent for the manifest and before authentication.
+   */
+  identity?: Identity | null;
+  /** The verified site key, when the call is a `site` call or a follow-up of one ([P-TOK-7]). */
+  siteKey?: SiteKeyContext | null;
 }
 
 /**
@@ -243,6 +250,11 @@ export class AXE {
   /** Provider actions whose `auth` mode and affordance targets have been checked. */
   private readonly vetted = new WeakSet<RegisteredAction>();
   private readonly changeListeners = new Set<() => void>();
+  /** The principal resolved for each request in flight, for the revision provider's context. */
+  private readonly callers = new WeakMap<
+    Request,
+    { identity: Identity | null; siteKey: SiteKeyContext | null }
+  >();
   private readonly signer: TokenSigner;
   private readonly tokens: TokenStore;
   private readonly idempotency: IdempotencyStore;
@@ -586,8 +598,19 @@ export class AXE {
     const rev = await this.currentRevision(request, tenant);
     if (rev !== undefined) state.rev = rev;
     for (const a of this.allActions()) {
+      let siteKey: SiteKeyContext | null = null;
+      if (a.spec.availability && a.definition.auth === WIRE.authMode.site && request) {
+        const v = await this.verifySite(request, a.name);
+        if (v.kind === "ok") siteKey = v.siteKey;
+      }
       state.actions[a.name] = a.spec.availability
-        ? ((await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? {
+        ? ((await this.availabilityOf(a, {
+            action: a.name,
+            identity,
+            tenant,
+            request,
+            siteKey,
+          })) ?? {
             available: false,
             reason: "unavailable",
           })
@@ -603,7 +626,8 @@ export class AXE {
   ): Promise<Revision | undefined> {
     if (!this.config.revision) return undefined;
     try {
-      const rev = await this.config.revision({ request, tenant });
+      const caller = request ? this.callers.get(request) : undefined;
+      const rev = await this.config.revision({ request, tenant, ...(caller ?? {}) });
       if (isRevision(rev)) return rev;
       throw new Error(
         `revision() returned ${JSON.stringify(rev)}; a revision is a non-empty string or a finite number.`,
@@ -787,6 +811,7 @@ export class AXE {
     if (path === WIRE.path.state && this.hasLive()) {
       if (method !== "GET") return this.methodNotAllowed(request, "GET, OPTIONS");
       const identity = await this.establishIdentity(request, adapter);
+      this.callers.set(request, { identity, siteKey: null });
       const state = await this.liveState(identity, tenant, request);
       return this.json(request, state, 200, {
         "Cache-Control": "no-store",
@@ -1493,6 +1518,7 @@ export class AXE {
     }
     const identity = await this.establishIdentity(request, adapter);
     if ((identity?.onBehalfOf ?? null) !== want.user) return undefined;
+    this.callers.set(request, { identity, siteKey });
     return { identity, siteKey };
   }
 
@@ -1691,6 +1717,7 @@ export class AXE {
       if (v.kind === "ok") siteKey = v.siteKey;
     }
     if (!identity) identity = await this.establishIdentity(request, adapter);
+    this.callers.set(request, { identity, siteKey });
     const inputParsed = a.spec.input.safeParse(rawInput);
     if (!inputParsed.success) {
       return err({
@@ -1822,7 +1849,8 @@ export class AXE {
     const stale = await this.staleCheck(expectedRev, request, tenant);
     if (stale) return refuse(stale);
     const availability =
-      (await this.availabilityOf(a, { action: a.name, identity, tenant, request })) ?? null;
+      (await this.availabilityOf(a, { action: a.name, identity, tenant, request, siteKey })) ??
+      null;
 
     // onRequest hook may short-circuit.
     let intent: ResultIntent | undefined;
@@ -2062,6 +2090,7 @@ export class AXE {
         !caller || (who !== undefined && caller.onBehalfOf === who)
           ? { identity: caller, siteKey: null }
           : undefined;
+      if (auth) this.callers.set(request, auth);
     } else {
       auth = await this.authorizeToken(record, request, adapter);
     }

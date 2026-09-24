@@ -694,3 +694,81 @@ describe("site-key principals [P-TOK-7]", () => {
     expect((u.body as ErrorResult).error.code).toBe(WIRE.error.unauthorized);
   });
 });
+
+describe("site principals on resume, and the principal in availability and revision contexts [P-TOK-7]", () => {
+  function server() {
+    const revisionSeen: unknown[] = [];
+    const availabilitySeen: unknown[] = [];
+    let resumes = 0;
+    const axe = createAXE({
+      name: "Review",
+      description: "Review test application for checking action execution and authentication.",
+      baseUrl: BASE,
+      secret: SECRET,
+      auth: {
+        modes: ["site"],
+        verifySiteKey: (key) =>
+          key === "partner-key" ? { id: "partner" } : key === "other-key" ? { id: "other" } : false,
+      },
+      revision: ({ identity, siteKey }) => {
+        revisionSeen.push({ identity: identity ?? null, site: siteKey?.id ?? null });
+        return 7;
+      },
+    });
+    axe.register(
+      action("test.sign", {
+        ...spec,
+        auth: "site",
+        availability: ({ siteKey }) => {
+          availabilitySeen.push(siteKey?.id ?? null);
+          return { available: true };
+        },
+        handler: async ({ handoff }) =>
+          handoff({
+            reason: "signature_required",
+            instructions: "Sign the form on the site.",
+            url: `${BASE}/sign`,
+            whatAgentShouldSayToUser: "The site needs your signature on its page.",
+          }),
+        onResume: async ({ siteKey }) => {
+          resumes++;
+          return { value: `signed for ${siteKey?.id}` };
+        },
+      }),
+    );
+    return { axe, revisionSeen, availabilitySeen, resumes: () => resumes };
+  }
+
+  it("a resume token obtained with one site key is not_found with another key, open or consumed", async () => {
+    const { axe, resumes } = server();
+    const partner = { authorization: "Bearer partner-key" };
+    const other = { authorization: "Bearer other-key" };
+    const h = (
+      await send(axe, "POST", "/axe/actions/test.sign", { input: {}, idempotencyKey: "k" }, partner)
+    ).body as NeedsHumanResult;
+    const body = { resumeToken: h.handoff.resumeToken };
+    expect(await send(axe, "POST", "/axe/resume", body, other)).toEqual(
+      await unknownShape(axe, "resume", other),
+    );
+    expect(resumes()).toBe(0);
+    const done = await send(axe, "POST", "/axe/resume", body, partner);
+    expect(done.body).toMatchObject({ status: "ok", output: { value: "signed for partner" } });
+    expect(await send(axe, "POST", "/axe/resume", body, other)).toEqual(
+      await unknownShape(axe, "resume", other),
+    );
+    expect(resumes()).toBe(1);
+  });
+
+  it("availability hooks and the revision provider see the resolved site principal", async () => {
+    const { axe, revisionSeen, availabilitySeen } = server();
+    const partner = { authorization: "Bearer partner-key" };
+    await send(axe, "POST", "/axe/actions/test.sign", { input: {}, idempotencyKey: "k" }, partner);
+    expect(availabilitySeen).toContain("partner");
+    expect(revisionSeen).toContainEqual({ identity: null, site: "partner" });
+    availabilitySeen.length = 0;
+    await send(axe, "GET", "/axe/state", undefined, partner);
+    expect(availabilitySeen).toEqual(["partner"]);
+    await send(axe, "GET", "/.well-known/axe.json");
+    expect(availabilitySeen.at(-1)).toBeNull();
+  });
+});

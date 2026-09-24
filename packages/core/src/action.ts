@@ -91,6 +91,11 @@ export interface AvailabilityContext {
   tenant: TenantInfo | null;
   /** The request being served; null when the manifest is described outside a request. */
   request: Request | null;
+  /**
+   * The verified site key when the action is a `site` action and the request carries a key that
+   * may call it ([P-TOK-7]); null or absent otherwise, and always absent in the manifest's view.
+   */
+  siteKey?: SiteKeyContext | null;
 }
 
 interface BaseContext extends ResultHelpers {
