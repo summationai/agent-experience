@@ -1,4 +1,4 @@
-// Write preconditions (spec [S-ACT-9] to [S-ACT-11], [S-REV-7], [S-AXE-4]): acts on one surface run
+// Write preconditions (spec [S-ACT-9] to [S-ACT-11], [S-REV-6], [S-AXE-4]): acts on one surface run
 // one at a time and are checked again when they reach execution; a handler carries the presented
 // expectedRev into its own conditional write and may refuse with a conflict; a stale report never
 // overwrites a newer revision. Every interleaving below is driven by barriers the test resolves.
@@ -202,7 +202,7 @@ describe("a commit that leaves an app-owned revision in place [S-ACT-10]", () =>
   });
 });
 
-describe("stale handler reports [S-REV-7]", () => {
+describe("stale handler reports [S-REV-6]", () => {
   it("a reported rev lower than the revision at completion is not adopted; the ledger records it as ignoredRev", async () => {
     const s = createSurface({ revision: "app" });
     s.setRev(10);

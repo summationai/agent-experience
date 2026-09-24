@@ -328,7 +328,7 @@ export interface LedgerEntry {
   changed: string[];
   /**
    * A revision the handler reported that the surface did not adopt because it is lower than the
-   * revision at completion (a newer one arrived while the handler ran) [S-REV-7].
+   * revision at completion (a newer one arrived while the handler ran) [S-REV-6].
    */
   ignoredRev?: number;
 }
@@ -1046,7 +1046,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         // [S-ACT-1] What changed is what the handler reported; when it reported nothing, the
         // entry itself if the revision moved during the handler, else nothing. A reported `rev`
         // is the application's revision after the change, adopted before the result is built,
-        // unless a newer revision arrived while the handler ran [S-REV-7].
+        // unless a newer revision arrived while the handler ran [S-REV-6].
         let ignoredRev: number | undefined;
         if (report?.rev !== undefined) {
           if (report.rev < rev) ignoredRev = report.rev;

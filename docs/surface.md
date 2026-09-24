@@ -68,7 +68,7 @@ export function registerRow(
 
 Fields register a `value` and an `edit` descriptor (read-only with a reason, or editable with a `maxLength` and an optional `schema`). The schema is a JSON Schema for the text, or a Zod schema: the surface validates a Zod schema by calling its `safeParse` and never imports Zod itself, so a browser bundle of `@axe/surface` carries none. To publish a Zod schema in `observe()` the surface needs a converter: pass `toJsonSchema` from `@axe/core` as `createSurface({ toJsonSchema })` (or `configure({ toJsonSchema })`); registering a Zod schema without one throws with that instruction. The same converter renders the `requires` schemas below, which `accept()` from `@axe/core/kinds` builds with Zod. A JSON Schema needs nothing. Collections register `total`, `loaded`, `filter`, and `sort`, and are actionable when they can load more.
 
-A handler, a field's `set`, or a collection's `more` may return `{ changed, rev }` (or a promise of it): `changed` names the entries the act moved and `rev` is the application's revision after the change. The surface folds both into the act result and the ledger. An application that bumps the revision itself can return nothing: `changed` is then the entry when the revision moved during the handler.
+Each of them also receives the act's context as its last argument (`ActContext`: the entry `id`, the `op`, the `expectedRev` the agent presented, and the `actor`), for a write that has to carry the revision; see [Writing under a precondition](#writing-under-a-precondition). A handler, a field's `set`, or a collection's `more` may return `{ changed, rev }` (or a promise of it): `changed` names the entries the act moved and `rev` is the application's revision after the change. The surface folds both into the act result and the ledger. An application that bumps the revision itself can return nothing: `changed` is then the entry when the revision moved during the handler.
 
 ## The revision
 
@@ -125,7 +125,86 @@ export async function draftBestAvailable(
 ```
 <!-- /include -->
 
-Two participants on one application collide safely: a human change between the agent's observe and act is caught as `conflict`; a retried act after a lost response is refused because the revision moved; an index that shifted cannot land on the row that slid into the slot. The tests in `packages/surface/test` pin each of those.
+Acts on one surface run one at a time, in the order `act` was called. Every check above runs when `act` is called, so a refusal comes back at once, even while another act's handler is still running. An act that passes them while another is in flight waits its turn, and when it reaches execution the surface checks it again: if the act ahead of it moved the revision, or a person did (`bump`, `setRev`), it is `conflict`; if the application froze in the meantime, or the control became unavailable, it is `unavailable`; in every case its handler does not run. So two acts presenting the same `expectedRev` cannot both commit when the first one moves the revision, and an act presenting a revision that a predecessor has since moved is `conflict`, as a retry after a lost response is. `observe`, `availability`, and `ledger` never wait: while a handler runs they report the state before it commits.
+
+Two participants on one application collide safely: a human change between the agent's observe and act is caught as `conflict`; a retried act after a lost response is refused because the revision moved; an index that shifted cannot land on the row that slid into the slot; two acts from one observation are ordered and the second is checked against the first one's result. The tests in `packages/surface/test` pin each of those.
+
+## Writing under a precondition
+
+The surface's checks guard one surface. Two tabs of a server-state application each have their own surface, and both can pass their own check at the same revision; no queue in a browser can order writes on a server. There the write itself has to be the gate: the handler takes the `expectedRev` from its context and passes it into the transaction or conditional write, and when the write finds a newer revision it refuses. It refuses by throwing a `SurfaceConflict` (with the server's `currentRev` when it knows it) or by returning `{ conflict: { currentRev } }`. The surface returns `conflict` with `expectedRev` and `currentRev` in `details`, records a refusal in the ledger, and adopts nothing from the handler: the application's newer revision arrives the way it always does, through `setRev` on the next refresh. A handler that refuses must have written nothing.
+
+<!-- include: examples/surface/precondition.ts#precondition -->
+```ts
+import { createSurface, SurfaceConflict } from "@axe/surface";
+
+interface Plan {
+  revision: number;
+  cells: Record<string, string>;
+}
+
+// Stands in for the server: one branch revision, and a write that applies only at the expected
+// revision (UPDATE ... SET value = $1, revision = revision + 1 WHERE revision = $expected).
+const server: Plan = { revision: 129, cells: {} };
+async function writeCell(id: string, value: string, expected: number): Promise<number | null> {
+  if (server.revision !== expected) return null;
+  server.cells[id] = value;
+  server.revision += 1;
+  return server.revision;
+}
+
+export const surface = createSurface({ app: "planning-app", revision: "app" });
+surface.setRev(server.revision);
+
+surface.register({
+  id: "cell:demand:2026-03",
+  kind: "field",
+  role: "textbox",
+  name: "Demand, March 2026",
+  edit: {
+    maxLength: 40,
+    // The third argument is the act's context: the entry id and the expectedRev it presented.
+    set: async (text, _actor, { id, expectedRev }) => {
+      const rev = await writeCell(id, text, expectedRev);
+      if (rev === null)
+        throw new SurfaceConflict("The plan changed on the server.", {
+          currentRev: server.revision,
+        });
+      // Report what changed and the revision the write produced; the surface adopts it.
+      return { changed: [id], rev };
+    },
+  },
+});
+```
+<!-- /include -->
+
+To the caller, both gates look the same: `conflict`, nothing applied, observe again.
+
+<!-- include: examples/surface/precondition.ts#outcome -->
+```ts
+export async function typeDemand(text: string): Promise<string> {
+  const view = surface.observe();
+  const result = await surface.act({
+    op: "TYPE_TEXT",
+    target: "cell:demand:2026-03",
+    text,
+    expectedRev: view.rev,
+  });
+  if (result.status === "ok") return `saved at rev ${result.output.rev}`;
+  // Refused by the surface (another act or a person moved first) or by the server's write:
+  // either way nothing was applied, and the ledger records a conflict.
+  if (result.error.code === "conflict") return "someone moved first; observe again";
+  return result.error.message;
+}
+```
+<!-- /include -->
+
+Three more rules keep the revision honest when handlers are asynchronous:
+
+- A commit whose revision arrives later (the handler reports no `rev`, so the revision has not moved yet) still closes the acts that were waiting behind it at that revision: they are `conflict`, with a message saying the application has not reported its new revision. An agent that observes again and acts is accepted, so nothing waits on a revision that may never move. A handler that returns `changed: []` said it changed nothing, and the next act runs.
+- A `rev` a handler reports that is older than the surface's revision when it settles (a newer one arrived with `setRev` while it ran) is not adopted. The act is still `ok`, `output.rev` is the current revision, and the ledger entry carries the report as `ignoredRev`.
+- A handler that never settles holds back every later act, and a handler must not await an `act` on its own surface, which would wait for itself.
+
+Per-entry revisions are not part of the contract: one revision per application is what the trials needed, and the server's conditional write can be as fine-grained as the application's own data model. See `DECISIONS.md`.
 
 ## Transient states
 
@@ -272,7 +351,7 @@ Refusals map onto the ladder: an unavailable control with `requires` returns `ne
 
 The ledger is a complete record of what reached the surface. The bridge validates only the shape of a request at the protocol layer (a string `text`, a boolean `confirm`, no unknown keys) and leaves the surface's own checks (`maxLength`, the field's schema, a required `confirm`) to the surface, so an over-length edit or a missing confirmation is refused by the surface, ledgered as `invalid_input`, and emitted as a `surface.act` event. What the protocol refuses before the surface (a malformed envelope, a stale `expectedRev`) is in the server's request events instead.
 
-Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
+Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry's action passes the same `expectedRev` to `act`, so the protocol's check is the first gate and the surface's the second: two requests that both pass the server's check at one revision are ordered by the surface, and the later one is checked again when its turn comes. The handler receives the same value for its own write. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
 
 The set is rebuilt only when the registry changed shape (`registryVersion` moved: a register, an unregister, a `reconcile`); a `bump` alone reuses the previous set, and a re-registered row rebuilds only its own action. Invocation resolves the action name through a map, so hundreds of rows cost hundreds of small lookups on `/axe/state` and one lookup per act. An entry whose name fails the honesty lint (an instruction aimed at the agent) is not published; the bridge's `onError` option hears about it and the row stays in `observe`. A retried `idempotencyKey` for an action whose row has since left the board (the pick that was just drafted) is still answered from the idempotency store, so a lost response is recoverable.
 
