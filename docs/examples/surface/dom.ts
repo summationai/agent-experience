@@ -1,0 +1,34 @@
+// The DOM mirror: the names an agent reads through observe() are the accessible names a browser
+// agent or a screen reader reads on the page, from the same entries.
+// #region attributes
+import { describeEntry, surfaceAttributes, surfaceSelector } from "@axe/surface";
+import type { Entry } from "@axe/surface";
+import { surface } from "./board";
+
+// Rendering by hand: carry every attribute the helper returns on the element that receives the
+// interaction. The application keeps its own disabled logic; the mirror only reports it.
+export function renderButton(entry: Entry, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement("button");
+  for (const [attribute, value] of Object.entries(surfaceAttributes(entry)))
+    button.setAttribute(attribute, value);
+  button.disabled = entry.kind === "action" && entry.state?.available === false;
+  button.textContent = "Draft";
+  button.addEventListener("click", onClick);
+  return button;
+}
+// #endregion attributes
+
+// #region selector
+// A browser agent or a test goes from an observed row to its control with one query, whatever
+// the id contains.
+export function controlFor(id: string): Element | null {
+  return document.querySelector(surfaceSelector(id));
+}
+// #endregion selector
+
+// #region describe
+// One line per entry, for an agent log or as the control's aria-description.
+export function logSurface(): void {
+  for (const row of surface.observe().entries) console.log(describeEntry(row));
+}
+// #endregion describe

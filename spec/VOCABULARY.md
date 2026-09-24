@@ -184,6 +184,18 @@ Names used by `@axe/surface` (`spec/SURFACE.md`): an application's registry of i
 | field     | changed     | `changed`     | act output `changed`                              | Entry ids whose state the act changed.                                |
 | field     | frozen      | `frozen`      | observe `frozen`, act error `details.frozen`      | Present while the application holds a freeze: `{ reason }`.           |
 
+The DOM mirror ([S-DOM-1] in `spec/SURFACE.md`): attributes a rendered control carries so browser agents and screen readers read the entry.
+
+| Category     | Key           | Name                  | Where            | Meaning                                                                           |
+| ------------ | ------------- | --------------------- | ---------------- | --------------------------------------------------------------------------------- |
+| domAttribute | surfaceId     | `data-surface-id`     | rendered control | The entry id on the element that receives the interaction; one element per entry. |
+| domAttribute | surfaceKind   | `data-surface-kind`   | rendered control | The entry kind: `action`, `field`, or `collection`.                               |
+| domAttribute | surfaceObject | `data-surface-object` | rendered control | The entry's `object`, when it has one.                                            |
+| domAttribute | surfaceReason | `data-surface-reason` | rendered control | Why the control is unavailable or read only, in the application's words.          |
+| domAttribute | label         | `aria-label`          | rendered control | The entry name as the control's accessible name: the outcome, never the widget.   |
+| domAttribute | disabled      | `aria-disabled`       | rendered control | `true` on an unavailable action; the application keeps its own `disabled`.        |
+| domAttribute | readOnly      | `aria-readonly`       | rendered control | `true` on a read-only field.                                                      |
+
 ## Reason conventions
 
 | Category | Key              | Name                | Where                          | Meaning                                                             |
@@ -468,6 +480,10 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | expose                 | `expose`                 | `@axe/surface`        | Publish observe and act on a host object for browser agents.                       |
 | api      | useSurface             | `useSurface`             | `@axe/surface/react`  | React hook that keeps one entry registered while mounted.                          |
 | api      | surfaceActions         | `surfaceActions`         | `@axe/surface/axe`    | Derive AXE actions (observe and act) from a surface.                               |
+| api      | surfaceAttributes      | `surfaceAttributes`      | `@axe/surface`        | The attributes a rendered control carries for an entry (name, id, kind, reason).   |
+| api      | surfaceSelector        | `surfaceSelector`        | `@axe/surface`        | CSS selector that finds the rendered control for an entry id.                      |
+| api      | describeEntry          | `describeEntry`          | `@axe/surface`        | One plain-text line for an entry: name, availability and reason, effect.           |
+| api      | useSurfaceProps        | `useSurfaceProps`        | `@axe/surface/react`  | React hook that registers an entry and returns its attributes as props.            |
 | api      | withMimeTypes          | `withMimeTypes`          | `@axe/core/kinds`     | Restrict a document kind to specific MIME types.                                   |
 | api      | customKind             | `customKind`             | `@axe/core/kinds`     | Define a site-specific kind under `x-<org>.`.                                      |
 | api      | suggestedReason        | `suggestedReason`        | `@axe/core/kinds`     | Conventional `reason` string for a kind's namespace.                               |

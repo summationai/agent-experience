@@ -20,6 +20,7 @@ Initial release of the Body Spray SDK and the `axe/0.1` protocol.
 - `@axe/surface`: `createSurface` (registry, `observe`, `act`, revision, ledger, `expose`), `@axe/surface/react` (`useSurface`), and `@axe/surface/axe` (`surfaceActions`: any surface becomes an AXE manifest with `<ns>.observe` and `<ns>.act`, refusals mapped onto the ladder, `continue` running the application's `fulfill`).
 - Vocabulary: a "Surface" section in `spec/VOCABULARY.md` (entry kinds, ops, field names, API names) so the drift test covers the new package.
 - Two defects from the first staging trial pinned as contract rules with tests: `act` refuses any `target` that is not a non-empty id or a non-negative integer index as `invalid_input` before any lookup, an index never resolves to a row without one, and the revision guard runs before resolution ([S-ACT-6..8]); applications must re-register on transient states ([S-REV-5]), with `freeze(reason)` / `thaw` as the first-class helper: every entry unavailable with the reason, `observe().frozen`, acts `unavailable`, revision moved on both ends, nested freezes counted ([S-FRZ-1..4]).
+- DOM mirror: `surfaceAttributes`, `surfaceSelector`, and `describeEntry` in `@axe/surface`, and `useSurfaceProps` in `@axe/surface/react`, so the accessible name a browser agent or screen reader reads is the entry name by construction. Spec §7 is now a rule set: [S-DOM-1] (name wording and the attribute set), [S-DOM-3] (the selector contract), [S-DOM-4] (the one-line description); a `domAttribute` vocabulary category names the attributes.
 
 ### Website
 

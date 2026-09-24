@@ -83,7 +83,7 @@ surface.expose(typeof window !== "undefined" ? window : null);
 ```
 <!-- /include -->
 
-`expose` publishes `observe`, `act`, and `rev` on the page for browser-driving agents. Mirror entry names to `aria-label` and mark controls with a `data-surface-id` attribute; in the first trial, two of three gains came from the names alone.
+`expose` publishes `observe`, `act`, and `rev` on the page for browser-driving agents. The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names).
 
 ## Observe and act
 
@@ -234,9 +234,87 @@ export const handler = axe.fetchHandler();
 
 Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback`); one with only a `handoff` returns `needs_human`; a stale revision is `conflict`; everything else stays an `error` with the application's reason. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
 
+## Accessible names
+
+In the first trial, two of three gains against browser agents came from the accessible names alone: a button named "Draft Jahmyr Gibbs (RB)" is chosen for the right reason, while one that reads "Draft" is a guess. Surface makes the mirror the default rather than advice. Names state the outcome in the application's own words and never the widget: "Draft Jahmyr Gibbs (RB)", not "Draft button"; "Lock March", not "Lock". The role is `role` and the state is `state`, so a name never says "disabled". The same string is the control's accessible name and the `name` an agent sees in `observe()` ([S-DOM-1] in the spec).
+
+`surfaceAttributes(entry)` returns the attributes the control carries, from a registered entry or an observed row: `aria-label` (the entry name), `data-surface-id`, `data-surface-kind`, `data-surface-object` when the entry has one, and on an unavailable action `aria-disabled` with the reason in `data-surface-reason`; a read-only field carries `aria-readonly` and its reason. Collections carry the common set only. Set them on the element that receives the interaction and keep the application's own `disabled` logic: the helper sets `aria-disabled`, which reports without disabling and leaves the control focusable, so a screen reader reaches the reason.
+
+<!-- include: examples/surface/dom.ts#attributes -->
+```ts
+import { describeEntry, surfaceAttributes, surfaceSelector } from "@axe/surface";
+import type { Entry } from "@axe/surface";
+import { surface } from "./board";
+
+// Rendering by hand: carry every attribute the helper returns on the element that receives the
+// interaction. The application keeps its own disabled logic; the mirror only reports it.
+export function renderButton(entry: Entry, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement("button");
+  for (const [attribute, value] of Object.entries(surfaceAttributes(entry)))
+    button.setAttribute(attribute, value);
+  button.disabled = entry.kind === "action" && entry.state?.available === false;
+  button.textContent = "Draft";
+  button.addEventListener("click", onClick);
+  return button;
+}
+```
+<!-- /include -->
+
+`surfaceSelector(id)` returns a CSS selector for that element with the id quoted and escaped, so a browser agent or a test goes from an observed row to the control with one query, whatever the id contains ([S-DOM-3]). Ids are stable, so a selector from one observation still finds the control after the revision moves.
+
+<!-- include: examples/surface/dom.ts#selector -->
+```ts
+// A browser agent or a test goes from an observed row to its control with one query, whatever
+// the id contains.
+export function controlFor(id: string): Element | null {
+  return document.querySelector(surfaceSelector(id));
+}
+```
+<!-- /include -->
+
+`describeEntry(entry)` returns one line for a screen reader or an agent log: `Draft Jahmyr Gibbs (RB): unavailable, already drafted by another team; mutates draft, reversible, risk medium`. It is not rendered by default; applications that want it put it in `aria-description` or log it beside each act ([S-DOM-4]).
+
+<!-- include: examples/surface/dom.ts#describe -->
+```ts
+// One line per entry, for an agent log or as the control's aria-description.
+export function logSurface(): void {
+  for (const row of surface.observe().entries) console.log(describeEntry(row));
+}
+```
+<!-- /include -->
+
 ## Using it from React
 
 `useSurface(entry, deps)` keeps one entry registered while a component is mounted and refreshes it in place when `deps` change, so an agent's index does not jump because a sibling re-rendered. Transient states belong in `deps`: the `saving` or `loading` flag, the open modal, whatever the component uses to disable its own control; left out, the surface keeps reporting the control available after the UI has frozen it. For a state that spans the page, wrap it in `freeze` instead. Render one small registering component per row of a list, so a row that scrolls away leaves the table the moment it leaves the page. Applications that render HTML outside React (a legacy grid) instead re-scan after each render and call `reconcile` to drop rows the scan did not keep.
+
+`useSurfaceProps(entry, deps)` registers the same way and returns the [accessible-name attributes](#accessible-names) as props: `aria-label`, `data-surface-id`, `data-surface-kind`, `data-surface-object`, and `aria-disabled` or `aria-readonly` as booleans with `data-surface-reason`. Spread them onto the element that receives the interaction and keep your own `disabled`; `deps` are the values the entry was computed from, as with `useSurface`.
+
+```tsx
+import { useSurfaceProps } from "@axe/surface/react";
+
+function DraftButton({ player, available, reason, onDraft }: RowProps) {
+  const props = useSurfaceProps(
+    {
+      id: `pick:me:${player.id}`,
+      kind: "action",
+      role: "button",
+      name: `Draft ${player.player} (${player.pos})`,
+      object: `player:${player.id}`,
+      state: available ? { available: true } : { available: false, reason },
+      effect: { mutates: "draft", reversible: true },
+      handler: (actor) => onDraft(player, actor),
+    },
+    [player.id, available, reason],
+  );
+  return (
+    <button {...props} disabled={!available} onClick={() => onDraft(player, "user")}>
+      Draft
+    </button>
+  );
+}
+```
+
+The rendered button reads `aria-label="Draft Jahmyr Gibbs (RB)"` with `data-surface-id="pick:me:gibbs"`, and when the pick is taken, `aria-disabled="true"` with `data-surface-reason="already drafted by another team"`: the same words the agent gets from `observe()`.
 
 ## What Surface does not do
 
