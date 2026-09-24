@@ -31,6 +31,42 @@ const ACTION_NAME: RegExp;
 
 ***
 
+<a id="actioneventschema"></a>
+
+### ActionEventSchema
+
+```ts
+const ActionEventSchema: ZodObject<{
+  action: ZodString;
+  actor: ZodNullable<ZodString>;
+  details: ZodRecord<ZodString, ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>>;
+  errorCode: ZodNullable<ZodEnum<{
+     conflict: "conflict";
+     forbidden: "forbidden";
+     internal: "internal";
+     invalid_input: "invalid_input";
+     not_found: "not_found";
+     rate_limited: "rate_limited";
+     unauthorized: "unauthorized";
+     unavailable: "unavailable";
+     unsupported: "unsupported";
+  }>>;
+  event: ZodString;
+  schemaVersion: ZodLiteral<1>;
+  status: ZodEnum<{
+     error: "error";
+     needs_human: "needs_human";
+     needs_input: "needs_input";
+     ok: "ok";
+     pending: "pending";
+  }>;
+  tenant: ZodNullable<ZodString>;
+  ts: ZodString;
+}, $strict>;
+```
+
+***
+
 <a id="actionexampleschema"></a>
 
 ### ActionExampleSchema

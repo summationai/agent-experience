@@ -84,6 +84,7 @@ surface.expose(typeof window !== "undefined" ? window : null);
 <!-- /include -->
 
 `expose` publishes `observe`, `act`, and `rev` on the page for browser-driving agents. The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names).
+`expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. Mirror entry names to `aria-label` and mark controls with a `data-surface-id` attribute; in the first trial, two of three gains came from the names alone.
 
 ## Observe and act
 
@@ -143,6 +144,8 @@ export async function save(persist: () => Promise<void>): Promise<void> {
 }
 ```
 <!-- /include -->
+
+The ledger records acts made through the surface. A change a person makes through the application's own controls shows up as a revision move, not as an entry, unless the application routes it through `act`. It is the application's live record, in memory; for a durable trail, sink the action events below.
 
 ## Saying what would unblock a control
 
@@ -209,7 +212,7 @@ registerLock();
 
 ## Serving a surface as an AXE manifest
 
-`surfaceActions` derives two actions: `<ns>.observe` (read-only, with `display` over the entries and a dynamic [affordance](presenting-results.md#affordances) per actionable row that binds `target`, `op`, and `expectedRev` into `<ns>.act`) and `<ns>.act` (mutating, revision-guarded). Register both and everything else in these docs applies: discovery, MCP, `axe conformance`, `axe audit`, events.
+`surfaceActions` derives three actions: `<ns>.observe` (read-only, with `display` over the entries and a dynamic [affordance](presenting-results.md#affordances) per actionable row that binds `target`, `op`, and `expectedRev` into `<ns>.act`), `<ns>.act` (mutating, revision-guarded), and `<ns>.ledger` (read-only, `{ since?, limit? }` in, `{ ledgerSeq, entries }` out, with `display`). Register all three and everything else in these docs applies: discovery, MCP, `axe conformance`, `axe audit`, events.
 
 <!-- include: examples/surface/serve.ts#serve -->
 ```ts

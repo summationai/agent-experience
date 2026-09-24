@@ -206,6 +206,28 @@ setStatus(status): unknown;
 
 ## Type Aliases
 
+<a id="actioneventsink"></a>
+
+### ActionEventSink
+
+```ts
+type ActionEventSink = (event) => void | Promise<void>;
+```
+
+Anything that receives action events (`context.emit`), which name actors; keep these sinks separate from analytics.
+
+#### Parameters
+
+##### event
+
+[`AXEActionEvent`](types.md#axeactionevent)
+
+#### Returns
+
+`void` \| `Promise`\<`void`\>
+
+***
+
 <a id="eventsink"></a>
 
 ### EventSink
@@ -233,16 +255,22 @@ Anything that receives events. Errors are swallowed and reported to `onSinkError
 ### combineSinks()
 
 ```ts
-function combineSinks(sinks, onSinkError?): EventSink;
+function combineSinks<E>(sinks, onSinkError?): (event) => void;
 ```
 
-Fan events out to several sinks, isolating failures.
+Fan events out to several sinks, isolating failures. Works for request events and action events alike.
+
+#### Type Parameters
+
+##### E
+
+`E` = [`AXEEvent`](types.md#axeevent)
 
 #### Parameters
 
 ##### sinks
 
-readonly [`EventSink`](#eventsink)[]
+readonly (`event`) => `void` \| `Promise`\<`void`\>[]
 
 ##### onSinkError?
 
@@ -250,7 +278,7 @@ readonly [`EventSink`](#eventsink)[]
 
 #### Returns
 
-[`EventSink`](#eventsink)
+(`event`) => `void`
 
 ***
 
@@ -259,10 +287,10 @@ readonly [`EventSink`](#eventsink)[]
 ### consoleSink()
 
 ```ts
-function consoleSink(write?): EventSink;
+function consoleSink(write?): (event) => void;
 ```
 
-Sink: one JSON line per event on stdout.
+Sink: one JSON line per event on stdout. Accepts request events and action events.
 
 #### Parameters
 
@@ -272,7 +300,7 @@ Sink: one JSON line per event on stdout.
 
 #### Returns
 
-[`EventSink`](#eventsink)
+(`event`) => `void`
 
 ***
 
@@ -281,7 +309,7 @@ Sink: one JSON line per event on stdout.
 ### jsonlFileSink()
 
 ```ts
-function jsonlFileSink(path): EventSink;
+function jsonlFileSink(path): (event) => Promise<void>;
 ```
 
 Sink: append JSON lines to a file. Node only. The file handle is opened lazily and
@@ -295,7 +323,7 @@ writes are serialized, so events never interleave.
 
 #### Returns
 
-[`EventSink`](#eventsink)
+(`event`) => `Promise`\<`void`\>
 
 ***
 
@@ -353,6 +381,14 @@ Parse the recommended `User-Agent` form `Name/1.2 (+https://contact; axe/0.1)` i
 [`EventAgent`](types.md#eventagent) \| `null`
 
 ## References
+
+<a id="axeactionevent"></a>
+
+### AXEActionEvent
+
+Re-exports [AXEActionEvent](types.md#axeactionevent)
+
+***
 
 <a id="axeevent"></a>
 

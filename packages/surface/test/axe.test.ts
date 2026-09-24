@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAXE } from "@axe/core";
 import { kinds, accept } from "@axe/core/kinds";
 import type {
+  AXEActionEvent,
   NeedsInputResult,
   NeedsHumanResult,
   OkResult,
@@ -14,6 +15,7 @@ import { surfaceActions } from "../src/axe";
 import { board } from "./fixtures/board";
 
 function serve(surface: ReturnType<typeof createSurface>) {
+  const events: AXEActionEvent[] = [];
   const axe = createAXE({
     name: "Fantasy Draft",
     description:
@@ -27,6 +29,7 @@ function serve(surface: ReturnType<typeof createSurface>) {
       },
     },
     secret: "0123456789abcdef0123456789abcdef",
+    onActionEvent: (e) => void events.push(e),
   });
   for (const a of surfaceActions(surface)) axe.register(a);
   const call = async (path: string, body: unknown, headers: Record<string, string> = {}) => {
@@ -39,11 +42,13 @@ function serve(surface: ReturnType<typeof createSurface>) {
     );
     return (await res.json()) as unknown;
   };
-  return { axe, call };
+  /** Action events are delivered on a later microtask; wait for them. */
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  return { axe, call, events, flush };
 }
 
 describe("surfaceActions: a surface served as an AXE manifest", () => {
-  it("produces a valid manifest with observe (read, display, affordances) and act (mutating)", () => {
+  it("produces a valid manifest with observe (read, display, affordances), act (mutating), and ledger (read)", () => {
     const b = board();
     const { axe } = serve(b.surface);
     const m: Manifest = axe.describe();
@@ -51,8 +56,10 @@ describe("surfaceActions: a surface served as an AXE manifest", () => {
     expect(m.actions.map((a) => [a.name, a.readOnly, a.risk])).toEqual([
       ["surface.observe", true, "none"],
       ["surface.act", false, "medium"],
+      ["surface.ledger", true, "none"],
     ]);
     expect(m.actions[0]!.display?.kind).toBe("list");
+    expect(m.actions[2]!.display?.kind).toBe("list");
   });
 
   it("observe returns the live table with dynamic affordances bound to act", async () => {
@@ -131,7 +138,7 @@ describe("surfaceActions: a surface served as an AXE manifest", () => {
       if (e && e.kind === "action")
         s.register({ ...e, state: approved ? { available: true } : e.state! });
     };
-    const { call } = serve(s);
+    const { call, events, flush } = serve(s);
     const ni = (await call("/axe/actions/surface.act", {
       input: { target: "lock:march", op: "CLICK", expectedRev: 0 },
       idempotencyKey: "k",
@@ -151,6 +158,16 @@ describe("surfaceActions: a surface served as an AXE manifest", () => {
     expect(done.status).toBe("ok");
     expect(locked).toBe(true);
     expect(done.output.changed).toEqual(["lock:march"]);
+    // Both the refused first attempt and the re-act after continue are ledgered and emitted.
+    expect(s.ledger().map((e) => [e.seq, e.status])).toEqual([
+      [1, "unavailable"],
+      [2, "ok"],
+    ]);
+    await flush();
+    expect(events.map((e) => [e.action, e.status, e.errorCode, e.details.seq])).toEqual([
+      ["surface.act", "error", "unavailable", 1],
+      ["surface.act", "ok", null, 2],
+    ]);
   });
 
   it("an unavailable control with only a handoff becomes needs_human; resume re-acts", async () => {
@@ -205,5 +222,81 @@ describe("surfaceActions: a surface served as an AXE manifest", () => {
     })) as ErrorResult;
     expect(r.error.code).toBe("unavailable");
     expect(r.error.message).toContain("draft not started");
+  });
+
+  it("emits one action event per act, run or refused, naming the actor and the ledger seq [S-AXE-4]", async () => {
+    const b = board();
+    const { call, events, flush } = serve(b.surface);
+    await call(
+      "/axe/actions/surface.act",
+      { input: { target: "pick:me:Gibbs", op: "CLICK", expectedRev: 0 }, idempotencyKey: "k1" },
+      { Authorization: "Bearer user:dana" },
+    );
+    await call("/axe/actions/surface.act", {
+      input: { target: "pick:me:Robinson", op: "CLICK", expectedRev: 0 },
+      idempotencyKey: "k2",
+    });
+    await flush();
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({
+      schemaVersion: 1,
+      ts: expect.any(String),
+      action: "surface.act",
+      event: "surface.act",
+      status: "ok",
+      errorCode: null,
+      actor: "dana",
+      details: {
+        seq: 1,
+        op: "CLICK",
+        target: "pick:me:Gibbs",
+        revBefore: 0,
+        revAfter: 1,
+        changed: ["pick:me:Gibbs"],
+      },
+      tenant: null,
+    });
+    expect(events[1]).toMatchObject({
+      status: "error",
+      errorCode: "conflict",
+      actor: "agent",
+      details: { seq: 2, target: "pick:me:Robinson", revBefore: 1, revAfter: 1, changed: [] },
+    });
+  });
+
+  it("ledger is a read-only action with display; since and limit select entries", async () => {
+    const b = board();
+    const { call, axe } = serve(b.surface);
+    await call(
+      "/axe/actions/surface.act",
+      { input: { target: "pick:me:Gibbs", op: "CLICK", expectedRev: 0 }, idempotencyKey: "k1" },
+      { Authorization: "Bearer user:dana" },
+    );
+    await call("/axe/actions/surface.act", {
+      input: { target: "pick:me:Robinson", op: "CLICK", expectedRev: 0 },
+      idempotencyKey: "k2",
+    });
+    type Out = OkResult<{
+      ledgerSeq: number;
+      entries: { seq: number; actor: string; status: string; target: unknown }[];
+    }>;
+    const all = (await call("/axe/actions/surface.ledger", { input: {} })) as Out;
+    expect(all.status).toBe("ok");
+    expect(all.output.ledgerSeq).toBe(2);
+    expect(all.output.entries.map((e) => [e.seq, e.actor, e.status])).toEqual([
+      [1, "dana", "ok"],
+      [2, "agent", "conflict"],
+    ]);
+    const since = (await call("/axe/actions/surface.ledger", { input: { since: 1 } })) as Out;
+    expect(since.output.entries.map((e) => e.seq)).toEqual([2]);
+    const last = (await call("/axe/actions/surface.ledger", { input: { limit: 1 } })) as Out;
+    expect(last.output.entries.map((e) => e.seq)).toEqual([2]);
+    const bad = (await call("/axe/actions/surface.ledger", {
+      input: { since: -1 },
+    })) as ErrorResult;
+    expect(bad.error.code).toBe("invalid_input");
+    const ledger = axe.describe().actions.find((a) => a.name === "surface.ledger")!;
+    expect(ledger.readOnly).toBe(true);
+    expect(ledger.display?.item?.id).toBe("/seq");
   });
 });

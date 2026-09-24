@@ -12,6 +12,7 @@
  */
 import type {
   Accept,
+  ErrorCode,
   Handoff,
   JsonSchema,
   JsonValue,
@@ -165,6 +166,8 @@ export interface Observation {
   objects: Record<string, JsonValue>;
   /** Present while the application holds a `freeze`: every entry is unavailable for this reason. */
   frozen?: Frozen;
+  /** The latest ledger `seq`, so an agent can ask `ledger({ since })` for what happened since it looked. */
+  ledgerSeq: number;
 }
 
 /** The transient state a `freeze` reports on every entry. */
@@ -191,15 +194,50 @@ export interface ActOutput {
   id: string;
   actor: string;
   changed: string[];
+  /** The ledger entry this act wrote. */
+  seq: number;
 }
 
-/** `act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`. */
+/** `act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`. Every result carries the `seq` of its ledger entry (`output.seq`, or `error.details.seq`). */
 export type ActResult = OkResult<ActOutput> | ErrorResult;
+
+/** One line of the ledger: an act that ran, or a refusal, with who asked and which revisions it spanned (spec [S-LED-*]). */
+export interface LedgerEntry {
+  /** 1-based, increasing by one per act; never reused. */
+  seq: number;
+  /** When the entry was written. */
+  at: string;
+  /** The `op` as requested. */
+  op: string;
+  /** The entry id the act resolved to; for a refusal before the target resolved, the target as requested. */
+  target: string | number | null;
+  actor: string;
+  /** The revision when the act arrived. */
+  revBefore: number;
+  /** The revision when the entry was written: after the handler ran, or unchanged for a refusal. */
+  revAfter: number;
+  /** `ok` when the handler ran and returned; otherwise the error code the act was refused with (`internal` when the handler threw). */
+  status: "ok" | ErrorCode;
+  text?: string;
+  /** Entry ids whose state the act moved; empty for a refusal. */
+  changed: string[];
+}
+
+export interface LedgerQuery {
+  /** Only entries with `seq` greater than this, oldest first, so an agent can ask what happened since it looked. */
+  since?: number;
+  /** Only entries by this actor. */
+  actor?: string;
+  /** At most this many entries: the oldest after `since` when `since` is given (so a reader can page forward), else the newest. */
+  limit?: number;
+}
 
 export interface SurfaceOptions {
   app?: string;
   /** Clock for `observe().at`; injectable for deterministic tests and builds. */
   now?: () => Date;
+  /** Ledger retention. `max` is the number of most recent entries kept; default 1000. */
+  ledger?: { max?: number };
 }
 
 export interface Surface {
@@ -229,7 +267,9 @@ export interface Surface {
     request: ActRequest,
     options?: { run?: (fn: () => MaybePromise<unknown>) => MaybePromise<unknown> },
   ): Promise<ActResult>;
-  /** Publish `observe`, `act`, and `rev` on a host object (`window.__surface`) for browser agents. */
+  /** The ledger: every act and every refusal, oldest first. See `LedgerQuery` for `since`, `actor`, and `limit`. */
+  ledger(query?: LedgerQuery): LedgerEntry[];
+  /** Publish `observe`, `act`, `ledger`, and `rev` on a host object (`window.__surface`) for browser agents. */
   expose(
     host?: object | null,
     options?: { run?: (fn: () => MaybePromise<unknown>) => MaybePromise<unknown> },
@@ -258,7 +298,7 @@ function toAccept(entry: AcceptInput): Accept {
   return out;
 }
 
-function err(
+function errorResult(
   code: ErrorResult["error"]["code"],
   message: string,
   extra: {
@@ -286,6 +326,9 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   // Active freezes, oldest first. The newest reason is the one reported.
   const freezes: Frozen[] = [];
   const frozenNow = (): Frozen | undefined => freezes[freezes.length - 1];
+  const log: LedgerEntry[] = [];
+  let seq = 0;
+  const ledgerMax = Math.max(0, options.ledger?.max ?? 1000);
 
   const surface: Surface = {
     configure({ app: name }) {
@@ -421,6 +464,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         at: now().toISOString(),
         entries: out,
         objects: objectsFn(),
+        ledgerSeq: seq,
       };
       if (frozen) view.frozen = { reason: frozen.reason };
       return view;
@@ -428,7 +472,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
     async act(
       req,
       {
-        run = (fn: () => MaybePromise<unknown>) => fn(),
+        run: runner = (fn: () => MaybePromise<unknown>) => fn(),
       }: { run?: (fn: () => MaybePromise<unknown>) => MaybePromise<unknown> } = {},
     ) {
       const {
@@ -439,6 +483,47 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         actor = "agent",
         confirm = false,
       } = req ?? ({} as ActRequest);
+      // The ledger [S-LED-*]: one entry per act, written whether the handler ran or the act was
+      // refused. `err` below records the refusal and stamps its seq on the error; `run` records a
+      // handler that threw.
+      const revBefore = rev;
+      let resolved: string | null = null;
+      const record = (status: LedgerEntry["status"], changed: string[]): number => {
+        const entry: LedgerEntry = {
+          seq: ++seq,
+          at: now().toISOString(),
+          op: String(op),
+          target: resolved ?? target ?? null,
+          actor,
+          revBefore,
+          revAfter: rev,
+          status,
+          changed,
+        };
+        if (text !== undefined) entry.text = text;
+        log.push(entry);
+        if (log.length > ledgerMax) log.splice(0, log.length - ledgerMax);
+        return entry.seq;
+      };
+      const err = (
+        code: ErrorResult["error"]["code"],
+        message: string,
+        extra?: Parameters<typeof errorResult>[2],
+      ): ErrorResult => {
+        const result = errorResult(code, message, extra);
+        const details = result.error.details ?? {};
+        details[WIRE.field.seq] = record(code, []);
+        result.error.details = details;
+        return result;
+      };
+      const run = async (fn: () => MaybePromise<unknown>) => {
+        try {
+          return await runner(fn);
+        } catch (e) {
+          record(WIRE.error.internal, []);
+          throw e;
+        }
+      };
       if (typeof expectedRev !== "number") {
         return err(
           WIRE.error.invalidInput,
@@ -512,6 +597,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         );
       }
       const e = entries.get(row.id)!;
+      resolved = row.id;
       const before = rev;
       // [S-FRZ-3] While frozen, every act is refused with the freeze's reason; no handler runs.
       if (view.frozen) {
@@ -603,16 +689,26 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           });
         await run(() => e.more!());
       }
+      const changed = rev !== before ? [row.id] : [];
       return {
         status: WIRE.status.ok,
-        output: { rev, id: row.id, actor, changed: rev !== before ? [row.id] : [] },
+        output: { rev, id: row.id, actor, changed, seq: record(WIRE.status.ok, changed) },
       };
+    },
+    ledger({ since, actor: who, limit } = {}) {
+      let out: LedgerEntry[] = log;
+      if (since !== undefined) out = out.filter((e) => e.seq > since);
+      if (who !== undefined) out = out.filter((e) => e.actor === who);
+      if (limit !== undefined && limit >= 0 && out.length > limit)
+        out = since !== undefined ? out.slice(0, limit) : out.slice(out.length - limit);
+      return [...out];
     },
     expose(host = typeof window !== "undefined" ? window : null, opts) {
       if (!host) return;
       (host as { __surface?: unknown }).__surface = {
         observe: surface.observe,
         act: (req: ActRequest) => surface.act(req, opts),
+        ledger: (query?: LedgerQuery) => surface.ledger(query),
         rev: surface.currentRev,
       };
     },
@@ -621,6 +717,8 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       entries.clear();
       listeners.clear();
       freezes.length = 0;
+      log.length = 0;
+      seq = 0;
       rev = 0;
       app = options.app ?? "app";
       objectsFn = () => ({});
@@ -645,6 +743,7 @@ export const {
   setObjects,
   observe,
   act,
+  ledger,
   expose,
 } = surface;
 

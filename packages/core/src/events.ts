@@ -2,15 +2,20 @@
  * Analytics events (spec/EVENTS.md) and the sinks that receive them.
  * Events carry no PII and no payloads by construction: the type has no field for them.
  */
-import type { AXEEvent, EventAgent } from "./types";
+import type { AXEActionEvent, AXEEvent, EventAgent } from "./types";
 
-export type { AXEEvent, EventAgent };
+export type { AXEActionEvent, AXEEvent, EventAgent };
 
 /** Anything that receives events. Errors are swallowed and reported to `onSinkError`. */
 export type EventSink = (event: AXEEvent) => void | Promise<void>;
 
-/** Sink: one JSON line per event on stdout. */
-export function consoleSink(write: (line: string) => void = (l) => console.log(l)): EventSink {
+/** Anything that receives action events (`context.emit`), which name actors; keep these sinks separate from analytics. */
+export type ActionEventSink = (event: AXEActionEvent) => void | Promise<void>;
+
+/** Sink: one JSON line per event on stdout. Accepts request events and action events. */
+export function consoleSink(
+  write: (line: string) => void = (l) => console.log(l),
+): (event: AXEEvent | AXEActionEvent) => void {
   return (event) => {
     write(JSON.stringify(event));
   };
@@ -20,7 +25,7 @@ export function consoleSink(write: (line: string) => void = (l) => console.log(l
  * Sink: append JSON lines to a file. Node only. The file handle is opened lazily and
  * writes are serialized, so events never interleave.
  */
-export function jsonlFileSink(path: string): EventSink {
+export function jsonlFileSink(path: string): (event: AXEEvent | AXEActionEvent) => Promise<void> {
   let queue: Promise<void> = Promise.resolve();
   return (event) => {
     queue = queue.then(async () => {
@@ -105,11 +110,11 @@ export function parseUserAgent(header: string | null | undefined): EventAgent | 
   return { name: m[1]!, version: m[2]! };
 }
 
-/** Fan events out to several sinks, isolating failures. */
-export function combineSinks(
-  sinks: readonly EventSink[],
+/** Fan events out to several sinks, isolating failures. Works for request events and action events alike. */
+export function combineSinks<E = AXEEvent>(
+  sinks: readonly ((event: E) => void | Promise<void>)[],
   onSinkError?: (error: unknown) => void,
-): EventSink {
+): (event: E) => void {
   return (event) => {
     for (const sink of sinks) {
       try {

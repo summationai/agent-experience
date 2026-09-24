@@ -348,3 +348,35 @@ export interface AXEEvent {
   errorCode: ErrorCode | null;
   tenant: string | null;
 }
+
+/**
+ * An event an action emits about its own work (spec/EVENTS.md, "Action events"): a ledger line
+ * rather than a request metric. Unlike `AXEEvent` it names the `actor`, because attribution is
+ * its purpose, so it goes to `onActionEvent` sinks and never to the analytics `onEvent` sinks.
+ */
+export interface AXEActionEvent {
+  schemaVersion: 1;
+  ts: string;
+  /** The action whose handler emitted the event; for a continue or resume, the originating action. */
+  action: string;
+  /** What happened, as a dotted name in the action's namespace: `surface.act`. */
+  event: string;
+  /** Outcome of the work the event records. */
+  status: ResultStatus;
+  errorCode: ErrorCode | null;
+  /** Who the work was done as, in the application's terms; `null` when the action has no actor. */
+  actor: string | null;
+  /** What the action chooses to record: ids, revisions, sequence numbers. Never a payload. */
+  details: Record<string, JsonValue>;
+  tenant: string | null;
+}
+
+/** What a handler passes to `emit`; the server fills in `schemaVersion`, `ts`, `action`, and `tenant`. */
+export interface AXEActionEventInput {
+  event: string;
+  /** Default `ok`. */
+  status?: ResultStatus;
+  errorCode?: ErrorCode | null;
+  actor?: string | null;
+  details?: Record<string, JsonValue>;
+}

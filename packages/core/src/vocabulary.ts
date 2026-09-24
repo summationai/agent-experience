@@ -274,7 +274,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   app: "app",
   /** The application's single revision counter. */
   rev: "rev",
-  /** When the snapshot was taken. */
+  /** When the snapshot was taken; when the ledger entry was written. */
   at: "at",
   /** The indexed table of controls. */
   entries: "entries",
@@ -316,7 +316,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   sort: "sort",
   /** The operation to perform. */
   op: "op",
-  /** Entry id or index to act on. */
+  /** Entry id or index to act on; in the ledger, the id it resolved to. */
   target: "target",
   /** The revision the agent observed; the act is refused if it moved. */
   expectedRev: "expectedRev",
@@ -324,6 +324,16 @@ export const field = /* @__PURE__ */ Object.freeze({
   actor: "actor",
   /** Entry ids whose state the act changed. */
   changed: "changed",
+  /** The ledger entry's sequence number: 1-based, increasing by one per act. */
+  seq: "seq",
+  /** The latest ledger `seq`; ask `since` it for what happened after a snapshot. */
+  ledgerSeq: "ledgerSeq",
+  /** The revision when the act arrived. */
+  revBefore: "revBefore",
+  /** The revision when the entry was written; equals `revBefore` for a refusal. */
+  revAfter: "revAfter",
+  /** Cap on the number of ledger entries returned. */
+  limit: "limit",
   /** Present while the application holds a freeze: `{ reason }`. */
   frozen: "frozen",
   /** Protocol version string. */
@@ -436,7 +446,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   reasons: "reasons",
   /** `{ since, replacedBy? }`. */
   deprecated: "deprecated",
-  /** Date or version the deprecation began. */
+  /** Date or version the deprecation began; in a ledger query, the `seq` already seen. */
   since: "since",
   /** Name of the replacement action. */
   replacedBy: "replacedBy",
@@ -544,7 +554,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   code: "code",
   /** Whether an identical retry could succeed. */
   retryable: "retryable",
-  /** Structured extra data; `issues` for `invalid_input`. */
+  /** Structured extra data; `issues` for `invalid_input`; what an action event records. */
   details: "details",
   /** Array of `{ path, message, expected? }` validation problems. */
   issues: "issues",
@@ -564,6 +574,8 @@ export const field = /* @__PURE__ */ Object.freeze({
   errorCode: "errorCode",
   /** Tenant id on multi-tenant platforms. */
   tenant: "tenant",
+  /** What an action event records, as a dotted name in the action's namespace. */
+  event: "event",
 } as const);
 
 /** `domAttribute` names. */
@@ -764,6 +776,10 @@ export const api = /* @__PURE__ */ Object.freeze({
   onError: "onError",
   /** Hook receiving every analytics event; sinks attach here. */
   onEvent: "onEvent",
+  /** Hook receiving action events, the ledger lines handlers record with `emit`. */
+  onActionEvent: "onActionEvent",
+  /** Handler context: record an action event for the `onActionEvent` sinks. */
+  emit: "emit",
   /** Event sink that prints one JSON line per event to stdout. */
   consoleSink: "consoleSink",
   /** Event sink that appends JSON lines to a file. */
@@ -836,10 +852,6 @@ export const api = /* @__PURE__ */ Object.freeze({
   unregister: "unregister",
   /** Drop entries under a prefix that a re-scan did not keep. */
   reconcile: "reconcile",
-  /** Mark every entry unavailable with a reason during a transient state; returns thaw. */
-  freeze: "freeze",
-  /** Release one freeze; the last release restores the entries and moves the revision. */
-  thaw: "thaw",
   /** Advance the revision after a change, notifying listeners. */
   bump: "bump",
   /** Adopt a persisted revision if it is ahead. */
@@ -856,20 +868,14 @@ export const api = /* @__PURE__ */ Object.freeze({
   observe: "observe",
   /** Run one control's own handler under the revision guard; returns a result envelope. */
   act: "act",
-  /** Publish observe and act on a host object for browser agents. */
+  /** Read the ledger: every act and refusal, oldest first, with `since`, `actor`, `limit`. */
+  ledger: "ledger",
+  /** Publish observe, act, and ledger on a host object for browser agents. */
   expose: "expose",
   /** React hook that keeps one entry registered while mounted. */
   useSurface: "useSurface",
   /** Derive AXE actions (observe and act) from a surface. */
   surfaceActions: "surfaceActions",
-  /** The attributes a rendered control carries for an entry (name, id, kind, reason). */
-  surfaceAttributes: "surfaceAttributes",
-  /** CSS selector that finds the rendered control for an entry id. */
-  surfaceSelector: "surfaceSelector",
-  /** One plain-text line for an entry: name, availability and reason, effect. */
-  describeEntry: "describeEntry",
-  /** React hook that registers an entry and returns its attributes as props. */
-  useSurfaceProps: "useSurfaceProps",
   /** Restrict a document kind to specific MIME types. */
   withMimeTypes: "withMimeTypes",
   /** Define a site-specific kind under `x-<org>.`. */
@@ -944,6 +950,18 @@ export const api = /* @__PURE__ */ Object.freeze({
   formatAuditHtml: "formatAuditHtml",
   /** Human-readable drift report. */
   formatDriftReport: "formatDriftReport",
+  /** Mark every entry unavailable with a reason during a transient state; returns thaw. */
+  freeze: "freeze",
+  /** Release one freeze; the last release restores the entries and moves the revision. */
+  thaw: "thaw",
+  /** The attributes a rendered control carries for an entry (name, id, kind, reason). */
+  surfaceAttributes: "surfaceAttributes",
+  /** CSS selector that finds the rendered control for an entry id. */
+  surfaceSelector: "surfaceSelector",
+  /** One plain-text line for an entry: name, availability and reason, effect. */
+  describeEntry: "describeEntry",
+  /** React hook that registers an entry and returns its attributes as props. */
+  useSurfaceProps: "useSurfaceProps",
 } as const);
 
 /**
@@ -1020,7 +1038,7 @@ export type WireEntryKind = "action" | "field" | "collection";
 /** Union of every `op` name. */
 export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 /** Union of every `field` name. */
-export type WireField = "app" | "rev" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "available" | "requires" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "expectedRev" | "actor" | "changed" | "frozen" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
+export type WireField = "app" | "rev" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "available" | "requires" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "expectedRev" | "actor" | "changed" | "seq" | "ledgerSeq" | "revBefore" | "revAfter" | "limit" | "frozen" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant" | "event";
 /** Union of every `domAttribute` name. */
 export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-surface-object" | "data-surface-reason" | "aria-label" | "aria-disabled" | "aria-readonly";
 /** Union of every `reason` name. */
@@ -1032,7 +1050,7 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "freeze" | "thaw" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "onActionEvent" | "emit" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "ledger" | "expose" | "useSurface" | "surfaceActions" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1157,6 +1175,11 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "expectedRev", name: "expectedRev" },
   { category: "field", key: "actor", name: "actor" },
   { category: "field", key: "changed", name: "changed" },
+  { category: "field", key: "seq", name: "seq" },
+  { category: "field", key: "ledgerSeq", name: "ledgerSeq" },
+  { category: "field", key: "revBefore", name: "revBefore" },
+  { category: "field", key: "revAfter", name: "revAfter" },
+  { category: "field", key: "limit", name: "limit" },
   { category: "field", key: "frozen", name: "frozen" },
   { category: "domAttribute", key: "surfaceId", name: "data-surface-id" },
   { category: "domAttribute", key: "surfaceKind", name: "data-surface-kind" },
@@ -1300,6 +1323,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "ladder", name: "ladder" },
   { category: "field", key: "errorCode", name: "errorCode" },
   { category: "field", key: "tenant", name: "tenant" },
+  { category: "field", key: "event", name: "event" },
   { category: "payload", key: "token", name: "token" },
   { category: "payload", key: "provider", name: "provider" },
   { category: "payload", key: "brand", name: "brand" },
@@ -1365,6 +1389,8 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "onResult", name: "onResult" },
   { category: "api", key: "onError", name: "onError" },
   { category: "api", key: "onEvent", name: "onEvent" },
+  { category: "api", key: "onActionEvent", name: "onActionEvent" },
+  { category: "api", key: "emit", name: "emit" },
   { category: "api", key: "consoleSink", name: "consoleSink" },
   { category: "api", key: "jsonlFileSink", name: "jsonlFileSink" },
   { category: "api", key: "otelSink", name: "otelSink" },
@@ -1401,8 +1427,6 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "createSurface", name: "createSurface" },
   { category: "api", key: "unregister", name: "unregister" },
   { category: "api", key: "reconcile", name: "reconcile" },
-  { category: "api", key: "freeze", name: "freeze" },
-  { category: "api", key: "thaw", name: "thaw" },
   { category: "api", key: "bump", name: "bump" },
   { category: "api", key: "seedRev", name: "seedRev" },
   { category: "api", key: "setRev", name: "setRev" },
@@ -1411,13 +1435,10 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "setObjects", name: "setObjects" },
   { category: "api", key: "observe", name: "observe" },
   { category: "api", key: "act", name: "act" },
+  { category: "api", key: "ledger", name: "ledger" },
   { category: "api", key: "expose", name: "expose" },
   { category: "api", key: "useSurface", name: "useSurface" },
   { category: "api", key: "surfaceActions", name: "surfaceActions" },
-  { category: "api", key: "surfaceAttributes", name: "surfaceAttributes" },
-  { category: "api", key: "surfaceSelector", name: "surfaceSelector" },
-  { category: "api", key: "describeEntry", name: "describeEntry" },
-  { category: "api", key: "useSurfaceProps", name: "useSurfaceProps" },
   { category: "api", key: "withMimeTypes", name: "withMimeTypes" },
   { category: "api", key: "customKind", name: "customKind" },
   { category: "api", key: "suggestedReason", name: "suggestedReason" },
@@ -1455,4 +1476,10 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "formatAuditTable", name: "formatAuditTable" },
   { category: "api", key: "formatAuditHtml", name: "formatAuditHtml" },
   { category: "api", key: "formatDriftReport", name: "formatDriftReport" },
+  { category: "api", key: "freeze", name: "freeze" },
+  { category: "api", key: "thaw", name: "thaw" },
+  { category: "api", key: "surfaceAttributes", name: "surfaceAttributes" },
+  { category: "api", key: "surfaceSelector", name: "surfaceSelector" },
+  { category: "api", key: "describeEntry", name: "describeEntry" },
+  { category: "api", key: "useSurfaceProps", name: "useSurfaceProps" },
 ]);

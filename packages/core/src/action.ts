@@ -9,6 +9,7 @@ import type {
   ActionDefinition,
   ActionExample,
   Affordance,
+  AXEActionEventInput,
   AuthMode,
   Brand,
   Contact,
@@ -81,6 +82,11 @@ interface BaseContext extends ResultHelpers {
   request: Request;
   /** The tenant, on platforms. */
   tenant: TenantInfo | null;
+  /**
+   * Record what the action did as an action event (spec/EVENTS.md, "Action events") for the
+   * server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the result.
+   */
+  emit: (event: AXEActionEventInput) => void;
 }
 
 export interface HandlerContext<I> extends BaseContext {

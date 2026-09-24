@@ -25,12 +25,13 @@ import type {
   RequestContext,
   Result,
   ResultStatus,
+  AXEActionEventInput,
 } from "./types";
 import type { RegisteredAction, TenantInfo, MaybePromise, ResultHelpers } from "./action";
 import { ActionDefinitionError } from "./action";
 import { validateAffordanceBinding } from "./display";
 import { stripReserved } from "./display";
-import type { AXEEvent, EventAgent, EventSink } from "./events";
+import type { AXEActionEvent, AXEEvent, ActionEventSink, EventAgent, EventSink } from "./events";
 import { combineSinks, parseUserAgent } from "./events";
 import type { AcceptInput } from "./kinds";
 import { isValidKindName } from "./kinds";
@@ -131,6 +132,8 @@ export interface AXEConfig {
   onResult?: (ctx: HookContext, result: Result) => MaybePromise<void>;
   onError?: (ctx: HookContext, error: unknown) => MaybePromise<void>;
   onEvent?: EventSink | EventSink[];
+  /** Sinks for action events, the ledger lines a handler records with `context.emit`. They name actors, so they are not analytics. */
+  onActionEvent?: ActionEventSink | ActionEventSink[];
 }
 
 const CONTINUATION_TTL = 15 * 60;
@@ -174,6 +177,7 @@ export class AXE {
   private readonly tokens: TokenStore;
   private readonly idempotency: IdempotencyStore;
   private readonly emit: EventSink;
+  private readonly emitAction: ActionEventSink;
   private finalized = false;
   private basePath: string;
 
@@ -224,6 +228,32 @@ export class AXE {
         : [config.onEvent]
       : [];
     this.emit = combineSinks(sinks, (e) => console.error("[axe] event sink failed", e));
+    const actionSinks = config.onActionEvent
+      ? Array.isArray(config.onActionEvent)
+        ? config.onActionEvent
+        : [config.onActionEvent]
+      : [];
+    this.emitAction = combineSinks<AXEActionEvent>(actionSinks, (e) =>
+      console.error("[axe] action event sink failed", e),
+    );
+  }
+
+  /** The `emit` a handler receives: stamps the event and hands it to the action event sinks on the next microtask. */
+  private emitterFor(action: string, tenant: TenantInfo | null): (e: AXEActionEventInput) => void {
+    return (e) => {
+      const event: AXEActionEvent = {
+        schemaVersion: 1,
+        ts: new Date().toISOString(),
+        action,
+        event: e.event,
+        status: e.status ?? WIRE.status.ok,
+        errorCode: e.errorCode ?? null,
+        actor: e.actor ?? null,
+        details: e.details ?? {},
+        tenant: tenant?.id ?? null,
+      };
+      queueMicrotask(() => this.emitAction(event));
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -1234,6 +1264,7 @@ export class AXE {
           identity,
           siteKey,
           action: a.name,
+          emit: this.emitterFor(a.name, tenant),
           ...helpers,
         }),
       );
@@ -1379,6 +1410,7 @@ export class AXE {
         identity,
         siteKey: null,
         action: a.name,
+        emit: this.emitterFor(a.name, tenant),
         ...helpers,
       }),
     );
@@ -1496,6 +1528,7 @@ export class AXE {
         identity,
         siteKey: null,
         action: a.name,
+        emit: this.emitterFor(a.name, tenant),
         ...helpers,
       }),
     );
@@ -1558,6 +1591,7 @@ export class AXE {
         identity,
         siteKey: null,
         action: a.name,
+        emit: this.emitterFor(a.name, tenant),
         ...helpers,
       }),
     );

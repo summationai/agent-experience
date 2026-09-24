@@ -41,6 +41,8 @@ type WireApi =
   | "onResult"
   | "onError"
   | "onEvent"
+  | "onActionEvent"
+  | "emit"
   | "consoleSink"
   | "jsonlFileSink"
   | "otelSink"
@@ -77,8 +79,6 @@ type WireApi =
   | "createSurface"
   | "unregister"
   | "reconcile"
-  | "freeze"
-  | "thaw"
   | "bump"
   | "seedRev"
   | "setRev"
@@ -87,13 +87,10 @@ type WireApi =
   | "setObjects"
   | "observe"
   | "act"
+  | "ledger"
   | "expose"
   | "useSurface"
   | "surfaceActions"
-  | "surfaceAttributes"
-  | "surfaceSelector"
-  | "describeEntry"
-  | "useSurfaceProps"
   | "withMimeTypes"
   | "customKind"
   | "suggestedReason"
@@ -130,7 +127,13 @@ type WireApi =
   | "formatConformanceTable"
   | "formatAuditTable"
   | "formatAuditHtml"
-  | "formatDriftReport";
+  | "formatDriftReport"
+  | "freeze"
+  | "thaw"
+  | "surfaceAttributes"
+  | "surfaceSelector"
+  | "describeEntry"
+  | "useSurfaceProps";
 ```
 
 Union of every `api` name.
@@ -277,6 +280,11 @@ type WireField =
   | "expectedRev"
   | "actor"
   | "changed"
+  | "seq"
+  | "ledgerSeq"
+  | "revBefore"
+  | "revAfter"
+  | "limit"
   | "frozen"
   | "protocol"
   | "name"
@@ -396,7 +404,8 @@ type WireField =
   | "latencyMs"
   | "ladder"
   | "errorCode"
-  | "tenant";
+  | "tenant"
+  | "event";
 ```
 
 Union of every `field` name.
@@ -737,6 +746,7 @@ const api: Readonly<{
   describe: "describe";
   describeEntry: "describeEntry";
   discover: "discover";
+  emit: "emit";
   expose: "expose";
   fetchHandler: "fetchHandler";
   formatAuditHtml: "formatAuditHtml";
@@ -761,6 +771,7 @@ const api: Readonly<{
   isPending: "isPending";
   jsonlFileSink: "jsonlFileSink";
   kinds: "kinds";
+  ledger: "ledger";
   lintAgentText: "lintAgentText";
   lintManifest: "lintManifest";
   manifest: "manifest";
@@ -769,6 +780,7 @@ const api: Readonly<{
   maxWaitMs: "maxWaitMs";
   needsInput: "needsInput";
   observe: "observe";
+  onActionEvent: "onActionEvent";
   onChange: "onChange";
   onContinue: "onContinue";
   onError: "onError";
@@ -1005,6 +1017,7 @@ const field: Readonly<{
   entries: "entries";
   error: "error";
   errorCode: "errorCode";
+  event: "event";
   examples: "examples";
   expected: "expected";
   expectedRev: "expectedRev";
@@ -1034,6 +1047,8 @@ const field: Readonly<{
   label: "label";
   ladder: "ladder";
   latencyMs: "latencyMs";
+  ledgerSeq: "ledgerSeq";
+  limit: "limit";
   loaded: "loaded";
   locale: "locale";
   logoUrl: "logoUrl";
@@ -1072,12 +1087,15 @@ const field: Readonly<{
   retryable: "retryable";
   retryAfter: "retryAfter";
   rev: "rev";
+  revAfter: "revAfter";
+  revBefore: "revBefore";
   reversible: "reversible";
   risk: "risk";
   role: "role";
   schema: "schema";
   schemaVersion: "schemaVersion";
   sensitive: "sensitive";
+  seq: "seq";
   sessionId: "sessionId";
   since: "since";
   sites: "sites";
@@ -1495,6 +1513,7 @@ const WIRE: Readonly<{
      describe: "describe";
      describeEntry: "describeEntry";
      discover: "discover";
+     emit: "emit";
      expose: "expose";
      fetchHandler: "fetchHandler";
      formatAuditHtml: "formatAuditHtml";
@@ -1519,6 +1538,7 @@ const WIRE: Readonly<{
      isPending: "isPending";
      jsonlFileSink: "jsonlFileSink";
      kinds: "kinds";
+     ledger: "ledger";
      lintAgentText: "lintAgentText";
      lintManifest: "lintManifest";
      manifest: "manifest";
@@ -1527,6 +1547,7 @@ const WIRE: Readonly<{
      maxWaitMs: "maxWaitMs";
      needsInput: "needsInput";
      observe: "observe";
+     onActionEvent: "onActionEvent";
      onChange: "onChange";
      onContinue: "onContinue";
      onError: "onError";
@@ -1675,6 +1696,7 @@ const WIRE: Readonly<{
      entries: "entries";
      error: "error";
      errorCode: "errorCode";
+     event: "event";
      examples: "examples";
      expected: "expected";
      expectedRev: "expectedRev";
@@ -1704,6 +1726,8 @@ const WIRE: Readonly<{
      label: "label";
      ladder: "ladder";
      latencyMs: "latencyMs";
+     ledgerSeq: "ledgerSeq";
+     limit: "limit";
      loaded: "loaded";
      locale: "locale";
      logoUrl: "logoUrl";
@@ -1742,12 +1766,15 @@ const WIRE: Readonly<{
      retryable: "retryable";
      retryAfter: "retryAfter";
      rev: "rev";
+     revAfter: "revAfter";
+     revBefore: "revBefore";
      reversible: "reversible";
      risk: "risk";
      role: "role";
      schema: "schema";
      schemaVersion: "schemaVersion";
      sensitive: "sensitive";
+     seq: "seq";
      sessionId: "sessionId";
      since: "since";
      sites: "sites";

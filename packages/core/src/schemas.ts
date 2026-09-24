@@ -357,6 +357,20 @@ export const EventSchema = z
   })
   .strict();
 
+export const ActionEventSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    ts: z.string().datetime({ offset: true }),
+    action: z.string(),
+    event: z.string(),
+    status: StatusSchema,
+    errorCode: ErrorCodeSchema.nullable(),
+    actor: z.string().nullable(),
+    details: z.record(z.string(), JsonValueSchema),
+    tenant: z.string().nullable(),
+  })
+  .strict();
+
 /** The JSON Schemas published under `spec/schemas/`, keyed by file stem. */
 export function specJsonSchemas(): Record<string, JsonSchema> {
   const withId = (id: string, schema: z.ZodType): JsonSchema => ({
@@ -372,5 +386,6 @@ export function specJsonSchemas(): Record<string, JsonSchema> {
     result: withId("result", ResultSchema),
     index: withId("index", PlatformIndexSchema),
     event: withId("event", EventSchema),
+    "action-event": withId("action-event", ActionEventSchema),
   };
 }
