@@ -424,6 +424,21 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
         `${humans} of ${calls.length} live calls ended in needs_human (${Math.round(rate * 100)}%)`,
       );
     }
+    // Live state is optional: sites that publish none are not penalized; sites that do must get it right.
+    const liveChecks = report.checks.filter((c) => c.id.startsWith("live.") && c.status !== "skip");
+    if (!m.live || liveChecks.length === 0)
+      s.skip("actionable.live-state", "The manifest does not advertise live state.");
+    else {
+      const passed = liveChecks.filter((c) => c.status === "pass").length;
+      const failed = liveChecks.filter((c) => c.status === "fail");
+      s.add(
+        "actionable.live-state",
+        fraction(passed, liveChecks.length),
+        failed.length
+          ? failed.map((c) => `${c.id}: ${c.detail}`).join("; ")
+          : `${passed} live-state checks passed`,
+      );
+    }
   }
 
   // Trustworthy

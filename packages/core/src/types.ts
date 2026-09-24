@@ -99,6 +99,46 @@ export interface Manifest {
   brand?: Brand;
   indexUrl?: string;
   updatedAt?: string;
+  /** The site publishes live state: a revision and per-action availability. See spec §21. */
+  live?: Live;
+}
+
+// ---------------------------------------------------------------------------
+// Live state and revisions (spec §21)
+// ---------------------------------------------------------------------------
+
+/** A site's revision: an opaque string or number that moves with every change an agent could observe. */
+export type Revision = string | number;
+
+/** `manifest.live`: where live state is served, and the revision when the manifest was rendered. */
+export interface Live {
+  /** The revision at manifest render time. Manifests are cached; prefer `url`. */
+  rev?: Revision;
+  /** Absolute URL of the state endpoint (`/axe/state`), served with `Cache-Control: no-store`. */
+  url?: string;
+}
+
+/** A handoff declared on an unavailable action: the Handoff object without the token members. */
+export type HandoffSpec = Omit<Handoff, "resumeToken" | "expiresAt">;
+
+/** Whether an action can be done right now, and if not, why and what would change that. */
+export type Availability =
+  | { available: true; reason?: undefined; requires?: undefined; handoff?: undefined }
+  | {
+      available: false;
+      /** Plain language, in the site's words. Agent-read text. */
+      reason: string;
+      /** `accepts`-shaped kinds that would make the action available. */
+      requires?: Accept[];
+      /** A step only a human can take. */
+      handoff?: HandoffSpec;
+    };
+
+/** The document at `/axe/state`. */
+export interface LiveState {
+  rev?: Revision;
+  /** Every action in the manifest; one that declares no availability is `{ available: true }`. */
+  actions: Record<string, Availability>;
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +240,8 @@ export interface ActionDefinition {
   freshness?: Freshness;
   humanHandoff?: { reasons: string[] };
   deprecated?: Deprecation;
+  /** Computed at render time: whether the action can be done right now (the anonymous view in the manifest). */
+  availability?: Availability;
 }
 
 // ---------------------------------------------------------------------------
@@ -225,16 +267,20 @@ export interface RequestEnvelope<I = JsonValue> {
   input: I;
   context?: RequestContext;
   idempotencyKey?: string;
+  /** The revision the agent observed. A server with a revision refuses the call with `conflict` when it moved. */
+  expectedRev?: Revision;
 }
 
 export interface ContinueRequest {
   continuationToken: string;
   kind: string;
   payload: JsonValue;
+  expectedRev?: Revision;
 }
 
 export interface ResumeRequest {
   resumeToken: string;
+  expectedRev?: Revision;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,6 +321,8 @@ export interface ErrorBody {
 export interface OkResult<O = JsonValue> {
   status: "ok";
   output: O;
+  /** The revision the change produced, when the site has one. */
+  rev?: Revision;
 }
 
 export interface NeedsInputResult {
@@ -285,11 +333,13 @@ export interface NeedsInputResult {
   continuationToken: string;
   expiresAt: string;
   fallback?: Handoff;
+  rev?: Revision;
 }
 
 export interface NeedsHumanResult {
   status: "needs_human";
   handoff: Handoff;
+  rev?: Revision;
 }
 
 export interface PendingResult {
@@ -297,11 +347,14 @@ export interface PendingResult {
   pollUrl: string;
   retryAfter: number;
   expiresAt?: string;
+  rev?: Revision;
 }
 
 export interface ErrorResult {
   status: "error";
   error: ErrorBody;
+  /** The site's current revision, when it has one. On a stale `conflict` it equals `details.currentRev`. */
+  rev?: Revision;
 }
 
 /** The result envelope: every AXE response body is one of these. */

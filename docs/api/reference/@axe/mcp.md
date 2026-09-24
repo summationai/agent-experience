@@ -24,6 +24,20 @@ describe(): Manifest;
 
 [`Manifest`](client/index.md#manifest-1)
 
+<a id="describelive"></a>
+
+##### describeLive()?
+
+```ts
+optional describeLive(): Promise<Manifest>;
+```
+
+When present, the manifest with `live.rev` and availability rendered (an `AXE` instance has it).
+
+###### Returns
+
+`Promise`\<[`Manifest`](client/index.md#manifest-1)\>
+
 <a id="handle"></a>
 
 ##### handle()

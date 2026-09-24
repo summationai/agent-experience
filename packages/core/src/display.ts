@@ -15,6 +15,7 @@ import type {
   JsonPointer,
   JsonSchema,
   JsonValue,
+  Revision,
   PricePeriod,
 } from "./types";
 import {
@@ -375,6 +376,8 @@ export interface PresentedResult {
   brand?: Brand;
   /** The output with every `_axe` key removed. */
   output: unknown;
+  /** The revision the result carried, when the site has one. */
+  rev?: Revision;
 }
 
 function str(v: unknown): string | undefined {

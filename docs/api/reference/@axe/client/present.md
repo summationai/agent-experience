@@ -290,6 +290,16 @@ output: unknown;
 
 The output with every `_axe` key removed.
 
+<a id="rev"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The revision the result carried, when the site has one.
+
 <a id="suggestedcomparison"></a>
 
 ##### suggestedComparison
@@ -441,6 +451,33 @@ Apply an action's `display` to an `ok` result. Throws when the result is not `ok
 #### Returns
 
 [`PresentedResult`](#presentedresult)
+
+***
+
+<a id="statetomarkdown"></a>
+
+### stateToMarkdown()
+
+```ts
+function stateToMarkdown(state, manifest?): string;
+```
+
+Render a live-state document as Markdown: what can be done right now, and why not the rest.
+Titles come from the manifest when given; otherwise action names are shown.
+
+#### Parameters
+
+##### state
+
+[`LiveState`](index.md#livestate)
+
+##### manifest?
+
+[`Manifest`](index.md#manifest-1)
+
+#### Returns
+
+`string`
 
 ***
 

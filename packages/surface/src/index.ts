@@ -577,7 +577,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         return err(
           WIRE.error.conflict,
           `The application changed since you observed it (you saw rev ${expectedRev}, it is now ${rev}). Nothing was applied; observe again and choose again.`,
-          { retryable: true, details: { rev, expectedRev } },
+          { retryable: true, details: { expectedRev, currentRev: rev } },
         );
       }
       const view = surface.observe();

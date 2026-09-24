@@ -10,7 +10,7 @@ Companion documents, all normative:
 - [`VOCABULARY.md`](./VOCABULARY.md): every name used on the wire.
 - [`KINDS.md`](./KINDS.md): the registry of well-known requirement kinds and their schemas.
 - [`EVENTS.md`](./EVENTS.md): the analytics event emitted by conforming servers.
-- [`schemas/`](./schemas/): JSON Schemas for the manifest, request, result, index, event, and each kind.
+- [`schemas/`](./schemas/): JSON Schemas for the manifest, request, result, index, event, live state, and each kind.
 
 ## 1. Conformance language and terminology
 
@@ -84,7 +84,7 @@ A manifest is an invitation. A site that publishes one is asking agents to use i
 
 ## 4. Manifest
 
-**[P-MAN-1]** A manifest MUST validate against `schemas/manifest.schema.json`. Its required members are `protocol`, `name`, `description`, `baseUrl`, `auth`, and `actions`. Optional members are `humanFallbackUrl`, `flows`, `policies`, `contact`, `brand`, `indexUrl`, and `updatedAt`.
+**[P-MAN-1]** A manifest MUST validate against `schemas/manifest.schema.json`. Its required members are `protocol`, `name`, `description`, `baseUrl`, `auth`, and `actions`. Optional members are `humanFallbackUrl`, `flows`, `policies`, `contact`, `brand`, `indexUrl`, `updatedAt`, and `live`.
 
 | Member             | Type                                                                                                   | Meaning                                                                                                      |
 | ------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
@@ -101,6 +101,7 @@ A manifest is an invitation. A site that publishes one is asking agents to use i
 | `brand`            | `{ name?, logoUrl?, accentColor?, tone? }`                                                             | Rendering hints. See §13.2.                                                                                  |
 | `indexUrl`         | URL                                                                                                    | The platform index this site belongs to.                                                                     |
 | `updatedAt`        | date-time                                                                                              | When the manifest last changed.                                                                              |
+| `live`             | `{ rev?, url? }`                                                                                       | The site publishes live state and a revision. See §21.                                                       |
 
 **[P-MAN-2]** `baseUrl` MUST use the `https` scheme, except that `http` is permitted for hosts named `localhost` or resolving to a loopback address.
 
@@ -131,6 +132,7 @@ A manifest is an invitation. A site that publishes one is asking agents to use i
 | `freshness`    | `{ cacheTtlSeconds?, validUntil? }` (optional)                   | See §14.4.                                                                                                                                  |
 | `humanHandoff` | `{ reasons: string[] }` (optional)                               | Declares that the action may return `needs_human`, and the reason codes it uses.                                                            |
 | `deprecated`   | `{ since, replacedBy? }` (optional)                              | The action still works but agents SHOULD prefer `replacedBy`.                                                                               |
+| `availability` | `{ available, reason?, requires?, handoff? }` (optional)         | Whether the action can be done right now, and why not. Computed when the manifest is rendered. See §21.                                     |
 
 **[P-ACT-2]** Action names MUST be unique within a manifest.
 
@@ -189,7 +191,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 }
 ```
 
-`input` is REQUIRED (an empty object is valid input for an action with no parameters). `context` and `idempotencyKey` are OPTIONAL.
+`input` is REQUIRED (an empty object is valid input for an action with no parameters). `context`, `idempotencyKey`, and `expectedRev` (§21, the revision the agent observed) are OPTIONAL.
 
 **[P-INV-2]** Servers MUST validate `input` against the action's `input` schema before running any handler and MUST return `error` with `code: "invalid_input"` on failure. `details.issues` MUST list every problem as `{ path, message, expected? }`, where `path` is a JSON Pointer into `input`.
 
@@ -225,7 +227,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 ## 7. Result envelope
 
-**[P-RES-1]** Every response from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl` MUST be a JSON object with a `status` member equal to one of `ok`, `needs_input`, `needs_human`, `pending`, or `error`, plus the members for that status and nothing else at the top level. It MUST validate against `schemas/result.schema.json`.
+**[P-RES-1]** Every response from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl` MUST be a JSON object with a `status` member equal to one of `ok`, `needs_input`, `needs_human`, `pending`, or `error`, plus the members for that status, the OPTIONAL `rev` member (§21), and nothing else at the top level. It MUST validate against `schemas/result.schema.json`.
 
 | `status`      | Members                                                                       | Meaning                                                                                 |
 | ------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -234,6 +236,8 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 | `needs_human` | `handoff`                                                                     | The human must act on the site. §9.                                                     |
 | `pending`     | `pollUrl`, `retryAfter`                                                       | Long-running work. §10.                                                                 |
 | `error`       | `error: { code, message, retryable, details? }`                               | Failed. §11.                                                                            |
+
+Every status MAY additionally carry `rev`, the site's revision after the call, when the site publishes one (§21).
 
 ### 7.1 Which status to return
 
@@ -352,6 +356,8 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 **[P-ERR-2]** `error.message` and `details` MUST NOT contain stack traces, internal hostnames, or secrets. The SDK replaces thrown exceptions with a generic `internal` message and delivers the exception to the `onError` hook.
 
 **[P-ERR-3]** For `invalid_input`, `details.issues[]` MUST name each failing `path` as a JSON Pointer and MUST include a `message`. It SHOULD include `expected`. Agents fix these themselves; they SHOULD NOT surface them to the user verbatim.
+
+Two further `details` shapes are defined in §21: `{ expectedRev, currentRev }` on a `conflict` caused by a stale observation, and `{ reason, requires?, handoff? }` on `unavailable`.
 
 ## 12. Tokens
 
@@ -531,6 +537,7 @@ The following fields are **agent-read text**. Everything in this section applies
 - `display.emptyMessage`, `display.disclaimer`, `attributes[].label`, values reached by `badges`
 - `affordances[].title` (static and dynamic)
 - `error.message`
+- `availability.reason`, `availability.requires[]` (its `title`, `description`, `instructions`), `availability.handoff.instructions`, `availability.handoff.whatAgentShouldSayToUser`, and the same members under `error.details` on `unavailable`
 
 ### 18.2 Rules
 
@@ -753,19 +760,61 @@ POST /axe/continue
 
 Had the agent held no bank credential, it would have shown `fallback.whatAgentShouldSayToUser` to the user, sent them to `fallback.url`, and later called `/axe/resume` with `fallback.resumeToken` to receive the same `ok`.
 
+## 21. Live state and revisions
+
+A manifest is static and an action is a function: until this section, "what can be done right now, and why not the rest" was something an agent found out by calling, and two actors (a person in the UI and an agent through AXE) editing the same record could only be kept apart by the site's own checks. This section adds two things to the wire, both OPTIONAL and additive: a **revision** that every envelope reports and every request may present, and an **availability** that every action may declare and a dedicated endpoint serves uncached. A site that publishes neither behaves exactly as described in the preceding sections.
+
+### 21.1 The revision
+
+**[P-LIVE-10]** A site's revision (`rev`) is one value for the whole site (or tenant): a non-empty string or a number that changes with every change an agent could observe, whoever made it. Agents MUST treat it as opaque: compare two revisions for equality only, never order them or parse them. A numeric string and the number it spells are the same revision.
+
+Per-resource revisions (ETags) were considered and rejected: an action touches several records, agents observe a whole result at once, and one value answers the only question that matters, "has anything I saw moved". `DECISIONS.md` has the reasoning.
+
+**[P-LIVE-2]** A site that publishes a revision MUST include `rev` at the top level of every result envelope it returns from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl`, whatever the `status`. For `ok` it is the revision the change produced; for the others it is the site's revision after the call. An idempotent replay ([P-IDEM-2]) returns the stored envelope with the `rev` it carried originally. A site with no revision MUST omit `rev`.
+
+### 21.2 The state the agent saw
+
+**[P-LIVE-1]** A request to `/axe/actions/{name}` MAY carry `expectedRev`, the revision the agent observed (from `/axe/state`, from `live.rev`, or from a previous envelope's `rev`). `/axe/continue` and `/axe/resume` bodies MAY carry it too, with the same meaning and check. A malformed `expectedRev` (anything other than a non-empty string or a number) is `invalid_input`. A site that publishes no revision MUST ignore `expectedRev` ([P-VER-4]).
+
+**[P-LIVE-3]** When a site publishes a revision and a request carries `expectedRev` that is not equal to the current revision, the server MUST return `error` with `code: "conflict"`, `retryable: true`, HTTP `409`, and `details: { expectedRev, currentRev }`, where `expectedRev` echoes the request and `currentRev` is the site's revision at that moment. The server MUST have applied nothing: the check runs before the handler, before `onContinue` or `onResume`, and before a login handoff is minted; a stale continue or resume MUST NOT consume its token. The `rev` on the envelope equals `currentRev`.
+
+**[P-LIVE-4]** The idempotency replay ([P-IDEM-2]) is answered before the stale check: a request that repeats an `idempotencyKey` for the same action, user, and `input` returns the stored envelope whatever `expectedRev` it carries, because it is the same attempt. `expectedRev` is not part of the idempotency binding. A stale request MUST NOT store a record for its `idempotencyKey`, so the agent may retry with the same key once it has read the current state. When the original call carried `expectedRev` and was answered with a `login_required` handoff, the server MUST re-check that revision when the action runs after sign-in, unless the resume presents a fresher `expectedRev`.
+
+### 21.3 Availability: unavailable, because
+
+**[P-LIVE-5]** An action MAY declare `availability`: `{ available: true }` or `{ available: false, reason, requires?, handoff? }`. `reason` is REQUIRED when `available` is false: plain language in the site's own words ("already drafted by another team", "approval required"), agent-read text under §18. `requires`, when present, is a non-empty list of `accepts` entries ([P-REQ-2]) naming what would make the action available; `handoff`, when present, is a Handoff object (§9.1) without `resumeToken` and `expiresAt`, naming a step only a human can take. Availability is computed when the document that carries it is rendered; it is a report, not a promise.
+
+**[P-LIVE-6]** An action whose availability for the caller is `available: false` MUST NOT complete with `ok` when invoked. It MUST return `error` with `code: "unavailable"`, or climb the ladder: `needs_input` whose `accepts` are the declared `requires`, or `needs_human` with the declared `handoff`.
+
+**[P-LIVE-9]** An `error` with `code: "unavailable"` MAY carry `details: { reason, requires?, handoff? }` mirroring the availability that caused it. Agents SHOULD relay `reason` to the user in the site's words and MAY offer `handoff.url`.
+
+### 21.4 Where availability is served
+
+**[P-LIVE-7]** A site that publishes a revision or any action's availability MUST include `live` in its manifest: `{ rev?, url? }`, where `url` is the absolute URL of the state endpoint (the SDK serves `{baseUrl}/axe/state`) and `rev` is the revision when the manifest was rendered. The manifest MAY carry each declaring action's `availability` as computed for an anonymous caller; because manifests are cacheable ([P-DISC-3]), agents MUST treat `live.rev` and manifest `availability` as a snapshot and prefer the state endpoint when acting.
+
+**[P-LIVE-8]** `GET {live.url}` MUST return `{ rev?, actions: { [name]: availability } }` validating against `schemas/state.schema.json`, with `Cache-Control: no-store`. `actions` MUST list every action in the manifest; one that declares no availability is `{ available: true }`. Availability MAY depend on the authenticated caller (§16): the endpoint establishes identity the same way an action does and SHOULD send `Vary: Authorization`. `rev` MUST be present when the site publishes a revision.
+
+### 21.5 The two-actor loop
+
+1. The agent reads the state: `GET /axe/state` gives `rev: 41` and, for each action, whether it can be done now and why not.
+2. It invokes an available action with `expectedRev: 41`. If a person changed the record in the meantime, the site is at `rev: 42` and answers `conflict` with `details: { expectedRev: 41, currentRev: 42 }`, having applied nothing. The agent reads again and decides again.
+3. If nothing moved, the action runs and the `ok` envelope carries `rev: 42`, the revision the change produced; the agent uses it as the next `expectedRev`.
+4. A retry after a lost response repeats the `idempotencyKey` and is answered from the stored envelope ([P-LIVE-4]); a retry with a new key and the old `expectedRev` is refused, so a lost response cannot double-apply.
+
 ## Appendix A. Endpoint summary
 
-| Method  | Path                          | Body                                   | Returns                      |
-| ------- | ----------------------------- | -------------------------------------- | ---------------------------- |
-| GET     | `/.well-known/axe.json`       |                                        | Manifest                     |
-| GET     | `/axe/manifest`               |                                        | Manifest                     |
-| GET     | `/.well-known/axe-index.json` |                                        | Index (platforms)            |
-| POST    | `/axe/actions/{name}`         | `{ input, context?, idempotencyKey? }` | Result envelope              |
-| GET     | `/axe/actions/{name}`         |                                        | Action definition (optional) |
-| POST    | `/axe/continue`               | `{ continuationToken, kind, payload }` | Result envelope              |
-| POST    | `/axe/resume`                 | `{ resumeToken }`                      | Result envelope              |
-| GET     | `/axe/poll/{token}`           |                                        | Result envelope              |
-| OPTIONS | any of the above              |                                        | `204` when CORS is enabled   |
+| Method  | Path                          | Body                                                 | Returns                      |
+| ------- | ----------------------------- | ---------------------------------------------------- | ---------------------------- |
+| GET     | `/.well-known/axe.json`       |                                                      | Manifest                     |
+| GET     | `/axe/manifest`               |                                                      | Manifest                     |
+| GET     | `/.well-known/axe-index.json` |                                                      | Index (platforms)            |
+| POST    | `/axe/actions/{name}`         | `{ input, context?, idempotencyKey?, expectedRev? }` | Result envelope              |
+| GET     | `/axe/actions/{name}`         |                                                      | Action definition (optional) |
+| POST    | `/axe/continue`               | `{ continuationToken, kind, payload, expectedRev? }` | Result envelope              |
+| POST    | `/axe/resume`                 | `{ resumeToken, expectedRev? }`                      | Result envelope              |
+| GET     | `/axe/poll/{token}`           |                                                      | Result envelope              |
+| GET     | `/axe/state`                  |                                                      | Live state (§21, optional)   |
+| OPTIONS | any of the above              |                                                      | `204` when CORS is enabled   |
 
 ## Appendix B. Requirement index
 

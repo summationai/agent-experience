@@ -921,6 +921,16 @@ idempotencyReplayWorked: boolean | null;
 
 Whether a mutating action with a usable idempotency path was found.
 
+<a id="livestate"></a>
+
+##### liveState
+
+```ts
+liveState: LiveState | null;
+```
+
+The `/axe/state` document, when the manifest advertises live state and the endpoint answered.
+
 <a id="needshuman"></a>
 
 ##### needsHuman

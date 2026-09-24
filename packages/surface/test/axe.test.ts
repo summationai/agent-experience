@@ -95,7 +95,7 @@ describe("surfaceActions: a surface served as an AXE manifest", () => {
       idempotencyKey: "k2",
     })) as ErrorResult;
     expect(stale.error.code).toBe("conflict");
-    expect(stale.error.details).toMatchObject({ rev: 1, expectedRev: 0 });
+    expect(stale.error.details).toMatchObject({ expectedRev: 0, currentRev: 1 });
     // Idempotent replay of the same key returns the original result without re-running the handler.
     const replay = (await call(
       "/axe/actions/surface.act",
@@ -210,6 +210,62 @@ describe("surfaceActions: a surface served as an AXE manifest", () => {
     }>;
     expect(done.status).toBe("ok");
     expect(signed).toBe(true);
+  });
+
+  it("with revision: surface.currentRev, the envelope's expectedRev is first-class and rev rides on every envelope", async () => {
+    const b = board();
+    const axe = createAXE({
+      name: "Fantasy Draft",
+      description:
+        "A draft board: observe which players can be drafted right now and draft, undo, or flag them under one revision.",
+      baseUrl: "http://localhost:5173",
+      auth: { modes: ["none"] },
+      secret: "0123456789abcdef0123456789abcdef",
+      revision: b.surface.currentRev,
+    });
+    for (const a of surfaceActions(b.surface)) axe.register(a);
+    const call = async (path: string, body: unknown) =>
+      (await (
+        await axe.handle(
+          new Request(`http://localhost:5173${path}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          }),
+        )
+      ).json()) as unknown;
+    const view = (await call("/axe/actions/surface.observe", { input: {} })) as OkResult<{
+      rev: number;
+    }>;
+    expect(view.rev).toBe(0);
+    expect(view.output.rev).toBe(0);
+    expect(axe.describe().live?.url).toBe("http://localhost:5173/axe/state");
+    // The envelope carries the observed revision; no expectedRev inside input.
+    const ok = (await call("/axe/actions/surface.act", {
+      input: { target: "pick:me:Gibbs", op: "CLICK" },
+      idempotencyKey: "k1",
+      expectedRev: 0,
+    })) as OkResult<{ rev: number }>;
+    expect(ok.status).toBe("ok");
+    expect(ok.rev).toBe(1);
+    expect(b.log).toHaveLength(1);
+    // Stale: the protocol refuses it before the handler; the surface never sees the act.
+    const stale = (await call("/axe/actions/surface.act", {
+      input: { target: "pick:me:Robinson", op: "CLICK" },
+      idempotencyKey: "k2",
+      expectedRev: 0,
+    })) as ErrorResult;
+    expect(stale.error.code).toBe("conflict");
+    expect(stale.error.details).toEqual({ expectedRev: 0, currentRev: 1 });
+    expect(stale.rev).toBe(1);
+    expect(b.log).toHaveLength(1);
+    // The deprecated input.expectedRev still works when the envelope carries none.
+    const legacy = (await call("/axe/actions/surface.act", {
+      input: { target: "pick:me:Robinson", op: "CLICK", expectedRev: 1 },
+      idempotencyKey: "k3",
+    })) as OkResult<{ rev: number }>;
+    expect(legacy.status).toBe("ok");
+    expect(b.log).toHaveLength(2);
   });
 
   it("plain refusals stay errors with the reason", async () => {

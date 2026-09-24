@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer, toolNameFor, formatResult } from "../src/index";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
+import { liveAXE } from "../../core/test/fixtures/live";
 
 async function connect(auth?: string) {
   const { axe, state } = apartmentsAXE();
@@ -132,6 +133,54 @@ describe("@axe/mcp", () => {
     );
     expect(e.isError).toBe(true);
     expect((e.content[0] as { text: string }).text).toContain("/a: is required (expected string)");
+  });
+
+  it("adds axe_state, accepts expectedRev, and explains stale and unavailable when the site is live", async () => {
+    const { axe, studio } = liveAXE();
+    const derived = await createMcpServer(axe, { client: { auth: "user:dana" } });
+    const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+    await derived.server.connect(serverT);
+    const client = new Client({ name: "test", version: "0" });
+    await client.connect(clientT);
+    const { tools } = await client.listTools();
+    expect(tools.map((t) => t.name)).toContain("axe_state");
+    const book = tools.find((t) => t.name === "classes_book")!;
+    expect((book.inputSchema.properties as Record<string, unknown>)["expectedRev"]).toBeDefined();
+    expect(book.description).toContain("Available at the time the manifest was read");
+    const state = await client.callTool({ name: "axe_state", arguments: {} });
+    expect(text(state)).toContain("As of revision 41.");
+    expect((state.structuredContent as { rev: number }).rev).toBe(41);
+    const stale = await client.callTool({
+      name: "classes_book",
+      arguments: { classId: "yin-tue-1800", expectedRev: 40 },
+    });
+    expect(stale.isError).toBe(true);
+    expect(text(stale)).toContain("Stale: you acted on revision 40 but the site is at revision 41");
+    expect(studio.handlerRuns).toBe(0);
+    const ok = await client.callTool({
+      name: "classes_book",
+      arguments: { classId: "yin-tue-1800", expectedRev: 41 },
+    });
+    expect(ok.isError).toBeUndefined();
+    expect(text(ok)).toContain("Revision: 42.");
+    // Sam has no credits: unavailable, with the reason and what would unblock it.
+    const sam = await createMcpServer(axe, { client: { auth: "user:sam" } });
+    const [c2, s2] = InMemoryTransport.createLinkedPair();
+    await sam.server.connect(s2);
+    const client2 = new Client({ name: "test", version: "0" });
+    await client2.connect(c2);
+    const refused = await client2.callTool({
+      name: "classes_book",
+      arguments: { classId: "yin-tue-1800" },
+    });
+    expect(refused.isError).toBe(true);
+    expect(text(refused)).toContain(
+      "Not available right now: no credits left on the member's pass.",
+    );
+    expect(text(refused)).toContain("payment.card");
+    expect(text(refused)).toContain(
+      "A person can do it at https://ember-yoga.example/account/passes.",
+    );
   });
 
   it("rejects colliding or reserved tool names", async () => {

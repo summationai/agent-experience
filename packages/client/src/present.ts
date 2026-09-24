@@ -3,7 +3,14 @@
  * for chat (Markdown) or a self-contained page (HTML). Nothing site-specific runs:
  * every string is escaped, URLs are validated, and the only script is the SDK's own.
  */
-import type { ActionDefinition, Brand, OkResult, Result } from "@axe/core/types";
+import type {
+  ActionDefinition,
+  Brand,
+  LiveState,
+  Manifest,
+  OkResult,
+  Result,
+} from "@axe/core/types";
 import type { PresentedAttribute, PresentedItem, PresentedResult } from "@axe/core/display";
 import { resolveDisplay } from "@axe/core/display";
 import * as WIRE from "@axe/core/vocabulary";
@@ -26,7 +33,40 @@ export function present(
       `present(): expected an ok result, received status "${result.status}". Handle the other statuses first (see docs/for-agent-builders.md).`,
     );
   }
-  return resolveDisplay(action, result.output, brand);
+  const presented = resolveDisplay(action, result.output, brand);
+  // The revision the output was read at travels with it, so a renderer can say "as of".
+  if (result.rev !== undefined) presented.rev = result.rev;
+  return presented;
+}
+
+/**
+ * Render a live-state document as Markdown: what can be done right now, and why not the rest.
+ * Titles come from the manifest when given; otherwise action names are shown.
+ */
+export function stateToMarkdown(state: LiveState, manifest?: Manifest): string {
+  const title = (name: string) => manifest?.actions.find((a) => a.name === name)?.title ?? name;
+  const entries = Object.entries(state.actions);
+  const now = entries.filter(([, a]) => a.available);
+  const not = entries.filter(([, a]) => !a.available);
+  const lines: string[] = [];
+  if (state.rev !== undefined) lines.push(`As of revision ${mdEscape(String(state.rev))}.`, "");
+  lines.push("**Can be done now**");
+  if (now.length === 0) lines.push("- (nothing)");
+  for (const [name] of now) lines.push(`- ${mdEscape(title(name))} (\`${name}\`)`);
+  if (not.length) {
+    lines.push("", "**Not right now**");
+    for (const [name, a] of not) {
+      if (a.available) continue;
+      const extra: string[] = [];
+      if (a.requires?.length)
+        extra.push(`would need ${a.requires.map((r) => `\`${r.kind}\``).join(" or ")}`);
+      if (a.handoff) extra.push(`a person can do it at ${a.handoff.url}`);
+      lines.push(
+        `- ${mdEscape(title(name))} (\`${name}\`): ${mdEscape(a.reason)}${extra.length ? ` (${extra.join("; ")})` : ""}`,
+      );
+    }
+  }
+  return lines.join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +219,8 @@ export function toMarkdown(presented: PresentedResult, options: MarkdownOptions 
     }
   }
   if (presented.disclaimer) lines.push("", `_${mdEscape(presented.disclaimer)}_`);
+  if (presented.rev !== undefined)
+    lines.push("", `_As of revision ${mdEscape(String(presented.rev))}._`);
   return lines.join("\n");
 }
 
@@ -254,7 +296,7 @@ dl.axe-attrs{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;f
 .axe-actions button{font:inherit;font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--axe-accent);background:transparent;color:var(--axe-accent);cursor:pointer}
 .axe-actions button.axe-primary{background:var(--axe-accent);color:#fff}.axe-actions button:hover{filter:brightness(1.1)}
 .axe-link{font-size:13px;color:var(--axe-muted)}.axe-disclaimer{margin-top:18px;padding:10px 12px;border-left:3px solid var(--axe-accent);background:var(--axe-card);font-size:13px;color:var(--axe-muted)}
-.axe-empty{padding:24px;text-align:center;color:var(--axe-muted)}
+.axe-empty{padding:24px;text-align:center;color:var(--axe-muted)}.axe-rev{font-size:12px;color:var(--axe-muted)}
 table.axe-table{width:100%;border-collapse:collapse;font-size:14px}table.axe-table th,table.axe-table td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--axe-border);vertical-align:top}table.axe-table th{color:var(--axe-muted);font-weight:600}
 @media (max-width:640px){table.axe-table{display:block;overflow-x:auto}}`;
 
@@ -296,6 +338,7 @@ export function toHTML(presented: PresentedResult, options: HtmlOptions = {}): s
 <header class="axe-head">${logo ? `<img src="${escapeHtml(logo)}" alt="">` : ""}<h1>${escapeHtml(options.heading ?? title)}</h1></header>
 ${body}
 ${presented.disclaimer ? `<p class="axe-disclaimer">${escapeHtml(presented.disclaimer)}</p>` : ""}
+${presented.rev !== undefined ? `<p class="axe-rev">As of revision ${escapeHtml(String(presented.rev))}</p>` : ""}
 </main>
 <script>${SELECT_SCRIPT}</script>
 </body>

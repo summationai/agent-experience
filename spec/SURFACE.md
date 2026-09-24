@@ -60,7 +60,7 @@ Surface came out of two trials on business applications with opposite shapes (st
 
 **[S-ACT-1]** `act({ op, target, text?, expectedRev, actor?, confirm? })` returns an AXE result envelope. On success it returns `ok` with `{ rev, id, actor, changed, seq }`, where `changed` lists the entry ids whose state the act moved and `seq` is the ledger entry the act wrote (§5.1).
 
-**[S-ACT-2]** When `expectedRev` differs from the current revision, `act` MUST return `error` with `code: "conflict"`, `retryable: true`, and `details: { rev, expectedRev, seq }`, and MUST apply nothing.
+**[S-ACT-2]** When `expectedRev` differs from the current revision, `act` MUST return `error` with `code: "conflict"`, `retryable: true`, and `details: { expectedRev, currentRev, seq }` (the protocol's stale shape, [P-LIVE-3], plus the ledger `seq` of the refusal), and MUST apply nothing.
 
 **[S-ACT-3]** A missing `expectedRev`, an unknown `op`, an `op` that does not fit the entry's kind, a `confirm` that is required and absent, text longer than `maxLength`, or text that fails the field's schema is `invalid_input` with `details.issues`. An unknown `target` is `not_found`.
 
@@ -120,7 +120,8 @@ The first Surface left the record of who acted to the application, and its own c
 
 **[S-AXE-3]** The `actor` recorded for an act that arrives through AXE is the authenticated `onBehalfOf` when there is one, else `agent`.
 
-**[S-AXE-4]** For every act that goes through `<ns>.act`, `/axe/continue`, or `/axe/resume`, run or refused, the bridge MUST emit one action event (`EVENTS.md`, "Action events") named `surface.act`, with `status` and `errorCode` as the surface returned them, `actor` as recorded in the ledger, and `details: { seq, op, target, revBefore, revAfter, changed }`. Action events reach the server's `onActionEvent` sinks, not its analytics sinks, because they name the actor.
+**[S-AXE-4]** Served through AXE, the surface's revision is the site's revision (protocol §21): the server is created with `revision: surface.currentRev`, so every envelope carries `rev`, the protocol's stale check ([P-LIVE-3]) runs before the handler, and `/axe/state` reports the revision. The revision the agent observed travels as the request envelope's `expectedRev`; `<ns>.act` still accepts it inside `input` for one release, deprecated.
+**[S-AXE-5]** For every act that goes through `<ns>.act`, `/axe/continue`, or `/axe/resume`, run or refused, the bridge MUST emit one action event (`EVENTS.md`, "Action events") named `surface.act`, with `status` and `errorCode` as the surface returned them, `actor` as recorded in the ledger, and `details: { seq, op, target, revBefore, revAfter, changed }`. Action events reach the server's `onActionEvent` sinks, not its analytics sinks, because they name the actor.
 
 ## 7. Browser agents
 

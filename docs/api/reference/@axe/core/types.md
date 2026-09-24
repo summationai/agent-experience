@@ -84,6 +84,16 @@ optional affordances?: Affordance[];
 auth: WireAuthMode;
 ```
 
+<a id="availability"></a>
+
+##### availability?
+
+```ts
+optional availability?: Availability;
+```
+
+Computed at render time: whether the action can be done right now (the anonymous view in the manifest).
+
 <a id="deprecated"></a>
 
 ##### deprecated?
@@ -712,6 +722,14 @@ optional url?: string;
 continuationToken: string;
 ```
 
+<a id="expectedrev"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
 <a id="kind-2"></a>
 
 ##### kind
@@ -913,6 +931,16 @@ retryable: boolean;
 ```ts
 error: ErrorBody;
 ```
+
+<a id="rev"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The site's current revision, when it has one. On a stale `conflict` it equals `details.currentRev`.
 
 <a id="status-3"></a>
 
@@ -1196,13 +1224,71 @@ optional url?: string;
 
 ***
 
+<a id="live"></a>
+
+### Live
+
+`manifest.live`: where live state is served, and the revision when the manifest was rendered.
+
+#### Properties
+
+<a id="rev-1"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The revision at manifest render time. Manifests are cached; prefer `url`.
+
+<a id="url-3"></a>
+
+##### url?
+
+```ts
+optional url?: string;
+```
+
+Absolute URL of the state endpoint (`/axe/state`), served with `Cache-Control: no-store`.
+
+***
+
+<a id="livestate"></a>
+
+### LiveState
+
+The document at `/axe/state`.
+
+#### Properties
+
+<a id="actions"></a>
+
+##### actions
+
+```ts
+actions: Record<string, Availability>;
+```
+
+Every action in the manifest; one that declares no availability is `{ available: true }`.
+
+<a id="rev-2"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+***
+
 <a id="manifest"></a>
 
 ### Manifest
 
 #### Properties
 
-<a id="actions"></a>
+<a id="actions-1"></a>
 
 ##### actions
 
@@ -1273,6 +1359,16 @@ optional humanFallbackUrl?: string;
 ```ts
 optional indexUrl?: string;
 ```
+
+<a id="live-1"></a>
+
+##### live?
+
+```ts
+optional live?: Live;
+```
+
+The site publishes live state: a revision and per-action availability. See spec §21.
 
 <a id="name-6"></a>
 
@@ -1346,6 +1442,14 @@ optional userLoginUrl?: string;
 handoff: Handoff;
 ```
 
+<a id="rev-3"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
 <a id="status-4"></a>
 
 ##### status
@@ -1410,6 +1514,14 @@ message: string;
 reason: string;
 ```
 
+<a id="rev-4"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
 <a id="status-5"></a>
 
 ##### status
@@ -1439,6 +1551,16 @@ status: "needs_input";
 ```ts
 output: O;
 ```
+
+<a id="rev-5"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
+```
+
+The revision the change produced, when the site has one.
 
 <a id="status-6"></a>
 
@@ -1522,6 +1644,14 @@ pollUrl: string;
 
 ```ts
 retryAfter: number;
+```
+
+<a id="rev-6"></a>
+
+##### rev?
+
+```ts
+optional rev?: Revision;
 ```
 
 <a id="status-7"></a>
@@ -1750,6 +1880,16 @@ optional timezone?: string;
 optional context?: RequestContext;
 ```
 
+<a id="expectedrev-1"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The revision the agent observed. A server with a revision refuses the call with `conflict` when it moved.
+
 <a id="idempotencykey"></a>
 
 ##### idempotencyKey?
@@ -1773,6 +1913,14 @@ input: I;
 ### ResumeRequest
 
 #### Properties
+
+<a id="expectedrev-2"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
 
 <a id="resumetoken-1"></a>
 
@@ -1836,6 +1984,86 @@ type AuthMode = WireAuthMode;
 
 ***
 
+<a id="availability-1"></a>
+
+### Availability
+
+```ts
+type Availability = 
+  | {
+  available: true;
+  handoff?: undefined;
+  reason?: undefined;
+  requires?: undefined;
+}
+  | {
+  available: false;
+  handoff?: HandoffSpec;
+  reason: string;
+  requires?: Accept[];
+};
+```
+
+Whether an action can be done right now, and if not, why and what would change that.
+
+#### Union Members
+
+##### Type Literal
+
+```ts
+{
+  available: true;
+  handoff?: undefined;
+  reason?: undefined;
+  requires?: undefined;
+}
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  available: false;
+  handoff?: HandoffSpec;
+  reason: string;
+  requires?: Accept[];
+}
+```
+
+###### available
+
+```ts
+available: false;
+```
+
+###### handoff?
+
+```ts
+optional handoff?: HandoffSpec;
+```
+
+A step only a human can take.
+
+###### reason
+
+```ts
+reason: string;
+```
+
+Plain language, in the site's words. Agent-read text.
+
+###### requires?
+
+```ts
+optional requires?: Accept[];
+```
+
+`accepts`-shaped kinds that would make the action available.
+
+***
+
 <a id="brandtone-1"></a>
 
 ### BrandTone
@@ -1873,6 +2101,18 @@ type DisplayKind = WireDisplayKind;
 ```ts
 type ErrorCode = WireError;
 ```
+
+***
+
+<a id="handoffspec"></a>
+
+### HandoffSpec
+
+```ts
+type HandoffSpec = Omit<Handoff, "resumeToken" | "expiresAt">;
+```
+
+A handoff declared on an unavailable action: the Handoff object without the token members.
 
 ***
 
@@ -1994,6 +2234,18 @@ The result envelope: every AXE response body is one of these.
 ```ts
 type ResultStatus = WireStatus;
 ```
+
+***
+
+<a id="revision"></a>
+
+### Revision
+
+```ts
+type Revision = string | number;
+```
+
+A site's revision: an opaque string or number that moves with every change an agent could observe.
 
 ***
 

@@ -11,6 +11,9 @@ import type {
   Affordance,
   AXEActionEventInput,
   AuthMode,
+  Availability,
+  HandoffSpec,
+  Revision,
   Brand,
   Contact,
   ManifestAuth,
@@ -26,7 +29,8 @@ import type {
 } from "./types";
 import type { ResultIntent } from "./results";
 import type { Identity } from "./server";
-import type { fail, handoff, needsInput, ok, pending } from "./results";
+import type { fail, handoff, needsInput, ok, pending, unavailable } from "./results";
+import type { AcceptInput } from "./kinds";
 import { toJsonSchema } from "./zod-json-schema";
 import {
   DisplayValidationError,
@@ -67,6 +71,25 @@ export interface ResultHelpers {
   handoff: typeof handoff;
   pending: typeof pending;
   fail: typeof fail;
+  unavailable: typeof unavailable;
+}
+
+/**
+ * What an action's `availability` hook returns: available, or unavailable with a reason in the
+ * site's own words and, optionally, the kinds that would make it available (`requires`, with Zod or
+ * JSON Schemas) and a step only a human can take (`handoff`).
+ */
+export type AvailabilityInput =
+  | { available: true }
+  | { available: false; reason: string; requires?: AcceptInput[]; handoff?: HandoffSpec };
+
+/** Passed to an action's `availability` hook. Identity is null for the manifest's anonymous view. */
+export interface AvailabilityContext {
+  action: string;
+  identity: Identity | null;
+  tenant: TenantInfo | null;
+  /** The request being served; null when the manifest is described outside a request. */
+  request: Request | null;
 }
 
 interface BaseContext extends ResultHelpers {
@@ -87,6 +110,10 @@ interface BaseContext extends ResultHelpers {
    * server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the result.
    */
   emit: (event: AXEActionEventInput) => void;
+  /** The revision the agent said it observed, when the request carried `expectedRev`. Already checked against `revision` when one is configured. */
+  expectedRev?: Revision;
+  /** The action's current availability for this caller, when the action declares an `availability` hook; null otherwise. */
+  availability: Availability | null;
 }
 
 export interface HandlerContext<I> extends BaseContext {
@@ -139,6 +166,13 @@ export interface ActionSpec<
   freshness?: Freshness;
   humanHandoff?: { reasons: string[] };
   deprecated?: Deprecation;
+  /**
+   * Whether the action can be done right now, and if not, why (spec §21). Rendered into the
+   * manifest (anonymous view) and `/axe/state` (per caller), and delivered to the handler as
+   * `availability`. The runtime does not refuse the call for you: the handler stays the one door,
+   * and returns `unavailable(availability)` or climbs the ladder.
+   */
+  availability?: (ctx: AvailabilityContext) => MaybePromise<AvailabilityInput>;
   handler: (ctx: HandlerContext<z.output<I>>) => MaybePromise<HandlerReturn<z.input<O>>>;
   onContinue?: (ctx: ContinueContext<S>) => MaybePromise<HandlerReturn<z.input<O>>>;
   onResume?: (ctx: ResumeContext<S>) => MaybePromise<HandlerReturn<z.input<O>>>;

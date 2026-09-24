@@ -9,6 +9,8 @@ import type {
   ErrorResult,
   Handoff,
   JsonValue,
+  Live,
+  LiveState,
   Manifest,
   NeedsHumanResult,
   NeedsInputResult,
@@ -16,6 +18,7 @@ import type {
   PendingResult,
   RequestContext,
   Result,
+  Revision,
   Accept,
 } from "@axe/core/types";
 import * as WIRE from "@axe/core/vocabulary";
@@ -31,7 +34,11 @@ export type {
   ErrorResult,
   Handoff,
   Accept,
+  Availability,
   JsonValue,
+  Live,
+  LiveState,
+  Revision,
 } from "@axe/core/types";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -114,6 +121,11 @@ export interface InvokeOptions {
   idempotencyKey?: string;
   context?: Partial<RequestContext>;
   signal?: AbortSignal;
+  /**
+   * The revision you observed (from `state()`, `manifest().live.rev`, or a previous result's
+   * `rev`). A site with live state refuses the call with `conflict` when it moved, applying nothing.
+   */
+  expectedRev?: Revision | undefined;
 }
 
 export interface PollOptions {
@@ -284,6 +296,42 @@ export class AXEClient {
     return this.manifestDoc.actions.find((a) => a.name === name);
   }
 
+  /** The manifest's `live` member, when the site publishes live state. */
+  live(): Live | undefined {
+    return this.manifestDoc.live;
+  }
+
+  /**
+   * What can be done right now, and why not the rest: `GET /axe/state` (never cached), computed for
+   * the caller `auth` identifies. Throws `AXEClientError` when the site publishes no live state.
+   */
+  async state(options: { signal?: AbortSignal } = {}): Promise<LiveState> {
+    const url = this.manifestDoc.live?.url ?? `${this.base}${WIRE.path.state}`;
+    const init: RequestInit = { method: "GET", headers: await this.headers() };
+    if (options.signal) init.signal = options.signal;
+    let res: Response;
+    try {
+      res = await this.f(url, init);
+    } catch (e) {
+      throw new AXEClientError(`Request to ${url} failed.`, e);
+    }
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch (e) {
+      throw new AXEClientError(`Response from ${url} (HTTP ${res.status}) was not JSON.`, e);
+    }
+    if (isResult(body) && isError(body)) {
+      throw new AXEClientError(
+        `${this.manifestDoc.name} does not serve live state at ${url}: ${body.error.code}: ${body.error.message}`,
+      );
+    }
+    if (!body || typeof body !== "object" || typeof (body as LiveState).actions !== "object") {
+      throw new AXEClientError(`Response from ${url} is not a live-state document.`);
+    }
+    return body as LiveState;
+  }
+
   /** Whether this client's vendor is allowed by `policies.agents`. Agents MUST check before calling. */
   allowed(): boolean {
     const policy = this.manifestDoc.policies?.agents;
@@ -314,6 +362,7 @@ export class AXEClient {
     const body: Record<string, unknown> = { input, context: this.context(options.context) };
     if (def && !def.readOnly) body["idempotencyKey"] = options.idempotencyKey ?? randomKey();
     else if (options.idempotencyKey) body["idempotencyKey"] = options.idempotencyKey;
+    if (options.expectedRev !== undefined) body["expectedRev"] = options.expectedRev;
     return this.post<O>(
       `${this.base}${WIRE.path.actions}/${encodeURIComponent(name)}`,
       body,
@@ -328,11 +377,14 @@ export class AXEClient {
     payload: JsonValue,
     options: InvokeOptions = {},
   ): Promise<Result<O>> {
-    return this.post<O>(
-      `${this.base}${WIRE.path.continue}`,
-      { continuationToken, kind, payload, context: this.context(options.context) },
-      options.signal,
-    );
+    const body: Record<string, unknown> = {
+      continuationToken,
+      kind,
+      payload,
+      context: this.context(options.context),
+    };
+    if (options.expectedRev !== undefined) body["expectedRev"] = options.expectedRev;
+    return this.post<O>(`${this.base}${WIRE.path.continue}`, body, options.signal);
   }
 
   /** Resume after a human handoff. */
@@ -340,11 +392,9 @@ export class AXEClient {
     resumeToken: string,
     options: InvokeOptions = {},
   ): Promise<Result<O>> {
-    return this.post<O>(
-      `${this.base}${WIRE.path.resume}`,
-      { resumeToken, context: this.context(options.context) },
-      options.signal,
-    );
+    const body: Record<string, unknown> = { resumeToken, context: this.context(options.context) };
+    if (options.expectedRev !== undefined) body["expectedRev"] = options.expectedRev;
+    return this.post<O>(`${this.base}${WIRE.path.resume}`, body, options.signal);
   }
 
   /** Poll a `pending` result until it settles or `maxWaitMs` passes (then the last `pending` is returned). */
@@ -368,6 +418,10 @@ export class AXEClient {
    * Drive the whole escalation ladder: invoke, satisfy each `needs_input` from
    * registered fulfillers (confirming sensitive payloads), poll pending work, and
    * surface a handoff only when nothing else works.
+   *
+   * When `expectedRev` is passed, the revision is tracked through the ladder: the first call
+   * carries it, and each continuation carries the `rev` of the result it continues from, so a
+   * change by someone else between two rungs is caught as `conflict` rather than applied blind.
    */
   async run<O = JsonValue>(
     name: string,
@@ -406,11 +460,16 @@ export class AXEClient {
           return { status: "needs_human", handoff: ni.fallback, result: ni, action: def };
         return { status: "needs_input", result: ni, action: def, tried };
       }
+      const { expectedRev: _seen, ...rest } = options;
+      const next: RunOptions =
+        options.expectedRev !== undefined && ni.rev !== undefined
+          ? { ...rest, expectedRev: ni.rev }
+          : rest;
       result = await this.continue<O>(
         ni.continuationToken,
         fulfilled.kind,
         fulfilled.payload,
-        options,
+        next,
       );
     }
     return {

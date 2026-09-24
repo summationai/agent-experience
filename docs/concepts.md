@@ -267,6 +267,10 @@ Both tokens are signed, opaque to the agent, bound to the originating action, in
 
 Every mutating action requires an `idempotencyKey` in the request envelope. Replaying a key with the same input, action, and user within 24 hours returns the original result without running the handler; replaying it with different input returns `conflict`. `@axe/client` generates a UUID per attempt automatically. The default store is in-memory; `IdempotencyStore` is a two-method interface you implement with Redis or a table for multi-instance deployments.
 
+## Live state and revisions
+
+Idempotency keys make retries safe; they say nothing about a person and an agent editing the same record at the same time, or about which actions can be done right now. Two optional additions cover that. A site can publish a **revision**: one value that moves with every observable change, returned as `rev` on every envelope; an agent sends the revision it observed as `expectedRev`, and a call whose revision moved is refused with `conflict` (carrying `expectedRev` and `currentRev` in `details`) before anything runs. Each action can declare **availability**: whether it can be done right now and, if not, why, in the site's own words, with the kinds that would unblock it. The manifest carries the anonymous view under `live`; `/axe/state` serves the live, per-caller view uncached. [Live state and revisions](live-state.md) covers both; [Surface](surface.md) generates them from an application's own controls.
+
 ## Auth modes
 
 | Mode   | Who authenticates | How                                                                                                                                                                                                                   |

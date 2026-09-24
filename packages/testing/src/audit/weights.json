@@ -120,6 +120,11 @@
       "title": "Low needs_human rate on example runs",
       "docs": "docs/human-handoff.md"
     },
+    "actionable.live-state": {
+      "weight": 2,
+      "title": "Live state: rev on envelopes, stale expectedRev refused, availability honored",
+      "docs": "docs/live-state.md"
+    },
 
     "trustworthy.no-agent-directives": {
       "weight": 6,

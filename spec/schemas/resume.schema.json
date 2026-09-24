@@ -6,6 +6,17 @@
     "resumeToken": {
       "type": "string",
       "minLength": 1
+    },
+    "expectedRev": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "number"
+        }
+      ]
     }
   },
   "required": [

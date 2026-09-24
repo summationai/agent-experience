@@ -69,6 +69,8 @@ Three things happen for you:
 - **Backoff.** On `rate_limited` and `unavailable`, and on a `429` with `Retry-After`, the client waits the requested time (capped by the maximum retry option, 30 seconds by default) and retries up to `retries` times, once by default.
 - **Policy.** `allowed()` checks your `vendor` against the manifest's `policies.agents`. `deny` wins over `allow`. Call it before the first action; a site that denies you is telling you not to try.
 
+When the manifest carries `live`, the site publishes [live state](live-state.md). `state()` fetches `/axe/state`: the current `rev` and, for every action, whether it can be done right now and why not, computed for the identity your `auth` establishes and never cached. Pass the `rev` you read at as `expectedRev` to `invoke`, `run`, `continue`, or `resume`; a change by someone else in the meantime comes back as `conflict` with `expectedRev` and `currentRev` in `details`, and nothing was applied. Every result then carries `rev`, and `present` passes it to `toMarkdown` and `toHTML` as an "as of" line. `stateToMarkdown` renders the state document for the user or the model.
+
 Identify your agent with `agent`: `name`, `version`, `vendor`, and `contact`. It is sent as `context.agent` and as the `User-Agent`. The `vendor` is the field sites match against in `policies.agents` and the one that shows up in their [analytics](analytics.md), so use the organization operating the agent, spelled the same way every time. An agent with no `vendor` cannot be allowed by name and is invisible in the site's dashboards.
 
 ## Handling each status in an agent loop
@@ -183,7 +185,7 @@ For each status:
 - `needs_input`: `run` already tried your fulfillers; `tried` lists the kinds it attempted. Ask the user for the specific thing the first untried `accepts` entry names, using its `title` and `description`, and relay its `instructions` if present. Keep the `continuationToken`; it is valid for about 15 minutes. Never a generic "I couldn't do that".
 - `needs_human`: say `whatAgentShouldSayToUser`, give the `url`, remember the `resumeToken` for about 24 hours, and call `resume` when the user tells you they are done. The `handoff` here may come from a `fallback` on a `needs_input` result; `run` surfaces both the same way.
 - `pending`: `run` polled for its budget already. `poll` again with a longer wait, or tell the user how long the site expects and check back after `retryAfter` seconds.
-- `error`: for `invalid_input`, fix your own input from `issues` (each has a JSON Pointer `path` and a `message`) and call again; the user did nothing wrong. For `retryable` errors, retry with backoff; `run` has already done so `retries` times. Otherwise report the site's `message`, which was written for exactly this.
+- `error`: for `invalid_input`, fix your own input from `issues` (each has a JSON Pointer `path` and a `message`) and call again; the user did nothing wrong. For a `conflict` whose `details` carry `currentRev`, your view was stale: read the current state and decide again with the new `rev`. For `unavailable` whose `details` carry a `reason`, relay it in the site's words and offer `handoff.url` when present. For other `retryable` errors, retry with backoff; `run` has already done so `retries` times. Otherwise report the site's `message`, which was written for exactly this.
 
 ## Fulfillers: wallets and credential stores
 

@@ -6,7 +6,7 @@
  * The payload binds type, id, action, input hash, acting user, tenant, and expiry.
  * `state` never enters the token; it lives in the store under the token id.
  */
-import type { Accept, Handoff, JsonValue, RequestContext, Result } from "./types";
+import type { Accept, Handoff, JsonValue, RequestContext, Result, Revision } from "./types";
 
 export type TokenType = "continuation" | "resume" | "poll";
 
@@ -36,7 +36,13 @@ export interface TokenRecord {
   /** Resume only: the handoff as sent, so it can be re-served while open. */
   handoff?: Handoff;
   /** Resume only: whether the handoff was created by the SDK for login. */
-  login?: { input: JsonValue; context: RequestContext; idempotencyKey?: string };
+  login?: {
+    input: JsonValue;
+    context: RequestContext;
+    idempotencyKey?: string;
+    /** The revision the agent observed on the original call; re-checked when the action runs after sign-in. */
+    expectedRev?: Revision;
+  };
   /** Resume only: refuse resume until completion is recorded. */
   requireCompletion?: boolean;
   /** Resume only: recorded by `completeHandoff`. */
