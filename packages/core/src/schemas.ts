@@ -135,12 +135,12 @@ export const LiveSchema = z
   .object({ rev: RevisionSchema.optional(), url: UrlSchema.optional() })
   .strict();
 
-/** A handoff declared on an unavailable action: the Handoff object without the token members. */
+/** A handoff declared on an unavailable action: the Handoff object without the token members; `url` is optional for a step with no page of its own. */
 export const HandoffSpecSchema = z
   .object({
     reason: z.string().min(1),
     instructions: z.string().min(1),
-    url: UrlSchema,
+    url: UrlSchema.optional(),
     whatAgentShouldSayToUser: z.string().min(1),
   })
   .strict();

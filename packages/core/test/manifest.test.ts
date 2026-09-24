@@ -52,6 +52,41 @@ describe("manifest", () => {
     expect(search.examples).toHaveLength(1);
   });
 
+  it("a site that says nothing about auth is public: auth defaults to { modes: [none] }", () => {
+    const axe = createAXE({
+      name: "Public Site",
+      description: "A public site with one read-only action and no login of any kind.",
+      baseUrl: "https://public.example",
+      secret: "0123456789abcdef0123456789abcdef",
+    });
+    expect(axe.describe().auth).toEqual({ modes: ["none"] });
+    expect(ManifestSchema.safeParse(axe.describe()).success).toBe(true);
+    // A user-mode action still needs the mode declared; the message says how.
+    expect(() =>
+      axe.register(
+        action("me.profile", {
+          title: "My profile",
+          description: "Returns the signed-in user's profile.",
+          readOnly: true,
+          risk: "none",
+          auth: "user",
+          input: z.object({}),
+          output: z.object({}),
+          handler: () => ({}),
+        }),
+      ),
+    ).toThrow(/auth "user" is not in manifest auth.modes \[none\]/);
+    // An explicit but empty auth is a bad value, not a missing option.
+    expect(() =>
+      createAXE({
+        name: "Public Site",
+        description: "A public site with one read-only action and no login of any kind.",
+        baseUrl: "https://public.example",
+        auth: { modes: [] },
+      }),
+    ).toThrow(/Omit `auth` for a public site/);
+  });
+
   it("rejects actions whose auth mode is not in manifest auth.modes [P-AUTH-1]", () => {
     const axe = createAXE({
       name: "Studio",

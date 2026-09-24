@@ -5,9 +5,11 @@
  * `<ns>.observe` (read-only, the indexed table with an affordance per actionable row) and
  * `<ns>.ledger` (read-only: what has been done and refused). Refusals map onto the escalation
  * ladder: an unavailable control that declares `requires` becomes `needs_input`; one that declares
- * a `handoff` becomes `needs_human`; a stale revision is `conflict`. Every act, run or refused, is
- * also emitted as an action event (`surface.act`) on the server's `onActionEvent` sinks, with the
- * actor and the ledger `seq`.
+ * a `handoff` with a `url` becomes `needs_human` (a handoff without one is reported in
+ * `error.details.handoff`); a stale revision is `conflict`. Every act, run or refused, is also
+ * emitted as an action event (`surface.act`) on the server's `onActionEvent` sinks, with the actor
+ * and the ledger `seq`. A collection that cannot load more has no action; it stays a row of
+ * `<ns>.observe`.
  *
  * The set of actions follows the registry: `surfaceActions()` returns an `ActionProvider` for
  * `axe.addProvider()`, consulted whenever the manifest, `/axe/state`, or the MCP tool list is
@@ -16,7 +18,7 @@
  * (protocol §21); pass `revision: surface.currentRev` to `createAXE` so the server checks it and
  * stamps `rev` on every envelope.
  */
-import { action, isZodSchema, z } from "@axe/core";
+import { action, z } from "@axe/core";
 import type { ActionProvider, AvailabilityInput, RegisteredAction } from "@axe/core";
 import type { AXEActionEventInput, JsonValue, Risk } from "@axe/core/types";
 import * as WIRE from "@axe/core/vocabulary";
@@ -395,16 +397,20 @@ export function surfaceActions(
       );
     }
     return clampDescription(
-      `Asks the application's "${title}" collection${on} to load more, as scrolling would. ${tail}, and unavailable when nothing more can load.`,
+      `Asks the application's "${title}" collection${on} to load more, as scrolling would. ${tail}, and unavailable while the application is busy.`,
     );
   };
 
+  // The input schema describes the shape: `text` is a string, `confirm` a boolean. The surface's
+  // own checks ([S-ACT-3]: maxLength, the field's schema, a required confirm) run in the surface,
+  // so a refusal is ledgered and emitted [S-LED-1]; here they would be refused before it.
   const inputFor = (e: Entry): z.ZodType => {
     if (e.kind === "action") {
       const shape: Record<string, z.ZodType> = {};
       if (e.effect.confirm)
         shape[WIRE.field.confirm] = z
-          .literal(true)
+          .boolean()
+          .optional()
           .describe(
             "Must be true: the application requires explicit confirmation for this control",
           );
@@ -413,15 +419,11 @@ export function surfaceActions(
     }
     if (e.kind === "field") {
       const ed = e.edit;
-      let text: z.ZodType;
-      if (!ed.readOnly && ed.schema && isZodSchema(ed.schema)) text = ed.schema as z.ZodType;
-      else {
-        let s = z.string();
-        if (!ed.readOnly && ed.maxLength) s = s.max(ed.maxLength);
-        text = s;
-      }
+      const bound = !ed.readOnly && ed.maxLength ? `; at most ${ed.maxLength} characters` : "";
       return z
-        .object({ [WIRE.field.text]: text.describe("The new value, as it would be typed") })
+        .object({
+          [WIRE.field.text]: z.string().describe(`The new value, as it would be typed${bound}`),
+        })
         .strict();
     }
     return z.object({}).strict();
@@ -445,7 +447,11 @@ export function surfaceActions(
         : e.kind === "field"
           ? fieldReversible
           : false;
-    const declaredHandoff = e.kind === "action" && e.state && !e.state.available && e.state.handoff;
+    // Only a handoff with a page to come back from can become needs_human [S-AXE-2].
+    const declaredHandoff =
+      e.kind === "action" && e.state && !e.state.available && e.state.handoff?.url
+        ? e.state.handoff
+        : undefined;
     const availability = (): AvailabilityInput => {
       const a = surface.availability(e.id);
       if (!a) return { available: false, reason: "the control is no longer on the page" };
@@ -479,7 +485,8 @@ export function surfaceActions(
         if (result.status === WIRE.status.ok) return result.output;
         const details = (result.error.details ?? {}) as Record<string, JsonValue>;
         // Climb the ladder [S-AXE-2]: the control declared kinds that would make it available, or a
-        // step only a human can take. A freeze is neither: it is reported as it is.
+        // step a human takes at a page. A freeze is neither, and a handoff without a url has no
+        // page to resume from: both stay `error` with the details the surface reported.
         const live = surface.get(e.id);
         const state = live?.kind === "action" ? live.state : undefined;
         if (
@@ -489,16 +496,19 @@ export function surfaceActions(
           !details[WIRE.field.frozen]
         ) {
           const saved = { request: request as unknown as JsonValue };
+          const page = state.handoff?.url
+            ? { ...state.handoff, url: state.handoff.url }
+            : undefined;
           if (state.requires) {
             return needsInput({
               reason: "unavailable",
               message: `${result.error.message} Provide one of the following to continue.`,
               accepts: state.requires.accepts,
               state: saved,
-              ...(state.handoff ? { fallback: handoff({ ...state.handoff, state: saved }) } : {}),
+              ...(page ? { fallback: handoff({ ...page, state: saved }) } : {}),
             });
           }
-          if (state.handoff) return handoff({ ...state.handoff, state: saved });
+          if (page) return handoff({ ...page, state: saved });
         }
         return fail(result.error.code, result.error.message, {
           retryable: result.error.retryable,
@@ -542,6 +552,8 @@ export function surfaceActions(
       [ledgerName, ledger],
     ]);
     for (const e of surface.entries()) {
+      // [S-AXE-6] A collection that cannot load more has nothing to invoke; it stays a row of observe.
+      if (e.kind === "collection" && typeof e.more !== "function") continue;
       let a = cache.get(e);
       if (!a) {
         if (failed.has(e)) continue;

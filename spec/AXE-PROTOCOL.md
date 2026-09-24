@@ -782,11 +782,11 @@ Per-resource revisions (ETags) were considered and rejected: an action touches s
 
 ### 21.3 Availability: unavailable, because
 
-**[P-LIVE-5]** An action MAY declare `availability`: `{ available: true }` or `{ available: false, reason, requires?, handoff? }`. `reason` is REQUIRED when `available` is false: plain language in the site's own words ("already drafted by another team", "approval required"), agent-read text under §18. `requires`, when present, is a non-empty list of `accepts` entries ([P-REQ-2]) naming what would make the action available; `handoff`, when present, is a Handoff object (§9.1) without `resumeToken` and `expiresAt`, naming a step only a human can take. Availability is computed when the document that carries it is rendered; it is a report, not a promise.
+**[P-LIVE-5]** An action MAY declare `availability`: `{ available: true }` or `{ available: false, reason, requires?, handoff? }`. `reason` is REQUIRED when `available` is false: plain language in the site's own words ("already drafted by another team", "approval required"), agent-read text under §18. `requires`, when present, is a non-empty list of `accepts` entries ([P-REQ-2]) naming what would make the action available; `handoff`, when present, is a Handoff object (§9.1) without `resumeToken` and `expiresAt`, naming a step only a human can take. Its `url` MAY be omitted when the step is taken inside the site's own interface and no page names it; a site MUST NOT invent one. A handoff without a `url` can only be reported (here and under [P-LIVE-9]), never returned as `needs_human`, whose Handoff is complete ([P-HAND-1]). Availability is computed when the document that carries it is rendered; it is a report, not a promise.
 
 **[P-LIVE-6]** An action whose availability for the caller is `available: false` MUST NOT complete with `ok` when invoked. It MUST return `error` with `code: "unavailable"`, or climb the ladder: `needs_input` whose `accepts` are the declared `requires`, or `needs_human` with the declared `handoff`.
 
-**[P-LIVE-9]** An `error` with `code: "unavailable"` MAY carry `details: { reason, requires?, handoff? }` mirroring the availability that caused it. Agents SHOULD relay `reason` to the user in the site's words and MAY offer `handoff.url`.
+**[P-LIVE-9]** An `error` with `code: "unavailable"` MAY carry `details: { reason, requires?, handoff? }` mirroring the availability that caused it. Agents SHOULD relay `reason` to the user in the site's words, MAY offer `handoff.url` when it is present, and otherwise relay `handoff.whatAgentShouldSayToUser`.
 
 ### 21.4 Where availability is served
 

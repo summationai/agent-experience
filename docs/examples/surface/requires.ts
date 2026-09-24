@@ -2,11 +2,14 @@
 // needs_input (kinds an agent may hold) with an optional human fallback.
 // #region lock
 import { createSurface } from "@axe/surface";
+import { toJsonSchema } from "@axe/core";
 import { kinds, accept } from "@axe/core/kinds";
 
 const plan = { approved: false, locked: false, revision: 129 };
-export const surface = createSurface({ app: "planning-app" });
-surface.setRev(plan.revision); // the server owns the revision; adopt it as is
+// The server owns the revision (adopted as is with setRev), and the kinds below carry Zod
+// schemas, so the converter that publishes them is passed in; the surface does not import Zod.
+export const surface = createSurface({ app: "planning-app", revision: "app", toJsonSchema });
+surface.setRev(plan.revision);
 
 function registerLock() {
   surface.register({
@@ -50,7 +53,8 @@ function registerLock() {
       plan.locked = true;
       void text;
       plan.revision += 1;
-      surface.setRev(plan.revision);
+      // Report what changed and the revision the server assigned; the surface adopts both.
+      return { changed: ["lock:2026-03"], rev: plan.revision };
     },
   });
 }

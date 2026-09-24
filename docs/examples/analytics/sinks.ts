@@ -1,7 +1,8 @@
 // #region all
 import { createAXE } from "@axe/core";
-import { combineSinks, consoleSink, jsonlFileSink, otelSink } from "@axe/core/events";
+import { combineSinks, consoleSink, otelSink } from "@axe/core/events";
 import type { AXEEvent } from "@axe/core/events";
+import { jsonlFileSink } from "@axe/core/node";
 import { metrics, trace } from "@opentelemetry/api";
 
 // #region custom

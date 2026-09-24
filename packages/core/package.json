@@ -88,6 +88,26 @@
         "types": "./dist/types.d.cts",
         "default": "./dist/types.cjs"
       }
+    },
+    "./json-schema": {
+      "import": {
+        "types": "./dist/json-schema.d.ts",
+        "default": "./dist/json-schema.js"
+      },
+      "require": {
+        "types": "./dist/json-schema.d.cts",
+        "default": "./dist/json-schema.cjs"
+      }
+    },
+    "./node": {
+      "import": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "require": {
+        "types": "./dist/node.d.cts",
+        "default": "./dist/node.cjs"
+      }
     }
   },
   "files": [
@@ -136,6 +156,12 @@
       ],
       "types": [
         "./dist/types.d.ts"
+      ],
+      "json-schema": [
+        "./dist/json-schema.d.ts"
+      ],
+      "node": [
+        "./dist/node.d.ts"
       ]
     }
   }

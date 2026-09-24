@@ -18,6 +18,17 @@ export function renderButton(entry: Entry, onClick: () => void): HTMLButtonEleme
 }
 // #endregion attributes
 
+// #region mirror
+// Re-rendering a control that stays on screen: read the live availability, so a freeze shows
+// with its reason and a reason from the previous render is removed.
+export function mirror(element: Element, id: string): void {
+  const update = surface.attributesFor(id);
+  if (!update) return;
+  for (const name of update.remove) element.removeAttribute(name);
+  for (const [name, value] of Object.entries(update.set)) element.setAttribute(name, value);
+}
+// #endregion mirror
+
 // #region selector
 // A browser agent or a test goes from an observed row to its control with one query, whatever
 // the id contains.

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAXE, z } from "@axe/core";
+import { createAXE, toJsonSchema, z } from "@axe/core";
 import { kinds, accept } from "@axe/core/kinds";
 import type {
   AXEActionEvent,
@@ -188,7 +188,7 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
   });
 
   it("an unavailable control with requires becomes needs_input; continuing fulfills and re-acts [S-AXE-2]", async () => {
-    const s = createSurface({ app: "planning-app" });
+    const s = createSurface({ app: "planning-app", toJsonSchema });
     let approved = false;
     let locked = false;
     const refresh = () => {
@@ -304,8 +304,58 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     expect(signed).toBe(true);
   });
 
+  it("a handoff without a url is reported in availability and in the refusal, and never becomes needs_human [S-AXE-2]", async () => {
+    const s = createSurface({ toJsonSchema });
+    const menu = {
+      reason: "version_locked",
+      instructions: "Unlock the version from the version menu.",
+      whatAgentShouldSayToUser: "The version is locked; unlock it from the version menu first.",
+    };
+    s.register({
+      id: "lock:2026-03",
+      kind: "action",
+      role: "button",
+      name: "Lock March",
+      state: { available: false, reason: "this version is locked", handoff: menu },
+      effect: { mutates: "locks", risk: "high" },
+      handler: () => undefined,
+    });
+    s.register({
+      id: "approve",
+      kind: "action",
+      role: "button",
+      name: "Approve the plan",
+      state: {
+        available: false,
+        reason: "approval required",
+        requires: { accepts: [accept(kinds.consent.terms)], fulfill: () => undefined },
+        handoff: menu,
+      },
+      effect: { mutates: "approvals" },
+      handler: () => undefined,
+    });
+    const { act, axe, state } = serve(s);
+    const m = axe.describe();
+    expect(ManifestSchema.safeParse(m).success).toBe(true);
+    expect(byName(m, "surface.lock-2026-03").humanHandoff).toBeUndefined();
+    const st = await state();
+    expect(st.actions["surface.lock-2026-03"]).toEqual({
+      available: false,
+      reason: "this version is locked",
+      handoff: menu,
+    });
+    const r = (await act("surface.lock-2026-03", {}, { expectedRev: 0 })) as ErrorResult;
+    expect(r.status).toBe("error");
+    expect(r.error.code).toBe("unavailable");
+    expect(r.error.details).toMatchObject({ reason: "this version is locked", handoff: menu });
+    // With requires beside it, the ladder still climbs to needs_input, without a fallback handoff.
+    const ni = (await act("surface.approve", {}, { expectedRev: 0 })) as NeedsInputResult;
+    expect(ni.status).toBe("needs_input");
+    expect(ni.fallback).toBeUndefined();
+  });
+
   it("while frozen, every action is unavailable with the freeze's reason in /axe/state and on invoke, and no ladder is climbed [S-FRZ-3]", async () => {
-    const s = createSurface();
+    const s = createSurface({ toJsonSchema });
     s.register({
       id: "lock",
       kind: "action",
@@ -347,8 +397,8 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     expect(after.actions["surface.note"]).toEqual({ available: true });
   });
 
-  it("a field is an action that takes text, bounded by maxLength or the field's own schema; read-only fields say why", async () => {
-    const s = createSurface();
+  it("a field is an action that takes text; maxLength and the field's schema are the surface's checks, so their refusals are ledgered [S-LED-1]; read-only fields say why", async () => {
+    const s = createSurface({ toJsonSchema });
     const values: Record<string, string> = {};
     s.register({
       id: "cell:2026-03",
@@ -386,7 +436,9 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
       value: "12.6M",
       edit: { readOnly: true, reason: "computed from the months" },
     });
-    const { act, axe, state } = serve(s, { fields: { risk: "low", reversible: true } });
+    const { act, axe, state, events, flush } = serve(s, {
+      fields: { risk: "low", reversible: true },
+    });
     const m = axe.describe();
     const march = byName(m, "surface.cell-2026-03");
     expect(march.title).toBe("March forecast");
@@ -396,11 +448,18 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
       true,
       "low",
     ]);
+    // The input describes the shape; the bound is in the description and in observe's edit.maxLength,
+    // and is enforced by the surface so that a refusal reaches the ledger.
     expect(march.input).toMatchObject({
       type: "object",
       required: ["text"],
-      properties: { text: { type: "string", maxLength: 5 } },
+      properties: {
+        text: { type: "string", description: expect.stringContaining("at most 5 characters") },
+      },
     });
+    expect(
+      (march.input as { properties: { text: Record<string, unknown> } }).properties.text.maxLength,
+    ).toBeUndefined();
     expect(march.description).toContain("at most 5 characters");
     expect((await state()).actions["surface.derived"]).toEqual({
       available: false,
@@ -421,12 +480,34 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     )) as ErrorResult;
     expect(long.error.code).toBe("invalid_input");
     expect(long.error.details?.issues?.[0]?.path).toBe("/text");
+    expect(long.error.details?.seq).toBe(2);
     const bad = (await act(
       "surface.cell-2026-04",
       { text: "four" },
       { expectedRev: 1 },
     )) as ErrorResult;
     expect(bad.error.code).toBe("invalid_input");
+    expect(bad.error.details?.issues?.[0]?.path).toBe("/text");
+    // Both refusals are in the ledger and were emitted as action events.
+    expect(s.ledger().map((e) => [e.seq, e.status, e.text])).toEqual([
+      [1, "ok", "4.6M"],
+      [2, "invalid_input", "4.6M and more"],
+      [3, "invalid_input", "four"],
+    ]);
+    await flush();
+    expect(events.map((e) => [e.errorCode, e.details.seq])).toEqual([
+      [null, 1],
+      ["invalid_input", 2],
+      ["invalid_input", 3],
+    ]);
+    // A shape error (not a string) is still the protocol's, before the surface.
+    const shape = (await act(
+      "surface.cell-2026-03",
+      { text: 5 },
+      { expectedRev: 1 },
+    )) as ErrorResult;
+    expect(shape.error.code).toBe("invalid_input");
+    expect(s.ledger()).toHaveLength(3);
     const good = (await act(
       "surface.cell-2026-04",
       { text: "4.0M" },
@@ -455,17 +536,18 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     const { act, axe } = serve(s);
     const def = byName(axe.describe(), "surface.reset");
     expect(def.input).toMatchObject({
-      required: ["confirm"],
       properties: {
-        confirm: { const: true },
+        confirm: { type: "boolean", description: expect.stringContaining("Must be true") },
         text: { type: "string", description: "reason for the reset" },
       },
     });
     expect(def.description).toContain("needs confirm: true");
     expect(def.description).toContain("takes free text (reason for the reset)");
+    // The surface refuses the missing confirm, so the attempt is in the ledger.
     const missing = (await act("surface.reset", {}, { expectedRev: 0 })) as ErrorResult;
     expect(missing.error.code).toBe("invalid_input");
     expect(missing.error.details?.issues?.[0]?.path).toBe("/confirm");
+    expect(s.ledger().map((e) => e.status)).toEqual(["invalid_input"]);
     expect(reset).toBe(0);
     const ok = (await act(
       "surface.reset",
@@ -474,10 +556,10 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     )) as OkResult<unknown>;
     expect(ok.status).toBe("ok");
     expect(reset).toBe(1);
-    expect(s.ledger()[0]!.text).toBe("start over");
+    expect(s.ledger().at(-1)!.text).toBe("start over");
   });
 
-  it("a collection that can load more is a low-risk action with no input", async () => {
+  it("a collection that can load more is a low-risk action with no input; one that cannot has no action [S-AXE-6]", async () => {
     const s = createSurface();
     let loaded = 20;
     s.register({
@@ -493,7 +575,7 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
       },
     });
     s.register({ id: "teams", kind: "collection", role: "list", name: "Teams", total: 12 });
-    const { act, axe, state } = serve(s);
+    const { act, axe, state, post } = serve(s);
     const players = byName(axe.describe(), "surface.players");
     expect([players.readOnly, players.idempotent, players.reversible, players.risk]).toEqual([
       false,
@@ -504,10 +586,64 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     expect(players.input).toMatchObject({ type: "object", additionalProperties: false });
     const st = await state();
     expect(st.actions["surface.players"]).toEqual({ available: true });
-    expect(st.actions["surface.teams"]).toEqual({ available: false, reason: "cannot load more" });
+    expect(st.actions["surface.teams"]).toBeUndefined();
+    expect(axe.describe().actions.map((a) => a.name)).toEqual([
+      "surface.observe",
+      "surface.ledger",
+      "surface.players",
+    ]);
     const ok = (await act("surface.players", {}, { expectedRev: 0 })) as OkResult<unknown>;
     expect(ok.status).toBe("ok");
     expect(loaded).toBe(40);
+    // The collection without `more` keeps its row in observe, without an affordance.
+    const r = (await post("/axe/actions/surface.observe", { input: {} })) as OkResult<{
+      entries: { id: string; index: number | null; _axe?: unknown }[];
+    }>;
+    expect(r.output.entries.find((e) => e.id === "teams")).toMatchObject({ index: null });
+    expect(r.output.entries.find((e) => e.id === "teams")!._axe).toBeUndefined();
+    // Given a `more` later, the same id gets its action.
+    s.register({
+      id: "teams",
+      kind: "collection",
+      role: "list",
+      name: "Teams",
+      total: 12,
+      more: () => undefined,
+    });
+    expect(Object.keys((await state()).actions)).toContain("surface.teams");
+  });
+
+  it("an app-owned revision reported by the handler is the envelope's rev, with the changed ids [S-ACT-1]", async () => {
+    const s = createSurface({ app: "planning-app" });
+    let revision = 129;
+    s.setRev(revision);
+    s.register({
+      id: "cell:2026-03",
+      kind: "field",
+      role: "textbox",
+      name: "March forecast",
+      edit: {
+        set: async () => {
+          revision += 1;
+          return { changed: ["cell:2026-03", "total"], rev: revision };
+        },
+      },
+    });
+    const { act, state } = serve(s);
+    expect((await state()).rev).toBe(129);
+    const ok = (await act(
+      "surface.cell-2026-03",
+      { text: "4.6M" },
+      { expectedRev: 129 },
+    )) as OkResult<{
+      rev: number;
+      changed: string[];
+    }>;
+    expect(ok.status).toBe("ok");
+    expect(ok.rev).toBe(130);
+    expect(ok.output).toMatchObject({ rev: 130, changed: ["cell:2026-03", "total"] });
+    expect((await state()).rev).toBe(130);
+    expect(s.ledger()[0]).toMatchObject({ revBefore: 129, revAfter: 130 });
   });
 
   it("observe returns the live table; each actionable row's affordance names its own action with expectedRev for the envelope", async () => {

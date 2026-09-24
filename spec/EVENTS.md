@@ -108,6 +108,6 @@ A request event says that an action was called and how it went. It cannot say wh
 
 ## Sinks
 
-`@axe/core/events` ships three sinks that accept `AXEEvent` objects: `consoleSink()` (one JSON line per event on stdout), `jsonlFileSink(path)` (append-only JSON lines), and `otelSink({ meter, tracer? })` (an `axe.requests` counter with `action`, `status`, `ladder`, `vendor`, and `tenant` attributes, an `axe.latency` histogram in milliseconds, and an optional span per event). Any function `(event: AXEEvent) => void | Promise<void>` is a sink. `consoleSink()` and `jsonlFileSink(path)` also accept action events, so they can be passed to `onActionEvent`; `otelSink` is for request events only.
+`@axe/core` ships three sinks that accept `AXEEvent` objects: `consoleSink()` (one JSON line per event on stdout) and `otelSink({ meter, tracer? })` in `@axe/core/events`, and `jsonlFileSink(path)` (append-only JSON lines, Node only) in `@axe/core/node`. `otelSink` records an `axe.requests` counter with `action`, `status`, `ladder`, `vendor`, and `tenant` attributes, an `axe.latency` histogram in milliseconds, and an optional span per event. Any function `(event: AXEEvent) => void | Promise<void>` is a sink. `consoleSink()` and `jsonlFileSink(path)` also accept action events, so they can be passed to `onActionEvent`; `otelSink` is for request events only.
 
 `docs/analytics.md` holds the day-one queries against this shape.

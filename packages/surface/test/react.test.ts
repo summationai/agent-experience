@@ -57,6 +57,22 @@ describe("useSurfaceProps [S-DOM-1]", () => {
     expect(html).toContain('data-surface-id="note"');
   });
 
+  it("follows the live availability: a registered entry rendered during a freeze reads the freeze's reason", () => {
+    const surface = createSurface();
+    const live: ActionEntry = { ...entry, state: { available: true } };
+    surface.register(live);
+    const thaw = surface.freeze("saving");
+    function Row() {
+      const props = useSurfaceProps(live, [], surface);
+      return createElement("button", props, "Draft");
+    }
+    expect(renderToStaticMarkup(createElement(Row))).toContain(
+      'aria-disabled="true" data-surface-reason="saving"',
+    );
+    thaw();
+    expect(renderToStaticMarkup(createElement(Row))).not.toContain("aria-disabled");
+  });
+
   it("toSurfaceProps converts the string attributes; an available action has no aria-disabled key", () => {
     expect(toSurfaceProps({ "aria-label": "x", "aria-disabled": "true" })).toEqual({
       "aria-label": "x",

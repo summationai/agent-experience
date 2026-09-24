@@ -2119,10 +2119,21 @@ type ErrorCode = WireError;
 ### HandoffSpec
 
 ```ts
-type HandoffSpec = Omit<Handoff, "resumeToken" | "expiresAt">;
+type HandoffSpec = Omit<Handoff, "resumeToken" | "expiresAt" | "url"> & object;
 ```
 
 A handoff declared on an unavailable action: the Handoff object without the token members.
+`url` is optional here: a step taken inside the application itself has no page to send the
+person to. Such a handoff is reported (in `availability` and in `error.details.handoff`) and
+never becomes `needs_human`, whose Handoff needs a `url` to resume from ([P-HAND-1]).
+
+#### Type Declaration
+
+##### url?
+
+```ts
+optional url?: string;
+```
 
 ***
 

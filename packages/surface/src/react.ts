@@ -5,7 +5,7 @@
  * insertion-ordered map, and delete-then-set would move a row to the end every time a sibling
  * re-rendered, so an agent's index would jump. Only unmount removes the row.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { DependencyList } from "react";
 import type { Entry, Surface } from "./index";
 import { surface as defaultSurface, surfaceAttributes } from "./index";
@@ -52,7 +52,10 @@ export interface SurfaceProps {
 /**
  * `useSurface` plus the control's attributes: registers `entry` while mounted (refreshing it in
  * place when `deps` change) and returns the props the rendered control spreads, so the accessible
- * name a browser agent or screen reader reads is the name `observe()` reports.
+ * name a browser agent or screen reader reads is the name `observe()` reports. The props follow
+ * the surface's live availability (`surface.attributesFor`): while the surface is frozen the
+ * control reads `aria-disabled` or `aria-readonly` with the freeze's reason, and the component
+ * re-renders when that changes.
  *
  * ```tsx
  * const props = useSurfaceProps(entry, [available, reason]);
@@ -65,7 +68,16 @@ export function useSurfaceProps(
   target: Surface = defaultSurface,
 ): SurfaceProps {
   useSurface(entry, deps, target);
-  return toSurfaceProps(surfaceAttributes(entry));
+  // The live attributes as a string, so React re-renders only when they differ. Before the
+  // registering effect has run, the entry's own state stands in for the live availability.
+  const snapshot = () =>
+    JSON.stringify(target.attributesFor(entry.id)?.set ?? surfaceAttributes(entry));
+  const rendered = useSyncExternalStore(
+    (onStoreChange) => target.onChange(onStoreChange),
+    snapshot,
+    snapshot,
+  );
+  return toSurfaceProps(JSON.parse(rendered) as Record<string, string>);
 }
 
 /** Convert the string attributes into React props: boolean-valued ARIA attributes become booleans. */

@@ -255,12 +255,12 @@ The server. Create one with `createAXE()`.
 ##### Constructor
 
 ```ts
-new AXE(config): AXE;
+new AXE(input): AXE;
 ```
 
 ###### Parameters
 
-###### config
+###### input
 
 [`AXEConfig`](#axeconfig-1)
 
@@ -275,7 +275,15 @@ new AXE(config): AXE;
 ##### config
 
 ```ts
-readonly config: AXEConfig;
+readonly config: AXEConfig & object;
+```
+
+###### Type Declaration
+
+###### auth
+
+```ts
+auth: AuthConfig;
 ```
 
 #### Accessors
@@ -1629,11 +1637,13 @@ tenant: TenantInfo | null;
 
 <a id="auth-1"></a>
 
-##### auth
+##### auth?
 
 ```ts
-auth: AuthConfig;
+optional auth?: AuthConfig;
 ```
+
+Auth modes and their hooks. Omitted, the site is public: `{ modes: ["none"] }`.
 
 <a id="baseurl"></a>
 
@@ -4946,30 +4956,6 @@ Create an AXE server. See `docs/getting-started.md`.
 
 ***
 
-<a id="deepequal"></a>
-
-### deepEqual()
-
-```ts
-function deepEqual(a, b): boolean;
-```
-
-#### Parameters
-
-##### a
-
-`unknown`
-
-##### b
-
-`unknown`
-
-#### Returns
-
-`boolean`
-
-***
-
 <a id="escapetoken"></a>
 
 ### escapeToken()
@@ -5267,34 +5253,6 @@ or `undefined` when the location does not exist in the schema.
 
 ***
 
-<a id="schemasstructurallyequal"></a>
-
-### schemasStructurallyEqual()
-
-```ts
-function schemasStructurallyEqual(a, b): boolean;
-```
-
-Structural equivalence of two schemas, ignoring `title`, `description`, `$id`,
-`$schema`, `examples`, and `default`. Used to detect custom kinds that duplicate
-a well-known kind.
-
-#### Parameters
-
-##### a
-
-[`JsonSchema`](types.md#jsonschema)
-
-##### b
-
-[`JsonSchema`](types.md#jsonschema)
-
-#### Returns
-
-`boolean`
-
-***
-
 <a id="tojsonschema"></a>
 
 ### toJsonSchema()
@@ -5373,33 +5331,6 @@ Plain language, in the site's words. Agent-read text.
 #### Returns
 
 [`ErrorIntent`](#errorintent)
-
-***
-
-<a id="validatejsonschema"></a>
-
-### validateJsonSchema()
-
-```ts
-function validateJsonSchema(schema, value): ValidationIssue[];
-```
-
-Validate `value` against `schema`. Returns an empty array when valid, otherwise
-one issue per problem, each with a JSON Pointer `path` relative to `value`.
-
-#### Parameters
-
-##### schema
-
-[`JsonSchema`](types.md#jsonschema)
-
-##### value
-
-`unknown`
-
-#### Returns
-
-[`ValidationIssue`](types.md#validationissue)[]
 
 ## References
 
@@ -5619,6 +5550,14 @@ Re-exports [customKind](kinds.md#customkind)
 
 ***
 
+<a id="deepequal"></a>
+
+### deepEqual
+
+Re-exports [deepEqual](json-schema.md#deepequal)
+
+***
+
 <a id="deprecation"></a>
 
 ### Deprecation
@@ -5776,14 +5715,6 @@ Re-exports [isValidKindName](kinds.md#isvalidkindname)
 ### ItemDisplay
 
 Re-exports [ItemDisplay](types.md#itemdisplay)
-
-***
-
-<a id="jsonlfilesink"></a>
-
-### jsonlFileSink
-
-Re-exports [jsonlFileSink](events.md#jsonlfilesink)
 
 ***
 
@@ -6163,6 +6094,14 @@ Re-exports [Risk](types.md#risk-1)
 
 ***
 
+<a id="schemasstructurallyequal"></a>
+
+### schemasStructurallyEqual
+
+Re-exports [schemasStructurallyEqual](json-schema.md#schemasstructurallyequal)
+
+***
+
 <a id="stripreserved"></a>
 
 ### stripReserved
@@ -6176,6 +6115,14 @@ Re-exports [stripReserved](display.md#stripreserved)
 ### TracerLike
 
 Re-exports [TracerLike](events.md#tracerlike)
+
+***
+
+<a id="validatejsonschema"></a>
+
+### validateJsonSchema
+
+Re-exports [validateJsonSchema](json-schema.md#validatejsonschema)
 
 ***
 

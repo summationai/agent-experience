@@ -146,6 +146,10 @@ type WireApi =
   | "surfaceSelector"
   | "describeEntry"
   | "useSurfaceProps"
+  | "attributesFor"
+  | "revisionMode"
+  | "SURFACE_ATTRIBUTES"
+  | "toJsonSchema"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -757,6 +761,7 @@ const api: Readonly<{
   allowCredentials: "allowCredentials";
   allowed: "allowed";
   appendHandoffId: "appendHandoffId";
+  attributesFor: "attributesFor";
   authenticate: "authenticate";
   availability: "availability";
   axeExpress: "axeExpress";
@@ -855,6 +860,7 @@ const api: Readonly<{
   resume: "resume";
   retries: "retries";
   revision: "revision";
+  revisionMode: "revisionMode";
   run: "run";
   runAudit: "runAudit";
   runConformance: "runConformance";
@@ -871,10 +877,12 @@ const api: Readonly<{
   stateToMarkdown: "stateToMarkdown";
   suggestedReason: "suggestedReason";
   surfaceActions: "surfaceActions";
+  surfaceAttributeNames: "SURFACE_ATTRIBUTES";
   surfaceAttributes: "surfaceAttributes";
   surfaceSelector: "surfaceSelector";
   thaw: "thaw";
   toHTML: "toHTML";
+  toJsonSchema: "toJsonSchema";
   tokenStore: "tokenStore";
   toMarkdown: "toMarkdown";
   toolNameFor: "toolNameFor";
@@ -1553,6 +1561,7 @@ const WIRE: Readonly<{
      allowCredentials: "allowCredentials";
      allowed: "allowed";
      appendHandoffId: "appendHandoffId";
+     attributesFor: "attributesFor";
      authenticate: "authenticate";
      availability: "availability";
      axeExpress: "axeExpress";
@@ -1651,6 +1660,7 @@ const WIRE: Readonly<{
      resume: "resume";
      retries: "retries";
      revision: "revision";
+     revisionMode: "revisionMode";
      run: "run";
      runAudit: "runAudit";
      runConformance: "runConformance";
@@ -1667,10 +1677,12 @@ const WIRE: Readonly<{
      stateToMarkdown: "stateToMarkdown";
      suggestedReason: "suggestedReason";
      surfaceActions: "surfaceActions";
+     surfaceAttributeNames: "SURFACE_ATTRIBUTES";
      surfaceAttributes: "surfaceAttributes";
      surfaceSelector: "surfaceSelector";
      thaw: "thaw";
      toHTML: "toHTML";
+     toJsonSchema: "toJsonSchema";
      tokenStore: "tokenStore";
      toMarkdown: "toMarkdown";
      toolNameFor: "toolNameFor";
