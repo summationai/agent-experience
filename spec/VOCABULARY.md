@@ -444,7 +444,7 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | onError                | `onError`                | `@axe/core`                | Hook called when a handler throws.                                                                                  |
 | api      | onEvent                | `onEvent`                | `@axe/core`                | Hook receiving every analytics event; sinks attach here.                                                            |
 | api      | consoleSink            | `consoleSink`            | `@axe/core/events`         | Event sink that prints one JSON line per event to stdout.                                                           |
-| api      | jsonlFileSink          | `jsonlFileSink`          | `@axe/core/events`         | Event sink that appends JSON lines to a file.                                                                       |
+| api      | jsonlFileSink          | `jsonlFileSink`          | `@axe/core/node`           | Event sink that appends JSON lines to a file. Node only, so it has its own subpath.                                 |
 | api      | otelSink               | `otelSink`               | `@axe/core/events`         | Event sink that records OpenTelemetry metrics and spans.                                                            |
 | api      | tokenStore             | `tokenStore`             | `@axe/core`                | Configuration slot for a `TokenStore` implementation.                                                               |
 | api      | idempotencyStore       | `idempotencyStore`       | `@axe/core`                | Configuration slot for an `IdempotencyStore` implementation.                                                        |
@@ -547,7 +547,11 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | surfaceAttributes      | `surfaceAttributes`      | `@axe/surface`             | The attributes a rendered control carries for an entry (name, id, kind, reason).                                    |
 | api      | surfaceSelector        | `surfaceSelector`        | `@axe/surface`             | CSS selector that finds the rendered control for an entry id.                                                       |
 | api      | describeEntry          | `describeEntry`          | `@axe/surface`             | One plain-text line for an entry: name, availability and reason, effect.                                            |
-| api      | useSurfaceProps        | `useSurfaceProps`        | `@axe/surface/react`       | React hook that registers an entry and returns its attributes as props.                                             |
+| api      | useSurfaceProps        | `useSurfaceProps`        | `@axe/surface/react`       | React hook that registers an entry and returns its live attributes as props.                                        |
+| api      | attributesFor          | `attributesFor`          | `@axe/surface`             | The DOM mirror for one registered entry from its live availability: attributes to set and to remove.                |
+| api      | revisionMode           | `revisionMode`           | `@axe/surface`             | Who moves the revision: `surface` (`bump`) or `app` (`setRev`).                                                     |
+| api      | surfaceAttributeNames  | `SURFACE_ATTRIBUTES`     | `@axe/surface`             | Every attribute the DOM mirror may set, from the `domAttribute` table.                                              |
+| api      | toJsonSchema           | `toJsonSchema`           | `@axe/core`                | Converts a Zod schema to JSON Schema; also the converter option a surface publishes Zod schemas through.            |
 
 ## Generate API
 

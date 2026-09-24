@@ -304,29 +304,6 @@ Sink: one JSON line per event on stdout. Accepts request events and action event
 
 ***
 
-<a id="jsonlfilesink"></a>
-
-### jsonlFileSink()
-
-```ts
-function jsonlFileSink(path): (event) => Promise<void>;
-```
-
-Sink: append JSON lines to a file. Node only. The file handle is opened lazily and
-writes are serialized, so events never interleave.
-
-#### Parameters
-
-##### path
-
-`string`
-
-#### Returns
-
-(`event`) => `Promise`\<`void`\>
-
-***
-
 <a id="otelsink"></a>
 
 ### otelSink()

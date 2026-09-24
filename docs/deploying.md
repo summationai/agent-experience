@@ -385,6 +385,18 @@ baseUrl: process.env.AXE_BASE_URL ?? "https://www.oakridge-rentals.example/agent
 
 Behind a proxy or load balancer, the adapters rebuild the public URL of each request from the forwarded headers. The Express adapter reads the forwarded protocol and host and falls back to the socket; the Next.js Pages adapter reads the same headers and assumes HTTPS. If your proxy does not set them, pass `origin` to `axeExpress` or `axeNextPages` with your public origin so prefix routing and tenant resolution by host see what the agent sees. The fetch-based adapters (`axeFetch`, and `axeNext` for the App Router) receive a Web `Request` whose URL the framework already built; configure the framework's trusted-proxy setting instead. Terminate TLS at the proxy and keep the proxy-to-app hop on a private network.
 
+## Consume from a checkout
+
+Nothing is published to npm yet, so an application takes the packages from a checkout as tarballs. `scripts/pack-for-consumer.sh <out-dir>` builds the workspace, packs `@axe/core`, `@axe/surface`, `@axe/client`, and `@axe/testing` into `<out-dir>` as `axe-<name>-<version>.tgz`, and writes `<out-dir>/SOURCE` with the repository, branch, commit, and date they came from, because a tarball carries only the version and every pre-release commit is 0.1.0.
+
+Three things about installing them, whatever the package manager:
+
+- `file:` dependencies. Point each package at its tarball, for example `"@axe/surface": "file:vendor/axe-surface-0.1.0.tgz"`. The runtime needs `core` and `surface`; the in-process conformance tests need `client` and `testing` as dev dependencies.
+- Overrides for the siblings. Packing rewrites each `workspace:*` dependency to the packed version, so the surface tarball asks for `@axe/core` at `0.1.0` and the testing tarball for `@axe/client` at `0.1.0`, which the package manager would ask a registry for. One `overrides` entry per sibling (npm and pnpm; `resolutions` in Yarn) points those requests back at the tarballs: `"overrides": { "@axe/core": "file:vendor/axe-core-0.1.0.tgz", "@axe/client": "file:vendor/axe-client-0.1.0.tgz" }`.
+- Copy before install. The lockfile records each tarball's integrity hash, so a container build that installs from the lockfile must have the tarballs in place first: copy the vendor directory into the image before the install step, and check it out in any CI job that installs. Commit the vendor directory, the package manifest, and the lockfile together, and refresh all three when the `SOURCE` commit moves.
+
+A browser bundle needs no alias for a Node built-in and no work to keep Zod out: `@axe/core` keeps its one Node-only export on `@axe/core/node`, and `@axe/surface` with `@axe/surface/react` bundles for the browser without Zod, which the bundle test in `packages/surface/test` pins. When the packages are published, the `file:` specs become versions, the overrides go, and the vendor directory is deleted.
+
 ## Checklist
 
 Before the manifest is reachable from the public internet:

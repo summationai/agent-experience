@@ -66,11 +66,13 @@ export function registerRow(
 
 `effect` is AXE's risk metadata: `mutates` names the state that changes, and `idempotent`, `reversible`, and `risk` mean what they mean on an [action](designing-actions.md#choosing-risk). `confirm` makes the act require explicit confirmation; `text` is the prompt for free text the handler takes ("reason for the lock").
 
-Fields register a `value` and an `edit` descriptor (read-only with a reason, or editable with a `maxLength` and an optional schema). Collections register `total`, `loaded`, `filter`, and `sort`, and are actionable when they can load more.
+Fields register a `value` and an `edit` descriptor (read-only with a reason, or editable with a `maxLength` and an optional `schema`). The schema is a JSON Schema for the text, or a Zod schema: the surface validates a Zod schema by calling its `safeParse` and never imports Zod itself, so a browser bundle of `@axe/surface` carries none. To publish a Zod schema in `observe()` the surface needs a converter: pass `toJsonSchema` from `@axe/core` as `createSurface({ toJsonSchema })` (or `configure({ toJsonSchema })`); registering a Zod schema without one throws with that instruction. The same converter renders the `requires` schemas below, which `accept()` from `@axe/core/kinds` builds with Zod. A JSON Schema needs nothing. Collections register `total`, `loaded`, `filter`, and `sort`, and are actionable when they can load more.
+
+A handler, a field's `set`, or a collection's `more` may return `{ changed, rev }` (or a promise of it): `changed` names the entries the act moved and `rev` is the application's revision after the change. The surface folds both into the act result and the ledger. An application that bumps the revision itself can return nothing: `changed` is then the entry when the revision moved during the handler.
 
 ## The revision
 
-When state lives in the browser, the application owns the counter: call `bump` after every change an agent could observe, whoever made it, and `seedRev` from persisted state on load. When the server already has a revision, adopt it with `setRev`; the surface's stale check is then the first of two, and the server refuses a stale expected revision again.
+The revision has one owner at a time. When state lives in the browser, the surface owns the counter: call `bump` after every change an agent could observe, whoever made it, and `seedRev` from persisted state on load. When the server already has a revision, the application owns it: adopt it with `setRev`, and the surface's stale check is the first of two, the server refusing a stale expected revision again. The surface remembers which it is (`revisionMode()`, `surface` or `app`) from the last of `bump` and `setRev`, or you pin it with `createSurface({ revision: "app" })`. The mode decides what a freeze does to the revision ([Transient states](#transient-states)); everything else is the same in both.
 
 <!-- include: examples/surface/board.ts#revision -->
 ```ts
@@ -83,14 +85,13 @@ surface.expose(typeof window !== "undefined" ? window : null);
 ```
 <!-- /include -->
 
-`expose` publishes `observe`, `act`, and `rev` on the page for browser-driving agents. The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names).
-`expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. Mirror entry names to `aria-label` and mark controls with a `data-surface-id` attribute; in the first trial, two of three gains came from the names alone.
+`expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names). In the first trial, two of three gains came from the names alone.
 
 ## Observe and act
 
 `observe` returns the live table: every entry with its `index` (a position among the rows that can be acted on now, `null` otherwise), its `state` with a `reason` when unavailable, its `effect`, current `value` for fields, plus `objects` the application chooses to show and the `rev`.
 
-`act` takes `op`, `target` (the entry id, or its index at the same rev), optional `text` and `confirm`, and the `expectedRev` the agent observed. It returns the [result envelope](concepts.md#the-result-envelope): `ok` with `{ rev, id, actor, changed }`, or `error` with `conflict` when the revision moved (nothing applied), `not_found` for an unknown target, `invalid_input` for a wrong op, missing confirm, or text that fails `maxLength` or the field's schema, and `unavailable` with the reason for a control the application has disabled. A `target` must be a non-empty id or a non-negative integer index; anything else (`null`, a fraction, a boolean) is `invalid_input` before any lookup, an index only ever resolves to the row that carried it at `expectedRev` and never to a row without one, and an id that names a disabled control is `unavailable` with its reason rather than `not_found`.
+`act` takes `op`, `target` (the entry id, or its index at the same rev), optional `text` and `confirm`, and the `expectedRev` the agent observed. It returns the [result envelope](concepts.md#the-result-envelope): `ok` with `{ rev, id, actor, changed, seq }`, or `error` with `conflict` when the revision moved (nothing applied), `not_found` for an unknown target, `invalid_input` for a wrong op, missing confirm, or text that fails `maxLength` or the field's schema, and `unavailable` with the reason for a control the application has disabled. `changed` is what the handler reported, or the entry itself when the revision moved during the handler; for an application whose revision arrives from the server after the handler it is empty unless the handler reports it, so an agent re-observes rather than reading `changed` as the whole story. A `target` must be a non-empty id or a non-negative integer index; anything else (`null`, a fraction, a boolean) is `invalid_input` before any lookup, an index only ever resolves to the row that carried it at `expectedRev` and never to a row without one, and an id that names a disabled control is `unavailable` with its reason rather than `not_found`.
 
 <!-- include: examples/surface/agent.ts#loop -->
 ```ts
@@ -128,7 +129,9 @@ Two participants on one application collide safely: a human change between the a
 
 ## Transient states
 
-Availability is only as current as the last registration. Re-register an entry (or `reconcile`) whenever anything that feeds its `state`, `value`, or `edit` changes, and that includes transient states: a save in flight, data loading, a modal open. The first staging trial found a grid that disabled its cells during a save while the surface still reported them editable, and an agent typed into the frozen UI. For a state that spans the whole surface, `freeze(reason)` does it in one call: every entry reports unavailable with that reason, fields go read-only, no row carries an index, `observe` carries a top-level `frozen: { reason }`, acts return `unavailable` with the reason, and the revision moves on freeze and on `thaw`. Freezes nest; the surface thaws when the last one is released.
+Availability is only as current as the last registration. Re-register an entry (or `reconcile`) whenever anything that feeds its `state`, `value`, or `edit` changes, and that includes transient states: a save in flight, data loading, a modal open. The first staging trial found a grid that disabled its cells during a save while the surface still reported them editable, and an agent typed into the frozen UI. For a state that spans the whole surface, `freeze(reason)` does it in one call: every entry reports unavailable with that reason, fields go read-only, no row carries an index, `observe` carries a top-level `frozen: { reason }`, acts return `unavailable` with the reason, and `onChange` listeners hear about the freeze and the `thaw`. Freezes nest; the surface thaws when the last one is released.
+
+What a freeze does to the revision follows the [revision mode](#the-revision). When the surface owns it, `freeze` and `thaw` each move it, so an act planned before the freeze is `conflict`. When the application owns it, neither moves it: a freeze is not a change of the application's state, and a counter the surface moved on its own would run ahead of the server's until the next `setRev`, refusing agents for a change that never happened. An act planned before the freeze is then `unavailable` while frozen and accepted after the thaw exactly when the application's revision did not move.
 
 <!-- include: examples/surface/save.ts#freeze -->
 ```ts
@@ -149,16 +152,19 @@ The ledger records acts made through the surface. A change a person makes throug
 
 ## Saying what would unblock a control
 
-An unavailable action can declare `requires`, the same `accepts` list an AXE `needs_input` carries, with a `fulfill` the application runs when an agent supplies one of the kinds; and a `handoff` for a step only a human can take. Standalone, `act` reports both in `error.details`. Through the AXE bridge they become the ladder.
+An unavailable action can declare `requires`, the same `accepts` list an AXE `needs_input` carries, with a `fulfill` the application runs when an agent supplies one of the kinds; and a `handoff` for a step only a human can take. A handoff has a `url` when a page names the step; when the step is taken inside the application itself (unlock a version from a menu) there is no page, so leave `url` out rather than invent one. Standalone, `act` reports both in `error.details`. Through the AXE bridge they become the ladder, except that a handoff without a `url` cannot become `needs_human` (there is nowhere to resume from) and stays an `unavailable` error whose `details.handoff` still says what would unblock the control.
 
 <!-- include: examples/surface/requires.ts#lock -->
 ```ts
 import { createSurface } from "@axe/surface";
+import { toJsonSchema } from "@axe/core";
 import { kinds, accept } from "@axe/core/kinds";
 
 const plan = { approved: false, locked: false, revision: 129 };
-export const surface = createSurface({ app: "planning-app" });
-surface.setRev(plan.revision); // the server owns the revision; adopt it as is
+// The server owns the revision (adopted as is with setRev), and the kinds below carry Zod
+// schemas, so the converter that publishes them is passed in; the surface does not import Zod.
+export const surface = createSurface({ app: "planning-app", revision: "app", toJsonSchema });
+surface.setRev(plan.revision);
 
 function registerLock() {
   surface.register({
@@ -202,7 +208,8 @@ function registerLock() {
       plan.locked = true;
       void text;
       plan.revision += 1;
-      surface.setRev(plan.revision);
+      // Report what changed and the revision the server assigned; the surface adopts both.
+      return { changed: ["lock:2026-03"], rev: plan.revision };
     },
   });
 }
@@ -245,9 +252,9 @@ The provider's set is `<ns>.observe` (read-only, with `display` over the entries
 
 - The action's `title` is the entry's `name`; its `description` is composed from the kind, the `object`, and the `effect`.
 - An action entry carries its `effect`'s `idempotent`, `reversible`, and `risk`. Its input requires `confirm: true` when the effect declares `confirm`, and takes an optional `text` described by the effect's `text` prompt.
-- A field entry is `idempotent`; its `risk` and `reversible` come from the `fields` option (defaults `medium` and false); its input is `{ text }`, bounded by `maxLength` or validated by the field's own schema.
-- A collection entry is a low-risk action with no input that asks the collection to load more.
-- Every entry action's `availability` is the entry's live state: an action's reason with `requires` and `handoff`, a field's read-only reason, whether a collection can load more, and the freeze's reason for everything while the surface is frozen. `/axe/state` serves it per control.
+- A field entry is `idempotent`; its `risk` and `reversible` come from the `fields` option (defaults `medium` and false); its input is `{ text }`, a string. The `maxLength` is named in the input's description and enforced by the surface, as is the field's own schema, so a refusal is in the ledger; the bridge's input schemas describe the shape only.
+- A collection entry that can load more is a low-risk action with no input that asks it to load more. A collection without `more` has no action; it stays a row of `observe`.
+- Every entry action's `availability` is the entry's live state: an action's reason with `requires` and `handoff`, a field's read-only reason, and the freeze's reason for everything while the surface is frozen. `/axe/state` serves it per control.
 
 Names are `<ns>.<slug>`: the entry id lowercased, runs of other characters replaced by one hyphen, `e-` prefixed when the result starts with a digit, and a short hash appended only when two ids share a slug. `pick:me:Gibbs` under the `board` namespace is `board.pick-me-gibbs`. The bridge keeps the map both ways for its lifetime:
 
@@ -261,7 +268,9 @@ bridge.entryIdFor("board.pick-me-gibbs"); // "pick:me:Gibbs"
 
 `entrySlug(id)` gives the plain slug alone. Every name fits the action-name grammar, so MCP tool names follow (`board_pick-me-gibbs`).
 
-Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback`); one with only a `handoff` returns `needs_human`; a stale revision is `conflict` with `expectedRev` and `currentRev` in `details`; everything else stays an `error` with the application's reason, including a freeze, which never climbs the ladder. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
+Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback` when it has a `url`); one with only a `handoff` that has a `url` returns `needs_human`; a stale revision is `conflict` with `expectedRev` and `currentRev` in `details`; everything else stays an `error` with the application's reason, including a freeze and a handoff without a `url`, which never climb the ladder. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
+
+The ledger is a complete record of what reached the surface. The bridge validates only the shape of a request at the protocol layer (a string `text`, a boolean `confirm`, no unknown keys) and leaves the surface's own checks (`maxLength`, the field's schema, a required `confirm`) to the surface, so an over-length edit or a missing confirmation is refused by the surface, ledgered as `invalid_input`, and emitted as a `surface.act` event. What the protocol refuses before the surface (a malformed envelope, a stale `expectedRev`) is in the server's request events instead.
 
 Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
 
@@ -272,6 +281,21 @@ The set is rebuilt only when the registry changed shape (`registryVersion` moved
 In the first trial, two of three gains against browser agents came from the accessible names alone: a button named "Draft Jahmyr Gibbs (RB)" is chosen for the right reason, while one that reads "Draft" is a guess. Surface makes the mirror the default rather than advice. Names state the outcome in the application's own words and never the widget: "Draft Jahmyr Gibbs (RB)", not "Draft button"; "Lock March", not "Lock". The role is `role` and the state is `state`, so a name never says "disabled". The same string is the control's accessible name and the `name` an agent sees in `observe()` ([S-DOM-1] in the spec).
 
 `surfaceAttributes(entry)` returns the attributes the control carries, from a registered entry or an observed row: `aria-label` (the entry name), `data-surface-id`, `data-surface-kind`, `data-surface-object` when the entry has one, and on an unavailable action `aria-disabled` with the reason in `data-surface-reason`; a read-only field carries `aria-readonly` and its reason. Collections carry the common set only. Set them on the element that receives the interaction and keep the application's own `disabled` logic: the helper sets `aria-disabled`, which reports without disabling and leaves the control focusable, so a screen reader reaches the reason.
+
+That helper reads the entry alone, which is right for a one-time render and wrong for a control that stays on screen: it knows nothing of a freeze, and it only says what to set, so a cell that became editable again would keep the previous render's reason. For controls you re-render while the surface lives, use `surface.attributesFor(id)`. It reads the live availability, the same one `observe()` and the bridge report, and returns `{ set, remove }`: `set` carries the freeze's reason as `aria-disabled` or `aria-readonly` while frozen, and `remove` lists every attribute in `SURFACE_ATTRIBUTES` that is not in `set`. Apply both after each render and after each `onChange` and the mirror can never disagree with `observe()`.
+
+<!-- include: examples/surface/dom.ts#mirror -->
+```ts
+// Re-rendering a control that stays on screen: read the live availability, so a freeze shows
+// with its reason and a reason from the previous render is removed.
+export function mirror(element: Element, id: string): void {
+  const update = surface.attributesFor(id);
+  if (!update) return;
+  for (const name of update.remove) element.removeAttribute(name);
+  for (const [name, value] of Object.entries(update.set)) element.setAttribute(name, value);
+}
+```
+<!-- /include -->
 
 <!-- include: examples/surface/dom.ts#attributes -->
 ```ts
@@ -320,7 +344,7 @@ export function logSurface(): void {
 
 `useSurface(entry, deps)` keeps one entry registered while a component is mounted and refreshes it in place when `deps` change, so an agent's index does not jump because a sibling re-rendered. Transient states belong in `deps`: the `saving` or `loading` flag, the open modal, whatever the component uses to disable its own control; left out, the surface keeps reporting the control available after the UI has frozen it. For a state that spans the page, wrap it in `freeze` instead. Render one small registering component per row of a list, so a row that scrolls away leaves the table the moment it leaves the page. Applications that render HTML outside React (a legacy grid) instead re-scan after each render and call `reconcile` to drop rows the scan did not keep.
 
-`useSurfaceProps(entry, deps)` registers the same way and returns the [accessible-name attributes](#accessible-names) as props: `aria-label`, `data-surface-id`, `data-surface-kind`, `data-surface-object`, and `aria-disabled` or `aria-readonly` as booleans with `data-surface-reason`. Spread them onto the element that receives the interaction and keep your own `disabled`; `deps` are the values the entry was computed from, as with `useSurface`.
+`useSurfaceProps(entry, deps)` registers the same way and returns the [accessible-name attributes](#accessible-names) as props: `aria-label`, `data-surface-id`, `data-surface-kind`, `data-surface-object`, and `aria-disabled` or `aria-readonly` as booleans with `data-surface-reason`. The props follow the surface's live availability, so a frozen surface shows on every mounted control and the component re-renders when that changes. Spread them onto the element that receives the interaction and keep your own `disabled`; `deps` are the values the entry was computed from, as with `useSurface`.
 
 ```tsx
 import { useSurfaceProps } from "@axe/surface/react";
@@ -351,7 +375,7 @@ The rendered button reads `aria-label="Draft Jahmyr Gibbs (RB)"` with `data-surf
 
 ## What Surface does not do
 
-It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today.
+It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 21 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
 
 ## Next steps
 

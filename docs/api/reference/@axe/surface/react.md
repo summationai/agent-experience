@@ -148,7 +148,10 @@ function useSurfaceProps(
 
 `useSurface` plus the control's attributes: registers `entry` while mounted (refreshing it in
 place when `deps` change) and returns the props the rendered control spreads, so the accessible
-name a browser agent or screen reader reads is the name `observe()` reports.
+name a browser agent or screen reader reads is the name `observe()` reports. The props follow
+the surface's live availability (`surface.attributesFor`): while the surface is frozen the
+control reads `aria-disabled` or `aria-readonly` with the freeze's reason, and the component
+re-renders when that changes.
 
 ```tsx
 const props = useSurfaceProps(entry, [available, reason]);

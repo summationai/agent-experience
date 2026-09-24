@@ -104,7 +104,7 @@ const ActionSchema: ZodObject<{
      handoff: ZodOptional<ZodObject<{
         instructions: ZodString;
         reason: ZodString;
-        url: ZodString;
+        url: ZodOptional<...>;
         whatAgentShouldSayToUser: ZodString;
      }, $strict>>;
      reason: ZodString;
@@ -273,7 +273,7 @@ const AvailabilitySchema: ZodDiscriminatedUnion<[ZodObject<{
   handoff: ZodOptional<ZodObject<{
      instructions: ZodString;
      reason: ZodString;
-     url: ZodString;
+     url: ZodOptional<ZodString>;
      whatAgentShouldSayToUser: ZodString;
   }, $strict>>;
   reason: ZodString;
@@ -630,12 +630,12 @@ const HandoffSchema: ZodObject<{
 const HandoffSpecSchema: ZodObject<{
   instructions: ZodString;
   reason: ZodString;
-  url: ZodString;
+  url: ZodOptional<ZodString>;
   whatAgentShouldSayToUser: ZodString;
 }, $strict>;
 ```
 
-A handoff declared on an unavailable action: the Handoff object without the token members.
+A handoff declared on an unavailable action: the Handoff object without the token members; `url` is optional for a step with no page of its own.
 
 ***
 
@@ -760,7 +760,7 @@ const LiveStateSchema: ZodObject<{
      handoff: ZodOptional<ZodObject<{
         instructions: ZodString;
         reason: ZodString;
-        url: ZodString;
+        url: ZodOptional<...>;
         whatAgentShouldSayToUser: ZodString;
      }, $strict>>;
      reason: ZodString;
@@ -1357,7 +1357,7 @@ The JSON Schemas published under `spec/schemas/`, keyed by file stem.
 
 ### deepEqual
 
-Re-exports [deepEqual](index.md#deepequal)
+Re-exports [deepEqual](json-schema.md#deepequal)
 
 ***
 
@@ -1365,7 +1365,7 @@ Re-exports [deepEqual](index.md#deepequal)
 
 ### schemasStructurallyEqual
 
-Re-exports [schemasStructurallyEqual](index.md#schemasstructurallyequal)
+Re-exports [schemasStructurallyEqual](json-schema.md#schemasstructurallyequal)
 
 ***
 
@@ -1381,4 +1381,4 @@ Re-exports [toJsonSchema](index.md#tojsonschema)
 
 ### validateJsonSchema
 
-Re-exports [validateJsonSchema](index.md#validatejsonschema)
+Re-exports [validateJsonSchema](json-schema.md#validatejsonschema)

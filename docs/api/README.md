@@ -30,7 +30,9 @@ The generator reads each package's source entry point through `typedoc.json` at 
 The main entry point re-exports the runtime and the most-used pieces of each subpath. The subpaths exist so agent-side and tooling code can import types or constants without pulling in Zod.
 
 - [`@axe/core/kinds`](reference/@axe/core/kinds.md) — `kinds`, the typed well-known kind definitions; `accept` to build a requirement from one; helpers for custom `x-` kinds.
-- [`@axe/core/events`](reference/@axe/core/events.md) — the event type and the sinks: `consoleSink`, `jsonlFileSink`, `otelSink`.
+- [`@axe/core/events`](reference/@axe/core/events.md) — the event type and the platform-neutral sinks: `consoleSink`, `otelSink`, `combineSinks`.
+- [`@axe/core/node`](reference/@axe/core/node.md) — `jsonlFileSink`, the one export that needs Node. Nothing else in the package reaches for a built-in, so a browser bundle never meets one.
+- [`@axe/core/json-schema`](reference/@axe/core/json-schema.md) — `validateJsonSchema` and the schema helpers, with no Zod; `@axe/surface` validates through this entry.
 - [`@axe/core/display`](reference/@axe/core/display.md) — `resolveDisplay`, which applies a `display` declaration to an output and returns a presented result.
 - [`@axe/core/lint`](reference/@axe/core/lint.md) — `lintAgentText` and `lintManifest`, and the patterns they match.
 - [`@axe/core/schemas`](reference/@axe/core/schemas.md) — Zod schemas for every wire object, for validating documents you did not generate.

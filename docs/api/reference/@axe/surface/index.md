@@ -82,6 +82,8 @@ effect: Effect;
 handler: (actor, text?) => unknown;
 ```
 
+The control's own handler. May return a `HandlerReport`.
+
 ###### Parameters
 
 ###### actor
@@ -302,7 +304,7 @@ optional loaded?: number | null;
 optional more?: () => unknown;
 ```
 
-Load more. Present makes the collection actionable with `SCROLL_DOWN`.
+Load more. Present makes the collection actionable with `SCROLL_DOWN`. May return a `HandlerReport`.
 
 ###### Returns
 
@@ -453,10 +455,7 @@ edit:
   maxLength?: number;
   op?: "TYPE_TEXT";
   readOnly?: false;
-  schema?:   | JsonSchema
-     | {
-     safeParse: unknown;
-   };
+  schema?: SchemaLike | JsonSchema;
   set: (text, actor) => unknown;
 };
 ```
@@ -482,10 +481,7 @@ edit:
   maxLength?: number;
   op?: "TYPE_TEXT";
   readOnly?: false;
-  schema?:   | JsonSchema
-     | {
-     safeParse: unknown;
-   };
+  schema?: SchemaLike | JsonSchema;
   set: (text, actor) => unknown;
 }
 ```
@@ -511,20 +507,20 @@ optional readOnly?: false;
 ###### schema?
 
 ```ts
-optional schema?: 
-  | JsonSchema
-  | {
-  safeParse: unknown;
-};
+optional schema?: SchemaLike | JsonSchema;
 ```
 
-Validate the typed text before `set` runs. A Zod schema or a JSON Schema for a string.
+Validate the typed text before `set` runs: a JSON Schema for a string, or a Zod schema
+(anything with `safeParse`). A Zod schema needs `toJsonSchema` configured on the surface
+so `observe()` can publish it; the surface itself stays free of Zod.
 
 ###### set
 
 ```ts
 set: (text, actor) => unknown;
 ```
+
+The control's own setter. May return a `HandlerReport`.
 
 ###### Parameters
 
@@ -608,11 +604,46 @@ reason: string;
 
 ***
 
+<a id="handlerreport"></a>
+
+### HandlerReport
+
+What a handler, a field's `set`, or a collection's `more` may return (or resolve to) to tell the
+surface what it did: `changed`, the entry ids whose state moved, and `rev`, the application's
+revision after the change, adopted as `setRev(rev)` would adopt it before the act result is
+built. Applications with a server revision report both here, since their revision arrives after
+the handler; the surface otherwise infers `changed` only from a revision that moved during the
+handler. Any other return value is ignored.
+
+#### Properties
+
+<a id="changed-1"></a>
+
+##### changed?
+
+```ts
+optional changed?: string[];
+```
+
+<a id="rev-1"></a>
+
+##### rev?
+
+```ts
+optional rev?: number;
+```
+
+***
+
 <a id="handoffspec"></a>
 
 ### HandoffSpec
 
-A handoff the application declares for a control only a human can activate.
+A handoff the application declares for a control only a human can activate. `url` is the page
+where the person takes the step; leave it out when the step is taken inside the application
+itself (a menu, a dialog) and no page names it. Without a `url` the handoff is reported in
+`act`'s `error.details.handoff` and in the bridge's `availability`, and never becomes
+`needs_human`, whose resume needs a page to come back from.
 
 #### Properties
 
@@ -634,10 +665,10 @@ reason: string;
 
 <a id="url"></a>
 
-##### url
+##### url?
 
 ```ts
-url: string;
+optional url?: string;
 ```
 
 <a id="whatagentshouldsaytouser"></a>
@@ -676,7 +707,7 @@ at: string;
 
 When the entry was written.
 
-<a id="changed-1"></a>
+<a id="changed-2"></a>
 
 ##### changed
 
@@ -860,7 +891,7 @@ objects: Record<string, JsonValue>;
 protocol: string;
 ```
 
-<a id="rev-1"></a>
+<a id="rev-2"></a>
 
 ##### rev
 
@@ -1022,7 +1053,7 @@ name: string;
 object: string | null;
 ```
 
-<a id="rev-2"></a>
+<a id="rev-3"></a>
 
 ##### rev
 
@@ -1063,7 +1094,7 @@ available: boolean;
 ###### handoff?
 
 ```ts
-optional handoff?: Omit<Handoff, "resumeToken" | "expiresAt">;
+optional handoff?: HandoffSpec;
 ```
 
 ###### reason
@@ -1092,6 +1123,54 @@ optional total?: number | null;
 
 ```ts
 optional value?: JsonValue;
+```
+
+***
+
+<a id="schemalike"></a>
+
+### SchemaLike
+
+The structural shape of a validation schema the surface accepts beside a JSON Schema: anything
+with `safeParse`, which is a Zod schema. The surface never imports Zod; it calls `safeParse` to
+validate and uses the `toJsonSchema` you configure to publish the schema in `observe()`.
+
+#### Methods
+
+<a id="safeparse"></a>
+
+##### safeParse()
+
+```ts
+safeParse(value): object;
+```
+
+###### Parameters
+
+###### value
+
+`unknown`
+
+###### Returns
+
+`object`
+
+###### error?
+
+```ts
+optional error?: object;
+```
+
+###### error.issues
+
+```ts
+issues: object[];
+```
+
+###### success
+
+```ts
+success: boolean;
 ```
 
 ***
@@ -1126,6 +1205,30 @@ act(request, options?): Promise<ActResult>;
 
 `Promise`\<[`ActResult`](#actresult)\>
 
+<a id="attributesfor"></a>
+
+##### attributesFor()
+
+```ts
+attributesFor(id): SurfaceAttributeUpdate | undefined;
+```
+
+The DOM mirror for one registered entry as it stands now ([S-DOM-1]): `set`, the attributes
+the control carries, computed from `availability(id)` so a freeze shows as `aria-disabled` or
+`aria-readonly` with the freeze's reason; and `remove`, every canonical Surface attribute
+(`SURFACE_ATTRIBUTES`) not in `set`, so a renderer that applies both never leaves last
+render's reason behind. Undefined for an unknown id.
+
+###### Parameters
+
+###### id
+
+`string`
+
+###### Returns
+
+[`SurfaceAttributeUpdate`](#surfaceattributeupdate) \| `undefined`
+
 <a id="availability"></a>
 
 ##### availability()
@@ -1156,7 +1259,7 @@ can load more, and the freeze's reason for every kind while frozen. Undefined fo
 bump(meta?): number;
 ```
 
-Advance the revision after a change and notify listeners.
+Advance the revision after a change and notify listeners. Marks the revision `surface`-owned unless pinned.
 
 ###### Parameters
 
@@ -1183,6 +1286,10 @@ configure(options): void;
 ###### app?
 
 `string`
+
+###### toJsonSchema?
+
+[`SchemaConverter`](#schemaconverter)
 
 ###### Returns
 
@@ -1249,9 +1356,11 @@ freeze(reason): Thaw;
 ```
 
 Report every entry unavailable with `reason` while a transient state lasts (a save in flight,
-a modal open). Moves the revision now and again on `thaw`, so an act planned before the freeze
-is refused as `conflict` and one planned during it as `unavailable`. Freezes nest: the surface
-thaws when the last one is released.
+a modal open), and notify `onChange` listeners now and again on `thaw`. In `surface` revision
+mode the revision moves on both ends, so an act planned before the freeze is refused as
+`conflict`; in `app` mode it stays with the application's revision, so such an act is
+`unavailable` while frozen and accepted afterwards exactly when the application's revision did
+not move. Freezes nest: the surface thaws when the last one is released.
 
 ###### Parameters
 
@@ -1405,6 +1514,20 @@ Forget everything. Tests.
 
 `void`
 
+<a id="revisionmode"></a>
+
+##### revisionMode()
+
+```ts
+revisionMode(): RevisionMode;
+```
+
+Who moves the revision right now: `surface` (`bump`) or `app` (`setRev`).
+
+###### Returns
+
+[`RevisionMode`](#revisionmode-1)
+
 <a id="seedrev"></a>
 
 ##### seedRev()
@@ -1413,7 +1536,7 @@ Forget everything. Tests.
 seedRev(n): void;
 ```
 
-Adopt a persisted revision if it is ahead of the current one.
+Adopt a persisted revision if it is ahead of the current one. Leaves the revision mode alone.
 
 ###### Parameters
 
@@ -1451,7 +1574,7 @@ setObjects(fn): void;
 setRev(n): void;
 ```
 
-The application owns the counter: adopt its value as is.
+The application owns the counter: adopt its value as is. Marks the revision `app`-owned unless pinned.
 
 ###### Parameters
 
@@ -1480,6 +1603,32 @@ unregister(id): void;
 ###### Returns
 
 `void`
+
+***
+
+<a id="surfaceattributeupdate"></a>
+
+### SurfaceAttributeUpdate
+
+What `attributesFor(id)` returns: attributes to set, and canonical attributes to remove.
+
+#### Properties
+
+<a id="remove"></a>
+
+##### remove
+
+```ts
+remove: string[];
+```
+
+<a id="set"></a>
+
+##### set
+
+```ts
+set: SurfaceAttributes;
+```
 
 ***
 
@@ -1526,6 +1675,29 @@ Clock for `observe().at`; injectable for deterministic tests and builds.
 ###### Returns
 
 `Date`
+
+<a id="revision"></a>
+
+##### revision?
+
+```ts
+optional revision?: RevisionMode;
+```
+
+Pin who moves the revision (`RevisionMode`). Omitted, the mode follows the last of `bump()`
+(`surface`) and `setRev()` (`app`), starting as `surface`.
+
+<a id="tojsonschema"></a>
+
+##### toJsonSchema?
+
+```ts
+optional toJsonSchema?: SchemaConverter;
+```
+
+Converts a Zod schema to JSON Schema for `observe()`: pass `toJsonSchema` from `@axe/core`.
+Required only when an entry carries a Zod schema (`edit.schema`, `requires.accepts[].schema`);
+the surface does not import Zod itself, so a browser bundle without Zod stays without it.
 
 ## Type Aliases
 
@@ -1679,7 +1851,7 @@ type EntryAvailability =
 }
   | {
   available: false;
-  handoff?: Omit<Handoff, "resumeToken" | "expiresAt">;
+  handoff?: WireHandoffSpec;
   reason: string;
   requires?: Accept[];
 };
@@ -1768,6 +1940,22 @@ The result envelope: every AXE response body is one of these.
 
 ***
 
+<a id="revisionmode-1"></a>
+
+### RevisionMode
+
+```ts
+type RevisionMode = "surface" | "app";
+```
+
+Who moves the revision. `surface`: the application calls `bump()` after every change, and
+`freeze`/`thaw` move the revision too. `app`: the application adopts its own revision with
+`setRev()` (a server counter), and `freeze`/`thaw` leave it alone, since a freeze is not a change
+of the application's state. Unless pinned by `createSurface({ revision })`, the mode follows the
+last call: `bump()` makes it `surface`, `setRev()` makes it `app`.
+
+***
+
 <a id="risk-1"></a>
 
 ### Risk
@@ -1775,6 +1963,33 @@ The result envelope: every AXE response body is one of these.
 ```ts
 type Risk = WireRisk;
 ```
+
+***
+
+<a id="schemaconverter"></a>
+
+### SchemaConverter
+
+```ts
+type SchemaConverter = (schema, io) => JsonSchema;
+```
+
+Renders a Zod schema as JSON Schema for `observe()`. `toJsonSchema` from `@axe/core` fits as it
+is; the parameter is typed `never` so that a converter over any concrete schema type fits too.
+
+#### Parameters
+
+##### schema
+
+`never`
+
+##### io
+
+`"input"`
+
+#### Returns
+
+`JsonSchema`
 
 ***
 
@@ -1840,7 +2055,7 @@ act: (request, options?) => Promise<ActResult>;
 bump: (meta?) => number;
 ```
 
-Advance the revision after a change and notify listeners.
+Advance the revision after a change and notify listeners. Marks the revision `surface`-owned unless pinned.
 
 #### Parameters
 
@@ -1869,6 +2084,10 @@ configure: (options) => void;
 ###### app?
 
 `string`
+
+###### toJsonSchema?
+
+[`SchemaConverter`](#schemaconverter)
 
 #### Returns
 
@@ -1927,9 +2146,11 @@ freeze: (reason) => Thaw;
 ```
 
 Report every entry unavailable with `reason` while a transient state lasts (a save in flight,
-a modal open). Moves the revision now and again on `thaw`, so an act planned before the freeze
-is refused as `conflict` and one planned during it as `unavailable`. Freezes nest: the surface
-thaws when the last one is released.
+a modal open), and notify `onChange` listeners now and again on `thaw`. In `surface` revision
+mode the revision moves on both ends, so an act planned before the freeze is refused as
+`conflict`; in `app` mode it stays with the application's revision, so such an act is
+`unavailable` while frozen and accepted afterwards exactly when the application's revision did
+not move. Freezes nest: the surface thaws when the last one is released.
 
 #### Parameters
 
@@ -2053,7 +2274,7 @@ register: (entry) => void;
 seedRev: (n) => void;
 ```
 
-Adopt a persisted revision if it is ahead of the current one.
+Adopt a persisted revision if it is ahead of the current one. Leaves the revision mode alone.
 
 #### Parameters
 
@@ -2095,7 +2316,7 @@ setObjects: (fn) => void;
 setRev: (n) => void;
 ```
 
-The application owns the counter: adopt its value as is.
+The application owns the counter: adopt its value as is. Marks the revision `app`-owned unless pinned.
 
 #### Parameters
 
@@ -2118,6 +2339,18 @@ const surface: Surface;
 ```
 
 Convenience: a module-level surface with the same function names as the original `lib/surface.js`.
+
+***
+
+<a id="surface_attributes"></a>
+
+### SURFACE\_ATTRIBUTES
+
+```ts
+const SURFACE_ATTRIBUTES: readonly string[];
+```
+
+Every attribute the DOM mirror may set ([S-DOM-1]), from the vocabulary's `domAttribute` table.
 
 ***
 
@@ -2194,12 +2427,16 @@ One plain-text line about an entry, for a screen reader or an agent log [S-DOM-4
 function surfaceAttributes(entry): SurfaceAttributes;
 ```
 
-The attributes the control for `entry` carries [S-DOM-1]: `aria-label` (the entry name, so
-browser agents and screen readers read the outcome), `data-surface-id`, `data-surface-kind`,
-`data-surface-object` when the entry has one, `aria-disabled="true"` plus `data-surface-reason`
-on an unavailable action, and `aria-readonly="true"` plus `data-surface-reason` on a read-only
-field. Collections carry the common set only. Set them on the element that receives the
-interaction; `surfaceSelector(id)` finds it again.
+The attributes the control for `entry` carries [S-DOM-1], read from the entry itself: `aria-label`
+(the entry name, so browser agents and screen readers read the outcome), `data-surface-id`,
+`data-surface-kind`, `data-surface-object` when the entry has one, `aria-disabled="true"` plus
+`data-surface-reason` on an unavailable action, and `aria-readonly="true"` plus
+`data-surface-reason` on a read-only field. Collections carry the common set only. Set them on
+the element that receives the interaction; `surfaceSelector(id)` finds it again.
+
+This is the static reading: it knows the entry's own `state` and `edit` and nothing of a freeze,
+and it returns only what to set. For a control that is re-rendered while the surface lives, use
+`surface.attributesFor(id)`, which reads the live availability and also says what to remove.
 
 #### Parameters
 

@@ -67,7 +67,7 @@ They answer different questions. The `idempotencyKey` says "this is the same att
 
 ## Availability: unavailable, because
 
-Each action can declare `availability`: a function of the caller that returns `{ available: true }` or `{ available: false, reason }`, with `reason` in the site's own words. An unavailable action may add `requires`, the same `accepts` list a `needs_input` carries, naming what would make it available; and a `handoff` for a step only a human can take.
+Each action can declare `availability`: a function of the caller that returns `{ available: true }` or `{ available: false, reason }`, with `reason` in the site's own words. An unavailable action may add `requires`, the same `accepts` list a `needs_input` carries, naming what would make it available; and a `handoff` for a step only a human can take. The handoff's `url` may be left out when the step happens inside the site's own interface and no page names it; such a handoff is reported here and in an `unavailable` error's `details`, and never returned as `needs_human`, which needs a page to resume from.
 
 <!-- include: examples/live-state/axe.ts#availability -->
 ```ts

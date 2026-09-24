@@ -10,7 +10,7 @@ An action's `auth` says who must be authenticated before it runs: nobody, the op
 | `site` | The agent         | `Authorization: Bearer <api-key>`, issued by you to the agent operator. Your `verifySiteKey` function says yes, no, or which actions the key may call.                                                                                                  |
 | `user` | The end user      | The agent acts for one human. Either it passes through a token that human already granted it, which your `authenticate` function maps to `onBehalfOf`, or the runtime sends the human to `userLoginUrl` and binds the resume token to whoever signs in. |
 
-The runtime enforces spec §16 at startup rather than at request time. `register` throws when an action's `auth` is not in the manifest's `auth.modes`. `createAXE` throws when `modes` includes `user` but neither `userLoginUrl` nor `authenticate` is set, or includes `site` without `verifySiteKey`.
+The runtime enforces spec §16 at startup rather than at request time. `auth` may be omitted: a site that says nothing about it is public, and the manifest carries `{ modes: ["none"] }`. `register` throws when an action's `auth` is not in the manifest's `auth.modes`. `createAXE` throws when `modes` is empty, includes `user` but neither `userLoginUrl` nor `authenticate` is set, or includes `site` without `verifySiteKey`.
 
 ## Choosing a mode
 
