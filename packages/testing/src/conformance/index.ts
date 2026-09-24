@@ -1175,6 +1175,61 @@ async function runtime(r: Runner): Promise<void> {
     }
   }
 
+  // A state-changing POST whose body is not labeled JSON is refused ([P-TRANS-1]). A browser
+  // sends text/plain to any origin without a preflight, so accepting it opens a CSRF path.
+  {
+    const target =
+      m.actions.find((a) => !a.readOnly && a.examples?.length && r.callable(a)) ??
+      m.actions.find((a) => !a.readOnly);
+    const title = "text/plain POST to a mutating action → unsupported";
+    if (!target || r.options.noMutate) {
+      r.add(
+        "runtime.json-content-type",
+        title,
+        "skip",
+        ["P-TRANS-1"],
+        r.options.noMutate ? "Skipped: --no-mutate." : "The manifest declares no mutating action.",
+        DOCS.security,
+      );
+    } else {
+      const res = await r.request(`${WIRE.path.actions}/${encodeURIComponent(target.name)}`, {
+        method: "POST",
+        headers: { [WIRE.header.contentType]: "text/plain;charset=UTF-8" },
+        body: JSON.stringify({
+          input: target.examples?.[0]?.input ?? {},
+          context: r.context(),
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      });
+      const text = await res.text();
+      let json: unknown = null;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        json = null;
+      }
+      if (res.status >= 400) r.errorBodies.push(text);
+      const result = isResult(json) ? json : null;
+      const code = errorCode(result);
+      r.add(
+        "runtime.json-content-type",
+        title,
+        code === WIRE.error.unsupported
+          ? "pass"
+          : result && result.status !== WIRE.status.error
+            ? "fail"
+            : "warn",
+        ["P-TRANS-1"],
+        code === WIRE.error.unsupported
+          ? `${target.name} refused a text/plain body`
+          : result && result.status !== WIRE.status.error
+            ? `${target.name} accepted a text/plain body (status ${result.status}). A cross-origin page can send that without a preflight; require Content-Type: application/json.`
+            : `${target.name} refused a text/plain body with ${code ?? `HTTP ${res.status}`}, not unsupported; it may have refused for another reason first.`,
+        DOCS.security,
+      );
+    }
+  }
+
   // Idempotency.
   {
     const mutating = m.actions.find(

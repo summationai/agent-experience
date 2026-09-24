@@ -225,6 +225,23 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 **[P-INV-9]** A server that permits browser-based agents MUST answer `OPTIONS` preflight requests on every AXE path with `204`, `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods: GET, POST, OPTIONS`, and `Access-Control-Allow-Headers` including `Content-Type`, `Authorization`, and `AXE-Protocol`. It SHOULD expose `AXE-Protocol`, `Retry-After`, and `RateLimit-Policy`. CORS is opt-in; a server that does not enable it MUST NOT emit CORS headers.
 
+### 6.4 Requests a browser can send on a page's behalf
+
+A browser attaches cookies (and cached HTTP authentication, and client certificates) to requests a page makes to another origin, and it sends a `POST` with a `text/plain`, `application/x-www-form-urlencoded`, or `multipart/form-data` body, or with no body type at all, without asking the target first. CORS decides whether the page may read the response; it does not stop the request from reaching the server. These rules keep such a request from changing state.
+
+**[P-TRANS-1]** A `POST` to `/axe/actions/{name}` for an action that is not `readOnly`, to `/axe/continue`, or to `/axe/resume` MUST carry `Content-Type: application/json` or a media type of the form `application/<subtype>+json` (parameters such as `charset` are ignored). A server MUST refuse any other value, and a missing one, with `unsupported` before it reads the body, establishes identity, loads a token, or runs a handler. Agents MUST send `Content-Type: application/json` on every request with a body. A name that is not a known action is treated as not `readOnly`.
+
+**[P-TRANS-2]** A server whose deployment lets browsers hold credentials for it that are sent without the page's involvement (cookies, HTTP authentication, client certificates: ambient credentials) MUST refuse a `POST` to any AXE endpoint that carries them when:
+
+- the request has an `Origin` header whose value is not the origin of the site's `baseUrl` (on a platform, the tenant's `baseUrl`) and not an origin the site has explicitly trusted; `Origin: null` never matches; or
+- the request has no `Origin` and its `Sec-Fetch-Site` header is `cross-site` or `same-site`.
+
+The refusal is `forbidden`. It MUST be returned before the server looks up the action, reads the body, establishes identity, or loads a token, and it MUST be the same response whatever the path, action, token, or credential, so it confirms nothing about them.
+
+**[P-TRANS-3]** A request with neither `Origin` nor `Sec-Fetch-Site` was not made by a browser on a page's behalf; [P-TRANS-2] MUST NOT refuse it. Server-to-server callers presenting `Authorization: Bearer` are therefore unaffected. `GET`, `HEAD`, and `OPTIONS` requests are outside §6.4; a site MUST NOT change state in response to them beyond what the protocol defines (`GET` on a `pollUrl` returns the result of work the agent already started).
+
+**[P-TRANS-4]** For [P-TRANS-2] the site's own origin MUST come from its configuration (`baseUrl`), never from the `Host`, `Forwarded`, or `X-Forwarded-*` request headers, which a client or an intermediary can set. Trusted origins are exact origins (scheme, host, and port); a wildcard MUST NOT be accepted as one. An origin the site allows to make credentialed CORS requests is already trusted to send any request with its cookies and read the result, so a server MAY treat it as trusted.
+
 ## 7. Result envelope
 
 **[P-RES-1]** Every response from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl` MUST be a JSON object with a `status` member equal to one of `ok`, `needs_input`, `needs_human`, `pending`, or `error`, plus the members for that status, the OPTIONAL `rev` member (§21), and nothing else at the top level. It MUST validate against `schemas/result.schema.json`.
@@ -567,6 +584,7 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 - **Agents as load.** A manifest invites agents; it does not promise unlimited capacity. Sites SHOULD declare `policies.rateLimit`, enforce it at their edge, and use `pending` for slow work rather than holding connections.
 - **Over-permissioned actions.** Nothing in AXE grants an agent more than the site's existing authorization allows. Sites MUST authorize every action with the same checks their UI applies, using the identity from §16, never from the request body.
 - **HTML in results.** Renderers MUST escape everything ([P-DISP-5]). Sites MUST NOT rely on markup reaching a user.
+- **Cross-site request forgery.** A site that authenticates with cookies is reachable from every page its users visit. CORS response headers do not prevent the write; [P-TRANS-1] to [P-TRANS-4] do. A site that also sets `SameSite=Lax` or `Strict` on its session cookie has a second, independent layer.
 
 ## 20. Worked example: search → present → select → transact
 

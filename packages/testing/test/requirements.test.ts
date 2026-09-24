@@ -42,6 +42,7 @@ describe("requirement coverage", () => {
       "packages/core/test/pending.test.ts",
       "packages/core/test/tokens.test.ts",
       "packages/core/test/live.test.ts",
+      "packages/core/test/request-policy.test.ts",
       "packages/client/test/client.test.ts",
       "packages/client/test/narrowing.test.ts",
     ]
