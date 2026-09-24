@@ -20,7 +20,11 @@ function gate() {
 
 async function post(axe: ReturnType<typeof createAXE>, path: string, body: unknown) {
   const res = await axe.handle(
-    new Request(BASE + path, { method: "POST", body: JSON.stringify(body) }),
+    new Request(BASE + path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
   );
   return { res, body: (await res.json()) as Result };
 }
@@ -331,6 +335,7 @@ describe("failure paths [P-OP-3]", () => {
       axe.handle(
         new Request(`${BASE}/axe/actions/orders.place`, {
           method: "POST",
+          headers: { "content-type": "application/json" },
           body: JSON.stringify({ input: { sku: "A" }, idempotencyKey: "k" }),
         }),
       );

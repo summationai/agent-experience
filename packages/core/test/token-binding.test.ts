@@ -49,7 +49,8 @@ async function send(
   const res = await axe.handle(
     new Request(url, {
       method,
-      headers,
+      // Every AXE POST is JSON; a request policy may refuse one that does not say so.
+      headers: body === undefined ? headers : { "content-type": "application/json", ...headers },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     }),
   );

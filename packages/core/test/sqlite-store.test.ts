@@ -140,6 +140,7 @@ describe.skipIf(!sqlite)("SqliteIdempotencyStore (node:sqlite)", () => {
       axe.handle(
         new Request(`${BASE}/axe/actions/orders.place`, {
           method: "POST",
+          headers: { "content-type": "application/json" },
           body: JSON.stringify({ input: { sku: "A" }, idempotencyKey: key }),
         }),
       );
