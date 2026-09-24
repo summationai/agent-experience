@@ -15,6 +15,7 @@ docs/api/reference/@axe/core/types.html
 docs/api/reference/@axe/core/vocabulary.html
 docs/api/reference/@axe/express.html
 docs/api/reference/@axe/fetch.html
+docs/api/reference/@axe/generate.html
 docs/api/reference/@axe/mcp.html
 docs/api/reference/@axe/next.html
 docs/api/reference/@axe/surface/README.html
@@ -31,12 +32,14 @@ docs/deploying.html
 docs/designing-actions.html
 docs/faq.html
 docs/for-agent-builders.html
+docs/generating.html
 docs/getting-started.html
 docs/glossary.html
 docs/human-handoff.html
 docs/integrations/express.html
 docs/integrations/fetch.html
 docs/integrations/next.html
+docs/live-state.html
 docs/mcp.html
 docs/platforms.html
 docs/presenting-results.html
