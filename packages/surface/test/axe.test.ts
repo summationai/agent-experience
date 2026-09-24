@@ -40,7 +40,9 @@ function serve(surface: Surface, options: SurfaceActionsOptions & { revision?: b
     onActionEvent: (e) => void events.push(e),
     ...(revision ? { revision: surface.currentRev } : {}),
   });
-  const bridge = surfaceActions(surface, bridgeOptions);
+  // These tests exercise the seam on an explicitly public surface; authorization has its own
+  // describe block below.
+  const bridge = surfaceActions(surface, { auth: "none", ...bridgeOptions });
   axe.addProvider(bridge);
   const post = async (path: string, body: unknown, headers: Record<string, string> = {}) => {
     const res = await axe.handle(
