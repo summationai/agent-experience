@@ -27,5 +27,5 @@ export const axe = createAXE({
   ],
 });
 
-axe.addProvider(surfaceActions(surface, { namespace: "board" }));
+axe.addProvider(surfaceActions(surface, { namespace: "board", auth: "user" }));
 // #endregion events

@@ -17,8 +17,10 @@ export const axe = createAXE({
 });
 
 // One action per entry, plus board.observe and board.ledger. The set follows the registry: a row
-// that registers or unregisters is in or out of the manifest on the next request.
-export const bridge = surfaceActions(surface, { namespace: "board" });
+// that registers or unregisters is in or out of the manifest on the next request. `auth: "user"`
+// is the default, written out: an anonymous caller can neither observe nor act, and the server
+// above must list `user` in its modes or it refuses the bridge.
+export const bridge = surfaceActions(surface, { namespace: "board", auth: "user" });
 axe.addProvider(bridge);
 
 export const handler = axe.fetchHandler();

@@ -232,8 +232,9 @@ export const axe = createAXE({
   revision: surface.currentRev,
 });
 
-// Every entry is its own action, with the entry's live state as its availability.
-axe.addProvider(surfaceActions(surface, { namespace: "board" }));
+// Every entry is its own action, with the entry's live state as its availability. Only signed-in
+// callers observe and act (`auth: "user"`, the default, written out).
+axe.addProvider(surfaceActions(surface, { namespace: "board", auth: "user" }));
 ```
 <!-- /include -->
 
