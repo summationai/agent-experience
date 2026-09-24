@@ -4,7 +4,7 @@ The marketing and documentation site lives in `site/` and is built into `site/di
 
 ## How it is built
 
-`pnpm site:build` runs `site/build.mjs`, which:
+`pnpm site:build` runs `site/build.mjs` (the site is deliberately outside `pnpm -r build`, because rendering the Open Graph image needs a browser), which:
 
 1. Renders every Markdown page in `docs/`, `spec/`, and the repository root (README, roadmap, decisions, changelog, contributing, security) into `site/dist/docs/` with the documentation template: a sidebar generated from the ordered list in `docs/README.md`, an "On this page" rail from the headings, previous and next links in that same order, and an "Edit this page" link.
 2. Rewrites relative Markdown links to the generated pages and fails the build on any link that does not resolve to a page, an existing anchor, or a file in the output.

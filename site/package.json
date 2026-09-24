@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Static marketing and documentation site for the Body Spray SDK. Runs from file://.",
   "scripts": {
-    "build": "node build.mjs",
-    "test": "node test/run.mjs",
     "dev": "node dev.mjs",
-    "typecheck": "echo site has no TypeScript"
+    "typecheck": "echo site has no TypeScript",
+    "build:site": "node build.mjs",
+    "test:site": "node test/run.mjs"
   },
   "devDependencies": {
     "@fontsource/inter": "^5.3.0",

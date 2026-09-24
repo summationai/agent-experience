@@ -24,8 +24,8 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish",
-    "site:build": "pnpm --filter body-spray-site build",
-    "site:test": "pnpm --filter body-spray-site test",
+    "site:build": "pnpm --filter body-spray-site run build:site",
+    "site:test": "pnpm --filter body-spray-site run test:site",
     "site:dev": "pnpm --filter body-spray-site dev"
   },
   "devDependencies": {
