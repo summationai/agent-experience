@@ -140,7 +140,8 @@ export interface AXEConfig {
   description: string;
   baseUrl: string;
   humanFallbackUrl?: string;
-  auth: AuthConfig;
+  /** Auth modes and their hooks. Omitted, the site is public: `{ modes: ["none"] }`. */
+  auth?: AuthConfig;
   policies?: Policies;
   contact?: Contact;
   brand?: Brand;
@@ -235,7 +236,12 @@ export class AXE {
   private finalized = false;
   private basePath: string;
 
-  constructor(readonly config: AXEConfig) {
+  readonly config: AXEConfig & { auth: AuthConfig };
+
+  constructor(input: AXEConfig) {
+    // A site that says nothing about auth is public: every action runs anonymously.
+    const config = { ...input, auth: input.auth ?? { modes: [WIRE.authMode.none] } };
+    this.config = config;
     if (!config.name?.trim() || !config.description?.trim() || !config.baseUrl) {
       throw new Error("createAXE: `name`, `description`, and `baseUrl` are required.");
     }
@@ -250,8 +256,10 @@ export class AXE {
         `createAXE: baseUrl must use https (http is allowed for localhost). Received ${config.baseUrl} (spec [P-MAN-2]).`,
       );
     }
-    if (!config.auth || !Array.isArray(config.auth.modes) || config.auth.modes.length === 0) {
-      throw new Error('createAXE: `auth.modes` must list at least one of "none", "site", "user".');
+    if (!Array.isArray(config.auth.modes) || config.auth.modes.length === 0) {
+      throw new Error(
+        'createAXE: `auth.modes` must list at least one of "none", "site", "user". Omit `auth` for a public site; the default is { modes: ["none"] }.',
+      );
     }
     if (
       config.auth.modes.includes(WIRE.authMode.user) &&

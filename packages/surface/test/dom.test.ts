@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createSurface, describeEntry, surfaceAttributes, surfaceSelector } from "../src/index";
+import {
+  SURFACE_ATTRIBUTES,
+  createSurface,
+  describeEntry,
+  surfaceAttributes,
+  surfaceSelector,
+} from "../src/index";
 import type { ActionEntry, CollectionEntry, FieldEntry } from "../src/index";
 
 const draft: ActionEntry = {
@@ -108,6 +114,79 @@ describe("surfaceAttributes [S-DOM-1]", () => {
       "aria-readonly": "true",
       "data-surface-reason": "draft is over",
     });
+  });
+});
+
+describe("attributesFor [S-DOM-1]", () => {
+  it("lists every canonical attribute", () => {
+    expect([...SURFACE_ATTRIBUTES].sort()).toEqual([
+      "aria-disabled",
+      "aria-label",
+      "aria-readonly",
+      "data-surface-id",
+      "data-surface-kind",
+      "data-surface-object",
+      "data-surface-reason",
+    ]);
+  });
+
+  it("reads the live availability and says what to remove; a freeze shows as the reason", () => {
+    const s = createSurface();
+    s.register({ ...draft, state: { available: true } });
+    s.register({
+      id: "note",
+      kind: "field",
+      role: "textbox",
+      name: "Note",
+      edit: { set() {} },
+    });
+    s.register({ id: "board", kind: "collection", role: "grid", name: "Players", more() {} });
+    expect(s.attributesFor("nope")).toBeUndefined();
+    expect(s.attributesFor("pick:me:gibbs")).toEqual({
+      set: {
+        "aria-label": "Draft Jahmyr Gibbs (RB)",
+        "data-surface-id": "pick:me:gibbs",
+        "data-surface-kind": "action",
+        "data-surface-object": "player:gibbs",
+      },
+      remove: ["data-surface-reason", "aria-disabled", "aria-readonly"],
+    });
+    expect(s.attributesFor("note")!.remove).toEqual([
+      "data-surface-object",
+      "data-surface-reason",
+      "aria-disabled",
+      "aria-readonly",
+    ]);
+    // The static helper reads the entry alone and knows nothing of the freeze.
+    const thaw = s.freeze("saving");
+    expect(surfaceAttributes(s.get("pick:me:gibbs")!)["aria-disabled"]).toBeUndefined();
+    expect(s.attributesFor("pick:me:gibbs")).toEqual({
+      set: {
+        "aria-label": "Draft Jahmyr Gibbs (RB)",
+        "data-surface-id": "pick:me:gibbs",
+        "data-surface-kind": "action",
+        "data-surface-object": "player:gibbs",
+        "aria-disabled": "true",
+        "data-surface-reason": "saving",
+      },
+      remove: ["aria-readonly"],
+    });
+    expect(s.attributesFor("note")!.set).toMatchObject({
+      "aria-readonly": "true",
+      "data-surface-reason": "saving",
+    });
+    expect(s.attributesFor("note")!.remove).toEqual(["data-surface-object", "aria-disabled"]);
+    // Collections carry the common set only, frozen or not.
+    expect(Object.keys(s.attributesFor("board")!.set)).toEqual([
+      "aria-label",
+      "data-surface-id",
+      "data-surface-kind",
+    ]);
+    thaw();
+    expect(s.attributesFor("note")!.remove).toContain("data-surface-reason");
+    // An entry's own unavailability reads the same as the static helper.
+    s.register(draft);
+    expect(s.attributesFor("pick:me:gibbs")!.set).toEqual(surfaceAttributes(draft));
   });
 });
 

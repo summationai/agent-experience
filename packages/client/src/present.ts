@@ -60,7 +60,12 @@ export function stateToMarkdown(state: LiveState, manifest?: Manifest): string {
       const extra: string[] = [];
       if (a.requires?.length)
         extra.push(`would need ${a.requires.map((r) => `\`${r.kind}\``).join(" or ")}`);
-      if (a.handoff) extra.push(`a person can do it at ${a.handoff.url}`);
+      if (a.handoff)
+        extra.push(
+          a.handoff.url
+            ? `a person can do it at ${a.handoff.url}`
+            : `a person can do it in the app`,
+        );
       lines.push(
         `- ${mdEscape(title(name))} (\`${name}\`): ${mdEscape(a.reason)}${extra.length ? ` (${extra.join("; ")})` : ""}`,
       );

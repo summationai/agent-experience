@@ -13,7 +13,6 @@
 import type {
   Accept,
   ErrorCode,
-  Handoff,
   JsonSchema,
   JsonValue,
   OkResult,
@@ -23,13 +22,53 @@ import type {
   ValidationIssue,
 } from "@axe/core/types";
 import type { AcceptInput } from "@axe/core/kinds";
-import { isZodSchema, toJsonSchema } from "@axe/core";
-import { validateJsonSchema } from "@axe/core/schemas";
+import type { HandoffSpec as WireHandoffSpec } from "@axe/core/types";
+import { validateJsonSchema } from "@axe/core/json-schema";
 import * as WIRE from "@axe/core/vocabulary";
 
 export type MaybePromise<T> = T | Promise<T>;
 export type Op = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 export type EntryKind = "action" | "field" | "collection";
+
+/**
+ * Who moves the revision. `surface`: the application calls `bump()` after every change, and
+ * `freeze`/`thaw` move the revision too. `app`: the application adopts its own revision with
+ * `setRev()` (a server counter), and `freeze`/`thaw` leave it alone, since a freeze is not a change
+ * of the application's state. Unless pinned by `createSurface({ revision })`, the mode follows the
+ * last call: `bump()` makes it `surface`, `setRev()` makes it `app`.
+ */
+export type RevisionMode = "surface" | "app";
+
+/**
+ * The structural shape of a validation schema the surface accepts beside a JSON Schema: anything
+ * with `safeParse`, which is a Zod schema. The surface never imports Zod; it calls `safeParse` to
+ * validate and uses the `toJsonSchema` you configure to publish the schema in `observe()`.
+ */
+export interface SchemaLike {
+  safeParse(value: unknown): {
+    success: boolean;
+    error?: { issues: { path: (string | number | symbol)[]; message: string }[] };
+  };
+}
+
+/**
+ * Renders a Zod schema as JSON Schema for `observe()`. `toJsonSchema` from `@axe/core` fits as it
+ * is; the parameter is typed `never` so that a converter over any concrete schema type fits too.
+ */
+export type SchemaConverter = (schema: never, io: "input") => JsonSchema;
+
+/**
+ * What a handler, a field's `set`, or a collection's `more` may return (or resolve to) to tell the
+ * surface what it did: `changed`, the entry ids whose state moved, and `rev`, the application's
+ * revision after the change, adopted as `setRev(rev)` would adopt it before the act result is
+ * built. Applications with a server revision report both here, since their revision arrives after
+ * the handler; the surface otherwise infers `changed` only from a revision that moved during the
+ * handler. Any other return value is ignored.
+ */
+export interface HandlerReport {
+  changed?: string[];
+  rev?: number;
+}
 
 /** What a control does, in AXE's terms. `undoable` is accepted as a legacy alias of `reversible`. */
 export interface Effect {
@@ -49,11 +88,17 @@ export interface Effect {
   text?: string;
 }
 
-/** A handoff the application declares for a control only a human can activate. */
+/**
+ * A handoff the application declares for a control only a human can activate. `url` is the page
+ * where the person takes the step; leave it out when the step is taken inside the application
+ * itself (a menu, a dialog) and no page names it. Without a `url` the handoff is reported in
+ * `act`'s `error.details.handoff` and in the bridge's `availability`, and never becomes
+ * `needs_human`, whose resume needs a page to come back from.
+ */
 export interface HandoffSpec {
   reason: string;
   instructions: string;
-  url: string;
+  url?: string;
   whatAgentShouldSayToUser: string;
 }
 
@@ -81,7 +126,8 @@ export interface ActionEntry {
   object?: string;
   state?: Availability;
   effect: Effect;
-  handler: (actor: string, text?: string) => MaybePromise<unknown>;
+  /** The control's own handler. May return a `HandlerReport`. */
+  handler: (actor: string, text?: string) => MaybePromise<HandlerReport | unknown>;
 }
 
 export interface FieldEntry {
@@ -97,9 +143,14 @@ export interface FieldEntry {
         op?: "TYPE_TEXT";
         readOnly?: false;
         maxLength?: number;
-        /** Validate the typed text before `set` runs. A Zod schema or a JSON Schema for a string. */
-        schema?: JsonSchema | { safeParse: unknown };
-        set: (text: string, actor: string) => MaybePromise<unknown>;
+        /**
+         * Validate the typed text before `set` runs: a JSON Schema for a string, or a Zod schema
+         * (anything with `safeParse`). A Zod schema needs `toJsonSchema` configured on the surface
+         * so `observe()` can publish it; the surface itself stays free of Zod.
+         */
+        schema?: JsonSchema | SchemaLike;
+        /** The control's own setter. May return a `HandlerReport`. */
+        set: (text: string, actor: string) => MaybePromise<HandlerReport | unknown>;
       };
 }
 
@@ -113,8 +164,8 @@ export interface CollectionEntry {
   loaded?: number | null;
   filter?: JsonValue;
   sort?: JsonValue;
-  /** Load more. Present makes the collection actionable with `SCROLL_DOWN`. */
-  more?: () => MaybePromise<unknown>;
+  /** Load more. Present makes the collection actionable with `SCROLL_DOWN`. May return a `HandlerReport`. */
+  more?: () => MaybePromise<HandlerReport | unknown>;
 }
 
 export type Entry = ActionEntry | FieldEntry | CollectionEntry;
@@ -132,7 +183,7 @@ export interface ObservedEntry {
     available: boolean;
     reason: string | null;
     requires?: Accept[];
-    handoff?: Omit<Handoff, "resumeToken" | "expiresAt">;
+    handoff?: WireHandoffSpec;
   };
   effect?: {
     mutates: string;
@@ -238,27 +289,42 @@ export interface SurfaceOptions {
   now?: () => Date;
   /** Ledger retention. `max` is the number of most recent entries kept; default 1000. */
   ledger?: { max?: number };
+  /**
+   * Pin who moves the revision (`RevisionMode`). Omitted, the mode follows the last of `bump()`
+   * (`surface`) and `setRev()` (`app`), starting as `surface`.
+   */
+  revision?: RevisionMode;
+  /**
+   * Converts a Zod schema to JSON Schema for `observe()`: pass `toJsonSchema` from `@axe/core`.
+   * Required only when an entry carries a Zod schema (`edit.schema`, `requires.accepts[].schema`);
+   * the surface does not import Zod itself, so a browser bundle without Zod stays without it.
+   */
+  toJsonSchema?: SchemaConverter;
 }
 
 export interface Surface {
-  configure(options: { app?: string }): void;
+  configure(options: { app?: string; toJsonSchema?: SurfaceOptions["toJsonSchema"] }): void;
   register(entry: Entry): void;
   unregister(id: string): void;
   /** Drop every entry whose id starts with `prefix` and is not in `keep`. Adapters that re-scan a rendered region use this. */
   reconcile(prefix: string, keep: Set<string>): void;
   /**
    * Report every entry unavailable with `reason` while a transient state lasts (a save in flight,
-   * a modal open). Moves the revision now and again on `thaw`, so an act planned before the freeze
-   * is refused as `conflict` and one planned during it as `unavailable`. Freezes nest: the surface
-   * thaws when the last one is released.
+   * a modal open), and notify `onChange` listeners now and again on `thaw`. In `surface` revision
+   * mode the revision moves on both ends, so an act planned before the freeze is refused as
+   * `conflict`; in `app` mode it stays with the application's revision, so such an act is
+   * `unavailable` while frozen and accepted afterwards exactly when the application's revision did
+   * not move. Freezes nest: the surface thaws when the last one is released.
    */
   freeze(reason: string): Thaw;
-  /** Adopt a persisted revision if it is ahead of the current one. */
+  /** Adopt a persisted revision if it is ahead of the current one. Leaves the revision mode alone. */
   seedRev(n: number): void;
-  /** The application owns the counter: adopt its value as is. */
+  /** The application owns the counter: adopt its value as is. Marks the revision `app`-owned unless pinned. */
   setRev(n: number): void;
   currentRev(): number;
-  /** Advance the revision after a change and notify listeners. */
+  /** Who moves the revision right now: `surface` (`bump`) or `app` (`setRev`). */
+  revisionMode(): RevisionMode;
+  /** Advance the revision after a change and notify listeners. Marks the revision `surface`-owned unless pinned. */
   bump(meta?: Record<string, JsonValue>): number;
   onChange(fn: (event: { rev: number } & Record<string, JsonValue>) => void): () => void;
   setObjects(fn: () => Record<string, JsonValue>): void;
@@ -290,6 +356,14 @@ export interface Surface {
    * can load more, and the freeze's reason for every kind while frozen. Undefined for an unknown id.
    */
   availability(id: string): EntryAvailability | undefined;
+  /**
+   * The DOM mirror for one registered entry as it stands now ([S-DOM-1]): `set`, the attributes
+   * the control carries, computed from `availability(id)` so a freeze shows as `aria-disabled` or
+   * `aria-readonly` with the freeze's reason; and `remove`, every canonical Surface attribute
+   * (`SURFACE_ATTRIBUTES`) not in `set`, so a renderer that applies both never leaves last
+   * render's reason behind. Undefined for an unknown id.
+   */
+  attributesFor(id: string): SurfaceAttributeUpdate | undefined;
   /** Forget everything. Tests. */
   reset(): void;
 }
@@ -301,26 +375,45 @@ export type EntryAvailability =
       available: false;
       reason: string;
       requires?: Accept[];
-      handoff?: Omit<Handoff, "resumeToken" | "expiresAt">;
+      handoff?: WireHandoffSpec;
     };
+
+/** What `attributesFor(id)` returns: attributes to set, and canonical attributes to remove. */
+export interface SurfaceAttributeUpdate {
+  set: SurfaceAttributes;
+  remove: string[];
+}
+
+/** Every attribute the DOM mirror may set ([S-DOM-1]), from the vocabulary's `domAttribute` table. */
+export const SURFACE_ATTRIBUTES: readonly string[] = Object.freeze(
+  Object.values(WIRE.domAttribute),
+);
+
+/** A Zod schema, structurally: anything with `safeParse`. The surface never imports Zod. */
+function isSchemaLike(value: unknown): value is SchemaLike {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { safeParse?: unknown }).safeParse === "function"
+  );
+}
+
+/** A handler's return value, when it is a `HandlerReport`. */
+function reportOf(value: unknown): HandlerReport | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const v = value as { changed?: unknown; rev?: unknown };
+  const out: HandlerReport = {};
+  if (Array.isArray(v.changed)) out.changed = v.changed.map(String);
+  if (typeof v.rev === "number" && Number.isFinite(v.rev)) out.rev = v.rev;
+  return out.changed || out.rev !== undefined ? out : undefined;
+}
 
 function nameOf(e: Entry): string {
   return typeof e.name === "function" ? e.name() : e.name;
 }
 
-function toAccept(entry: AcceptInput): Accept {
-  const out: Accept = {
-    kind: entry.kind,
-    title: entry.title ?? entry.kind,
-    description: entry.description,
-    schema: isZodSchema(entry.schema)
-      ? toJsonSchema(entry.schema, "input")
-      : (entry.schema as JsonSchema),
-    sensitive: entry.sensitive,
-  };
-  if (entry.instructions !== undefined) out.instructions = entry.instructions;
-  return out;
-}
+const NEEDS_CONVERTER =
+  "is a Zod schema; pass toJsonSchema from @axe/core as createSurface({ toJsonSchema }) or configure({ toJsonSchema }), or register a JSON Schema.";
 
 function errorResult(
   code: ErrorResult["error"]["code"],
@@ -354,6 +447,36 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   let seq = 0;
   const ledgerMax = Math.max(0, options.ledger?.max ?? 1000);
   let registryVersion = 0;
+  // Who moves the revision [S-REV-1]: pinned by the option, else the last of bump/setRev.
+  const pinnedMode = options.revision;
+  let mode: RevisionMode = pinnedMode ?? "surface";
+  let convert = options.toJsonSchema;
+  // JSON Schema renderings of Zod schemas, one conversion per schema object.
+  const converted = new WeakMap<SchemaLike, JsonSchema>();
+  const jsonSchemaOf = (schema: JsonSchema | SchemaLike): JsonSchema | undefined => {
+    if (!isSchemaLike(schema)) return schema;
+    if (!convert) return undefined;
+    let out = converted.get(schema);
+    if (!out) {
+      out = convert(schema as never, "input");
+      converted.set(schema, out);
+    }
+    return out;
+  };
+  const toAccept = (entry: AcceptInput): Accept => {
+    const out: Accept = {
+      kind: entry.kind,
+      title: entry.title ?? entry.kind,
+      description: entry.description,
+      schema: jsonSchemaOf(entry.schema as JsonSchema | SchemaLike) ?? {},
+      sensitive: entry.sensitive,
+    };
+    if (entry.instructions !== undefined) out.instructions = entry.instructions;
+    return out;
+  };
+  const notify = (meta: Record<string, JsonValue>): void => {
+    for (const fn of listeners) fn({ ...meta, rev });
+  };
 
   /** One entry's availability, honoring a freeze; shared by `observe()` and `availability()`. */
   const availabilityOf = (e: Entry, frozen: Frozen | undefined): EntryAvailability => {
@@ -376,9 +499,19 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       : { available: false, reason: "cannot load more" };
   };
 
+  /** The DOM mirror set for an entry given its availability; shared by `surfaceAttributes` and `attributesFor`. */
+  const attributesOf = (e: Entry, a: EntryAvailability): SurfaceAttributes => {
+    const out = baseAttributes(e);
+    if (e.kind === "collection" || a.available) return out;
+    out[e.kind === "field" ? WIRE.domAttribute.readOnly : WIRE.domAttribute.disabled] = "true";
+    out[WIRE.domAttribute.surfaceReason] = a.reason;
+    return out;
+  };
+
   const surface: Surface = {
-    configure({ app: name }) {
+    configure({ app: name, toJsonSchema }) {
       if (name) app = String(name);
+      if (toJsonSchema) convert = toJsonSchema;
     },
     register(entry) {
       if (!entry || typeof entry.id !== "string" || !entry.kind)
@@ -390,10 +523,20 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           throw new Error(
             `surface.register(${entry.id}): an action needs effect.mutates, the name of the state it changes.`,
           );
+        const s = entry.state;
+        if (s && !s.available && s.requires && !convert)
+          s.requires.accepts.forEach((a, i) => {
+            if (isSchemaLike(a.schema))
+              throw new Error(
+                `surface.register(${entry.id}): state.requires.accepts[${i}].schema ${NEEDS_CONVERTER}`,
+              );
+          });
       } else if (entry.kind === "field") {
         if (!entry.edit) throw new Error(`surface.register(${entry.id}): a field needs edit.`);
         if (!entry.edit.readOnly && typeof (entry.edit as { set?: unknown }).set !== "function")
           throw new Error(`surface.register(${entry.id}): an editable field needs edit.set.`);
+        if (!entry.edit.readOnly && isSchemaLike(entry.edit.schema) && !convert)
+          throw new Error(`surface.register(${entry.id}): edit.schema ${NEEDS_CONVERTER}`);
       } else if (entry.kind !== "collection") {
         throw new Error(
           `surface.register(${(entry as Entry).id}): kind must be action, field, or collection.`,
@@ -415,14 +558,19 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
     freeze(reason) {
       const hold: Frozen = { reason: String(reason || "busy") };
       freezes.push(hold);
-      surface.bump({ frozen: hold.reason });
+      // [S-FRZ-2] A freeze is a change an agent could observe. When the surface owns the
+      // revision it moves; when the application owns it, the freeze is reported on every
+      // entry and to listeners, and the revision stays the application's.
+      if (mode === "surface") surface.bump({ frozen: hold.reason });
+      else notify({ frozen: hold.reason });
       let released = false;
       const thaw: Thaw = () => {
         if (released) return;
         released = true;
         const i = freezes.indexOf(hold);
         if (i >= 0) freezes.splice(i, 1);
-        surface.bump({ thawed: hold.reason });
+        if (mode === "surface") surface.bump({ thawed: hold.reason });
+        else notify({ thawed: hold.reason });
       };
       return thaw;
     },
@@ -430,12 +578,16 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       if (Number.isFinite(n) && n > rev) rev = n;
     },
     setRev(n) {
-      if (Number.isFinite(n)) rev = n;
+      if (!Number.isFinite(n)) return;
+      rev = n;
+      if (!pinnedMode) mode = "app";
     },
     currentRev: () => rev,
+    revisionMode: () => mode,
     bump(meta = {}) {
+      if (!pinnedMode) mode = "surface";
       rev += 1;
-      for (const fn of listeners) fn({ ...meta, rev });
+      notify(meta);
       return rev;
     },
     onChange(fn) {
@@ -491,10 +643,10 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
             readOnly,
             reason: frozen ? frozen.reason : ed.readOnly ? (ed.reason ?? "read only") : null,
           };
-          if (!readOnly && !ed.readOnly && ed.schema)
-            row.edit.schema = isZodSchema(ed.schema)
-              ? toJsonSchema(ed.schema, "input")
-              : (ed.schema as JsonSchema);
+          if (!readOnly && !ed.readOnly && ed.schema) {
+            const schema = jsonSchemaOf(ed.schema);
+            if (schema) row.edit.schema = schema;
+          }
           if (!readOnly) row.index = ++i;
         } else {
           row.total = e.total ?? null;
@@ -564,7 +716,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         result.error.details = details;
         return result;
       };
-      const run = async (fn: () => MaybePromise<unknown>) => {
+      const runGuarded = async (fn: () => MaybePromise<unknown>) => {
         try {
           return await runner(fn);
         } catch (e) {
@@ -647,6 +799,10 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       const e = entries.get(row.id)!;
       resolved = row.id;
       const before = rev;
+      let report: HandlerReport | undefined;
+      const run = async (fn: () => MaybePromise<unknown>) => {
+        report = reportOf(await runGuarded(fn));
+      };
       // [S-FRZ-3] While frozen, every act is refused with the freeze's reason; no handler runs.
       if (view.frozen) {
         return err(
@@ -712,13 +868,14 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
             ],
           });
         if (ed.schema) {
-          const schema = isZodSchema(ed.schema)
-            ? toJsonSchema(ed.schema, "input")
-            : (ed.schema as JsonSchema);
-          const issues = validateJsonSchema(schema, t).map((i) => ({
-            ...i,
-            path: `/${WIRE.field.text}${i.path}`,
-          }));
+          // A Zod schema validates through its own safeParse; a JSON Schema through the SDK's
+          // validator. Neither path imports Zod here.
+          const issues: ValidationIssue[] = isSchemaLike(ed.schema)
+            ? issuesOf(ed.schema.safeParse(t))
+            : validateJsonSchema(ed.schema, t).map((i) => ({
+                ...i,
+                path: `/${WIRE.field.text}${i.path}`,
+              }));
           if (issues.length)
             return err(WIRE.error.invalidInput, `Text does not match the field's schema.`, {
               issues,
@@ -737,7 +894,11 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           });
         await run(() => e.more!());
       }
-      const changed = rev !== before ? [row.id] : [];
+      // [S-ACT-1] What changed is what the handler reported; when it reported nothing, the
+      // entry itself if the revision moved during the handler, else nothing. A reported `rev`
+      // is the application's revision after the change, adopted before the result is built.
+      if (report?.rev !== undefined) surface.setRev(report.rev);
+      const changed = report?.changed ?? (rev !== before ? [row.id] : []);
       return {
         status: WIRE.status.ok,
         output: { rev, id: row.id, actor, changed, seq: record(WIRE.status.ok, changed) },
@@ -767,6 +928,12 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       const e = entries.get(id);
       return e ? availabilityOf(e, frozenNow()) : undefined;
     },
+    attributesFor(id) {
+      const e = entries.get(id);
+      if (!e) return undefined;
+      const set = attributesOf(e, availabilityOf(e, frozenNow()));
+      return { set, remove: SURFACE_ATTRIBUTES.filter((name) => !(name in set)) };
+    },
     reset() {
       entries.clear();
       registryVersion += 1;
@@ -775,6 +942,8 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       log.length = 0;
       seq = 0;
       rev = 0;
+      mode = pinnedMode ?? "surface";
+      convert = options.toJsonSchema;
       app = options.app ?? "app";
       objectsFn = () => ({});
     },
@@ -804,6 +973,15 @@ export const {
 
 export type { Result, Accept, JsonValue, Risk };
 
+/** Issues from a `safeParse` result, with paths under `/text`. */
+function issuesOf(result: ReturnType<SchemaLike["safeParse"]>): ValidationIssue[] {
+  if (result.success) return [];
+  return (result.error?.issues ?? []).map((i) => ({
+    path: `/${WIRE.field.text}${i.path.map((p) => `/${String(p)}`).join("")}`,
+    message: i.message,
+  }));
+}
+
 // ---------------------------------------------------------------------------------------------
 // DOM mirror (spec §7). Framework-free: these read an entry (registered or observed) and return
 // strings, so any renderer can carry the same names a browser agent reads through `observe()`.
@@ -816,22 +994,31 @@ function isObserved(entry: Entry | ObservedEntry): entry is ObservedEntry {
   return "index" in entry && "rev" in entry;
 }
 
-/**
- * The attributes the control for `entry` carries [S-DOM-1]: `aria-label` (the entry name, so
- * browser agents and screen readers read the outcome), `data-surface-id`, `data-surface-kind`,
- * `data-surface-object` when the entry has one, `aria-disabled="true"` plus `data-surface-reason`
- * on an unavailable action, and `aria-readonly="true"` plus `data-surface-reason` on a read-only
- * field. Collections carry the common set only. Set them on the element that receives the
- * interaction; `surfaceSelector(id)` finds it again.
- */
-export function surfaceAttributes(entry: Entry | ObservedEntry): SurfaceAttributes {
-  const name = isObserved(entry) ? entry.name : nameOf(entry);
+/** The attributes every entry carries: name, id, kind, and object. */
+function baseAttributes(entry: Entry | ObservedEntry): SurfaceAttributes {
   const out: SurfaceAttributes = {
-    [WIRE.domAttribute.label]: name,
+    [WIRE.domAttribute.label]: isObserved(entry) ? entry.name : nameOf(entry),
     [WIRE.domAttribute.surfaceId]: entry.id,
     [WIRE.domAttribute.surfaceKind]: entry.kind,
   };
   if (entry.object) out[WIRE.domAttribute.surfaceObject] = entry.object;
+  return out;
+}
+
+/**
+ * The attributes the control for `entry` carries [S-DOM-1], read from the entry itself: `aria-label`
+ * (the entry name, so browser agents and screen readers read the outcome), `data-surface-id`,
+ * `data-surface-kind`, `data-surface-object` when the entry has one, `aria-disabled="true"` plus
+ * `data-surface-reason` on an unavailable action, and `aria-readonly="true"` plus
+ * `data-surface-reason` on a read-only field. Collections carry the common set only. Set them on
+ * the element that receives the interaction; `surfaceSelector(id)` finds it again.
+ *
+ * This is the static reading: it knows the entry's own `state` and `edit` and nothing of a freeze,
+ * and it returns only what to set. For a control that is re-rendered while the surface lives, use
+ * `surface.attributesFor(id)`, which reads the live availability and also says what to remove.
+ */
+export function surfaceAttributes(entry: Entry | ObservedEntry): SurfaceAttributes {
+  const out = baseAttributes(entry);
   if (entry.kind === "action") {
     const s = entry.state ?? { available: true, reason: null };
     if (!s.available) {

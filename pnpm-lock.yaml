@@ -225,6 +225,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
+      esbuild:
+        specifier: ^0.25.12
+        version: 0.25.12
       react:
         specifier: ^18.3.1
         version: 18.3.1

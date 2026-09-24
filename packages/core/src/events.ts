@@ -1,6 +1,8 @@
 /**
  * Analytics events (spec/EVENTS.md) and the sinks that receive them.
  * Events carry no PII and no payloads by construction: the type has no field for them.
+ * This module is platform-neutral; `jsonlFileSink`, which needs the file system, lives in
+ * `@axe/core/node`.
  */
 import type { AXEActionEvent, AXEEvent, EventAgent } from "./types";
 
@@ -18,21 +20,6 @@ export function consoleSink(
 ): (event: AXEEvent | AXEActionEvent) => void {
   return (event) => {
     write(JSON.stringify(event));
-  };
-}
-
-/**
- * Sink: append JSON lines to a file. Node only. The file handle is opened lazily and
- * writes are serialized, so events never interleave.
- */
-export function jsonlFileSink(path: string): (event: AXEEvent | AXEActionEvent) => Promise<void> {
-  let queue: Promise<void> = Promise.resolve();
-  return (event) => {
-    queue = queue.then(async () => {
-      const { appendFile } = await import("node:fs/promises");
-      await appendFile(path, JSON.stringify(event) + "\n", "utf8");
-    });
-    return queue;
   };
 }
 

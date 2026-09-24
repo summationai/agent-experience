@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createSurface } from "../src/index";
 import type { ActResult, LedgerEntry, LedgerQuery } from "../src/index";
 import { kinds, accept } from "@axe/core/kinds";
-import { z } from "@axe/core";
+import { toJsonSchema, z } from "@axe/core";
 import { board } from "./fixtures/board";
 
 const okOf = (r: ActResult) => (r.status === "ok" ? r.output : undefined);
@@ -196,7 +196,7 @@ describe("act returns the AXE result envelope", () => {
   });
 
   it("unavailable actions are refused with the reason, and carry requires/handoff when declared [S-ACT-4]", async () => {
-    const s = createSurface();
+    const s = createSurface({ toJsonSchema });
     let approved = false;
     s.register({
       id: "lock:march",
@@ -271,8 +271,48 @@ describe("act returns the AXE result envelope", () => {
     expect(calls).toBe(1);
   });
 
-  it("fields: maxLength, schema validation, read-only refusal, and set with actor", async () => {
+  it("a handoff without a url is reported in details and never invented [S-AV-3]", async () => {
     const s = createSurface();
+    s.register({
+      id: "unlock",
+      kind: "action",
+      role: "button",
+      name: "Unlock the version",
+      state: {
+        available: false,
+        reason: "this version is locked",
+        handoff: {
+          reason: "version_locked",
+          instructions: "Unlock the version from the version menu.",
+          whatAgentShouldSayToUser: "The version is locked; unlock it from the version menu first.",
+        },
+      },
+      effect: { mutates: "locks", risk: "high" },
+      handler: () => {},
+    });
+    const v = s.observe();
+    expect(v.entries[0]!.state?.handoff).toEqual({
+      reason: "version_locked",
+      instructions: "Unlock the version from the version menu.",
+      whatAgentShouldSayToUser: "The version is locked; unlock it from the version menu first.",
+    });
+    expect(s.availability("unlock")).toMatchObject({
+      available: false,
+      handoff: { reason: "version_locked" },
+    });
+    const r = await s.act({ op: "CLICK", target: "unlock", expectedRev: v.rev });
+    expect(codeOf(r)).toBe("unavailable");
+    if (r.status === "error") {
+      expect(r.error.details?.reason).toBe("this version is locked");
+      expect((r.error.details?.handoff as { url?: string }).url).toBeUndefined();
+      expect((r.error.details?.handoff as { instructions: string }).instructions).toContain(
+        "version menu",
+      );
+    }
+  });
+
+  it("fields: maxLength, schema validation, read-only refusal, and set with actor", async () => {
+    const s = createSurface({ toJsonSchema });
     const seen: [string, string][] = [];
     s.register({
       id: "cell",
@@ -314,6 +354,61 @@ describe("act returns the AXE result envelope", () => {
     const ro = await s.act({ op: "TYPE_TEXT", target: "derived", expectedRev: 1, text: "1" });
     expect(codeOf(ro)).toBe("unavailable");
     if (ro.status === "error") expect(ro.error.message).toContain("derived from sales and cost");
+    // The Zod schema is published as JSON Schema through the configured converter.
+    expect(s.observe().entries[0]!.edit?.schema).toMatchObject({ type: "string" });
+  });
+
+  it("a JSON Schema on a field needs no converter and is published as it is; a Zod schema without one is refused at registration", async () => {
+    const s = createSurface();
+    const schema = { type: "string", pattern: "^[0-9.]+M$" };
+    s.register({
+      id: "cell",
+      kind: "field",
+      role: "textbox",
+      name: "March demand",
+      edit: { schema, set: () => undefined },
+    });
+    expect(s.observe().entries[0]!.edit?.schema).toEqual(schema);
+    const bad = await s.act({ op: "TYPE_TEXT", target: "cell", expectedRev: 0, text: "four" });
+    expect(codeOf(bad)).toBe("invalid_input");
+    if (bad.status === "error") expect(bad.error.details?.issues?.[0]?.path).toBe("/text");
+    expect(
+      codeOf(await s.act({ op: "TYPE_TEXT", target: "cell", expectedRev: 0, text: "4M" })),
+    ).toBe("ok");
+    expect(() =>
+      s.register({
+        id: "zod",
+        kind: "field",
+        role: "textbox",
+        name: "Zod",
+        edit: { schema: z.string(), set: () => undefined },
+      }),
+    ).toThrow(/edit\.schema is a Zod schema; pass toJsonSchema/);
+    expect(() =>
+      s.register({
+        id: "lock",
+        kind: "action",
+        role: "button",
+        name: "Lock",
+        state: {
+          available: false,
+          reason: "approval required",
+          requires: { accepts: [accept(kinds.consent.terms)], fulfill: () => undefined },
+        },
+        effect: { mutates: "locks" },
+        handler: () => undefined,
+      }),
+    ).toThrow(/accepts\[0\]\.schema is a Zod schema/);
+    // Configuring the converter later makes both registrations valid.
+    s.configure({ toJsonSchema });
+    s.register({
+      id: "zod",
+      kind: "field",
+      role: "textbox",
+      name: "Zod",
+      edit: { schema: z.string().min(2), set: () => undefined },
+    });
+    expect(s.observe().entries[1]!.edit?.schema).toMatchObject({ type: "string", minLength: 2 });
   });
 
   it("collections load more with SCROLL_DOWN; handlers run through the supplied runner", async () => {
@@ -934,5 +1029,205 @@ describe("the ledger [S-LED-1..7]", () => {
       [1, "pick:me:Chase", "ok"],
     ]);
     expect(host.__surface!.ledger({ since: 1 })).toEqual([]);
+  });
+});
+
+describe("what a handler reports [S-ACT-1] [S-LED-5]", () => {
+  const withHandlers = () => {
+    const s = createSurface();
+    s.register({
+      id: "save",
+      kind: "action",
+      role: "button",
+      name: "Save the plan",
+      effect: { mutates: "plan" },
+      // A server-revision application: the handler reports what changed and the revision the
+      // server assigned, instead of bumping.
+      handler: async () => ({ changed: ["cell:a", "cell:b"], rev: 130 }),
+    });
+    s.register({
+      id: "cell:a",
+      kind: "field",
+      role: "textbox",
+      name: "A",
+      edit: { set: () => Promise.resolve({ changed: [] }) },
+    });
+    s.register({
+      id: "grid",
+      kind: "collection",
+      role: "grid",
+      name: "Grid",
+      more: () => ({ rev: 131 }),
+    });
+    s.register({
+      id: "inc",
+      kind: "action",
+      role: "button",
+      name: "Increment",
+      effect: { mutates: "n" },
+      // A browser application: the handler bumps and returns whatever; changed is inferred.
+      handler: () => s.bump(),
+    });
+    return s;
+  };
+
+  it("folds changed and rev into the result and the ledger; rev is adopted as setRev would", async () => {
+    const s = withHandlers();
+    s.setRev(129);
+    const r = await s.act({ op: "CLICK", target: "save", expectedRev: 129 });
+    expect(okOf(r)).toEqual({
+      rev: 130,
+      id: "save",
+      actor: "agent",
+      changed: ["cell:a", "cell:b"],
+      seq: 1,
+    });
+    expect(s.currentRev()).toBe(130);
+    expect(s.ledger()[0]).toMatchObject({
+      revBefore: 129,
+      revAfter: 130,
+      changed: ["cell:a", "cell:b"],
+    });
+    expect(s.revisionMode()).toBe("app");
+    // An explicit empty report means nothing observable changed, and the ledger says so.
+    const a = await s.act({ op: "TYPE_TEXT", target: "cell:a", text: "x", expectedRev: 130 });
+    expect(okOf(a)?.changed).toEqual([]);
+    expect(okOf(a)?.rev).toBe(130);
+    // A reported rev without changed: the revision moved because of this act, so the entry changed.
+    const g = await s.act({ op: "SCROLL_DOWN", target: "grid", expectedRev: 130 });
+    expect(okOf(g)).toMatchObject({ rev: 131, changed: ["grid"] });
+    expect(s.ledger()[2]).toMatchObject({ revBefore: 130, revAfter: 131, changed: ["grid"] });
+  });
+
+  it("without a report, changed is the entry when the revision moved during the handler, else empty", async () => {
+    const s = withHandlers();
+    const r = await s.act({ op: "CLICK", target: "inc", expectedRev: 0 });
+    expect(okOf(r)).toMatchObject({ rev: 1, changed: ["inc"] });
+    expect(s.revisionMode()).toBe("surface");
+  });
+});
+
+describe("revision modes [S-REV-1] [S-FRZ-2] [S-FRZ-3]", () => {
+  const cell = (s: ReturnType<typeof createSurface>, writes: string[]) =>
+    s.register({
+      id: "cell",
+      kind: "field",
+      role: "textbox",
+      name: "March demand",
+      value: "4.2M",
+      edit: { set: (t) => void writes.push(t) },
+    });
+
+  it("follows the last of bump and setRev unless pinned; reset restores the default", () => {
+    const s = createSurface();
+    expect(s.revisionMode()).toBe("surface");
+    s.setRev(129);
+    expect(s.revisionMode()).toBe("app");
+    s.seedRev(200); // seedRev adopts a persisted value and leaves the mode alone
+    expect(s.revisionMode()).toBe("app");
+    s.bump();
+    expect(s.revisionMode()).toBe("surface");
+    s.reset();
+    expect(s.revisionMode()).toBe("surface");
+    const pinned = createSurface({ revision: "app" });
+    pinned.bump();
+    expect(pinned.revisionMode()).toBe("app");
+    const browser = createSurface({ revision: "surface" });
+    browser.setRev(5);
+    expect([browser.revisionMode(), browser.currentRev()]).toEqual(["surface", 5]);
+  });
+
+  it("app-owned: freeze and thaw leave the revision with the application, report the freeze, and notify listeners", async () => {
+    const s = createSurface({ app: "planning" });
+    const writes: string[] = [];
+    cell(s, writes);
+    s.setRev(129);
+    const events: Record<string, unknown>[] = [];
+    s.onChange((e) => events.push(e));
+    const before = s.observe();
+
+    const thaw = s.freeze("an edit is being saved");
+    const during = s.observe();
+    expect(during.rev).toBe(129);
+    expect(during.frozen).toEqual({ reason: "an edit is being saved" });
+    expect(during.entries[0]!.edit).toMatchObject({
+      readOnly: true,
+      reason: "an edit is being saved",
+    });
+    expect(during.entries[0]!.index).toBeNull();
+    expect(events).toEqual([{ rev: 129, frozen: "an edit is being saved" }]);
+    // [S-FRZ-3] An act planned before the freeze passes the revision guard and is refused as
+    // unavailable, since the revision is the application's and it did not move.
+    const planned = await s.act({
+      op: "TYPE_TEXT",
+      target: "cell",
+      text: "5M",
+      expectedRev: before.rev,
+    });
+    expect(codeOf(planned)).toBe("unavailable");
+    if (planned.status === "error") {
+      expect(planned.error.retryable).toBe(true);
+      expect(planned.error.details?.frozen).toEqual({ reason: "an edit is being saved" });
+    }
+    expect(writes).toEqual([]);
+
+    thaw();
+    expect(s.currentRev()).toBe(129);
+    expect(s.observe().frozen).toBeUndefined();
+    expect(events).toEqual([
+      { rev: 129, frozen: "an edit is being saved" },
+      { rev: 129, thawed: "an edit is being saved" },
+    ]);
+    // After the thaw the same act is accepted exactly when the application's revision did not move.
+    expect(
+      codeOf(await s.act({ op: "TYPE_TEXT", target: "cell", text: "5M", expectedRev: before.rev })),
+    ).toBe("ok");
+    expect(writes).toEqual(["5M"]);
+    s.setRev(130);
+    const stale = await s.act({
+      op: "TYPE_TEXT",
+      target: "cell",
+      text: "6M",
+      expectedRev: before.rev,
+    });
+    expect(codeOf(stale)).toBe("conflict");
+    if (stale.status === "error")
+      expect(stale.error.details).toMatchObject({ expectedRev: 129, currentRev: 130 });
+    expect(writes).toEqual(["5M"]);
+    // The ledger recorded the refusal at the application's revision, not at a revision of its own.
+    expect(s.ledger().map((e) => [e.status, e.revBefore, e.revAfter])).toEqual([
+      ["unavailable", 129, 129],
+      ["ok", 129, 129],
+      ["conflict", 130, 130],
+    ]);
+  });
+
+  it("surface-owned: freeze and thaw move the revision, so an act planned before the freeze is conflict", async () => {
+    const s = createSurface();
+    const writes: string[] = [];
+    cell(s, writes);
+    const before = s.observe();
+    const thaw = s.freeze("saving");
+    expect(s.currentRev()).toBe(before.rev + 1);
+    expect(
+      codeOf(await s.act({ op: "TYPE_TEXT", target: "cell", text: "5M", expectedRev: before.rev })),
+    ).toBe("conflict");
+    thaw();
+    expect(s.currentRev()).toBe(before.rev + 2);
+    expect(
+      codeOf(await s.act({ op: "TYPE_TEXT", target: "cell", text: "5M", expectedRev: before.rev })),
+    ).toBe("conflict");
+    expect(writes).toEqual([]);
+  });
+
+  it("a pinned app mode keeps the revision through a freeze even after a bump", () => {
+    const s = createSurface({ revision: "app" });
+    s.setRev(7);
+    s.bump();
+    expect(s.currentRev()).toBe(8);
+    const thaw = s.freeze("busy");
+    expect(s.currentRev()).toBe(8);
+    thaw();
+    expect(s.currentRev()).toBe(8);
   });
 });
