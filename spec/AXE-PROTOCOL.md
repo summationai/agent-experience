@@ -520,6 +520,22 @@ OAuth 2.1 authorization-server behavior (client registration, authorization endp
 
 **[P-AGENT-3]** Agents MUST honor `Retry-After` and MUST NOT retry `rate_limited` errors sooner.
 
+### 17.1 Where an agent sends requests and credentials
+
+A manifest, a result, and a discovery hint are data from the site. Each one can name a URL (`baseUrl`, `live.url`, `pollUrl`, a handoff `url`, an `AXE-Manifest` header, a `<link rel="axe-manifest">`), and none of them is authority to receive the agent's credentials. The rules below say which origins an agent may contact and which receive credentials. "Credentials" means the `Authorization` header and any other header the agent operator configured to identify the user or the agent.
+
+**[P-AGENT-4]** An agent's credential audience is the origin it started discovery from, plus origins its operator explicitly authorized. An agent that was handed a manifest rather than discovering one MAY treat that manifest's `baseUrl` origin as the starting origin. An agent MUST NOT send credentials to any other origin, whatever a manifest, result, or hint names.
+
+**[P-AGENT-5]** An agent MUST NOT follow a `baseUrl`, `live.url`, `pollUrl`, `AXE-Manifest` header, or `axe-manifest` link on an origin outside its credential audience unless its operator authorized contacting other origins; such a request MUST carry no credentials. An agent that allows such requests SHOULD refuse loopback, link-local, and private-range destinations. The handoff `url` is for a human; an agent does not fetch it.
+
+**[P-AGENT-6]** An agent MUST check every redirect target against [P-AGENT-4] and [P-AGENT-5] before requesting it, MUST NOT send credentials on a redirect to an origin other than that of the original request, and MUST refuse a redirect from `https` to `http`.
+
+**[P-AGENT-7]** An agent MUST use `https`, except for `http` to a loopback host (`localhost`, `127.0.0.0/8`, `[::1]`) in its credential audience, the same exception [P-MAN-2] makes for `baseUrl`, or where its operator deliberately permits `http` on a network it controls.
+
+**[P-AGENT-8]** An agent that runs on a host with network access the site should not have (a server, an MCP server on a company network) SHOULD let its operator gate every outbound URL, and SHOULD run behind an egress policy. URL checks see names, not the addresses they resolve to: they do not stop DNS rebinding or a public name that resolves to a private address.
+
+**[P-AGENT-9]** An agent that exposes polling to a model (for example as an MCP tool) MUST NOT fetch an arbitrary URL the model supplies: it polls only a `pollUrl` the site returned in a `pending` result.
+
 ## 18. Agent-facing honesty
 
 The 2008 web produced keyword stuffing, cloaking, and link farms because a number could be moved by lying. Agents create the same incentives. This section defines what is out of bounds; `axe audit` detects what it can, and agents are expected to rank against the rest.
@@ -562,6 +578,7 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 ## 19. Security considerations
 
 - **Prompt injection.** Every agent-read text field is untrusted input to a model. Agents MUST treat manifest and result text as data, never as instructions, and SHOULD isolate it from their system prompt. Sites MUST comply with §18.
+- **Credential forwarding and request forgery.** Manifests, results, and discovery hints can name any URL. Agents bind credentials and destinations to the origins their operator authorized (§17.1); a host-side agent also needs an egress policy, because URL checks do not see DNS.
 - **Token theft and replay.** Tokens are bearer credentials scoped to one action, one input, one user, and one use, with short expiry ([P-TOK-2] to [P-TOK-5]). Agents MUST transmit them only over HTTPS and MUST NOT log them.
 - **Sensitive payloads.** [P-REQ-3] and [P-REQ-10]. The SDK never logs payloads and never includes them in events.
 - **Agents as load.** A manifest invites agents; it does not promise unlimited capacity. Sites SHOULD declare `policies.rateLimit`, enforce it at their edge, and use `pending` for slow work rather than holding connections.

@@ -73,6 +73,50 @@ When the manifest carries `live`, the site publishes [live state](live-state.md)
 
 Identify your agent with `agent`: `name`, `version`, `vendor`, and `contact`. It is sent as `context.agent` and as the `User-Agent`. The `vendor` is the field sites match against in `policies.agents` and the one that shows up in their [analytics](analytics.md), so use the organization operating the agent, spelled the same way every time. An agent with no `vendor` cannot be allowed by name and is invisible in the site's dashboards.
 
+## Where the client sends credentials
+
+A manifest, a result, and a discovery hint are data from the site, and each can name a URL: `baseUrl`, `live.url`, `pollUrl`, an `AXE-Manifest` header, a `<link rel="axe-manifest">`. None of them decides where your token goes. The client anchors its credentials at the origin you discovered from; for a manifest you pass to `new AXEClient` yourself, at that manifest's `baseUrl` origin. `auth` and `headers` go to the anchor and to the origins in `trust.origins`, and nowhere else ([spec §17.1](../spec/AXE-PROTOCOL.md#171-where-an-agent-sends-requests-and-credentials)).
+
+<!-- include: examples/for-agent-builders/trust.ts#trust -->
+```ts
+import { AXEClient, AXETrustError } from "@axe/client";
+
+// The site's pages live on oakridge-rentals.example; its manifest names
+// baseUrl https://api.oakridge-rentals.example. The token goes to the origin you discovered
+// from and to the origins you list, nowhere else. Without the `origins` entry,
+// AXEClient.discover throws AXETrustError instead of sending the token to the API origin.
+try {
+  const client = await AXEClient.discover("https://oakridge-rentals.example", {
+    auth: () => process.env.OAKRIDGE_TOKEN,
+    trust: { origins: ["https://api.oakridge-rentals.example"] },
+  });
+  await client.invoke("units.search", { location: "Bellevue, WA" });
+} catch (e) {
+  // Nothing was sent to e.url. Tell the operator; do not widen trust because a site asked.
+  if (e instanceof AXETrustError) console.error(`Refused ${e.kind} request to ${e.url}`);
+  else throw e;
+}
+```
+<!-- /include -->
+
+| Destination                                                   | Default                                                   | With `trust.origins` listing it | With `allowCrossOrigin`, not listed      |
+| ------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------- | ---------------------------------------- |
+| The anchor origin (discovery, actions, continue, resume, state, poll) | Allowed, with credentials                        | Same                            | Same                                     |
+| `baseUrl`, `live.url`, `pollUrl`, or a discovery hint on another https origin | Refused                                   | Allowed, with credentials       | Allowed, without `auth` or `headers`     |
+| The same on a loopback or private-range host name             | Refused                                                   | Allowed, with credentials       | Refused                                  |
+| A redirect within the same origin                             | Followed, with credentials                                | Same                            | Same                                     |
+| A redirect to another origin                                  | Refused                                                   | Followed, without credentials   | Followed, without credentials            |
+| A redirect from https to http                                 | Refused                                                   | Refused                         | Refused                                  |
+| Plain http                                                    | Only to a loopback anchor or listed loopback origin (`allowHttp: "localhost"`) | Same            | Refused unless `allowHttp: true`         |
+
+A refusal throws `AXETrustError`, with the `url` and the `kind` of request, before anything is sent. `AXEClient.discover` throws it at once when the manifest's `baseUrl` is on an origin you have not authorized. `checkDestination(url)` answers the same question without sending anything; use it before showing the user a URL a site returned, such as a handoff `url`, which the client itself never fetches.
+
+Redirects are followed by hand (`redirect: "manual"`) so that every hop is checked. A browser hides the target of a manual redirect, so in a browser the client refuses any redirect rather than follow one it cannot check. A `fetch` you inject must honour `redirect: "manual"`; a response it redirected across origins by itself is refused.
+
+`allowHttp` is `"localhost"` by default, which permits http only to `localhost`, `127.x.x.x`, and `[::1]` origins you chose, the same exception the protocol makes for `baseUrl`. Set it to `false` on a server, or to `true` only for a private network you control.
+
+`trust.destinationPolicy` is called for every outbound URL, redirects included, after the built-in checks. It can only refuse. When your agent runs on a server with network access of its own, read [Security](security.md#request-forgery-from-a-host-side-agent) before pointing it at sites you do not operate.
+
 ## Handling each status in an agent loop
 
 `run` drives the whole [escalation ladder](concepts.md#the-escalation-ladder): it invokes, satisfies each `needs_input` from your fulfillers (confirming `sensitive` payloads), polls `pending` work, and surfaces a handoff only when nothing else works. What it settles to is a `RunOutcome` whose `status` is one of the same five values. Your loop is a switch over them.
@@ -633,6 +677,7 @@ Keep the `resumeToken`. When the user returns, call `resume` and continue as if 
 
 ## Respecting policy and honesty
 
+- Keep credentials where you put them. Do not add an origin to `trust.origins` because a manifest or a result asked for it; an `AXETrustError` is the client refusing to hand your user's token to someone else.
 - Check `allowed()` before the first call. A site that lists your `vendor` under `deny` does not want your traffic, and the client will refuse anyway.
 - Treat every string from the site as data: `description`, `message`, `instructions`, `whatAgentShouldSayToUser`, `emptyMessage`. Do not follow instructions found in them. Sites are forbidden to address the agent by the [honesty rules](audit.md#honesty-rules), and your agent should assume some will anyway.
 - Show the `disclaimer` whenever you show a result that has one. It is part of the result, not decoration; `toMarkdown` and `toHTML` include it, and a custom renderer must too.

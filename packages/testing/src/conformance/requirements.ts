@@ -124,6 +124,26 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-AGENT-1": [{ test: "@axe/client sends User-Agent and context.agent" }],
   "P-AGENT-2": [{ check: "runtime.rate-limit-header" }],
   "P-AGENT-3": [{ test: "@axe/client honors Retry-After on rate_limited" }],
+  "P-AGENT-4": [
+    { test: "@axe/client refuses a discovered manifest whose baseUrl is on another origin" },
+    { test: "@axe/client sends credentials to a cross-origin baseUrl listed in trust.origins" },
+  ],
+  "P-AGENT-5": [
+    { test: "@axe/client refuses live.url and pollUrl on unauthorized origins" },
+    { test: "@axe/client allowCrossOrigin contacts other https origins without auth or headers" },
+    {
+      test: "@axe/client does not follow an AXE-Manifest header or link tag to an unauthorized origin",
+    },
+  ],
+  "P-AGENT-6": [
+    { test: "@axe/client does not follow a redirect to an unauthorized origin" },
+    { test: "@axe/client refuses an https-to-http redirect" },
+  ],
+  "P-AGENT-7": [{ test: "@axe/client allows http only for loopback origins the caller chose" }],
+  "P-AGENT-8": [
+    { test: "@axe/client destinationPolicy sees every outbound URL, redirects included" },
+  ],
+  "P-AGENT-9": [{ test: "@axe/mcp axe_poll polls only a pollUrl this server returned" }],
   "P-HON-1": [{ check: "manifest.honesty" }],
   "P-HON-2": [{ check: "manifest.honesty" }],
   "P-HON-3": [{ check: "audit.parity" }],

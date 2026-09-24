@@ -44,6 +44,49 @@ P-HON-3 requires that data returned to an agent be what a human sees at `display
 
 On a platform, one runtime serves many tenants. Tokens are bound to the tenant id and idempotency keys are prefixed with it, so a continuation minted for one tenant is `not_found` on another and keys never collide across tenants. Every event carries `tenant`. Your handlers must still confine `onBehalfOf` to the tenant it belongs to; the runtime cannot check that.
 
+### Credential forwarding from the agent side
+
+The threats above face the site. This one faces the agent. A manifest discovered at one origin can name a `baseUrl`, `live.url`, or `pollUrl` on another, and a naive client sends its bearer token wherever it is told. Redirects are the same problem one hop later: Node's `fetch` drops `Authorization` on a cross-origin redirect but forwards every other header, so an API key in a custom header reaches the redirect target.
+
+`@axe/client` binds `auth` and `headers` to the origin it discovered from plus the origins in `trust.origins`. Other origins are refused, or contacted without credentials when `allowCrossOrigin` is set. Redirects are followed by hand and each hop is checked again; credentials never cross an origin on a redirect, and an https-to-http redirect is refused. Plain http is allowed only for loopback origins you chose. The table is in [For agent builders](for-agent-builders.md#where-the-client-sends-credentials).
+
+The MCP server derived by `@axe/mcp` exposes polling to a model as the `axe_poll` tool. A tool argument is model-supplied, so prompt-injected text could name any URL; the tool polls only a `pollUrl` the server itself returned in a `pending` result.
+
+### Request forgery from a host-side agent
+
+An agent that runs on a server (an MCP server on a company network, a backend worker) fetches URLs that sites choose, from a network position the sites do not have. That is server-side request forgery: a manifest pointing `live.url` at `http://10.0.0.5/admin` or `https://169.254.169.254/` asks your host to fetch its own internal services.
+
+The client's defaults narrow this. Without `trust.origins` or `allowCrossOrigin` it contacts only the origin you discovered from. With `allowCrossOrigin` it refuses host names that are loopback, link-local, or private by their spelling. `trust.destinationPolicy` gates every outbound URL, redirects included, so the operator can bind the client to an allowlist:
+
+<!-- include: examples/security/agent-destinations.ts#egress -->
+```ts
+import { AXEClient } from "@axe/client";
+import type { DestinationRequest } from "@axe/client";
+
+// A client running inside an MCP server on a company network. The site is untrusted, and the
+// server's network access is not the site's to borrow. Every outbound URL, redirects included,
+// passes through destinationPolicy after the built-in origin and scheme checks.
+const allowedHosts = new Set(["oakridge-rentals.example", "api.oakridge-rentals.example"]);
+
+function destinationPolicy(request: DestinationRequest): boolean {
+  const { protocol, hostname } = new URL(request.url);
+  return protocol === "https:" && allowedHosts.has(hostname);
+}
+
+export const client = await AXEClient.discover("https://oakridge-rentals.example", {
+  auth: () => process.env.OAKRIDGE_TOKEN,
+  trust: {
+    origins: ["https://api.oakridge-rentals.example"],
+    // https everywhere, loopback included: this host is a server, not a laptop.
+    allowHttp: false,
+    destinationPolicy,
+  },
+});
+```
+<!-- /include -->
+
+URL checks do not stop request forgery. They see names, not addresses: a public name can resolve to a private address, and DNS rebinding can change the answer between a check and the connection. Only a check at connection time sees the address actually used. Run a host-side client behind an egress policy (a forward proxy or firewall that refuses private ranges and metadata endpoints), or inject a `fetch` whose connector refuses private addresses after resolution. Treat `destinationPolicy` as the application-level half of that boundary, not all of it.
+
 ## What the SDK mitigates
 
 | Threat                               | Mechanism                                                                                                                              | Where                                      |
@@ -60,6 +103,8 @@ On a platform, one runtime serves many tenants. Tokens are bound to the tenant i
 | Unwanted agents                      | `policies.agents` allow and deny lists enforced per request; deny wins                                                                 | `@axe/core`, request pipeline              |
 | Cross-origin browser calls           | CORS off unless `cors` is configured; no CORS headers emitted otherwise                                                                | `@axe/core`, `cors`                        |
 | Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                 | `@axe/client/present`, `toHTML`            |
+| Agent credentials sent to other origins | Credentials bound to the discovery origin plus `trust.origins`; redirects checked per hop; no credentials across origins; https downgrade refused | `@axe/client`, `trust` |
+| Model-chosen poll URLs | `axe_poll` polls only a `pollUrl` the server returned | `@axe/mcp` |
 | Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@axe/core/events`                         |
 | Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
 
@@ -161,6 +206,7 @@ These are true of v0. The first two are deferred with reasons in [ROADMAP.md](..
 - **Parity is a spot-check.** The audit looks for agent-returned values as text on the human page. Dynamic pages, formatted numbers, and personalized prices defeat it in either direction.
 - **Zod refinements are not enforced on continue.** Stored `accepts` schemas are JSON Schema so they can live in any `TokenStore`, and payloads are validated against that. A refinement on a custom kind's Zod schema is not applied to `/axe/continue`; put the constraint in `onContinue`.
 - **In-memory stores lose everything on restart.** Every open continuation, handoff, and idempotency record disappears and agents receive `not_found`. Use durable stores in production.
+- **Agent-side URL checks see names, not addresses.** `trust` and `destinationPolicy` cannot stop DNS rebinding or a public name that resolves to a private address. A host-side agent needs an egress policy as well.
 - **`toHTML` allows inline script in its CSP.** The rendered page's Content-Security-Policy meta tag permits inline script and styles so its one static script and stylesheet work without external files. A surface embedding the page should apply its own stricter policy.
 
 ## Reporting

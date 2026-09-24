@@ -203,7 +203,7 @@ describe("destination policy: redirects [P-AGENT-6]", () => {
         : undefined;
 
   for (const status of [301, 302, 303, 307, 308]) {
-    it(`does not follow a ${status} to an unauthorized origin, and never forwards credentials`, async () => {
+    it(`does not follow a redirect to an unauthorized origin (${status}), and never forwards credentials`, async () => {
       const net = network(redirectTo(status, "https://attacker.example/steal"), OK);
       const client = new AXEClient(manifest("https://trusted.example"), {
         ...credentials,

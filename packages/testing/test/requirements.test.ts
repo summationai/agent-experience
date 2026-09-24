@@ -44,6 +44,8 @@ describe("requirement coverage", () => {
       "packages/core/test/live.test.ts",
       "packages/client/test/client.test.ts",
       "packages/client/test/narrowing.test.ts",
+      "packages/client/test/trust.test.ts",
+      "packages/mcp/test/mcp.test.ts",
     ]
       .map((p) => readFileSync(join(root, p), "utf8"))
       .join("\n");
@@ -51,7 +53,7 @@ describe("requirement coverage", () => {
     for (const list of Object.values(REQUIREMENTS))
       for (const c of list) if ("test" in c) names.add(c.test);
     const missing = [...names].filter((n) => {
-      const title = n.replace(/^@axe\/(core|client) /, "");
+      const title = n.replace(/^@axe\/(core|client|mcp) /, "");
       const words = title.split(/[:;,]/)[0]!.trim();
       return !testFiles.includes(words);
     });
