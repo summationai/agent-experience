@@ -50,8 +50,18 @@ export type {
 } from "./results";
 export { MemoryTokenStore, TokenSigner, hashJson, canonicalJson } from "./tokens";
 export type { TokenStore, TokenRecord, TokenType } from "./tokens";
-export { MemoryIdempotencyStore, DEFAULT_IDEMPOTENCY_TTL_SECONDS } from "./idempotency";
-export type { IdempotencyStore, IdempotencyRecord } from "./idempotency";
+export {
+  MemoryIdempotencyStore,
+  DEFAULT_IDEMPOTENCY_TTL_SECONDS,
+  DEFAULT_OPERATION_LEASE_SECONDS,
+} from "./idempotency";
+export type {
+  IdempotencyStore,
+  IdempotencyRecord,
+  ClaimRequest,
+  ClaimOutcome,
+} from "./idempotency";
+export type { SiteKeyContext } from "./principal";
 export { DisplayValidationError, resolveDisplay, stripReserved, MAX_AFFORDANCES } from "./display";
 export type {
   PresentedResult,

@@ -29,6 +29,7 @@ import type {
 } from "./types";
 import type { ResultIntent } from "./results";
 import type { Identity } from "./server";
+import type { SiteKeyContext } from "./principal";
 import type { fail, handoff, needsInput, ok, pending, unavailable } from "./results";
 import type { AcceptInput } from "./kinds";
 import { toJsonSchema } from "./zod-json-schema";
@@ -99,8 +100,20 @@ interface BaseContext extends ResultHelpers {
   context: RequestContext;
   /** The identity your `authenticate` function or adapter established, with any `claims`; null when anonymous. */
   identity: Identity | null;
-  /** For `site` mode: what `verifySiteKey` returned about the key, when it returned an object. */
-  siteKey: { id?: string; actions?: string[] } | null;
+  /**
+   * For a `site` action, and for a continue, resume, or poll of a token minted by one: the verified
+   * key's principal id and allowlist. `id` is what `verifySiteKey` returned, or a keyed hash of the
+   * key when it returned none. Null when no site key is part of the call.
+   */
+  siteKey: SiteKeyContext | null;
+  /**
+   * A stable id for this operation, the same on every retry of it and on every instance: derived
+   * from the scoped `idempotencyKey` for an action call, and from the token for a continue, resume,
+   * or poll. Pass it to a downstream system as its idempotency key, or store it under a unique
+   * constraint in the same transaction as the business change, so a handler that runs again after
+   * a crash does not apply the change twice. Absent for a read-only call without a key.
+   */
+  operationId?: string;
   /** The underlying Web request, for headers and the site's own session lookups. */
   request: Request;
   /** The tenant, on platforms. */
