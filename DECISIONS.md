@@ -6,7 +6,7 @@ If you disagree with something here, open an issue that quotes the entry. Most o
 
 ## Repository and tooling
 
-**The project lives in `axe/` inside an existing monorepo.** The working directory for this build was an empty `axe/` folder in a larger repository on a dedicated branch. The project is built as a fully self-contained pnpm workspace rooted at `axe/` (its own `package.json`, lockfile, CI workflow, and lint configuration) so it can be moved to its own repository with `git subtree split` or a copy, with no edits. The "fresh clone" verification step extracts the `axe/` tree from git into a temporary directory and runs the full build there, which is what a clone of a standalone repo would see. The GitHub Actions workflow in `.github/workflows/ci.yml` is written for a standalone repository root.
+**The project was built in an `axe/` folder of a larger monorepo and then moved to its own repository, `summationai/agent-experience`.** It was self-contained from the start (its own `package.json`, lockfile, CI workflow, and lint configuration), so the move was a history-preserving extraction of that subtree with `axe/` as the new root and no code changes beyond repository URLs. The fresh-clone verification script handles both layouts: it archives the current `git` subtree when the project sits in a subdirectory and the whole repository otherwise.
 
 **pnpm 10 via corepack, TypeScript 5.9, Vitest 4, tsup 8, Turborepo 2.** TypeScript 7 (the native port) was available but the tsup, typedoc, and typescript-eslint chain still pins `< 6.1`, so 5.9 is the version that works everywhere without surprises. Vitest 4 is the latest line with a stable Node 20 story.
 

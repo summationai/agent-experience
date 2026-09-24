@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# The site output is the deliverable and is committed (see docs/site.md).
+!/site/dist/
 coverage/
 .turbo/
 *.tsbuildinfo

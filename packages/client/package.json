@@ -45,7 +45,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/body-spray/body-spray",
+    "url": "https://github.com/summationai/agent-experience",
     "directory": "packages/client"
   },
   "keywords": [

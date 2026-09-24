@@ -31,7 +31,7 @@ const OUT = resolve(args.includes("--out") ? args[args.indexOf("--out") + 1] : j
 const SKIP_OG = args.includes("--skip-og");
 
 /** One place for the repository location. */
-export const GITHUB_REPO = "https://github.com/body-spray/body-spray";
+export const GITHUB_REPO = "https://github.com/summationai/agent-experience";
 export const NPM_URL = "https://www.npmjs.com/package/@axe/core";
 const SITE_NAME = "Body Spray";
 const TAGLINE =
