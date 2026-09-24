@@ -6,6 +6,7 @@
  * import { createAXE, action, z } from "@axe/core";
  * ```
  */
+/** Zod, re-exported so integrators use one version. @hidden */
 export { z } from "zod";
 export { createAXE, AXE } from "./server";
 export type {

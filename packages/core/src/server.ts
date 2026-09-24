@@ -112,7 +112,7 @@ export interface AXEConfig {
   indexUrl?: string;
   updatedAt?: string;
   /** HMAC secret for tokens, at least 16 characters. Omit only in development: a random per-process secret is used and tokens do not survive restarts. */
-  secret?: string;
+  secret?: string | undefined;
   tokenStore?: TokenStore;
   idempotencyStore?: IdempotencyStore;
   /** Default 86400 (24 hours). */

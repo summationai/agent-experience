@@ -73,3 +73,43 @@ If you disagree with something here, open an issue that quotes the entry. Most o
 **Weights live in one JSON file (`packages/testing/src/audit/weights.json`).** Categories: Discoverable 20, Describable 25, Presentable 15, Actionable 20, Trustworthy 20. Each check has a weight within its category; the category score is the weighted fraction passed, scaled to the category total. Agent-directed imperatives are a hard failure that zeroes the Trustworthy category regardless of other checks, because a manifest that tries to steer the agent is not trustworthy no matter how well it does elsewhere.
 
 **Cloaking is not scored, only surfaced.** The audit cannot prove parity without a browser and a semantic diff of the human page. It prints the URLs to compare and, with `--browser`, fetches them and looks for the price and availability strings from the agent response in the human page. A miss is reported as a warning, not a score deduction, because false positives on dynamic pages would teach teams to ignore the section.
+
+## Implementation (added during the build)
+
+**`@axe/core/types` is a zod-free subpath.** The wire types live in `types.ts` with no runtime imports so that `@axe/client` and `@axe/mcp` can import them without pulling Zod into an agent's bundle. `@axe/core/display`, `/vocabulary`, and `/lint` are likewise zod-free.
+
+**Generated vocabulary exports one frozen object per category, plus `WIRE`.** Agent-side packages `import * as WIRE from "@axe/core/vocabulary"` so bundlers drop the categories they do not use (`field` and `api` are the large ones and are only needed for docs tooling). Server-side code uses `import { WIRE }`. Both read as `WIRE.status.ok`. All `Object.freeze` calls carry `@__PURE__` so tree-shaking works. This is what keeps `@axe/client` under 15 kB.
+
+**Stored `accepts[]` schemas are JSON Schema, and `/axe/continue` validates with the SDK's own validator.** A pluggable `TokenStore` (Redis, KV) can only hold JSON, so Zod schemas cannot travel with the token record. The wire form is JSON Schema anyway, so the server converts once at `needs_input` time and validates the payload against the stored JSON Schema on continue. The same validator runs in the conformance suite and the audit, which never hold Zod schemas. Consequence: Zod refinements (`.refine()`) on a kind schema are not enforced on continue; document the JSON-Schema-expressible subset as the contract.
+
+**`_axe` stays on the wire; validation uses a stripped copy.** Agents need dynamic affordances, so the runtime validates the output with `_axe` removed and then sends the original output unchanged.
+
+**Mutating actions require an idempotency key by default (`requireIdempotencyKey: true`).** The brief's fifth principle says mutating actions require idempotency keys. A curl user hits this immediately, and the error message says exactly what to add. Sites can turn it off; the conformance suite then warns instead of failing.
+
+**Idempotency key presence is checked before the login handoff.** Otherwise an anonymous agent would receive a `login_required` handoff, send the human to log in, and only then learn its request was malformed. The key is stored with the login record and reused when the action re-runs after sign-in.
+
+**Login handoffs are gated on `completeHandoff`; site handoffs are not, unless they ask.** The runtime's own `login_required` handoff cannot know whether the human signed in without the site telling it, so resume returns `conflict` with `handoffStatus: "open"` until the login page calls `completeHandoff(id, { onBehalfOf })`. A site-authored handoff resumes straight into `onResume` by default, because the site's own code can check the real-world state; `requireCompletion: true` opts into the same gate.
+
+**Handoff ids are the token id, passed as `axe_handoff` in the URL.** The human's browser sees the id, never the signed resume token. Knowing the id lets a page call `completeHandoff`, which is a server-side call the site controls, and nothing else.
+
+**Continue and resume re-establish identity and compare it with the token's binding.** A token minted for user A presented with user B's credentials, or anonymously, is `not_found`, not `forbidden`, so the response does not confirm that the token exists.
+
+**`@axe/mcp` uses the low-level `Server` from the MCP SDK, not `McpServer.registerTool`.** `registerTool` takes Zod schemas; a remote manifest gives JSON Schema. The low-level `tools/list` handler accepts JSON Schema directly. Tool arguments are validated with the SDK's own JSON Schema validator before the action is invoked, so the model gets the same `invalid_input` shape either way.
+
+**MCP tool calls poll `pending` results for up to 20 seconds before returning.** Most models handle one tool result better than a poll loop. Past the budget the result says to call `axe_poll`.
+
+**The CLI loads `axe.ts` with `tsx`'s programmatic API.** Node 20 cannot strip types. `tsx` is the one dependency the CLI carries beyond the workspace packages; `node:util.parseArgs` and `node:readline` cover argument parsing and prompts.
+
+**The CLI is ESM-only.** It uses `import.meta` and `tsx/esm/api`; nobody `require()`s a CLI.
+
+**`axe conformance` calls mutating actions.** It is meant to run against staging: it invokes each mutating action's example, replays it, and exercises continue, resume, and tamper checks. `--no-mutate` skips those, and a `policies.agents` deny for the conformance vendor forces the same.
+
+**Audit weights: hard failures zero their category, and the fix list is sorted by recoverable points.** A team should be able to read the top three fixes and know what to do this afternoon.
+
+**The audit's cloaking section fetches `display.item.url` and looks for the agent-facing values as text.** This is a spot-check, reported as `✓` or `?` per value, never a deduction. Pages render numbers in many formats; a false accusation would teach teams to ignore the section.
+
+**Screenshots of `toHTML()` are generated by `scripts/render-previews.mjs` with Playwright against the apartments example.** They are committed so the docs render on GitHub without a build step, and regenerated whenever the renderer changes.
+
+**API reference is generated into `docs/api/reference/` so the hand-written `docs/api/README.md` survives regeneration.** TypeDoc's `cleanOutputDir` would otherwise delete the orientation page. The Zod re-export is marked `@hidden` so the reference does not include all of Zod.
+
+**The drift test scans inline code spans in `spec/`, `docs/` (excluding `docs/api/`), and the README.** Example action names (`units.search`) and custom kinds (`x-oakridge.…`) are exempt by classification, not by allowlist. Dotted paths such as `policies.rateLimit` are checked segment by segment for camelCase segments only.

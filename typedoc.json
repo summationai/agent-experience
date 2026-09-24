@@ -12,12 +12,16 @@
     "packages/cli"
   ],
   "packageOptions": {
-    "entryPoints": ["src/index.ts"],
+    "entryPoints": [
+      "src/index.ts"
+    ],
     "excludeInternal": true,
     "excludePrivate": true
   },
-  "plugin": ["typedoc-plugin-markdown"],
-  "out": "docs/api",
+  "plugin": [
+    "typedoc-plugin-markdown"
+  ],
+  "out": "docs/api/reference",
   "readme": "none",
   "cleanOutputDir": true,
   "hidePageHeader": true,
@@ -26,6 +30,5 @@
   "githubPages": false,
   "name": "AXE API reference",
   "outputFileStrategy": "modules",
-  "excludeExternals": true,
-  "excludeInherited": true
+  "excludeExternals": true
 }
