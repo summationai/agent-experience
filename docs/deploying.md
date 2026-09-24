@@ -15,7 +15,8 @@ interface KV {
   get(k: string): Promise<string | null>;
   set(k: string, v: string, mode: "EX", ttl: number): Promise<unknown>;
   del(k: string): Promise<unknown>;
-}```
+}
+```
 <!-- /include -->
 
 <!-- include: examples/deploying/stores.ts#stores -->
@@ -45,7 +46,8 @@ export function kvIdempotencyStore(kv: KV, prefix = "axe:idem:"): IdempotencySto
       await kv.set(prefix + key, JSON.stringify(record), "EX", Math.max(1, Math.ceil(ttlSeconds)));
     },
   };
-}```
+}
+```
 <!-- /include -->
 
 The SDK passes a TTL on every write: about 15 minutes for continuation tokens, 24 hours for resume tokens, one hour for poll tokens, and the idempotency window (24 hours by default) for idempotency records. Honor it: a store that ignores TTLs grows without bound, and one that shortens them makes handoffs fail before the human gets back.
@@ -65,7 +67,8 @@ export const axe = createAXE({
   idempotencyStore: kvIdempotencyStore(kv),
   // The idempotency window. Default 24 hours; the store receives it as the TTL on every record.
   idempotencyTtlSeconds: 60 * 60 * 24,
-});```
+});
+```
 <!-- /include -->
 
 The same configuration can disable the `idempotencyKey` requirement. Do not: [idempotency](concepts.md#idempotency) is what makes a retried deposit one deposit.
@@ -98,7 +101,8 @@ policies: {
   dataRetention: "Application data is kept for 12 months after the last activity.",
   // Deny wins. An absent allow list permits every vendor that is not denied.
   agents: { deny: ["scraper-co"] },
-},```
+},
+```
 <!-- /include -->
 
 `axe conformance` warns when it finds no hint beyond the well-known path, and `axe audit` awards points for one. The cheapest fix is the `robots.txt` line.
@@ -112,7 +116,8 @@ Enable it only for browser-based agents. Server-side agents, MCP clients, and th
 <!-- include: examples/deploying/production.ts#cors -->
 ```ts
 // Off unless set. Only browser-based agents need it.
-cors: { origins: ["https://agent.example"], allowCredentials: true },```
+cors: { origins: ["https://agent.example"], allowCredentials: true },
+```
 <!-- /include -->
 
 With `cors` set, a preflight on any AXE path returns `204` with:
@@ -136,7 +141,8 @@ The manifest and each action definition are served with `Cache-Control: public, 
 ```ts
 // Cache-Control: public, max-age=<seconds> on the manifest and on action definitions. Default 300.
 manifestCacheSeconds: 600,
-updatedAt: process.env.AXE_MANIFEST_UPDATED_AT ?? "2026-09-23T00:00:00Z",```
+updatedAt: process.env.AXE_MANIFEST_UPDATED_AT ?? "2026-09-23T00:00:00Z",
+```
 <!-- /include -->
 
 The manifest is public and identical for every anonymous request, so let your CDN cache it. Action invocations, `/axe/continue`, `/axe/resume`, and `/axe/poll` responses are per request and carry no cache header; do not add one at the CDN. On platforms the manifest varies by host, so the CDN key must include the host.
@@ -170,7 +176,8 @@ export const axe = createAXE({
       details: { retryAfter: wait },
     });
   },
-});```
+});
+```
 <!-- /include -->
 
 The bucket behind it:
@@ -203,7 +210,8 @@ function take(key: string): number {
     return 0;
   }
   return Math.max(1, Math.ceil((1 - bucket.tokens) / perMs / 1000));
-}```
+}
+```
 <!-- /include -->
 
 Key on the bearer token when there is one, because that is the identity you issued, and on the declared vendor otherwise; the vendor is self-reported, so it is a fairness key, not a security boundary. `onRequest` is not called for continuation, resume, or poll requests, which are gated by single-use tokens; limit those at the edge if you need to. Agents must honor `Retry-After` and must not retry a `rate_limited` error sooner; `@axe/client` does this for you.
@@ -233,7 +241,8 @@ function fields(ctx: HookContext): Record<string, unknown> {
     vendor: ctx.context.agent?.vendor ?? "unknown",
     tenant: ctx.tenant?.id ?? null,
   };
-}```
+}
+```
 <!-- /include -->
 
 <!-- include: examples/deploying/hooks.ts#hooks -->
@@ -261,7 +270,8 @@ export const axe = createAXE({
     apm.captureException(error, { action: ctx.action, endpoint: ctx.endpoint });
   },
   onEvent: otelSink({ meter: metrics.getMeter("axe") }),
-});```
+});
+```
 <!-- /include -->
 
 > **Warning**
@@ -330,7 +340,8 @@ const startReturn = action("returns.start", {
 // Always on: a read-only action is the safest first step.
 axe.register(trackOrder);
 // Behind a flag: flip it for one environment, run the conformance suite, then flip it everywhere.
-if (flags.isEnabled("axe.returns.start")) axe.register(startReturn);```
+if (flags.isEnabled("axe.returns.start")) axe.register(startReturn);
+```
 <!-- /include -->
 
 The order that works:
@@ -353,7 +364,8 @@ const lookupOrder = action("orders.lookup", {
   title: "Look up an order (deprecated)",
   deprecated: { since: "2026-09-01", replacedBy: "orders.track" },
 });
-axe.register(lookupOrder);```
+axe.register(lookupOrder);
+```
 <!-- /include -->
 
 The replacement must be a registered action; the SDK refuses a `replacedBy` that points nowhere. [Deprecating actions](designing-actions.md#deprecating-actions) covers the agent-facing side.
@@ -367,7 +379,8 @@ A path prefix in `baseUrl` is honored. With a base of `https://www.oakridge-rent
 <!-- include: examples/deploying/production.ts#baseurl -->
 ```ts
 // HTTPS is required except for localhost. A path prefix is honored: every AXE path is served under it.
-baseUrl: process.env.AXE_BASE_URL ?? "https://www.oakridge-rentals.example/agents",```
+baseUrl: process.env.AXE_BASE_URL ?? "https://www.oakridge-rentals.example/agents",
+```
 <!-- /include -->
 
 Behind a proxy or load balancer, the adapters rebuild the public URL of each request from the forwarded headers. The Express adapter reads the forwarded protocol and host and falls back to the socket; the Next.js Pages adapter reads the same headers and assumes HTTPS. If your proxy does not set them, pass `origin` to `axeExpress` or `axeNextPages` with your public origin so prefix routing and tenant resolution by host see what the agent sees. The fetch-based adapters (`axeFetch`, and `axeNext` for the App Router) receive a Web `Request` whose URL the framework already built; configure the framework's trusted-proxy setting instead. Terminate TLS at the proxy and keep the proxy-to-app hop on a private network.

@@ -59,6 +59,7 @@ function snippet(spec) {
 }
 
 const re = /(<!-- include: ([^\s]+) -->\n```(\w*)\n)([\s\S]*?)(\n?```\n<!-- \/include -->)/g;
+const CLOSE = "\n```\n<!-- /include -->";
 let stale = 0;
 let total = 0;
 for (const file of walk(join(root, "docs")).concat(join(root, "README.md"))) {
@@ -67,7 +68,8 @@ for (const file of walk(join(root, "docs")).concat(join(root, "README.md"))) {
   const updated = original.replace(re, (_m, open, spec, _lang, _body, close) => {
     total++;
     try {
-      return `${open}${snippet(spec)}${close}`;
+      void close;
+      return `${open}${snippet(spec)}${CLOSE}`;
     } catch (e) {
       console.error(`${relative(root, file)}: ${e.message}`);
       failed = true;

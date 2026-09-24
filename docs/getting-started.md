@@ -121,7 +121,8 @@ axe.register(
       ),
     }),
   }),
-);```
+);
+```
 <!-- /include -->
 
 Three things to notice:
@@ -155,7 +156,8 @@ app.get("/", (_req, res) => {
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`);
-});```
+});
+```
 <!-- /include -->
 
 Run it:
@@ -177,7 +179,8 @@ Create `app/axe/[...axe]/route.ts` and `app/.well-known/axe.json/route.ts`, each
 import { axeNext } from "@axe/next";
 import { axe } from "./axe";
 
-export const { GET, POST, OPTIONS } = axeNext(axe);```
+export const { GET, POST, OPTIONS } = axeNext(axe);
+```
 <!-- /include -->
 
 See [Next.js integration](integrations/next.md) for the Pages API and for passing your session into `context`.
@@ -198,7 +201,8 @@ app.all("/axe/*", (c) => handler(c.req.raw));
 app.get("/.well-known/axe.json", (c) => handler(c.req.raw));
 app.get("/", (c) => c.text("Sunrise Yoga Studio"));
 
-serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });```
+serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+```
 <!-- /include -->
 
 See [fetch integration](integrations/fetch.md) for each framework's exact mount.

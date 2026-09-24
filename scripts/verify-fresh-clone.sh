@@ -6,10 +6,12 @@ set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 echo "Extracting HEAD of $(basename "$ROOT") into $TMP"
-if git -C "$ROOT" rev-parse --show-prefix >/dev/null 2>&1; then
-  PREFIX="$(git -C "$ROOT" rev-parse --show-prefix)"
-  git -C "$ROOT" archive --format=tar HEAD "${PREFIX:-.}" | tar -x -C "$TMP"
-  [ -n "$PREFIX" ] && TMP="$TMP/${PREFIX%/}"
+PREFIX="$(git -C "$ROOT" rev-parse --show-prefix)"
+if [ -n "$PREFIX" ]; then
+  # The project lives in a subdirectory of a larger repository: archive that subtree.
+  git -C "$ROOT" archive --format=tar "HEAD:${PREFIX%/}" | tar -x -C "$TMP"
+else
+  git -C "$ROOT" archive --format=tar HEAD | tar -x -C "$TMP"
 fi
 cd "$TMP"
 pnpm install --frozen-lockfile

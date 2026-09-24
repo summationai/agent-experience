@@ -45,7 +45,8 @@ display: {
     "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
   disclaimer:
     "Pricing and availability change frequently. Confirm on the listing page before applying.",
-},```
+},
+```
 <!-- /include -->
 
 `id` and `title` are required. `id` is the value the agent echoes back when the user picks something, so it must be stable across calls. The rest is optional: `subtitle` and `summary` for secondary text; `image` for one pointer or a list of pointers to absolute HTTPS URLs; `url` for the human page; `price` with `amount` as a pointer to a number, `currency` as a pointer or an ISO 4217 code, and `period` as one of `once`, `hour`, `day`, `month`, or `year`; `badges` as pointers to short strings or arrays of them.
@@ -105,7 +106,8 @@ affordances: [
     input: { unitId: "/id" },
     primary: true,
   },
-],```
+],
+```
 <!-- /include -->
 
 `action` names another action in the same manifest. Each key in `input` must be a top-level property of that action's input schema, and each value is a pointer relative to the item. Registration rejects a key the target does not accept (or checks it at finalization when the target is registered later). At most one affordance is `primary`; at most six may be declared, and more is rejected. The caps are honesty rules as much as size limits: affordances MUST be follow-ups relevant to the item, not unrelated offers.
@@ -134,7 +136,8 @@ handler: async ({ input, context }) => {
     ),
   );
   return { units, nextCursor: page.nextCursor };
-},```
+},
+```
 <!-- /include -->
 
 In dynamic affordances `input` holds concrete values, not pointers. When an item carries `_axe.affordances`, it replaces the static list for that item entirely, so the unit above offers a tour and nothing else. The SDK strips `_axe` from the output and every item before validating against the output schema; `_axe` may not appear in the declared schema, and registration rejects one that does. The same caps apply: agents ignore a seventh entry and treat two `primary` flags as none.
@@ -150,7 +153,8 @@ pagination: {
   cursorOut: "/nextCursor",
   pageSize: { default: 10, max: 20 },
 },
-freshness: { cacheTtlSeconds: 300 },```
+freshness: { cacheTtlSeconds: 300 },
+```
 <!-- /include -->
 
 `cursorIn` is a pointer into `input`; `cursorOut` is a pointer into `output`. Both are validated against the schemas at registration. A `null` or absent value at `cursorOut` means the last page. The rule that matters at runtime is P-AFF-7: the server MUST accept the value it returned at `cursorOut` when it comes back at `cursorIn`, unchanged. Cursors are opaque to the agent; encode whatever you need, but never make the agent parse or rebuild one.
@@ -171,7 +175,8 @@ A script that takes a result and produces all three:
 ```ts
 import { present, toMarkdown, toHTML } from "@axe/client/present";
 import type { Result } from "@axe/core/types";
-import { axe } from "../apartments/site.js";```
+import { axe } from "../apartments/site.js";
+```
 <!-- /include -->
 
 <!-- include: examples/presenting-results/render.ts#render -->
@@ -190,7 +195,8 @@ const markdown = toMarkdown(presented);
 const html = toHTML(presented, { heading: "1-bedrooms in Bellevue under $3,200" });
 
 console.log(markdown);
-console.log(`\n${presented.items.length} items; ${html.length} bytes of HTML`);```
+console.log(`\n${presented.items.length} items; ${html.length} bytes of HTML`);
+```
 <!-- /include -->
 
 The page `toHTML` returns is what a chat client puts in an artifact or an iframe.
@@ -234,7 +240,8 @@ window.addEventListener("message", (event: MessageEvent<{ type?: string; detail?
   if (event.data?.type !== "axe:select" || !event.data.detail) return;
   const { action, input } = event.data.detail;
   void client.invoke(action, input);
-});```
+});
+```
 <!-- /include -->
 
 ## The same result in three surfaces

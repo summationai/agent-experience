@@ -69,7 +69,8 @@ axe.register(
     ],
     handler: async ({ input, context }) => admissions.status(context.onBehalfOf!, input.term),
   }),
-);```
+);
+```
 <!-- /include -->
 
 The metadata is what makes an action safe to expose:
@@ -119,7 +120,8 @@ display: {
     "No units match those filters. Widening the rent ceiling or removing the move-in date usually helps.",
   disclaimer:
     "Pricing and availability change frequently. Confirm on the listing page before applying.",
-},```
+},
+```
 <!-- /include -->
 
 <!-- include: examples/apartments/site.ts#affordances -->
@@ -132,7 +134,8 @@ affordances: [
     input: { unitId: "/id" },
     primary: true,
   },
-],```
+],
+```
 <!-- /include -->
 
 The reference renderers in `@axe/client/present` turn a result plus its `display` into a Markdown table or a self-contained HTML page whose buttons dispatch the bound affordance. [Presenting results](presenting-results.md) covers the whole arc.
@@ -222,7 +225,8 @@ onContinue: async ({ kind, payload, state }) => {
   await payments.settleDeposit(applicationId, kind, payload);
   return db.submit(applicationId);
 },
-onResume: async ({ state }) => db.submit((state as { applicationId: string }).applicationId),```
+onResume: async ({ state }) => db.submit((state as { applicationId: string }).applicationId),
+```
 <!-- /include -->
 
 ## Requirements and kinds

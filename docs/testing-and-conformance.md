@@ -94,7 +94,8 @@ axe.register(
       return { bookingId, classId, status: "confirmed" as const };
     },
   }),
-);```
+);
+```
 <!-- /include -->
 
 The tests cover the four outcomes an agent can hit: `ok`, `needs_human` for an anonymous caller, `needs_input` followed by a continue, and `invalid_input`.
@@ -159,7 +160,8 @@ describe("classes.book", () => {
       );
     }
   });
-});```
+});
+```
 <!-- /include -->
 
 Two details worth knowing. The anonymous call returns `needs_human` with reason `login_required` because the manifest declares `userLoginUrl`; the SDK mints that handoff for you, and the test asserts on it without any login code in the action. The `invalid_input` error names `/guests` as a JSON Pointer in `details.issues`, which is what lets an agent correct itself without asking the user. Both behaviors are protocol requirements, so asserting on them in your own tests is cheap insurance against a framework adapter or middleware changing them.
@@ -287,7 +289,8 @@ if (ladderSkipped.length > 0) {
   console.warn(`${ladderSkipped.length} ladder checks skipped: ${ladderSkipped[0]!.detail}`);
 }
 
-process.exitCode = report.ok ? 0 : 1;```
+process.exitCode = report.ok ? 0 : 1;
+```
 <!-- /include -->
 
 Every `Check` carries the spec requirement ids it verifies and a `docs` path to the section that explains the fix, so a script can link straight to the remedy.
@@ -422,7 +425,8 @@ console.log(formatDriftReport(report));
 for (const [token, files] of Object.entries(report.unknown)) {
   console.error(`"${token}" is not in spec/VOCABULARY.md (${files.join(", ")})`);
 }
-process.exitCode = report.ok ? 0 : 1;```
+process.exitCode = report.ok ? 0 : 1;
+```
 <!-- /include -->
 
 Run it from your test suite or as a CI step. The first run against an existing set of docs usually lists a few dozen unknown tokens; most are prose that should not have been in backticks, and the rest are names your vocabulary table is missing.

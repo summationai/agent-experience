@@ -50,7 +50,8 @@ const sessions = new Map<string, { applicantId: string; roles: string[] }>([
 function sessionFromCookie(cookieHeader: string | undefined) {
   const match = /(?:^|;\s*)sid=([^;]+)/.exec(cookieHeader ?? "");
   return match?.[1] ? sessions.get(match[1]) : undefined;
-}```
+}
+```
 <!-- /include -->
 
 <!-- include: examples/auth/express-session.ts#mount -->
@@ -71,7 +72,8 @@ app.use(
     },
   }),
 );
-app.listen(3000);```
+app.listen(3000);
+```
 <!-- /include -->
 
 The handler sees only the established identity:
@@ -102,7 +104,8 @@ axe.register(
     // put in the request body's context.onBehalfOf was discarded before this ran.
     handler: async ({ context }) => admissions.status(context.onBehalfOf!),
   }),
-);```
+);
+```
 <!-- /include -->
 
 Here is Sunrise Yoga under Hono, verifying a bearer access token in `authenticate` instead:
@@ -120,7 +123,8 @@ async function verifyAccessToken(token: string) {
   const claims = issuedTokens.get(token);
   if (!claims || claims.exp * 1000 < Date.now()) return null;
   return claims;
-}```
+}
+```
 <!-- /include -->
 
 <!-- include: examples/auth/fetch-jwt.ts#create -->
@@ -146,7 +150,8 @@ const axe = createAXE({
     },
   },
   secret: process.env.AXE_SECRET,
-});```
+});
+```
 <!-- /include -->
 
 Return `null` for an expired or malformed token, not an error. The runtime then treats the request as anonymous, and a `user` action produces a login handoff so the human can sign in again.
@@ -206,7 +211,8 @@ router.post("/login", async (req, res) => {
     return;
   }
   res.redirect("/account");
-});```
+});
+```
 <!-- /include -->
 
 `completeHandoff` records the authenticated identity on the handoff. When the agent presents the resume token to `/axe/resume`, the runtime runs the original action with `context.onBehalfOf` set to that identity, consumes the token, and returns the action's result. From the agent's point of view, the second response is what the first would have been had the user been signed in.
@@ -276,7 +282,8 @@ function partnerFromRequest(request: Request): ApiKeyRecord {
   const record = keysBySha256.get(sha256(key));
   if (!record) throw new Error("verifySiteKey admitted a key that is no longer in the table");
   return record;
-}```
+}
+```
 <!-- /include -->
 
 <!-- include: examples/auth/site-keys.ts#create -->
@@ -303,7 +310,8 @@ const axe = createAXE({
   },
   contact: { email: "partners@kestrel.example" },
   secret: process.env.AXE_SECRET,
-});```
+});
+```
 <!-- /include -->
 
 <!-- include: examples/auth/site-keys.ts#actions -->
@@ -366,7 +374,8 @@ axe.register(
     handler: async ({ input, request }) =>
       warehouse.placeOrder(partnerFromRequest(request).id, input.lines, input.poReference),
   }),
-);```
+);
+```
 <!-- /include -->
 
 Issuing keys is your admin UI's job, not the SDK's: generate a long random key, show it once, store its hash, let the partner name and revoke it. When `verifySiteKey` returns an object, handlers receive it as `siteKey`, so `siteKey.id` identifies the partner without a second lookup, and the runtime scopes idempotency keys and tokens to that id when no user identity is present, so two partners reusing the same `idempotencyKey` never collide. The example still resolves the partner from the request to show that either approach works.

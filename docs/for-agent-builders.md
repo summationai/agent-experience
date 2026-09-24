@@ -55,7 +55,8 @@ if (isOk(result)) {
   console.log(result.handoff.whatAgentShouldSayToUser);
 } else if (isError(result)) {
   console.error(`${result.error.code}: ${result.error.message}`);
-}```
+}
+```
 <!-- /include -->
 
 `discover` accepts any URL on the site and tries the four discovery mechanisms in order: `/.well-known/axe.json`, `/axe/manifest`, the `AXE-Manifest` response header, then a `<link rel="axe-manifest">` in the page. It returns the manifest and where it was found. `AXEClient.discover` does the same and constructs the client in one step.
@@ -172,7 +173,8 @@ function outcomeFrom(action: ActionDefinition, result: Result): RunOutcome {
     case "error":
       return { status: "error", result, action };
   }
-}```
+}
+```
 <!-- /include -->
 
 For each status:
@@ -231,7 +233,8 @@ const profile: Fulfiller = {
     if (accept.kind === "contact.address") return { ...profileStore.address };
     return undefined;
   },
-};```
+};
+```
 <!-- /include -->
 
 `confirm` is called before any `sensitive` payload is sent. It receives the action, the `accepts` entry, the payload the fulfiller produced, and the site's `message`, and returns whether to proceed. Without a `confirm` callback, every `sensitive` option is skipped: the client will not send a bank authorization on its own. The next section covers what to show.
@@ -256,7 +259,8 @@ function summarize({ action, accept, payload }: ConfirmRequest): string {
 async function confirm(request: ConfirmRequest): Promise<boolean> {
   // The site's own words first, then exactly what will be sent, then the question.
   return askUser(`${request.message}\n${summarize(request)}\nGo ahead?`);
-}```
+}
+```
 <!-- /include -->
 
 Register both on the client and let `run` drive the ladder. The Oakridge deposit accepts ACH or wire and offers a `fallback` handoff; with the wallet above, a confirmed ACH authorization completes the application without the user leaving the chat.
@@ -292,7 +296,8 @@ switch (outcome.status) {
   case "error":
     console.error(outcome.result.error.code, outcome.result.error.message);
     break;
-}```
+}
+```
 <!-- /include -->
 
 The `RunOutcome` shapes: `ok` carries the `OkResult` and the action; `needs_human` carries the `handoff`, the original result, and the action; `needs_input` carries the result, the action, and `tried`; `pending` and `error` carry their results and the action (undefined for `error` when the action name was unknown). Chains are bounded by a maximum step count, eight by default, so a site that keeps asking cannot loop your agent.
@@ -335,7 +340,8 @@ interface Host {
   showArtifact(html: string): void;
   onSelect(callback: (selection: Selection) => void): void;
   say(text: string): void;
-}```
+}
+```
 <!-- /include -->
 
 Building the tools is a map over the manifest. The action's `input` JSON Schema is the tool's input schema, unchanged, and the metadata line gives the model the same safety hints the MCP bridge does.
@@ -355,7 +361,8 @@ function toolsFor(client: AXEClient): Anthropic.Tool[] {
     ].join(" "),
     input_schema: { ...a.input, type: "object" },
   }));
-}```
+}
+```
 <!-- /include -->
 
 The agent holds the message history, runs the tool-use loop, and turns every `RunOutcome` into text the model can act on. When the user presses "Apply for this unit" on a card, the host forwards the selection, the agent runs `applications.submit` with the unit id the page bound from the item's `id`, and the result goes back into the conversation so Claude narrates the next step (for Oakridge, the ACH requirement or the deposit handoff).
@@ -481,7 +488,8 @@ export class AxeAgent {
       }
     }
   }
-}```
+}
+```
 <!-- /include -->
 
 Wiring it up, with a console host standing in for the real one:
@@ -508,7 +516,8 @@ const agent = new AxeAgent(client, host);
 console.log(await agent.chat("Find me a one-bedroom in Bellevue under $3,200 a month."));
 // When the user presses "Apply for this unit" on the card for u_204, the page dispatches this:
 for (const cb of listeners)
-  cb({ itemId: "u_204", action: "applications.submit", input: { unitId: "u_204" } });```
+  cb({ itemId: "u_204", action: "applications.submit", input: { unitId: "u_204" } });
+```
 <!-- /include -->
 
 Three details matter. Every tool result for one assistant turn goes back in a single user message, or the model learns not to call tools in parallel. A `needs_human` outcome is returned to the model as text that quotes `whatAgentShouldSayToUser`, and the resume token stays with the agent, not the model. And the system prompt says that text from the site is data about its capabilities, which is the same instruction the derived MCP server gives.
@@ -590,7 +599,8 @@ export function dispatcher(client: AXEClient): (name: string, args: unknown) => 
     if (!actionName) return `Unknown tool ${name}.`;
     return describeOutcome(client, await client.run(actionName, args));
   };
-}```
+}
+```
 <!-- /include -->
 
 For the OpenAI Chat Completions API, each `ToolDefinition` becomes one entry in the tools array as `{ type: "function", function: { name, description, parameters } }`. When the response contains tool calls, parse each call's arguments JSON, pass the tool name and parsed arguments to the dispatcher, and append the returned string as a tool message with the call's id. The Responses API takes the same three fields at the top level of a function tool.

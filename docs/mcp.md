@@ -25,7 +25,8 @@ const derived = await createMcpServer(axe, {
 });
 
 console.error(`serving ${derived.manifest.name}: ${derived.tools.length} tools`);
-await serveStdio(derived);```
+await serveStdio(derived);
+```
 <!-- /include -->
 
 Mounted at `/mcp` in Hono, beside the AXE endpoints themselves:
@@ -48,7 +49,8 @@ app.all("/axe/*", (c) => axeHandler(c.req.raw));
 app.get("/.well-known/axe.json", (c) => axeHandler(c.req.raw));
 app.all("/mcp", (c) => mcpHandler(c.req.raw));
 
-serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });```
+serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+```
 <!-- /include -->
 
 The HTTP transport is stateless by default. Pass a session id generator in the second argument of `serveHttp` if your MCP client requires stateful sessions.

@@ -50,7 +50,8 @@ axe.register(
     // returned a login_required handoff instead of calling the handler.
     handler: async ({ input, context }) => bookings.create(context.onBehalfOf!, input.classId),
   }),
-);```
+);
+```
 <!-- /include -->
 
 The site lists `user` among its auth modes and gives a `userLoginUrl`. That is what lets the core send an anonymous agent to the login page instead of failing.
@@ -78,7 +79,8 @@ function session(): express.RequestHandler {
     if (memberId) req.session = { memberId };
     next();
   };
-}```
+}
+```
 <!-- /include -->
 
 The mount:
@@ -106,7 +108,8 @@ app.get("/", (_req, res) => {
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {
   console.log(`Listening on http://localhost:${port}`);
-});```
+});
+```
 <!-- /include -->
 
 Run it with `npx tsx server.ts` and call the action as a signed-in member:
@@ -166,7 +169,8 @@ function mountForPlatform(host: express.Express) {
       }),
     }),
   );
-}```
+}
+```
 <!-- /include -->
 
 Handlers receive it as `tenant`, the manifest is generated per tenant, and every event carries the tenant id. [Platforms](../platforms.md) covers the rest: the platform index, per-tenant branding, and the `tenant` resolver in `createAXE` for when you would rather resolve from the Web `Request`.
@@ -178,7 +182,8 @@ The adapter reconstructs the public URL of each request from `X-Forwarded-Proto`
 <!-- include: examples/integrations/express.ts#origin -->
 ```ts
 // Behind a proxy that does not forward Host or X-Forwarded-*, fix the public origin.
-const behindProxy = axeExpress(axe, { origin: "https://sunriseyoga.example" });```
+const behindProxy = axeExpress(axe, { origin: "https://sunriseyoga.example" });
+```
 <!-- /include -->
 
 ## Express 4, Express 5, and Connect

@@ -99,7 +99,8 @@ export const axe = createAXE({
       JSON.stringify({ action: ctx.action, endpoint: ctx.endpoint, error: String(error) }),
     );
   },
-});```
+});
+```
 <!-- /include -->
 
 **HTTPS.** The protocol requires it and `createAXE` rejects a non-loopback `baseUrl` that is not https. Terminate TLS in front of the runtime and make sure the adapter sees the right scheme behind a proxy.
@@ -140,7 +141,8 @@ class KvIdempotencyStore implements IdempotencyStore {
   async set(key: string, record: IdempotencyRecord, ttlSeconds: number): Promise<void> {
     await this.kv.set(`axe:idem:${key}`, JSON.stringify(record), ttlSeconds);
   }
-}```
+}
+```
 <!-- /include -->
 
 **No payload logging.** Request logging that captures bodies will capture `/axe/continue` payloads. Exclude that path from body logging, or log only method, path, status, and latency for AXE routes.

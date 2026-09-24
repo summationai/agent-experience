@@ -84,7 +84,8 @@ axe.register(
     handler: async ({ input, context }) =>
       returns.start(context.onBehalfOf!, input.orderId, input.lineId, input.reason),
   }),
-);```
+);
+```
 <!-- /include -->
 
 ## The session helper
@@ -119,7 +120,8 @@ export async function customerFrom(
   const sid = bearer ?? cookie;
   const customerId = sid ? await sessions.get(sid) : null;
   return customerId ? { onBehalfOf: customerId } : null;
-}```
+}
+```
 <!-- /include -->
 
 `null` declares the request anonymous, and a `user` action then returns `needs_human` with `reason: "login_required"`. Leaving `identity` out of the returned object instead defers to the `authenticate` function in `createAXE`. [Auth](../auth.md) has both paths in full.
@@ -150,7 +152,8 @@ app.all("/axe/*", (c) => handler(c.req.raw, c.env));
 app.get("/.well-known/axe.json", (c) => handler(c.req.raw, c.env));
 app.get("/", (c) => c.text("Fieldstone Outfitters"));
 
-serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });```
+serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
+```
 <!-- /include -->
 
 Run it with `npx tsx server.ts`, then `npx axe inspect http://localhost:3000`.
@@ -176,14 +179,16 @@ const handler = axeFetch(axe, {
 
 // GET and OPTIONS reach the loader; POST reaches the action.
 export const loader = ({ request }: RouteArgs) => handler(request);
-export const action = ({ request }: RouteArgs) => handler(request);```
+export const action = ({ request }: RouteArgs) => handler(request);
+```
 <!-- /include -->
 
 The manifest at `/.well-known/axe.json` is a second resource route that re-exports the loader. In Remix's flat-route convention, brackets escape the dots:
 
 <!-- include: examples/integrations/fetch/remix-well-known.ts#all -->
 ```ts
-export { loader } from "./remix";```
+export { loader } from "./remix";
+```
 <!-- /include -->
 
 Remix is not installed in this repository, so the example declares the argument type structurally. In your app, the loader and action argument types from your Remix runtime package replace it; nothing else changes.
@@ -215,7 +220,8 @@ export default {
     if (isAxePath(url.pathname)) return handler(request, env);
     return new Response("Fieldstone Outfitters");
   },
-};```
+};
+```
 <!-- /include -->
 
 Two Workers specifics. First, the environment interface here lists one binding; in your project, `wrangler types` generates the real one. Second, the declaration reads the signing secret from `process.env`. Workers with the Node compatibility flag and a 2025 or later compatibility date populate `process.env` from your vars and secrets, so that line works as written; on an older configuration, build the server on first request from the environment instead.
@@ -246,7 +252,8 @@ Bun.serve({
     if (isAxePath(new URL(request.url).pathname)) return handler(request);
     return new Response("Fieldstone Outfitters");
   },
-});```
+});
+```
 <!-- /include -->
 
 The example declares the slice of `Bun.serve` it calls because Bun's types are not installed here; `bun add -d @types/bun` gives you the real ones.
@@ -274,7 +281,8 @@ const handler = axeFetch(axe, {
 Deno.serve((request) => {
   if (isAxePath(new URL(request.url).pathname)) return handler(request);
   return new Response("Fieldstone Outfitters");
-});```
+});
+```
 <!-- /include -->
 
 Run it with the network and environment permissions the declaration needs. On Deno Deploy, read the note on isolates under [Gotchas](#gotchas).
@@ -309,7 +317,8 @@ const handler = axeFetch<Platform>(axe, {
 export const handle: Handle = async ({ event, resolve }) => {
   if (isAxePath(event.url.pathname)) return handler(event.request, event.platform);
   return resolve(event);
-};```
+};
+```
 <!-- /include -->
 
 If you would rather keep AXE inside the routes tree, a `+server.ts` under `src/routes/axe/[...path]/` exporting `GET`, `POST`, and `OPTIONS` that each call the handler with `event.request` works the same way; you then need a second one under `src/routes/.well-known/axe.json/`. The hook is fewer files and catches both paths at once.

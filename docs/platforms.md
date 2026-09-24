@@ -138,7 +138,8 @@ function tenantInfo(studio: Studio): TenantInfo {
     indexUrl: "https://studiohost.example/.well-known/axe-index.json",
     updatedAt: studio.updatedAt,
   };
-}```
+}
+```
 <!-- /include -->
 
 The resolver runs once per request and maps the request to a tenant, or to none. Resolve by hostname when tenants have their own domains or subdomains; that is the natural fit, because each tenant's manifest then sits at `/.well-known/axe.json` on its own origin.
@@ -152,7 +153,8 @@ async function resolveTenant(request: Request): Promise<TenantInfo | null> {
   const studio = await db.studioByHost(host);
   if (!studio || !enabledForAgents(studio)) return null;
   return tenantInfo(studio);
-}```
+}
+```
 <!-- /include -->
 
 Pass the resolver to `createAXE`. The platform-level `name`, `description`, and `baseUrl` describe the platform itself; a tenant overrides each of them.
@@ -173,7 +175,8 @@ export const axe = createAXE({
   tenant: resolveTenant,
   index,
   secret: process.env.AXE_SECRET,
-});```
+});
+```
 <!-- /include -->
 
 Every handler, `onContinue`, `onResume`, and `onPoll` receives `tenant` alongside `input` and `context`. Scope every query by the tenant's `id`. Tokens and idempotency keys are already bound to the tenant by the SDK, so a continuation minted on one studio's domain cannot be replayed on another's, but row-level isolation inside your data layer is yours to enforce.
@@ -243,7 +246,8 @@ axe.register(
       return { classes: classes.map(({ studioId: _studioId, ...c }) => c) };
     },
   }),
-);```
+);
+```
 <!-- /include -->
 
 If tenants live under path prefixes on one host rather than on their own hostnames, resolve the tenant from the path in your framework, rewrite the URL to strip the prefix before it reaches the adapter, and set the tenant's `baseUrl` to include the prefix so the URLs the SDK mints (`pollUrl`, handoff `url` defaults) are correct. The SDK strips only the platform-level `baseUrl` path in v0. A prefixed manifest is not at a well-known location, so agents find it through the index or a discovery hint rather than by convention.
@@ -309,7 +313,8 @@ export async function manifestsForAllTenants(): Promise<Map<string, Manifest>> {
     out.set(studio.host, axe.describe(tenantInfo(studio)));
   }
   return out;
-}```
+}
+```
 <!-- /include -->
 
 ## Publish axe-index.json
@@ -334,7 +339,8 @@ const index: IndexConfig = {
       next,
     };
   },
-};```
+};
+```
 <!-- /include -->
 
 The wire document:
@@ -380,7 +386,8 @@ const ROLLOUT: "pilot" | "everyone" = "pilot";
 
 function enabledForAgents(studio: Studio): boolean {
   return ROLLOUT === "everyone" || PILOT_COHORT.has(studio.id);
-}```
+}
+```
 <!-- /include -->
 
 Then, in order:
@@ -431,7 +438,8 @@ app.use(
   }),
 );
 
-app.listen(Number(process.env.PORT ?? 3000));```
+app.listen(Number(process.env.PORT ?? 3000));
+```
 <!-- /include -->
 
 Precedence matters. A tenant supplied by the adapter wins. When the adapter supplies none, the server calls the resolver from `createAXE`; only when that also returns `null` does the host get `not_found`. If you configure no resolver and the adapter returns `null`, the request is served as the platform itself, with the platform-level manifest. Keep the resolver configured even when the adapter normally supplies the tenant, so an unknown host cannot fall through to it.

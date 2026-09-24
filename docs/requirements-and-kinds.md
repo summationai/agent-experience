@@ -226,7 +226,8 @@ Northgate admissions accepts a transcript by URL or inline, PDF only, and treats
 <!-- include: examples/requirements-and-kinds/transcript.ts#imports -->
 ```ts
 import { createAXE, action, z } from "@axe/core";
-import { kinds, accept, withMimeTypes } from "@axe/core/kinds";```
+import { kinds, accept, withMimeTypes } from "@axe/core/kinds";
+```
 <!-- /include -->
 
 <!-- include: examples/requirements-and-kinds/transcript.ts#action -->
@@ -291,7 +292,8 @@ axe.register(
       return { documentId, missingDocuments: await documents.missing(applicantId) };
     },
   }),
-);```
+);
+```
 <!-- /include -->
 
 Three things to notice. The `state` object carries the applicant id and the school from the first call into `onContinue` without ever reaching the agent. The `payload` arrives already validated against the chosen entry's schema, so the casts only name the shape. And a `fail` from `onContinue` leaves the token usable, so the agent can retry with a smaller file.
@@ -321,7 +323,8 @@ const waiverConsent: AcceptInput = {
     .strict(),
   sensitive: false,
   instructions: `Liability waiver: the student confirms they are able to participate and releases Sunrise Yoga from liability for ordinary injuries during class. Full text at ${WAIVER.url}.`,
-};```
+};
+```
 <!-- /include -->
 
 <!-- include: examples/requirements-and-kinds/waiver.ts#action -->
@@ -382,7 +385,8 @@ async function nextStep(classId: string, studentId: string) {
     });
   }
   return classes.book(classId, studentId);
-}```
+}
+```
 <!-- /include -->
 
 The waiver entry is built by hand rather than with `accept` so that the schema pins `policyUrl`, `policyVersion`, and `scope` to the exact policy. A consent for any other document fails validation on `/axe/continue` before your code runs. That is what the consent scope rule asks for, enforced by the schema rather than by a check you might forget.
@@ -417,7 +421,8 @@ export const guarantorForm = customKind({
     })
     .strict(),
   sensitive: true,
-});```
+});
+```
 <!-- /include -->
 
 <!-- include: examples/requirements-and-kinds/custom.ts#use -->
@@ -434,7 +439,8 @@ export function guarantorRequired(applicationId: string, rentUsd: number) {
     ],
     state: { applicationId },
   });
-}```
+}
+```
 <!-- /include -->
 
 Three rules apply:
@@ -525,7 +531,8 @@ axe.register(
       return fail("conflict", "Requirements were answered out of order. Call the action again.");
     },
   }),
-);```
+);
+```
 <!-- /include -->
 
 Carry what you have learned forward in `state`; each new `needsInput` gets its own. Keep chains short. An agent that has answered three requirements and receives a fourth will reasonably tell its user the site is not ready for agents. If two requirements are independent, consider whether one `needs_input` with two entries and a handler that accepts either is the better design; if both are always needed, a chain is honest about it.

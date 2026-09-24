@@ -25,7 +25,8 @@ export const axe = createAXE({
   baseUrl: process.env.AXE_BASE_URL ?? "https://admissions.northgate.example",
   auth: { modes: ["none", "user"], userLoginUrl: "https://admissions.northgate.example/login" },
   secret: process.env.AXE_SECRET,
-});```
+});
+```
 <!-- /include -->
 
 `baseUrl` comes from the environment so preview and production deployments each advertise their own origin. `secret` must be set in production; see [Gotchas](#gotchas).
@@ -43,7 +44,8 @@ import { applicantFromRequest } from "../../../lib/session";
 export const { GET, POST, OPTIONS } = axeNext(axe, {
   // `null` means anonymous: a `user` action then returns a login_required handoff.
   context: async (request) => ({ identity: await applicantFromRequest(request) }),
-});```
+});
+```
 <!-- /include -->
 
 The session helper is yours. This one parses a cookie and looks it up; with next-auth, iron-session, or Clerk you would call their server-side session function instead.
@@ -66,7 +68,8 @@ export async function applicantFromCookieHeader(
   const sid = /(?:^|;\s*)ng_session=([^;]+)/.exec(cookie ?? "")?.[1];
   const applicantId = sid ? SESSIONS.get(sid) : undefined;
   return applicantId ? { onBehalfOf: applicantId } : null;
-}```
+}
+```
 <!-- /include -->
 
 The manifest also has to be reachable at `/.well-known/axe.json`. There are two ways; pick one.
@@ -75,7 +78,8 @@ The first is a second route file that re-exports the same handlers:
 
 <!-- include: examples/integrations/next/app/.well-known/axe.json/route.ts#all -->
 ```ts
-export { GET, POST, OPTIONS } from "../../axe/[...axe]/route";```
+export { GET, POST, OPTIONS } from "../../axe/[...axe]/route";
+```
 <!-- /include -->
 
 The second is a rewrite in `next.config.js` from the well-known path to the alias the core already serves, `/axe/manifest`:
@@ -106,7 +110,8 @@ export default axeNextPages(axe, {
   // origin explicitly so local development and proxied deployments both work.
   origin: process.env.AXE_BASE_URL ?? "http://localhost:3000",
   context: async (req) => ({ identity: await applicantFromCookieHeader(req.headers.cookie) }),
-});```
+});
+```
 <!-- /include -->
 
 Pages API routes live under `/api`, and agents look under `/axe` and `/.well-known`, so add two rewrites:

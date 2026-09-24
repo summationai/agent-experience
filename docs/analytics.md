@@ -80,7 +80,8 @@ export const axe = createAXE({
     ],
     (error) => console.error("axe event sink failed", error),
   ),
-});```
+});
+```
 <!-- /include -->
 
 Writing your own sink is the same as writing the counter above:
@@ -93,7 +94,8 @@ const handoffsByAction = new Map<string, number>();
 function handoffCounter(event: AXEEvent): void {
   if (event.status !== "needs_human") return;
   handoffsByAction.set(event.action, (handoffsByAction.get(event.action) ?? 0) + 1);
-}```
+}
+```
 <!-- /include -->
 
 Sinks run after the response is determined, on a microtask, and they never delay or fail the response. A sink that throws or rejects is reported through the error callback and the agent sees the result it was going to see anyway. This is rule [E-3] of the spec, and it means a sink that posts to a slow analytics endpoint costs you nothing on the request path. It also means a sink must not be the only place a mutation is recorded: events are telemetry, not a ledger.

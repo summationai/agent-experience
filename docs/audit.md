@@ -218,7 +218,8 @@ console.log(
   `AXE Score ${audit.score}; ${audit.fixes.length} fixes; top: ${audit.fixes[0]?.title ?? "none"}`,
 );
 if (audit.hardFailure) console.error(`Hard failure: ${audit.hardFailure}`);
-if (audit.score < 80) process.exitCode = 1;```
+if (audit.score < 80) process.exitCode = 1;
+```
 <!-- /include -->
 
 ## Tuning the weights

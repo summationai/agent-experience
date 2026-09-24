@@ -114,7 +114,8 @@ axe.register(
       signedAt: completion?.at ?? new Date().toISOString(),
     }),
   }),
-);```
+);
+```
 <!-- /include -->
 
 The page at `url` and the staff step that records completion, in Express:
@@ -157,7 +158,8 @@ app.post("/applications/:id/lease/signed", requireStaff, async (req, res) => {
     });
   }
   res.redirect(`/applications/${id}/lease?signed=1`);
-});```
+});
+```
 <!-- /include -->
 
 Two details matter. The handoff id is not a secret and does not need to be: knowing it lets a page call `completeHandoff`, a server-side function your code controls, and nothing else. But the call itself must sit behind whatever authentication the real step requires; here, a staff session. A public route that marks any handoff complete would let anyone "sign" a lease. And `completeHandoff` returning false is not an error for the human. The lease is signed regardless; only the agent's resume link has lapsed, and the agent will call the action again.
@@ -201,7 +203,8 @@ axe.register(
     }),
     handler: async ({ input, context }) => orders.track(context.onBehalfOf!, input.orderNumber),
   }),
-);```
+);
+```
 <!-- /include -->
 
 <!-- include: examples/human-handoff/login.ts#login -->
@@ -239,7 +242,8 @@ app.post("/login", async (req, res) => {
     return;
   }
   res.redirect("/account");
-});```
+});
+```
 <!-- /include -->
 
 The login page calls `completeHandoff` with `onBehalfOf` set to the authenticated user's id. When the agent resumes, the SDK re-runs the original action, with the original input and idempotency key, as that user. Nothing about the agent's request changes; only the identity the handler sees.
@@ -299,7 +303,8 @@ export class RedisTokenStore implements TokenStore {
   async delete(id: string): Promise<void> {
     await this.redis.del(this.prefix + id);
   }
-}```
+}
+```
 <!-- /include -->
 
 The same store holds continuation and poll tokens and their `state`, so one implementation covers the whole protocol. Without a persistent `secret`, tokens do not survive a restart either; set both before serving real agents. [Deploying](deploying.md) has the checklist.
