@@ -386,9 +386,10 @@ Live state (spec §21). Every check skips when the manifest has no `live` member
 | `ladder.sensitive-kinds` | Any well-known kind the registry marks sensitive is offered with `sensitive` true. | P-REQ-3 |
 | `ladder.continue-invalid` | Continuing with an invalid payload returns 400 `invalid_input` with issues and does not consume the token; continuing with a kind not in `accepts` also returns `invalid_input`. | P-REQ-8 |
 | `ladder.continue-valid` | Continuing with a valid sample payload returns a non-error status. | P-REQ-7 |
-| `ladder.continue-replay` | Continuing again with the consumed token returns `conflict`. | P-REQ-9 |
+| `ladder.continue-replay` | Continuing again with the same token, kind, and payload returns the original envelope. | P-REQ-9, P-OP-1 |
 | `ladder.fallback-resume` | Resuming with the `fallback` handoff's `resumeToken` returns a non-error status, or `conflict` while the handoff is gated on completion. | P-REQ-6, P-HAND-4 |
-| `ladder.resume-replay` | Resuming again with the consumed token returns `conflict`. | P-HAND-6 |
+| `ladder.resume-replay` | Resuming again with the consumed token returns the original envelope. | P-HAND-6, P-OP-1 |
+| `ladder.token-principal` | With `--auth`, the continuation token presented without the credential is `not_found`. | P-TOK-6 |
 | `ladder.handoff-shape` | Every handoff observed has all six members: `reason`, `instructions`, `url`, `resumeToken`, `expiresAt`, `whatAgentShouldSayToUser`. | P-HAND-1 |
 | `ladder.token-ttl` | The continuation token expires within about 15 minutes and the fallback resume token within about 24 hours. Warns outside those bounds. | P-TOK-5 |
 | `ladder.fake-kinds` | No custom `x-` kind in `accepts` has a schema structurally identical to a well-known kind. | P-HON-5 |

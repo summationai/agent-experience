@@ -6,7 +6,9 @@
 
 The SDK signs continuation, resume, and poll tokens with an HMAC over `secret`. It must be at least 16 characters and should come from your secret manager. When it is absent the server logs a warning and generates a random per-process secret, which is fine on a laptop and wrong everywhere else: tokens minted before a restart fail to verify after it, and two instances behind a load balancer cannot verify each other's tokens. Rotating the secret has the same effect on purpose: every outstanding token becomes invalid, so rotate during a quiet period or accept that in-flight handoffs return `not_found` and agents start over.
 
-Tokens carry no state. What the server remembers about an open requirement or handoff lives in a `TokenStore`; the results of mutating calls live in an `IdempotencyStore`, keyed by tenant, action, acting user, and `idempotencyKey`. Both default to in-memory implementations that are correct for one process and silently wrong for two. A Redis-style client with three commands covers both:
+Tokens carry no state. What the server remembers about an open requirement or handoff lives in a `TokenStore`. Every operation that must run at most once lives in an `IdempotencyStore`: an action call under one `idempotencyKey` (keyed by tenant, action, acting principal, and key), one use of a continuation or resume token, and the computation of a poll result. Both default to in-memory implementations that are correct for one process and wrong for two.
+
+The two stores need different guarantees. A token record is written when the token is minted and again when `completeHandoff` records a completion, so a get/set store with TTLs is enough. The idempotency store must claim atomically: of two requests that arrive together with one key, on one instance or two, exactly one may be told to run. A `get` followed by a `set` lets both run, so `createAXE` refuses an idempotency store without `claim`, `complete`, and `release`. With Redis, each of those is one Lua script, which Redis runs without interleaving another command:
 
 <!-- include: examples/deploying/stores.ts#kv -->
 ```ts
@@ -15,12 +17,16 @@ interface KV {
   get(k: string): Promise<string | null>;
   set(k: string, v: string, mode: "EX", ttl: number): Promise<unknown>;
   del(k: string): Promise<unknown>;
+  /** EVAL: runs a Lua script atomically on the Redis server. */
+  eval(script: string, numKeys: number, ...args: string[]): Promise<unknown>;
 }
 ```
 <!-- /include -->
 
 <!-- include: examples/deploying/stores.ts#stores -->
 ```ts
+// Token records are written once when a token is minted and again when completeHandoff records
+// a completion. Single use lives in the idempotency store, so a plain get/set is enough here.
 export function kvTokenStore(kv: KV, prefix = "axe:token:"): TokenStore {
   return {
     async get(id) {
@@ -36,14 +42,75 @@ export function kvTokenStore(kv: KV, prefix = "axe:token:"): TokenStore {
   };
 }
 
-export function kvIdempotencyStore(kv: KV, prefix = "axe:idem:"): IdempotencyStore {
+// Claims must be atomic, so each operation is one Lua script: Redis runs a script without
+// interleaving any other command. A GET followed by a SET would let two requests both claim.
+const CLAIM = `
+local t = redis.call('TIME')
+local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
+local raw = redis.call('GET', KEYS[1])
+if raw then
+  local e = cjson.decode(raw)
+  if e.state == 'completed' then return raw end
+  if not (e.leaseExpiresAt <= now and e.fingerprint == ARGV[1]) then return raw end
+end
+redis.call('SET', KEYS[1], cjson.encode({ state = 'in_progress', fingerprint = ARGV[1],
+  owner = ARGV[2], leaseExpiresAt = now + tonumber(ARGV[3]) }), 'PX', ARGV[4])
+return false`;
+const COMPLETE = `
+local raw = redis.call('GET', KEYS[1])
+if not raw then return 0 end
+local e = cjson.decode(raw)
+if e.state ~= 'in_progress' or e.owner ~= ARGV[1] then return 0 end
+redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
+return 1`;
+const RELEASE = `
+local raw = redis.call('GET', KEYS[1])
+if raw then
+  local e = cjson.decode(raw)
+  if e.state == 'in_progress' and e.owner == ARGV[1] then redis.call('DEL', KEYS[1]) end
+end
+return 0`;
+
+export function redisIdempotencyStore(kv: KV, prefix = "axe:op:"): IdempotencyStore {
+  type Stored =
+    | { state: "in_progress"; fingerprint: string; leaseExpiresAt: number }
+    | { state: "completed"; record: IdempotencyRecord };
   return {
     async get(key) {
       const raw = await kv.get(prefix + key);
-      return raw ? (JSON.parse(raw) as IdempotencyRecord) : undefined;
+      const e = raw ? (JSON.parse(raw) as Stored) : undefined;
+      return e?.state === "completed" ? e.record : undefined;
     },
-    async set(key, record, ttlSeconds) {
-      await kv.set(prefix + key, JSON.stringify(record), "EX", Math.max(1, Math.ceil(ttlSeconds)));
+    async claim(key, { fingerprint, owner, leaseSeconds, ttlSeconds }): Promise<ClaimOutcome> {
+      const raw = await kv.eval(
+        CLAIM,
+        1,
+        prefix + key,
+        fingerprint,
+        owner,
+        String(leaseSeconds * 1000),
+        String(Math.max(ttlSeconds, leaseSeconds) * 1000),
+      );
+      if (typeof raw !== "string") return { outcome: "acquired" };
+      const e = JSON.parse(raw) as Stored;
+      return e.state === "completed"
+        ? { outcome: "completed", record: e.record }
+        : { outcome: "in_progress", fingerprint: e.fingerprint, leaseExpiresAt: e.leaseExpiresAt };
+    },
+    async complete(key, owner, record, ttlSeconds) {
+      const stored: Stored = { state: "completed", record };
+      const n = await kv.eval(
+        COMPLETE,
+        1,
+        prefix + key,
+        owner,
+        JSON.stringify(stored),
+        String(ttlSeconds * 1000),
+      );
+      return n === 1;
+    },
+    async release(key, owner) {
+      await kv.eval(RELEASE, 1, prefix + key, owner);
     },
   };
 }
@@ -51,6 +118,11 @@ export function kvIdempotencyStore(kv: KV, prefix = "axe:idem:"): IdempotencySto
 <!-- /include -->
 
 The SDK passes a TTL on every write: about 15 minutes for continuation tokens, 24 hours for resume tokens, one hour for poll tokens, and the idempotency window (24 hours by default) for idempotency records. Honor it: a store that ignores TTLs grows without bound, and one that shortens them makes handoffs fail before the human gets back.
+
+The scripts are atomic on one Redis primary. With asynchronous replication, a failover can lose a claim or a stored result written just before it, and a retry then runs the handler again; the next section is what keeps that safe. The reference adapter is SQLite: `SqliteIdempotencyStore` from `@axe/core/node` makes every claim one `INSERT ... ON CONFLICT DO UPDATE ... WHERE` statement, so every runtime that opens the same database file shares claims. It needs Node 22.5 or newer (`node:sqlite`; without a flag from 22.13) and stays on one host, since SQLite over a network filesystem is not safe. The same statements port to PostgreSQL, using `RETURNING` to learn whether the insert or the conditional update took effect.
+
+<!-- include: examples/deploying/stores.ts#sqlite -->
+<!-- /include -->
 
 <!-- include: examples/deploying/stores.ts#config -->
 ```ts
@@ -64,14 +136,36 @@ export const axe = createAXE({
   // At least 16 characters, from your secret manager. Rotating it invalidates outstanding tokens.
   secret: process.env.AXE_SECRET,
   tokenStore: kvTokenStore(kv),
-  idempotencyStore: kvIdempotencyStore(kv),
+  idempotencyStore: redisIdempotencyStore(kv),
   // The idempotency window. Default 24 hours; the store receives it as the TTL on every record.
   idempotencyTtlSeconds: 60 * 60 * 24,
+  // How long a claim holds before a retry of the same call may run it again. Above your slowest handler.
+  operationLeaseSeconds: 60,
 });
 ```
 <!-- /include -->
 
 The same configuration can disable the `idempotencyKey` requirement. Do not: [idempotency](concepts.md#idempotency) is what makes a retried deposit one deposit.
+
+### Operations, claims, and crashes
+
+Every operation goes through one lifecycle (spec §12.2):
+
+1. **Claim.** Before the handler, `onContinue`, `onResume`, or `onPoll` runs, the runtime claims the operation with a fingerprint of what makes a retry the same operation: the canonical `input` for a call, the kind and payload for a continuation. If the operation already completed with that fingerprint, the stored envelope is returned and nothing runs. If it completed or is running with another fingerprint, the answer is `conflict`.
+2. **In progress.** A request for an operation another request is still running gets `error` with `code: "conflict"`, `retryable: true`, `details.operationStatus: "in_progress"`, and `details.retryAfter`, with the same number in `Retry-After`. The agent retries with the same key or token after the delay and receives the stored envelope once it exists. A poll answers `pending` instead.
+3. **Settle.** A non-error result completes the operation and is stored for the idempotency window. An `error` result, including a handler that throws, releases the claim and stores nothing, so the same key or token may be retried and the handler runs again. A poll's terminal result is stored whatever its status.
+4. **Lease.** A claim holds for the operation lease (60 seconds by default). If the process holding it dies before settling, a retry of the same operation takes the claim over once the lease has passed, and runs the handler again. A request for a different operation never takes a claim over. Set the lease above your slowest handler: a handler still running when its lease passes may be joined by a second run, and the first one's result is then not stored (the runtime reports it to `onError`).
+
+The claim makes the decision to run atomic. It does not make your side effect atomic with the stored result: a crash after your database commits and before the result is stored leads to the retry in step 4. Handlers receive `operationId`, the same on every run of one operation and on every instance, for exactly this. Write it under a unique constraint in the same transaction as the change, or pass it to your payment provider as its idempotency key, and the second run finds the first run's work instead of repeating it:
+
+<!-- include: examples/deploying/stores.ts#operation -->
+<!-- /include -->
+
+Nothing in the SDK promises that a side effect happens exactly once. It promises one run at a time per operation, a stored envelope for every completed one, and a stable `operationId`; exactly-once effects are that plus your downstream idempotency.
+
+### Migrating a store
+
+The `IdempotencyStore` interface changed from `get` and `set` to `get`, `claim`, `complete`, and `release`, and its record's input hash field is now `fingerprint`. There is no shim: a get/set store cannot claim atomically, and wrapping one would keep the race the change removes. Replace a custom store with `SqliteIdempotencyStore`, the Redis scripts above, or an implementation over your database's conditional insert. `TokenRecord.onBehalfOf` is now `principal` (the encoded principal, `user:<id>`, `site:<id>`, or both), and the consumed-at and terminal-result fields are gone, because single use and poll results live in the idempotency store; a `TokenStore` that stores records as opaque JSON needs no change. Outstanding tokens minted before the upgrade do not verify against the new record shape and return `not_found`; deploy in a quiet period, as for a secret rotation.
 
 ## Discovery
 
@@ -214,7 +308,7 @@ function take(key: string): number {
 ```
 <!-- /include -->
 
-Key on the bearer token when there is one, because that is the identity you issued, and on the declared vendor otherwise; the vendor is self-reported, so it is a fairness key, not a security boundary. `onRequest` is not called for continuation, resume, or poll requests, which are gated by single-use tokens; limit those at the edge if you need to. Agents must honor `Retry-After` and must not retry a `rate_limited` error sooner; `@axe/client` does this for you.
+Key on the bearer token when there is one, because that is the identity you issued, and on the declared vendor otherwise; the vendor is self-reported, so it is a fairness key, not a security boundary. `onRequest` is not called for continuation, resume, or poll requests, which are gated by single-use, principal-bound tokens; limit those at the edge if you need to. Agents must honor `Retry-After` and must not retry a `rate_limited` error sooner; `@axe/client` does this for you.
 
 ## Observability hooks
 
@@ -402,7 +496,8 @@ A browser bundle needs no alias for a Node built-in and no work to keep Zod out:
 Before the manifest is reachable from the public internet:
 
 - [ ] `secret` is at least 16 characters and comes from a secret manager; no per-process-secret warning appears in the logs.
-- [ ] `TokenStore` and `IdempotencyStore` are shared across instances, with TTLs honored.
+- [ ] `TokenStore` and `IdempotencyStore` are shared across instances, with TTLs honored, and the idempotency store's `claim` is atomic (`SqliteIdempotencyStore`, the Redis scripts, or a conditional insert).
+- [ ] `operationLeaseSeconds` is above the slowest handler, and handlers with external effects pass `operationId` downstream or write it in the same transaction.
 - [ ] `baseUrl` is the public HTTPS origin agents will use, and `/.well-known/axe.json` answers there.
 - [ ] `robots.txt` carries an `AXE-Manifest` line; `axe conformance` reports no hint warning.
 - [ ] `policies.rateLimit` is declared, and the edge or `onRequest` enforces it.

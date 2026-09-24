@@ -12,13 +12,17 @@ The SDK enforces the first rule on your own text at registration: `action` throw
 
 ### Token theft and replay
 
-Continuation, resume, and poll tokens are bearer credentials. The SDK limits what a stolen one is worth: it is HMAC-SHA256 signed with your `secret`, bound to one action, a hash of the original `input`, the acting user, and the tenant, and carries an expiry (about 15 minutes for continuation, 24 hours for resume). It is single-use: once a continuation or resume returns anything other than `error`, a second presentation returns `conflict`. A tampered, expired, or wrong-user token returns `not_found`, so the response never confirms which check failed.
+Continuation, resume, and poll tokens are signed with HMAC-SHA256 under your `secret` and bound to one action, a hash of the original `input`, the acting principal (the user, the site key, or both), and the tenant, with an expiry (about 15 minutes for continuation, 24 hours for resume). Every presentation is authorized before anything runs or is returned: the serving tenant and the principal the request resolves to must match the token's (spec P-TOK-6), and a site key is verified again, so a revoked key stops working for the tokens it obtained. A tampered, expired, wrong-tenant, or wrong-principal token returns exactly the `not_found` an unknown token gets, whether the token is open, used, or holds a finished result. A token minted for an authenticated principal is useless without that principal's credentials. A token minted anonymously is a bearer credential: whoever holds it can use it, and after it is used, whoever also holds the exact payload can read the stored envelope.
+
+Tokens are single-use: once a continuation or resume returns anything other than `error`, its hook never runs again for that token. Presenting it again with the same payload returns the original envelope (so a lost response is recoverable); with a different payload, `conflict`. The one identity change is the `login_required` handoff: minted anonymously, it runs as the user your login page records with `completeHandoff`, which refuses another tenant's handoff, a second user, and a handoff already resumed.
 
 The `state` you attach never enters the token; it is stored under the token id. Agents must transmit tokens only over HTTPS and must not log them. Your `TokenStore` holds records, not tokens, so a leaked store exposes state, not credentials.
 
 ### Replay of mutations
 
-Network retries and agent loops repeat requests. Every mutating action requires an `idempotencyKey`; a replay with the same key, action, user, and input within the window (24 hours by default) returns the stored result without running the handler, and a replay with different input returns `conflict`. Keys are scoped by tenant, action, and acting user, so two users who pick the same key cannot collide.
+Network retries and agent loops repeat requests, sometimes simultaneously. Every mutating action requires an `idempotencyKey`; the runtime claims the key atomically in the `IdempotencyStore` before the handler runs, so of any number of simultaneous requests with one key, on any number of instances sharing the store, one runs. The others get a retryable `conflict` with `operationStatus: "in_progress"`, and afterwards the stored result. A replay with different input returns `conflict`. Keys are scoped by tenant, action, and acting principal, so two users, or two partners, who pick the same key cannot collide. Continuation and resume tokens and poll results use the same claims.
+
+This is at-most-one-run-at-a-time plus replay, not exactly-once effects. A handler that errors releases its claim and may run again on retry; a process that dies after your commit and before the result is stored leaves a claim that a retry takes over when its lease passes, and the handler runs again. Make external effects idempotent with the `operationId` handlers receive ([Deploying](deploying.md#operations-claims-and-crashes)).
 
 ### Agents as a DDoS vector
 
@@ -42,18 +46,20 @@ P-HON-3 requires that data returned to an agent be what a human sees at `display
 
 ### Multi-tenant isolation
 
-On a platform, one runtime serves many tenants. Tokens are bound to the tenant id and idempotency keys are prefixed with it, so a continuation minted for one tenant is `not_found` on another and keys never collide across tenants. Every event carries `tenant`. Your handlers must still confine `onBehalfOf` to the tenant it belongs to; the runtime cannot check that.
+On a platform, one runtime serves many tenants. Tokens are bound to the tenant id and checked against the tenant serving each request, and idempotency keys are prefixed with it, so a continuation, resume, or poll token minted for one tenant is `not_found` on another, even for a user id that exists on both, and keys never collide across tenants. Every event carries `tenant`. Your handlers must still confine `onBehalfOf` to the tenant it belongs to; the runtime cannot check that.
 
 ## What the SDK mitigates
 
 | Threat                               | Mechanism                                                                                                                              | Where                                      |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | Forged or altered tokens             | HMAC-SHA256 over type, id, action, input hash, user, tenant, expiry; verified before the store is read                                 | `@axe/core`, `TokenSigner`                 |
-| Token reuse                          | Consumed flag on the record; second use returns `conflict`; unknown, tampered, expired, or wrong-user tokens return `not_found`        | `@axe/core`, continue and resume endpoints |
+| Token reuse                          | Atomic claim per token use; a repeat returns the stored envelope, a different payload `conflict`; unknown, tampered, expired, wrong-tenant, or wrong-principal tokens return `not_found` | `@axe/core`, continue, resume, and poll    |
+| Token use by the wrong caller        | Tenant and principal checked on every presentation before any hook or stored result; site keys re-verified                             | `@axe/core`, token endpoints               |
+| Private poll results                 | A poll is authorized as the call that produced it, terminal results included                                                           | `@axe/core`, poll endpoint                 |
 | State leakage through tokens         | `state` stored server-side under the token id, never encoded in the token                                                              | `@axe/core`, `TokenStore`                  |
 | Weak or missing secret               | `secret` under 16 characters throws at startup; an absent one produces a random per-process secret and a console warning               | `@axe/core`, `createAXE`                   |
 | Identity spoofing in the body        | `context` is sanitized on read; `onBehalfOf` is overwritten with the identity from `authenticate` or the adapter                       | `@axe/core`, request pipeline              |
-| Duplicate mutations                  | `idempotencyKey` required for mutating actions; replay returns the stored result, different input returns `conflict`                   | `@axe/core`, `IdempotencyStore`            |
+| Duplicate mutations                  | `idempotencyKey` required for mutating actions; atomic claim before the handler; replay returns the stored result, different input returns `conflict` | `@axe/core`, `IdempotencyStore`            |
 | Malformed input                      | Zod validation before any handler; `invalid_input` with a JSON Pointer per problem; `_axe` stripped before output validation           | `@axe/core`, action pipeline               |
 | Internal details reaching agents     | Thrown errors replaced by a generic `internal` error and delivered to `onError`; output that fails its schema is replaced the same way | `@axe/core`, `onError`                     |
 | Prompt injection from your own text  | Agent-directive patterns rejected when `action` is called; audit hard failure on live manifests                                        | `@axe/core/lint`, `axe audit`              |
@@ -90,7 +96,7 @@ export const axe = createAXE({
   contact: { email: "agents@oakridge-rentals.example" },
   secret,
   tokenStore: new KvTokenStore(kv),
-  idempotencyStore: new KvIdempotencyStore(kv),
+  idempotencyStore,
   // `cors` is omitted on purpose: no browser-based agent calls this origin, so no CORS headers are emitted.
   onError: (ctx, error) => {
     // The agent has already received a generic `internal` error. Log the cause with the
@@ -111,13 +117,12 @@ export const axe = createAXE({
 
 **Rate limiting at the edge.** Declare `policies.rateLimit`; enforce it in your gateway or proxy with 429 and `Retry-After`. The runtime does not count requests.
 
-**Durable stores.** The default `TokenStore` and `IdempotencyStore` are in-memory. With more than one instance, a continuation minted on one process is unknown to the next. Implement both interfaces against Redis or a table with TTL:
+**Durable stores.** The default `TokenStore` and `IdempotencyStore` are in-memory. With more than one instance, a continuation minted on one process is unknown to the next, and two instances cannot see each other's claims. The token store needs get and set with TTLs; the idempotency store must claim atomically, and a get/set implementation is refused at startup:
 
 <!-- include: examples/security/production-config.ts#stores -->
 ```ts
-// Token records hold `state`, the accepted schemas, and the consumed flag. Idempotency
-// records hold the original result. Both are plain JSON; both keys are already scoped by
-// tenant, action, and acting user before they reach you.
+// Token records hold `state` and the accepted schemas; they are plain JSON, keyed by a random id.
+// A get/set store with TTLs is enough for them.
 class KvTokenStore implements TokenStore {
   constructor(private readonly kv: Kv) {}
   async get(id: string): Promise<TokenRecord | undefined> {
@@ -132,16 +137,13 @@ class KvTokenStore implements TokenStore {
   }
 }
 
-class KvIdempotencyStore implements IdempotencyStore {
-  constructor(private readonly kv: Kv) {}
-  async get(key: string): Promise<IdempotencyRecord | undefined> {
-    const raw = await this.kv.get(`axe:idem:${key}`);
-    return raw ? (JSON.parse(raw) as IdempotencyRecord) : undefined;
-  }
-  async set(key: string, record: IdempotencyRecord, ttlSeconds: number): Promise<void> {
-    await this.kv.set(`axe:idem:${key}`, JSON.stringify(record), ttlSeconds);
-  }
-}
+// Operation claims (idempotency keys, token uses, poll results) must be atomic across every
+// instance. A get/set store is refused at startup. This is the SQLite reference adapter; for
+// Redis or PostgreSQL, see docs/deploying.md, "Secrets and stores".
+const { DatabaseSync } = (await import("node:sqlite" as string)) as {
+  DatabaseSync: new (path: string) => SqliteDatabaseLike;
+};
+const idempotencyStore = new SqliteIdempotencyStore(new DatabaseSync("/var/lib/oakridge/axe.db"));
 ```
 <!-- /include -->
 
@@ -160,6 +162,9 @@ These are true of v0. The first two are deferred with reasons in [ROADMAP.md](..
 - **Honesty rules are heuristics.** The agent-directive and persuasion checks are regular expressions over known phrasings. Novel phrasing passes both registration and the audit. A passing audit is not proof that a manifest is safe to follow.
 - **Parity is a spot-check.** The audit looks for agent-returned values as text on the human page. Dynamic pages, formatted numbers, and personalized prices defeat it in either direction.
 - **Zod refinements are not enforced on continue.** Stored `accepts` schemas are JSON Schema so they can live in any `TokenStore`, and payloads are validated against that. A refinement on a custom kind's Zod schema is not applied to `/axe/continue`; put the constraint in `onContinue`.
+- **Idempotency is not exactly-once.** The SDK guarantees one run at a time per operation and a replayed result once it completes. A handler that fails, or a process that dies between your commit and the stored result, can run again on retry; the Redis store can also lose a claim on failover. External effects need the `operationId` or your own downstream idempotency.
+- **Anonymous tokens are bearer credentials.** A token minted without a principal can be used by anyone who holds it. Put `user` or `site` auth on actions whose follow-ups carry private data.
+- **`completeHandoff` is read-modify-write on the `TokenStore`.** Two simultaneous completions of one handoff can both succeed; the last write wins. It is called by your own landing page, once per human.
 - **In-memory stores lose everything on restart.** Every open continuation, handoff, and idempotency record disappears and agents receive `not_found`. Use durable stores in production.
 - **`toHTML` allows inline script in its CSP.** The rendered page's Content-Security-Policy meta tag permits inline script and styles so its one static script and stylesheet work without external files. A surface embedding the page should apply its own stricter policy.
 

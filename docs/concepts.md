@@ -261,11 +261,11 @@ sequenceDiagram
   end
 ````
 
-Both tokens are signed, opaque to the agent, bound to the originating action, input, and user, single-use, and expire (continuation tokens in about 15 minutes, resume tokens in about 24 hours). The `state` you attach never crosses the wire; it is stored server-side and delivered back to `onContinue` or `onResume`. [Human handoff](human-handoff.md) covers the landing page and failure modes.
+Both tokens are signed, opaque to the agent, bound to the originating action, input, acting principal, and tenant, single-use, and expire (continuation tokens in about 15 minutes, resume tokens in about 24 hours). The `state` you attach never crosses the wire; it is stored server-side and delivered back to `onContinue` or `onResume`. [Human handoff](human-handoff.md) covers the landing page and failure modes.
 
 ## Idempotency
 
-Every mutating action requires an `idempotencyKey` in the request envelope. Replaying a key with the same input, action, and user within 24 hours returns the original result without running the handler; replaying it with different input returns `conflict`. `@axe/client` generates a UUID per attempt automatically. The default store is in-memory; `IdempotencyStore` is a two-method interface you implement with Redis or a table for multi-instance deployments.
+Every mutating action requires an `idempotencyKey` in the request envelope. Replaying a key with the same input, action, and principal within 24 hours returns the original result without running the handler; replaying it with different input returns `conflict`. The runtime claims the key atomically before the handler runs, so two simultaneous requests with one key run the handler once: the second gets a retryable `conflict` with `operationStatus` set to `in_progress` and a `Retry-After`, and its retry gets the stored result. Continuation and resume tokens work the same way: repeating a successful continue or resume returns its original envelope, so an agent whose response was lost recovers it. `@axe/client` generates a UUID per attempt automatically. The default store is in-memory; for more than one process use `SqliteIdempotencyStore` from `@axe/core/node` or implement `IdempotencyStore`, whose claim must be atomic ([Deploying](deploying.md#secrets-and-stores)). Idempotency makes the decision to run atomic, not your side effect: see [Operations, claims, and crashes](deploying.md#operations-claims-and-crashes).
 
 ## Live state and revisions
 
