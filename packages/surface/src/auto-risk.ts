@@ -190,6 +190,12 @@ export const DEFAULT_LEXICON: Required<Omit<RiskLexicon, "replace">> = {
     "dashboard",
     "overview",
     "skip",
+    "theme",
+    "dark",
+    "light",
+    "dark mode",
+    "light mode",
+    "language",
   ],
 };
 
@@ -316,7 +322,10 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   if (role === "combobox-trigger") return verdict("low", "view", "opens a list of choices");
   if ((role === "checkbox" || role === "radio") && inFormEarly)
     return verdict("low", "form", `a ${role} in a form: nothing is saved until it is submitted`);
-  const destructive = matchOf(lex.destructive, words);
+  // A link whose name is a whole card of text ("Schemas: … every schema you publish …") navigates;
+  // its words describe the destination, not an effect.
+  const longLink = role === "link" && input.name.split(/\s+/).length > 6;
+  const destructive = longLink ? "" : matchOf(lex.destructive, words);
   if (destructive) return verdict("high", "app", `name matches “${destructive}”`);
   const styled = dangerStyled(el);
   if (styled) return verdict("high", "app", styled);

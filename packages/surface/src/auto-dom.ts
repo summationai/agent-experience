@@ -865,7 +865,8 @@ export function contextOf(
         role === "article" ||
         role === "listitem")
     ) {
-      const h = firstHeadingIn(cur, ctx);
+      // The nearest heading before the control inside the article, else its first heading.
+      const h = precedingHeading(el, ctx, cur) || firstHeadingIn(cur, ctx);
       if (h && !cur.contains(el.closest('h1, h2, h3, h4, h5, h6, [role="heading"]'))) {
         segs.push({ kind: "section", label: clampText(h, 60) });
         sectionHeadingSeen = true;
@@ -875,7 +876,12 @@ export function contextOf(
   }
   segs.reverse();
   // A plain-div settings page: the nearest heading before the control, inside its landmark.
-  if (!sectionHeadingSeen && !segs.some((s) => s.kind === "row")) {
+  // Only when nothing nearer names the control's context (a row, a dialog, a menu, a region).
+  const named = segs.some(
+    (s) => s.kind !== "frame" && (s.kind !== "landmark" || s.label.includes(":")),
+  );
+  const ownHeading = !!el.closest('h1, h2, h3, h4, h5, h6, [role="heading"]');
+  if (!sectionHeadingSeen && !named && !ownHeading) {
     const h = precedingHeading(el, ctx, landmark);
     if (h) segs.push({ kind: "section", label: clampText(h, 60) });
   }

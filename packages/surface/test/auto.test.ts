@@ -685,3 +685,41 @@ describe("lifecycle", () => {
     expect(surface.get("draft")!.source).toBeUndefined();
   });
 });
+
+describe("a Radix-like menu and dialog", () => {
+  it("opens a menu on pointerdown, derives its items in the portal, and a row that handles only Enter is clicked", async () => {
+    const h = start(`<main><h2>Projects</h2>
+      <div role="button" tabindex="0" id="row">Apollo</div>
+      <button id="trigger" aria-haspopup="menu" aria-expanded="false">Project actions</button></main>`);
+    const trigger = document.getElementById("trigger")!;
+    trigger.addEventListener("pointerdown", (e) => {
+      if ((e as PointerEvent).button !== 0) return;
+      trigger.setAttribute("aria-expanded", "true");
+      const menu = document.createElement("div");
+      menu.setAttribute("role", "menu");
+      menu.setAttribute("aria-labelledby", "trigger");
+      menu.innerHTML = `<div role="menuitem">Rename</div><div role="menuitem" data-variant="destructive">Delete</div>`;
+      document.body.appendChild(menu);
+    });
+    let opened = 0;
+    document
+      .getElementById("row")!
+      .addEventListener("keydown", (e) => (e as KeyboardEvent).key === "Enter" && opened++);
+    document.getElementById("row")!.addEventListener("click", () => opened++);
+    const s = h.surface;
+    expect(byName(s, "Project actions").value).toEqual({ expanded: false });
+    expect(byName(s, "Project actions").effect?.risk).toBe("low");
+    const r = await act(s, byName(s, "Project actions").id);
+    expect(r.status).toBe("ok");
+    expect(byName(s, "Project actions").value).toEqual({ expanded: true });
+    expect(byName(s, "Rename", "menuitem").object).toBe("Project actions");
+    expect(byName(s, "Delete", "menuitem").effect?.risk).toBe("high");
+    if (r.status === "ok") expect(r.output.changed).toContain(byName(s, "Rename", "menuitem").id);
+    // A row named only by its record is unrecognized: high risk until configured or approved.
+    const apollo = byName(s, "Apollo");
+    expect(apollo.state?.handoff?.reason).toBe("approval_required");
+    h.approve(apollo.id);
+    expect((await act(s, apollo.id)).status).toBe("ok");
+    expect(opened).toBe(1);
+  });
+});

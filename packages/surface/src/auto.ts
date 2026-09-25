@@ -532,6 +532,18 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
           markup: 'use a <button>, or add role="button", tabindex="0", and an accessible name',
         });
       }
+      // Links with the same name and destination in one context are one way to go there: keep
+      // the first.
+      const hrefs = new Set<string>();
+      const unique = candidates.filter((c) => {
+        if (c.role !== "link") return true;
+        const k = `${c.baseKey} ${(c.el as HTMLAnchorElement).href ?? c.el.getAttribute("href")}`;
+        if (hrefs.has(k)) return false;
+        hrefs.add(k);
+        return true;
+      });
+      candidates.length = 0;
+      candidates.push(...unique);
       // Ordinals for duplicates, in document order.
       const seen = new Map<string, number>();
       for (const c of candidates) {
