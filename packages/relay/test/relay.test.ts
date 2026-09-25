@@ -12,6 +12,7 @@ import {
   registerPlan,
   startRelay,
   until,
+  noJsdom,
 } from "./helpers";
 import type { Agent, Page, Running } from "./helpers";
 
@@ -50,7 +51,7 @@ async function connected(r: Running, p: Page, principal = "alice", tenant = "acm
   return conn;
 }
 
-describe("relay: list, observe, act", () => {
+describe.skipIf(noJsdom)("relay: list, observe, act", () => {
   it("an agent lists the person's tab, observes it, and acts; the page's own handler runs and the ledger names the agent", async () => {
     const r = await relay();
     const p = await page();
@@ -144,7 +145,7 @@ async function observe(a: Agent): Promise<{
   return r.result.output as never;
 }
 
-describe("relay: the page's surface decides", () => {
+describe.skipIf(noJsdom)("relay: the page's surface decides", () => {
   it("a stale revision is a conflict and applies nothing, including a person's change between observe and act", async () => {
     const r = await relay();
     const p = await page();
@@ -352,7 +353,7 @@ describe("relay: the page's surface decides", () => {
   });
 });
 
-describe("relay: who reaches which tab", () => {
+describe.skipIf(noJsdom)("relay: who reaches which tab", () => {
   it("two principals are isolated: one agent cannot list, select, observe, or act on another person's tab", async () => {
     const r = await relay();
     const pa = await page();
@@ -517,7 +518,7 @@ describe("relay: who reaches which tab", () => {
   });
 });
 
-describe("relay: what crosses the wire", () => {
+describe.skipIf(noJsdom)("relay: what crosses the wire", () => {
   it("a sensitive field's value never appears in a frame or a tool result", async () => {
     const r = await relay();
     const p = await page();
@@ -578,5 +579,99 @@ describe("relay: what crosses the wire", () => {
     await p.status((s) => s.state === "connected");
     const s = await p.status((x) => x.state === "refused", 8000);
     expect(s.reason).toContain("expired");
+  });
+});
+
+describe.skipIf(noJsdom)("relay: the rest of the bridge comes along", () => {
+  it("a control that declares requires climbs the ladder: needs_input, axe_continue runs the page's fulfill, and the act runs", async () => {
+    const r = await relay();
+    const p = await page();
+    let reason: string | null = null;
+    const registerLock = () =>
+      p.surface.register({
+        id: "plan:lock",
+        kind: "action",
+        role: "button",
+        name: "Lock the plan",
+        state: reason
+          ? { available: true }
+          : {
+              available: false,
+              reason: "a reason for the lock is required",
+              requires: {
+                accepts: [
+                  {
+                    kind: "x-acme.lock-reason",
+                    description: "Why the plan is locked, in a sentence",
+                    sensitive: false,
+                    schema: {
+                      type: "object",
+                      properties: { text: { type: "string" } },
+                      required: ["text"],
+                    },
+                  },
+                ],
+                fulfill: (_kind, payload, actor) => {
+                  reason = String((payload as { text: string }).text);
+                  p.calls.push(`fulfill:${reason}:${actor}`);
+                  registerLock();
+                  p.surface.bump();
+                },
+              },
+            },
+        effect: { mutates: "plan", reversible: true },
+        handler: (actor) => {
+          p.calls.push(`lock:${actor}`);
+          p.surface.bump();
+        },
+      });
+    registerLock();
+    await connected(r, p);
+    const a = await agent(r, "agent-alice");
+    const v = await observe(a);
+    const asked = await a.call("surface_run-control", { entryId: "plan:lock", expectedRev: v.rev });
+    expect(asked.result.status, asked.text).toBe("needs_input");
+    const token = (asked.result as unknown as { continuationToken: string }).continuationToken;
+    const cont = await a.call("axe_continue", {
+      continuationToken: token,
+      kind: "x-acme.lock-reason",
+      payload: { text: "month end" },
+    });
+    expect(cont.result.status, cont.text).toBe("ok");
+    expect(p.calls).toEqual([
+      "fulfill:month end:alice (agent via relay)",
+      "lock:alice (agent via relay)",
+    ]);
+  });
+
+  it("attach() serves tabs and /mcp on an application's own server and leaves its other routes and upgrades alone", async () => {
+    const { createServer } = await import("node:http");
+    const { createRelay } = await import("../src/server");
+    const { agentAuth } = await import("./helpers");
+    const server = createServer((req, res) => {
+      if (req.url === "/app") return void res.end("the app");
+    });
+    let otherUpgrades = 0;
+    server.on("upgrade", (req, socket) => {
+      if (req.url !== "/hmr") return;
+      otherUpgrades += 1;
+      socket.end("HTTP/1.1 418 Teapot\r\nConnection: close\r\n\r\n");
+    });
+    const rel = createRelay({ secret: SECRET, origins: [APP_ORIGIN], agentAuth: agentAuth! });
+    rel.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    cleanup.push(() => new Promise<void>((resolve) => server.close(() => resolve())));
+    cleanup.push(() => rel.close());
+    const port = (server.address() as { port: number }).port;
+    expect(await (await fetch(`http://127.0.0.1:${port}/app`)).text()).toBe("the app");
+    const hmr = new WebSocket(`ws://127.0.0.1:${port}/hmr`);
+    await new Promise((resolve) => hmr.addEventListener("error", resolve));
+    expect(otherUpgrades).toBe(1);
+    const p = await page();
+    p.connect({ url: `ws://127.0.0.1:${port}/tab`, getToken: () => tokenFor("alice") });
+    await p.status((s) => s.state === "connected");
+    const a = await httpAgent(`http://127.0.0.1:${port}/mcp`, "agent-alice");
+    cleanup.push(() => a.close());
+    expect(((await a.call("relay_tabs")).result.output!["tabs"] as unknown[]).length).toBe(1);
   });
 });

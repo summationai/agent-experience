@@ -52,7 +52,13 @@ export type TabMessage =
       observation: Observation;
       ledger: LedgerEntry[];
     }
-  | { t: "fulfilled"; re: number; error?: string }
+  | {
+      t: "fulfilled";
+      re: number;
+      error?: string;
+      observation?: Observation;
+      ledger?: LedgerEntry[];
+    }
   | { t: "changed"; rev: number; ledgerSeq: number }
   | { t: "active" }
   | { t: "stop" }
@@ -77,7 +83,15 @@ export type RelayMessage =
   | { t: "renewed"; expiresAt: number }
   | { t: "sync"; id: number; since: number }
   | { t: "act"; id: number; since: number; request: ActRequest }
-  | { t: "fulfill"; id: number; entryId: string; kind: string; payload: JsonValue; actor: string }
+  | {
+      t: "fulfill";
+      id: number;
+      since: number;
+      entryId: string;
+      kind: string;
+      payload: JsonValue;
+      actor: string;
+    }
   | { t: "agent"; state: "paired" | "active" };
 
 /** Tab ids and instance ids: short, URL-safe. */

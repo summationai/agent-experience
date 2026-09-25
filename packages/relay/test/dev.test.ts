@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { request as httpRequest } from "node:http";
 import { createRelay } from "../src/server";
-import { httpAgent, openPage, registerPlan } from "./helpers";
+import { httpAgent, noJsdom, openPage, registerPlan } from "./helpers";
 import type { Agent, Page } from "./helpers";
 
 const cleanup: (() => unknown)[] = [];
@@ -78,49 +78,55 @@ describe("development pairing", () => {
     await expect(httpAgent(address.mcpUrl, "not-the-key")).rejects.toThrow();
   });
 
-  it("an agent pairs with the code the tab shows, then observes and acts; a wrong code is refused and repeated wrong codes are rate limited", async () => {
-    const { relay, address } = await devRelay();
-    const p = await page();
-    p.connect({ url: address.tabUrl, getToken: p.api.devToken(address.url) });
-    const shown = await p.status((s) => s.state === "pairing");
-    expect(shown.pairingCode).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
-    expect(p.indicator()?.textContent).toContain(`Agent pairing code: ${shown.pairingCode}`);
+  it.skipIf(noJsdom)(
+    "an agent pairs with the code the tab shows, then observes and acts; a wrong code is refused and repeated wrong codes are rate limited",
+    async () => {
+      const { relay, address } = await devRelay();
+      const p = await page();
+      p.connect({ url: address.tabUrl, getToken: p.api.devToken(address.url) });
+      const shown = await p.status((s) => s.state === "pairing");
+      expect(shown.pairingCode).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+      expect(p.indicator()?.textContent).toContain(`Agent pairing code: ${shown.pairingCode}`);
 
-    const a: Agent = await httpAgent(address.mcpUrl, relay.devAgentKey!);
-    cleanup.push(() => a.close());
-    expect((await a.client.listTools()).tools.map((t) => t.name)).toContain("relay_pair");
-    const before = await a.call("relay_tabs");
-    expect(before.result.output).toMatchObject({ principal: null, tabs: [] });
-    expect(String(before.result.output!["hint"])).toContain("relay_pair");
-    const unpaired = await a.call("surface_observe");
-    expect(JSON.stringify(unpaired.result.output)).toContain("not paired");
+      const a: Agent = await httpAgent(address.mcpUrl, relay.devAgentKey!);
+      cleanup.push(() => a.close());
+      expect((await a.client.listTools()).tools.map((t) => t.name)).toContain("relay_pair");
+      const before = await a.call("relay_tabs");
+      expect(before.result.output).toMatchObject({ principal: null, tabs: [] });
+      expect(String(before.result.output!["hint"])).toContain("relay_pair");
+      const unpaired = await a.call("surface_observe");
+      expect(JSON.stringify(unpaired.result.output)).toContain("not paired");
 
-    const wrong = await a.call("relay_pair", { code: "0000-0000" });
-    expect(wrong.result.error!.code).toBe("not_found");
-    // Lower case and without the hyphen, as a person might type it.
-    const pairedRes = await a.call("relay_pair", {
-      code: shown.pairingCode!.replace("-", "").toLowerCase(),
-    });
-    expect(pairedRes.result.status, pairedRes.text).toBe("ok");
-    expect(pairedRes.result.output).toMatchObject({ principal: "dev", tenant: "dev" });
-    await p.status((s) => s.state === "connected" && s.pairingCode === null);
-    expect(p.indicator()?.textContent).not.toContain("pairing code");
+      const wrong = await a.call("relay_pair", { code: "0000-0000" });
+      expect(wrong.result.error!.code).toBe("not_found");
+      // Lower case and without the hyphen, as a person might type it.
+      const pairedRes = await a.call("relay_pair", {
+        code: shown.pairingCode!.replace("-", "").toLowerCase(),
+      });
+      expect(pairedRes.result.status, pairedRes.text).toBe("ok");
+      expect(pairedRes.result.output).toMatchObject({ principal: "dev", tenant: "dev" });
+      await p.status((s) => s.state === "connected" && s.pairingCode === null);
+      expect(p.indicator()?.textContent).not.toContain("pairing code");
 
-    const v = await a.call("surface_observe");
-    const rev = (v.result.output as { rev: number }).rev;
-    const done = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: rev });
-    expect(done.result.status, done.text).toBe("ok");
-    expect(p.calls).toEqual(["submit:dev (agent via relay)"]);
+      const v = await a.call("surface_observe");
+      const rev = (v.result.output as { rev: number }).rev;
+      const done = await a.call("surface_run-control", {
+        entryId: "plan:submit",
+        expectedRev: rev,
+      });
+      expect(done.result.status, done.text).toBe("ok");
+      expect(p.calls).toEqual(["submit:dev (agent via relay)"]);
 
-    // A second agent guessing codes is locked out after five wrong ones.
-    const guesser: Agent = await httpAgent(address.mcpUrl, relay.devAgentKey!);
-    cleanup.push(() => guesser.close());
-    // It shares the development key, so it is the same agent to the relay and already paired;
-    // guessing still counts.
-    for (let i = 0; i < 5; i++) await guesser.call("relay_pair", { code: `ZZZZ-ZZZ${i}` });
-    const locked = await guesser.call("relay_pair", { code: "ZZZZ-ZZZZ" });
-    expect(locked.result.error!.code).toBe("rate_limited");
-  });
+      // A second agent guessing codes is locked out after five wrong ones.
+      const guesser: Agent = await httpAgent(address.mcpUrl, relay.devAgentKey!);
+      cleanup.push(() => guesser.close());
+      // It shares the development key, so it is the same agent to the relay and already paired;
+      // guessing still counts.
+      for (let i = 0; i < 5; i++) await guesser.call("relay_pair", { code: `ZZZZ-ZZZ${i}` });
+      const locked = await guesser.call("relay_pair", { code: "ZZZZ-ZZZZ" });
+      expect(locked.result.error!.code).toBe("rate_limited");
+    },
+  );
 
   it("serves development tokens only to allowed origins", async () => {
     const { address } = await devRelay();

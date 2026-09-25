@@ -1,7 +1,7 @@
 // Test harness: a relay on a free loopback port, pages in jsdom windows running the bundled
 // client over the window's own WebSocket, and the MCP SDK's client over real transports.
 import { build } from "esbuild";
-import { JSDOM } from "jsdom";
+import type { JSDOM } from "jsdom";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -13,6 +13,17 @@ import type { Surface } from "@axe/surface";
 import type { connectRelay, devToken, RelayConnection, RelayStatus } from "../src/client";
 import { createRelay } from "../src/server";
 import type { Relay, RelayAddress, RelayOptions } from "../src/server";
+
+/**
+ * Why the jsdom pages cannot run here, or null when they can. jsdom 30 needs Node 22 or newer
+ * (its engines field); on Node 20 the page suites skip with this message, and the token, bundle,
+ * CLI, and Chromium suites still run.
+ */
+export const noJsdom: string | null =
+  Number(process.versions.node.split(".")[0]) >= 22
+    ? null
+    : `jsdom 30 needs Node 22 or newer; this is Node ${process.versions.node}`;
+if (noJsdom) console.warn(`[relay tests] page suites skipped: ${noJsdom}`);
 
 export const SECRET = "relay-test-secret-0123456789abcdef-0123";
 export const APP_ORIGIN = "http://localhost:5173";
@@ -138,6 +149,7 @@ export function registerPlan(page: { surface: Surface; calls: string[] }): void 
 export async function openPage(
   options: { url?: string; storage?: Record<string, string> } = {},
 ): Promise<Page> {
+  const { JSDOM } = await import("jsdom");
   const dom = new JSDOM(
     "<!doctype html><html><head><title>Plan</title></head><body><main>app</main></body></html>",
     {

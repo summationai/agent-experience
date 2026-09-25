@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { mintRelayToken } from "../src/token";
-import { APP_ORIGIN, SECRET, openPage, registerPlan, wrap } from "./helpers";
+import { APP_ORIGIN, SECRET, noJsdom, openPage, registerPlan, wrap } from "./helpers";
 import type { Agent, Page } from "./helpers";
 
 const cleanup: (() => unknown)[] = [];
@@ -54,7 +54,7 @@ async function page(): Promise<Page> {
   return p;
 }
 
-describe("axe relay over stdio", () => {
+describe.skipIf(noJsdom)("axe relay over stdio", () => {
   it("--dev --stdio: the page connects with a development token, the agent pairs with the code the tab shows, then acts", async () => {
     const { agent, tabUrl, httpUrl, stderr } = await spawnRelay([
       "--dev",

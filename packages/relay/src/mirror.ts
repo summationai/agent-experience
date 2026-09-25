@@ -197,7 +197,11 @@ export class TabMirror {
               ...(s.requires
                 ? {
                     requires: {
-                      accepts: s.requires as never,
+                      // A wire `accepts` entry needs a description; an application's may omit one.
+                      accepts: s.requires.map((a) => ({
+                        ...a,
+                        description: a.description ?? a.title ?? a.kind,
+                      })) as never,
                       fulfill: (kind: string, payload: JsonValue, actor: string) =>
                         this.link.fulfill(row.id, kind, payload, actor),
                     },

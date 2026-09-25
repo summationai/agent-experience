@@ -16,7 +16,7 @@
 import { createServer } from "node:http";
 import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
-import { randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { WebSocketServer } from "ws";
 import type { WebSocket as NodeWebSocket, RawData } from "ws";
 import { action, createAXE, z } from "@axe/core";
@@ -506,11 +506,14 @@ class TabRecord implements TabLink {
   async fulfill(entryId: string, kind: string, payload: JsonValue, actor: string): Promise<void> {
     if (!(await this.connected(this.relay.reconnectGraceMs)))
       throw new Error("The tab is not connected.");
+    const since = this.mirror.since();
     const m = await this.request(
-      (id) => ({ t: "fulfill", id, entryId, kind, payload, actor }),
+      (id) => ({ t: "fulfill", id, since, entryId, kind, payload, actor }),
       this.relay.actTimeoutMs,
     );
-    if (m.t === "fulfilled" && m.error) throw new Error(m.error);
+    if (m.t !== "fulfilled") throw new Error("unexpected reply");
+    if (m.observation) this.adopt(m.observation, m.ledger ?? []);
+    if (m.error) throw new Error(m.error);
   }
 
   info(selected: boolean): RelayTabInfo {
@@ -952,13 +955,15 @@ export function createRelay(options: RelayOptions = {}): Relay {
     origin: string,
   ): Promise<(RelayPrincipal & { expiresAt: number; jti: string | null }) | null> => {
     if (options.authenticateTab) {
+      if (revoked.has(createHash("sha256").update(token).digest("base64url"))) return null;
       const who = await options.authenticateTab(token, { origin });
       if (!who) return null;
       return {
         principal: who.principal,
         tenant: who.tenant,
         expiresAt: who.expiresAt ?? Date.now() + 600_000,
-        jti: null,
+        // Revocable on Stop like a relay token: by a digest of the token.
+        jti: createHash("sha256").update(token).digest("base64url"),
       };
     }
     const secrets = [options.secret, dev ? devSecret : undefined].filter((s): s is string => !!s);
@@ -1066,11 +1071,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
         case "snapshot":
         case "result":
         case "fulfilled":
-          if (m.t !== "fulfilled" && m.observation) {
-            // A result carries the table after the act; the requester adopts it through the mirror.
-            if (m.t === "snapshot") tab.adopt(m.observation, m.ledger);
-            else tab.mirror.beginInstance(tab.instance, m.observation.rev);
-          }
+          // The requester adopts the table the reply carries (sync, act, and fulfill each do).
           tab.answer(m.re, m);
           return;
         case "changed":
@@ -1151,23 +1152,28 @@ export function createRelay(options: RelayOptions = {}): Relay {
     return null;
   };
 
-  const onUpgrade = (req: IncomingMessage, socket: Socket, head: Buffer): void => {
-    const url = new URL(req.url ?? "/", "http://relay.invalid");
-    const reject = (status: number, why: string) => {
-      emit({ type: "tab.refused", reason: why, origin: req.headers.origin ?? null });
-      socket.write(
-        `HTTP/1.1 ${status} ${status === 404 ? "Not Found" : "Forbidden"}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
-      );
-      socket.destroy();
+  /** `own`: the relay's own server answers every path; an attached one leaves other paths to the application. */
+  const onUpgrade =
+    (own: boolean) =>
+    (req: IncomingMessage, socket: Socket, head: Buffer): void => {
+      const url = new URL(req.url ?? "/", "http://relay.invalid");
+      // Another upgrade on an application's server (a dev server's reload socket) is not ours.
+      if (!own && url.pathname !== "/tab") return;
+      const reject = (status: number, why: string) => {
+        emit({ type: "tab.refused", reason: why, origin: req.headers.origin ?? null });
+        socket.write(
+          `HTTP/1.1 ${status} ${status === 404 ? "Not Found" : "Forbidden"}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+        );
+        socket.destroy();
+      };
+      if (url.pathname !== "/tab") return reject(404, "unknown path");
+      const devWhy = devRefusal(req.socket.remoteAddress, req.headers.host);
+      if (devWhy) return reject(403, devWhy);
+      const origin = req.headers.origin;
+      // [S-RELAY-2] Only the application's own pages connect a tab.
+      if (!originAllowed(origin)) return reject(403, `origin ${origin ?? "(none)"} is not allowed`);
+      wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, origin));
     };
-    if (url.pathname !== "/tab") return reject(404, "unknown path");
-    const devWhy = devRefusal(req.socket.remoteAddress, req.headers.host);
-    if (devWhy) return reject(403, devWhy);
-    const origin = req.headers.origin;
-    // [S-RELAY-2] Only the application's own pages connect a tab.
-    if (!originAllowed(origin)) return reject(403, `origin ${origin ?? "(none)"} is not allowed`);
-    wss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, origin));
-  };
 
   // ---------------------------------------------------------------------------------------------
   // HTTP routes.
@@ -1212,21 +1218,33 @@ export function createRelay(options: RelayOptions = {}): Relay {
     return json(404, { error: "not found" });
   };
 
-  const servers = new Set<HttpServer>();
+  // Servers the relay created (closed with it) and servers it was attached to (left running,
+  // with the relay's listeners removed).
+  const owned = new Set<HttpServer>();
   const sockets = new Set<Socket>();
-  const attach = (server: HttpServer): void => {
-    servers.add(server);
-    server.on("upgrade", onUpgrade);
-    server.on("connection", (s: Socket) => {
-      sockets.add(s);
-      s.on("close", () => sockets.delete(s));
-    });
-    server.on("request", (req: IncomingMessage, res: ServerResponse) => {
+  const detachers: (() => void)[] = [];
+  const mount = (server: HttpServer, own: boolean): void => {
+    const upgrade = onUpgrade(own);
+    const request = (req: IncomingMessage, res: ServerResponse) => {
       const path = (req.url ?? "/").split("?")[0];
-      if (path !== "/mcp" && path !== "/dev/token" && path !== "/health") return;
+      if (!own && path !== "/mcp" && path !== "/dev/token" && path !== "/health") return;
       void serveNode(req, res, handle);
+    };
+    server.on("upgrade", upgrade);
+    server.on("request", request);
+    detachers.push(() => {
+      server.off("upgrade", upgrade);
+      server.off("request", request);
     });
+    if (own) {
+      owned.add(server);
+      server.on("connection", (s: Socket) => {
+        sockets.add(s);
+        s.on("close", () => sockets.delete(s));
+      });
+    }
   };
+  const attach = (server: HttpServer): void => mount(server, false);
 
   let stdio: DerivedMcpServer | null = null;
 
@@ -1242,7 +1260,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
           `devPairing is for local development and listens on loopback only; refusing to listen on ${host}.`,
         );
       const server = createServer();
-      attach(server);
+      mount(server, true);
       await new Promise<void>((resolve, reject) => {
         server.once("error", reject);
         server.listen(opts.port ?? 0, host, () => {
@@ -1283,9 +1301,10 @@ export function createRelay(options: RelayOptions = {}): Relay {
       const h = httpMcp ? await httpMcp : null;
       await h?.close();
       await stdio?.server.close().catch(() => undefined);
+      for (const d of detachers.splice(0)) d();
       for (const s of sockets) s.destroy();
       await Promise.all(
-        [...servers].map((s) => new Promise<void>((resolve) => s.close(() => resolve()))),
+        [...owned].map((s) => new Promise<void>((resolve) => s.close(() => resolve()))),
       );
     },
   };

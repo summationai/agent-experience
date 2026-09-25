@@ -511,7 +511,13 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
               e?.kind === "action" && e.state && !e.state.available ? e.state.requires : undefined;
             if (!requires) throw new Error("The control no longer has a requirement to satisfy.");
             await requires.fulfill(m.kind, m.payload, actor);
-            send({ t: "fulfilled", re: m.id });
+            // The table after fulfill, so the relay re-acts at the revision it moved to.
+            send({
+              t: "fulfilled",
+              re: m.id,
+              observation: surface.observe(),
+              ledger: ledgerSince(m.since),
+            });
           } catch (e) {
             send({ t: "fulfilled", re: m.id, error: e instanceof Error ? e.message : String(e) });
           }
