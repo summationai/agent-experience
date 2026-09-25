@@ -42,9 +42,12 @@ export const PLAYWRIGHT_MISSING =
   "  npm install -D playwright && npx playwright install chromium";
 
 /** Resolve and import Playwright from the first base directory that has it. */
-export async function loadPlaywright(bases: string[]): Promise<BrowserLauncher> {
+export async function loadPlaywright(
+  bases: string[],
+  names = ["playwright", "playwright-core", "@playwright/test"],
+): Promise<BrowserLauncher> {
   for (const base of bases) {
-    for (const name of ["playwright", "playwright-core", "@playwright/test"]) {
+    for (const name of names) {
       let path: string;
       try {
         path = createRequire(join(base, "noop.js")).resolve(name);
@@ -466,6 +469,7 @@ export async function surfaceCoverage(ctx: CommandContext): Promise<number> {
     out: { type: "string" },
     "max-pages": { type: "string" },
     wait: { type: "string" },
+    "playwright-from": { type: "string" },
   });
   const url = requireUrl(positionals[0], `${WIRE.cli.surfaceCoverage} <url>`);
   const o: CoverageOptions = {};
@@ -477,6 +481,10 @@ export async function surfaceCoverage(ctx: CommandContext): Promise<number> {
       .filter(Boolean);
   if (values["max-pages"] !== undefined) o.maxPages = Math.max(1, Number(values["max-pages"]) || 5);
   if (values.wait !== undefined) o.waitMs = Math.max(0, Number(values.wait) || 0);
+  if (values["playwright-from"] !== undefined) {
+    const cliDir = dirname(fileURLToPath(import.meta.url));
+    o.resolveFrom = [resolve(String(values["playwright-from"])), process.cwd(), cliDir];
+  }
   let run: CoverageRun;
   try {
     run = await runCoverage(url, o);

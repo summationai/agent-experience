@@ -496,3 +496,42 @@ describe("axe surface init: the result typechecks", () => {
     typecheck(esb, ["src/**/*"]);
   }, 60_000);
 });
+
+describe("axe surface: help and the prompt pack", () => {
+  it("prints help, the prompt, and refuses an unknown subcommand", async () => {
+    expect((await cli([])).out).toContain("axe surface init [--dir <app>]");
+    const help = await cli(["surface"]);
+    expect(help.code).toBe(1);
+    expect(help.out).toContain("axe surface coverage <url>");
+    const prompt = await cli(["surface", "prompt"]);
+    expect(prompt.code).toBe(0);
+    expect(prompt.out).toContain("# Integrate Surface into this application");
+    expect((await cli(["surface", "nope"])).err).toContain('Unknown subcommand "nope"');
+  });
+
+  it("names only llms.txt sections that exist, and the commands and options that exist", () => {
+    const prompt = readFileSync(join(__dirname, "../templates/integrate-surface.md"), "utf8");
+    const sections = new Set(
+      readFileSync(join(repo, "llms.txt"), "utf8")
+        .split("\n")
+        .filter((l) => l.startsWith("## "))
+        .map((l) => l.slice(3).trim()),
+    );
+    const quoted = [...prompt.matchAll(/"([A-Z][^"]+)"/g)].map((m) => m[1]!);
+    const named = quoted.filter((q) => !q.includes("Lock") && !q.includes("Cookie"));
+    expect(named.length).toBeGreaterThanOrEqual(6);
+    for (const n of named) expect(sections, n).toContain(n);
+    for (const option of [
+      "--dry-run",
+      "--yes",
+      "--mount",
+      "--flag-hook",
+      "--flag-import",
+      "--relay-dev",
+      "--routes",
+      "--auth",
+      "--out",
+    ])
+      expect(prompt).toContain(option);
+  });
+});
