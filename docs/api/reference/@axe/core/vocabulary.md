@@ -156,6 +156,7 @@ type WireApi =
   | "describeEntry"
   | "useSurfaceProps"
   | "attributesFor"
+  | "subscribe"
   | "revisionMode"
   | "SURFACE_ATTRIBUTES"
   | "toJsonSchema"
@@ -918,6 +919,7 @@ const api: Readonly<{
   sqliteIdempotencyStore: "SqliteIdempotencyStore";
   state: "state";
   stateToMarkdown: "stateToMarkdown";
+  subscribe: "subscribe";
   suggestedReason: "suggestedReason";
   surfaceActions: "surfaceActions";
   surfaceAttributeNames: "SURFACE_ATTRIBUTES";
@@ -1744,6 +1746,7 @@ const WIRE: Readonly<{
      sqliteIdempotencyStore: "SqliteIdempotencyStore";
      state: "state";
      stateToMarkdown: "stateToMarkdown";
+     subscribe: "subscribe";
      suggestedReason: "suggestedReason";
      surfaceActions: "surfaceActions";
      surfaceAttributeNames: "SURFACE_ATTRIBUTES";

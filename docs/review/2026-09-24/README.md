@@ -14,7 +14,7 @@ The engineering and product review of branch `herz/surface-integration` at `e563
 | 8 | State preconditions meaningful at the write boundary | 1 | [08-write-preconditions.md](08-write-preconditions.md) | done |
 | 9 | MCP HTTP lifecycle and request identity | 2 | [09-mcp-http.md](09-mcp-http.md) | pending |
 | 10 | Remote capability freshness and stable retries | 2 | [10-mcp-freshness.md](10-mcp-freshness.md) | pending |
-| 11 | Mounted React behavior | 2 | [11-react-lifecycle.md](11-react-lifecycle.md) | pending |
+| 11 | Mounted React behavior | 2 | [11-react-lifecycle.md](11-react-lifecycle.md) | done |
 | 12 | Resource limits, schema boundaries, retention | 2 | [12-limits-and-schema.md](12-limits-and-schema.md) | pending |
 | 13 | Browser-local and server-side execution as explicit modes; reference app | 3 | [13-execution-modes.md](13-execution-modes.md) | pending |
 | 14 | Existing agent interfaces through adapters (WebMCP, elicitation, MCP Apps) | 3 | [14-agent-interface-adapters.md](14-agent-interface-adapters.md) | pending |

@@ -2001,6 +2001,30 @@ The application owns the counter: adopt its value as is. Marks the revision `app
 
 `void`
 
+<a id="subscribe"></a>
+
+##### subscribe()
+
+```ts
+subscribe(fn): () => void;
+```
+
+Call `fn` after every change to what `observe()`, `availability()`, or `attributesFor()` can
+report: `register`, `unregister` and `reconcile` that changed the table, `bump`, `setRev`,
+`seedRev` that adopted a revision, `freeze`, `thaw`, and `reset` ([S-OBS-4]). Returns the
+unsubscribe function. The shape `useSyncExternalStore` takes; `useSurfaceProps` uses it.
+`onChange` keeps its narrower meaning and does not fire on registration.
+
+###### Parameters
+
+###### fn
+
+() => `void`
+
+###### Returns
+
+() => `void`
+
 <a id="unregister"></a>
 
 ##### unregister()

@@ -29,6 +29,15 @@ export function mirror(element: Element, id: string): void {
 }
 // #endregion mirror
 
+// #region follow
+// Keep one control's mirror current outside React: `subscribe` fires after every change a reader
+// could see, registration and an application-owned `setRev` included. Returns the unsubscribe.
+export function follow(element: Element, id: string): () => void {
+  mirror(element, id);
+  return surface.subscribe(() => mirror(element, id));
+}
+// #endregion follow
+
 // #region selector
 // A browser agent or a test goes from an observed row to its control with one query, whatever
 // the id contains.

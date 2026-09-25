@@ -107,12 +107,17 @@ function useSurface(
 ```
 
 `entry` is the object `register` takes. `deps` are the values it was computed from; the entry is
-re-registered when they change, which is how availability and values stay current.
+re-registered in place when they change, which is how availability and values stay current.
 
 Transient states belong in `deps` too: a `saving` or `loading` flag, an open modal, anything the
 component uses to disable its own control. Left out, the surface keeps reporting the control
 available while the UI has frozen it, and an act runs into a disabled control ([S-REV-5]). For a
 state that spans the whole page, `surface.freeze(reason)` is the shorter route.
+
+Functions need not be in `deps`: an act always runs the handler (and `edit.set`, `more`,
+`requires.fulfill`) of the latest render. The registration belongs to the pair of `entry.id` and
+`target`: when either changes, the previous pair is unregistered and the new one registered, and
+unmount unregisters the current pair. Strict Mode's extra mount and unmount leave the same table.
 
 #### Parameters
 

@@ -491,7 +491,18 @@ In the first trial, two of three gains against browser agents came from the acce
 
 `surfaceAttributes(entry)` returns the attributes the control carries, from a registered entry or an observed row: `aria-label` (the entry name), `data-surface-id`, `data-surface-kind`, `data-surface-object` when the entry has one, and on an unavailable action `aria-disabled` with the reason in `data-surface-reason`; a read-only field carries `aria-readonly` and its reason. Collections carry the common set only. Set them on the element that receives the interaction and keep the application's own `disabled` logic: the helper sets `aria-disabled`, which reports without disabling and leaves the control focusable, so a screen reader reaches the reason.
 
-That helper reads the entry alone, which is right for a one-time render and wrong for a control that stays on screen: it knows nothing of a freeze, and it only says what to set, so a cell that became editable again would keep the previous render's reason. For controls you re-render while the surface lives, use `surface.attributesFor(id)`. It reads the live availability, the same one `observe()` and the bridge report, and returns `{ set, remove }`: `set` carries the freeze's reason as `aria-disabled` or `aria-readonly` while frozen, and `remove` lists every attribute in `SURFACE_ATTRIBUTES` that is not in `set`. Apply both after each render and after each `onChange` and the mirror can never disagree with `observe()`.
+That helper reads the entry alone, which is right for a one-time render and wrong for a control that stays on screen: it knows nothing of a freeze, and it only says what to set, so a cell that became editable again would keep the previous render's reason. For controls you re-render while the surface lives, use `surface.attributesFor(id)`. It reads the live availability, the same one `observe()` and the bridge report, and returns `{ set, remove }`: `set` carries the freeze's reason as `aria-disabled` or `aria-readonly` while frozen, and `remove` lists every attribute in `SURFACE_ATTRIBUTES` that is not in `set`. Apply both after each render and after each `subscribe` notification and the mirror can never disagree with `observe()`. `subscribe(listener)` fires after every change a reader could see: a registration or removal, `bump`, `setRev` (where the application owns the revision and never bumps), a freeze, and a thaw. `onChange` fires only on `bump`, `freeze`, and `thaw`, so it misses a row re-registered with a new reason under an application-owned revision.
+
+<!-- include: examples/surface/dom.ts#follow -->
+```ts
+// Keep one control's mirror current outside React: `subscribe` fires after every change a reader
+// could see, registration and an application-owned `setRev` included. Returns the unsubscribe.
+export function follow(element: Element, id: string): () => void {
+  mirror(element, id);
+  return surface.subscribe(() => mirror(element, id));
+}
+```
+<!-- /include -->
 
 <!-- include: examples/surface/dom.ts#mirror -->
 ```ts
@@ -582,9 +593,17 @@ function DraftButton({ player, available, reason, onDraft }: RowProps) {
 
 The rendered button reads `aria-label="Draft Jahmyr Gibbs (RB)"` with `data-surface-id="pick:me:gibbs"`, and when the pick is taken, `aria-disabled="true"` with `data-surface-reason="already drafted by another team"`: the same words the agent gets from `observe()`.
 
+What the hooks own, as mounted tests pin it:
+
+- The registration belongs to the entry's `id` and the target surface. Change either and the hook unregisters the old pair and registers the new one; unmount removes the current pair. Give each mounted control its own id: two components registering one id share a row, and the first to unmount removes it.
+- An act runs the handler of the latest render, and so do `edit.set`, `more`, and `requires.fulfill`. Functions do not belong in `deps`, and a new closure alone does not re-register. `deps` are for the values the entry reports: availability, reason, name, value.
+- A re-render with the same `deps` registers nothing, and a refresh replaces the row in place, so a sibling re-rendering never moves an agent's index.
+- Registration runs in a layout effect, so the control is in the table, and its props read the live availability, before the browser paints. Strict Mode's extra unmount and mount leave the same table in render order.
+- `useSurfaceProps` follows the surface through `subscribe`, so a freeze, a thaw, or a registration made outside the component (another writer, `reconcile`) re-renders the control, and an attribute that no longer applies, such as `aria-disabled` or `data-surface-reason` after the control became available, is gone from the element.
+
 ## What Surface does not do
 
-It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 21 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
+It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 26 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
 
 ## Next steps
 
