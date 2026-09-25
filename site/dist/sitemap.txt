@@ -33,6 +33,7 @@ docs/auth.html
 docs/concepts.html
 docs/deploying.html
 docs/designing-actions.html
+docs/evaluation.html
 docs/examples/demo/README.html
 docs/faq.html
 docs/for-agent-builders.html
@@ -46,6 +47,7 @@ docs/integrations/fetch.html
 docs/integrations/next.html
 docs/live-state.html
 docs/mcp.html
+docs/pilot-plan.html
 docs/platforms.html
 docs/presenting-results.html
 docs/reference-app.html
@@ -75,6 +77,8 @@ docs/review/2026-09-24/16-granularity.html
 docs/review/2026-09-24/17-evaluation.html
 docs/review/2026-09-24/18-claims-and-roadmap.html
 docs/review/2026-09-24/README.html
+docs/review/2026-09-24/data/evaluation-2026-09-24.html
+docs/review/2026-09-24/data/granularity.html
 docs/schemas.html
 docs/security.html
 docs/site.html
