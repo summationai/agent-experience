@@ -1,0 +1,3 @@
+{
+  "entryPoints": ["src/client.ts", "src/server.ts", "src/token.ts", "src/cli.ts"]
+}
