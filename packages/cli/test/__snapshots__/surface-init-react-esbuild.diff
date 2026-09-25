@@ -1,0 +1,80 @@
+diff --git a/src/main.jsx b/src/main.jsx
+--- a/src/main.jsx
++++ b/src/main.jsx
+@@ -1,4 +1,9 @@
+ import { createRoot } from "react-dom/client";
+ import App from "./App.jsx";
++import { AgentSurface } from "./surface";
+ 
+-createRoot(document.getElementById("root")).render(<App />);
++createRoot(document.getElementById("root")).render(
++  <AgentSurface>
++    <App />
++  </AgentSurface>,
++);
+diff --git a/src/surface.jsx b/src/surface.jsx
+new file mode 100644
+--- /dev/null
++++ b/src/surface.jsx
+@@ -0,0 +1,24 @@
++// Agent Surface for this app, written by `axe surface init`. Yours to edit.
++//
++// <AgentSurface> wraps the app root. On, autoSurface discovers the controls under it and, in
++// development, publishes window.__surface for `axe surface coverage` and browser agents.
++// Off, it renders its children and nothing else. Overlay config: ./surface.config.
++// Nothing here runs at import time: the provider starts discovery (and the relay) in an
++// effect, so a server render renders the children only.
++//
++// On when the page is served from localhost; off everywhere else. Replace `enabled` with your
++// feature-flag check to turn it on elsewhere.
++import { SurfaceProvider } from "@axe/surface/react";
++import surfaceConfig from "./surface.config";
++
++const development =
++  typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
++const enabled = development;
++
++export function AgentSurface({ children }) {
++  return (
++    <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development}>
++      {children}
++    </SurfaceProvider>
++  );
++}
+diff --git a/src/surface.config.js b/src/surface.config.js
+new file mode 100644
+--- /dev/null
++++ b/src/surface.config.js
+@@ -0,0 +1,32 @@
++// Surface config for this app, written by `axe surface init`. Yours to edit.
++//
++// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
++// page alone cannot tell it. An empty overlay is a working start.
++
++/** @type {import("@axe/surface/auto").SurfaceConfig} */
++const surfaceConfig = {
++  // Nothing here is required: autoSurface discovers the page's controls on its own. Run
++  // `axe surface coverage <url>` and add an entry for each gap it lists, most important first.
++  // Keys are CSS selectors for the control.
++  //
++  // controls: {
++  //   // rename: the name an agent reads, stated as the outcome ("Lock March", not "Lock button").
++  //   "#lock-month": { name: "Lock the month" },
++  //   // reason: why a disabled control is unavailable, in the app's own words.
++  //   "[data-testid=submit-plan]": { reason: "the plan has unsaved edits" },
++  //   // risk: how much a mistaken act costs; never none for a control that changes state.
++  //   "button.archive": { risk: "medium" },
++  //   // hide: controls an agent should never see (debug panels, the app's own chat).
++  //   ".debug-panel": { hide: true },
++  //   // handler: run the app's own function instead of a synthetic click (the same door).
++  //   "#export-csv": { handler: () => exportCsv() },
++  //   // approval: a person approves on the page before this runs.
++  //   "button.delete-plan": { risk: "high", approval: true },
++  //   // group: controls that belong to one object or panel.
++  //   "#toolbar button": { group: "Plan toolbar" },
++  //   // sensitive: an agent may set the field but never reads its value back.
++  //   "input[name=salary]": { sensitive: true },
++  // },
++};
++
++export default surfaceConfig;

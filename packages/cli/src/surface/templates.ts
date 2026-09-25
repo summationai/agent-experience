@@ -1,0 +1,295 @@
+/**
+ * The files `axe surface init` writes. Each generated file carries MARKER so a second run knows
+ * the file is its own. Every name taken from `@axe/surface/auto`, `@axe/surface/react`, or
+ * `@axe/relay/client` comes from ./api, so reconciling those packages is one file.
+ */
+import { AUTO_OPTIONS, MODULES, NAMES, PAGE_GLOBAL, PROVIDER_PROPS } from "./api";
+import type { Framework } from "./detect";
+import type { Style } from "./edit";
+
+export const MARKER = "written by `axe surface init`";
+
+/** The component the root edit wraps the app in; defined in the generated surface file. */
+export const WRAPPER = "AgentSurface";
+
+export type FlagSpec =
+  | { kind: "default" }
+  | { kind: "env"; name: string }
+  /** `call` (a hook or a function, e.g. `useFeatureFlag("ui_axe_surface")`) of `name` from `module`. */
+  | { kind: "call"; module: string; name: string; call: string };
+
+export interface TemplateOptions {
+  framework: Framework;
+  typescript: boolean;
+  style: Style;
+  flag: FlagSpec;
+  /** Relay URL when `--relay` or `--relay-dev` was given. */
+  relay?: string;
+}
+
+/** Environment access per framework: how the generated code reads a build-time variable. */
+function envOf(framework: Framework): {
+  dev: string;
+  read: (name: string) => string;
+  prefix: string;
+} | null {
+  if (framework === "react-router" || framework === "vite-react")
+    return { dev: "import.meta.env.DEV", read: (n) => `import.meta.env.${n}`, prefix: "VITE_" };
+  if (framework === "next")
+    return {
+      dev: `process.env.NODE_ENV === "development"`,
+      read: (n) => `process.env.${n}`,
+      prefix: "NEXT_PUBLIC_",
+    };
+  return null;
+}
+
+/** The default flag's variable name for a framework, e.g. `VITE_SURFACE`. */
+export function defaultFlagName(framework: Framework): string | undefined {
+  const env = envOf(framework);
+  return env ? `${env.prefix}SURFACE` : undefined;
+}
+
+/** Re-render a template written with double quotes, semicolons, and two-space indentation. */
+function styled(source: string, style: Style): string {
+  let out = source;
+  if (style.quote === "'")
+    out = out
+      .split("\n")
+      .map((line) =>
+        line.trimStart().startsWith("//") ? line : line.replace(/"([^"'\n]*)"/g, "'$1'"),
+      )
+      .join("\n");
+  if (!style.semi)
+    out = out
+      .split("\n")
+      .map((line) => (line.trimStart().startsWith("//") ? line : line.replace(/;$/, "")))
+      .join("\n");
+  if (style.unit !== "  ")
+    out = out.replace(/^((?: {2})+)/gm, (m) => style.unit.repeat(m.length / 2));
+  return out;
+}
+
+/** `text` as `//` comment lines of at most 100 characters. */
+function comment(text: string): string[] {
+  const out: string[] = [];
+  let line = "//";
+  for (const word of text.split(" ")) {
+    if (line.length + 1 + word.length > 100) {
+      out.push(line);
+      line = "//";
+    }
+    line += ` ${word}`;
+  }
+  out.push(line);
+  return out;
+}
+
+const LOCAL_DEV = `typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname)`;
+
+interface Gate {
+  /** Lines at module scope (imports excluded). */
+  module: string[];
+  /** Lines inside the component body, for a hook-style flag. */
+  body: string[];
+  imports: string[];
+  /** One comment line saying when it is on. */
+  says: string;
+}
+
+function gate(o: TemplateOptions): Gate {
+  const env = envOf(o.framework);
+  const dev = env ? env.dev : LOCAL_DEV;
+  const devLine = env ? `const development = ${dev};` : `const development =\n  ${dev};`;
+  if (o.flag.kind === "call") {
+    const hook = /^use[A-Z0-9]/.test(o.flag.name);
+    return {
+      imports: [`import { ${o.flag.name} } from "${o.flag.module}";`],
+      module: [devLine],
+      body: [`const enabled = ${o.flag.call};`],
+      says: `On when ${o.flag.call} (from ${o.flag.module}) is true; that ${hook ? "hook" : "check"} decides every environment.${hook ? " A hook needs its provider above the mount: mount below it with --mount." : ""}`,
+    };
+  }
+  if (!env)
+    return {
+      imports: [],
+      module: [devLine, "const enabled = development;"],
+      body: [],
+      says: "On when the page is served from localhost; off everywhere else. Replace `enabled` with your feature-flag check to turn it on elsewhere.",
+    };
+  const name = o.flag.kind === "env" ? o.flag.name : `${env.prefix}SURFACE`;
+  return {
+    imports: [],
+    module: [devLine, `const enabled = development || ${env.read(name)} === "1";`],
+    body: [],
+    says: `On in development, and in a build made with ${name}=1. Production builds are off unless that is set.`,
+  };
+}
+
+function relayLines(o: TemplateOptions): { imports: string[]; module: string[] } {
+  if (!o.relay) return { imports: [], module: [] };
+  const env = envOf(o.framework);
+  const url = env
+    ? `${env.read(`${env.prefix}SURFACE_RELAY_URL`)} ?? "${o.relay}"`
+    : `"${o.relay}"`;
+  const token = env ? `${env.read(`${env.prefix}SURFACE_RELAY_TOKEN`)} ?? ""` : `""`;
+  return {
+    imports: [`import { ${NAMES.connectRelay} } from "${MODULES.relayClient}";`],
+    module: [
+      "",
+      "// The relay carries this tab's surface to an agent outside the page (an MCP client).",
+      ...(env
+        ? [
+            `// Override with ${env.prefix}SURFACE_RELAY_URL; the token is the one the relay prints.`,
+          ]
+        : ["// Set the token the relay prints; keep real tokens out of source."]),
+      "const relay = {",
+      `  url: ${url},`,
+      `  token: ${token},`,
+      "  // indicator: false, // hides the relay's on-page indicator, whose text is not translated",
+      "};",
+    ],
+  };
+}
+
+/** The React component that wraps the app root: `surface.tsx` (or `.jsx`). */
+export function reactSurfaceFile(o: TemplateOptions): string {
+  const g = gate(o);
+  const r = relayLines(o);
+  const ts = o.typescript;
+  const props = [
+    `${PROVIDER_PROPS.config}={surfaceConfig}`,
+    `${PROVIDER_PROPS.flag}={enabled}`,
+    `${PROVIDER_PROPS.expose}={development}`,
+    ...(o.relay
+      ? [`${PROVIDER_PROPS.onReady}={(handle) => ${NAMES.connectRelay}(handle.surface, relay)}`]
+      : []),
+  ];
+  const open =
+    props.length <= 3
+      ? [`    <${NAMES.provider} ${props.join(" ")}>`]
+      : [`    <${NAMES.provider}`, ...props.map((p) => `      ${p}`), "    >"];
+  const lines = [
+    ...(o.framework === "next" ? [`"use client";`, ""] : []),
+    `// Agent Surface for this app, ${MARKER}. Yours to edit.`,
+    "//",
+    `// <${WRAPPER}> wraps the app root. On, autoSurface discovers the controls under it and, in`,
+    `// development, publishes window.${PAGE_GLOBAL} for \`axe surface coverage\` and browser agents.`,
+    "// Off, it renders its children and nothing else. Overlay config: ./surface.config.",
+    "// Nothing here runs at import time: the provider starts discovery (and the relay) in an",
+    "// effect, so a server render renders the children only.",
+    "//",
+    ...comment(g.says),
+    ...(ts ? [`import type { ReactNode } from "react";`] : []),
+    `import { ${NAMES.provider} } from "${MODULES.react}";`,
+    ...r.imports,
+    ...g.imports,
+    `import surfaceConfig from "./surface.config";`,
+    "",
+    ...g.module,
+    ...r.module,
+    "",
+    ts
+      ? `export function ${WRAPPER}({ children }: { children: ReactNode }) {`
+      : `export function ${WRAPPER}({ children }) {`,
+    ...g.body.map((l) => `  ${l}`),
+    "  return (",
+    ...open,
+    "      {children}",
+    `    </${NAMES.provider}>`,
+    "  );",
+    "}",
+    "",
+  ];
+  return styled(lines.join("\n"), o.style);
+}
+
+/** The plain-page setup: `surface.js`, loaded by a module script tag. */
+export function plainSurfaceFile(o: TemplateOptions): string {
+  const g = gate(o);
+  const r = relayLines(o);
+  const lines = [
+    `// Agent Surface for this page, ${MARKER}. Yours to edit.`,
+    "//",
+    ...comment(g.says),
+    "//",
+    `// ${MODULES.auto} is a bare module specifier: load this file through your bundler, or map`,
+    "// the specifier with an import map to the package's built files.",
+    `import { ${NAMES.autoSurface} } from "${MODULES.auto}";`,
+    ...r.imports,
+    ...g.imports,
+    `import surfaceConfig from "./surface.config.js";`,
+    "",
+    ...g.module,
+    ...g.body,
+    ...r.module,
+    "",
+    "if (enabled) {",
+    `  const handle = ${NAMES.autoSurface}({ ${AUTO_OPTIONS.root}: document.body, ${AUTO_OPTIONS.config}: surfaceConfig });`,
+    "  // Publishes window.__surface for `axe surface coverage` and browser-driving agents.",
+    "  if (development) handle.surface.expose(window);",
+    ...(o.relay ? [`  ${NAMES.connectRelay}(handle.surface, relay);`] : []),
+    "}",
+    "",
+  ];
+  return styled(lines.join("\n"), o.style);
+}
+
+const EXAMPLES = [
+  "  // Nothing here is required: autoSurface discovers the page's controls on its own. Run",
+  "  // `axe surface coverage <url>` and add an entry for each gap it lists, most important first.",
+  "  // Keys are CSS selectors for the control.",
+  "  //",
+  "  // controls: {",
+  '  //   // rename: the name an agent reads, stated as the outcome ("Lock March", not "Lock button").',
+  '  //   "#lock-month": { name: "Lock the month" },',
+  "  //   // reason: why a disabled control is unavailable, in the app's own words.",
+  '  //   "[data-testid=submit-plan]": { reason: "the plan has unsaved edits" },',
+  "  //   // risk: how much a mistaken act costs; never none for a control that changes state.",
+  '  //   "button.archive": { risk: "medium" },',
+  "  //   // hide: controls an agent should never see (debug panels, the app's own chat).",
+  '  //   ".debug-panel": { hide: true },',
+  "  //   // handler: run the app's own function instead of a synthetic click (the same door).",
+  '  //   "#export-csv": { handler: () => exportCsv() },',
+  "  //   // approval: a person approves on the page before this runs.",
+  '  //   "button.delete-plan": { risk: "high", approval: true },',
+  "  //   // group: controls that belong to one object or panel.",
+  '  //   "#toolbar button": { group: "Plan toolbar" },',
+  "  //   // sensitive: an agent may set the field but never reads its value back.",
+  '  //   "input[name=salary]": { sensitive: true },',
+  "  // },",
+];
+
+/** The starter config: an empty overlay with commented examples. */
+export function configFile(o: TemplateOptions): string {
+  const header = [
+    `// Surface config for this app, ${MARKER}. Yours to edit.`,
+    "//",
+    "// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the",
+    "// page alone cannot tell it. An empty overlay is a working start.",
+  ];
+  const lines = o.typescript
+    ? [
+        ...header,
+        `import type { ${NAMES.config} } from "${MODULES.auto}";`,
+        "",
+        `const surfaceConfig: ${NAMES.config} = {`,
+        ...EXAMPLES,
+        "};",
+        "",
+        "export default surfaceConfig;",
+        "",
+      ]
+    : [
+        ...header,
+        "",
+        `/** @type {import("${MODULES.auto}").${NAMES.config}} */`,
+        "const surfaceConfig = {",
+        ...EXAMPLES,
+        "};",
+        "",
+        "export default surfaceConfig;",
+        "",
+      ];
+  return styled(lines.join("\n"), o.style);
+}

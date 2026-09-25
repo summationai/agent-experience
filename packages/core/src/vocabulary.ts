@@ -676,6 +676,12 @@ export const cli = /* @__PURE__ */ Object.freeze({
   mcp: "axe mcp",
   /** Derive actions from an OpenAPI document; files for review. */
   generate: "axe generate",
+  /** Add Surface to an existing app: `init`, `coverage`, `prompt`. */
+  surface: "axe surface",
+  /** Detect the app, print the smallest diff that mounts Surface behind a flag, apply it. */
+  surfaceInit: "axe surface init",
+  /** Open the app headless and report what agents see: gaps and config suggestions. */
+  surfaceCoverage: "axe surface coverage",
 } as const);
 
 /** `payload` names. */
@@ -1317,7 +1323,7 @@ export type WireReason = "login_required" | "payment_required" | "consent_requir
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
-export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate";
+export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate" | "axe surface" | "axe surface init" | "axe surface coverage";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
@@ -1483,6 +1489,9 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "cli", key: "audit", name: "axe audit" },
   { category: "cli", key: "mcp", name: "axe mcp" },
   { category: "cli", key: "generate", name: "axe generate" },
+  { category: "cli", key: "surface", name: "axe surface" },
+  { category: "cli", key: "surfaceInit", name: "axe surface init" },
+  { category: "cli", key: "surfaceCoverage", name: "axe surface coverage" },
   { category: "field", key: "protocol", name: "protocol" },
   { category: "field", key: "name", name: "name" },
   { category: "field", key: "description", name: "description" },

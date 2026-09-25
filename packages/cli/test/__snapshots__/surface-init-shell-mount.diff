@@ -1,0 +1,87 @@
+diff --git a/app/routes/_shell.tsx b/app/routes/_shell.tsx
+--- a/app/routes/_shell.tsx
++++ b/app/routes/_shell.tsx
+@@ -1,12 +1,15 @@
+ import { Outlet } from "react-router";
+ import { FeatureFlagProvider } from "../feature-flags";
++import { AgentSurface } from "../surface";
+ 
+ // The signed-in shell: every page below it has a session and the flag client.
+ export default function Shell() {
+     return (
+         <FeatureFlagProvider>
+             <nav aria-label="Main" />
+-            <Outlet />
++            <AgentSurface>
++                <Outlet />
++            </AgentSurface>
+         </FeatureFlagProvider>
+     );
+ }
+diff --git a/app/surface.tsx b/app/surface.tsx
+new file mode 100644
+--- /dev/null
++++ b/app/surface.tsx
+@@ -0,0 +1,25 @@
++// Agent Surface for this app, written by `axe surface init`. Yours to edit.
++//
++// <AgentSurface> wraps the app root. On, autoSurface discovers the controls under it and, in
++// development, publishes window.__surface for `axe surface coverage` and browser agents.
++// Off, it renders its children and nothing else. Overlay config: ./surface.config.
++// Nothing here runs at import time: the provider starts discovery (and the relay) in an
++// effect, so a server render renders the children only.
++//
++// On when useFeatureFlag("ui_axe_surface") (from ~/feature-flags) is true; that hook decides every
++// environment. A hook needs its provider above the mount: mount below it with --mount.
++import type { ReactNode } from "react";
++import { SurfaceProvider } from "@axe/surface/react";
++import { useFeatureFlag } from "~/feature-flags";
++import surfaceConfig from "./surface.config";
++
++const development = import.meta.env.DEV;
++
++export function AgentSurface({ children }: { children: ReactNode }) {
++    const enabled = useFeatureFlag("ui_axe_surface");
++    return (
++        <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development}>
++            {children}
++        </SurfaceProvider>
++    );
++}
+diff --git a/app/surface.config.ts b/app/surface.config.ts
+new file mode 100644
+--- /dev/null
++++ b/app/surface.config.ts
+@@ -0,0 +1,32 @@
++// Surface config for this app, written by `axe surface init`. Yours to edit.
++//
++// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
++// page alone cannot tell it. An empty overlay is a working start.
++import type { SurfaceConfig } from "@axe/surface/auto";
++
++const surfaceConfig: SurfaceConfig = {
++    // Nothing here is required: autoSurface discovers the page's controls on its own. Run
++    // `axe surface coverage <url>` and add an entry for each gap it lists, most important first.
++    // Keys are CSS selectors for the control.
++    //
++    // controls: {
++    //   // rename: the name an agent reads, stated as the outcome ("Lock March", not "Lock button").
++    //   "#lock-month": { name: "Lock the month" },
++    //   // reason: why a disabled control is unavailable, in the app's own words.
++    //   "[data-testid=submit-plan]": { reason: "the plan has unsaved edits" },
++    //   // risk: how much a mistaken act costs; never none for a control that changes state.
++    //   "button.archive": { risk: "medium" },
++    //   // hide: controls an agent should never see (debug panels, the app's own chat).
++    //   ".debug-panel": { hide: true },
++    //   // handler: run the app's own function instead of a synthetic click (the same door).
++    //   "#export-csv": { handler: () => exportCsv() },
++    //   // approval: a person approves on the page before this runs.
++    //   "button.delete-plan": { risk: "high", approval: true },
++    //   // group: controls that belong to one object or panel.
++    //   "#toolbar button": { group: "Plan toolbar" },
++    //   // sensitive: an agent may set the field but never reads its value back.
++    //   "input[name=salary]": { sensitive: true },
++    // },
++};
++
++export default surfaceConfig;

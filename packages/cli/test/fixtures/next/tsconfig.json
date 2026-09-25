@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true
+  },
+  "include": ["app/**/*"]
+}

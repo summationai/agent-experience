@@ -1,0 +1,71 @@
+diff --git a/index.html b/index.html
+--- a/index.html
++++ b/index.html
+@@ -9,5 +9,6 @@
+       <label>Hours <input name="hours" type="number" /></label>
+       <button type="submit">Submit timesheet</button>
+     </form>
++    <script type="module" src="./surface.js"></script>
+   </body>
+ </html>
+diff --git a/surface.js b/surface.js
+new file mode 100644
+--- /dev/null
++++ b/surface.js
+@@ -0,0 +1,19 @@
++// Agent Surface for this page, written by `axe surface init`. Yours to edit.
++//
++// On when the page is served from localhost; off everywhere else. Replace `enabled` with your
++// feature-flag check to turn it on elsewhere.
++//
++// @axe/surface/auto is a bare module specifier: load this file through your bundler, or map
++// the specifier with an import map to the package's built files.
++import { autoSurface } from "@axe/surface/auto";
++import surfaceConfig from "./surface.config.js";
++
++const development =
++  typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
++const enabled = development;
++
++if (enabled) {
++  const handle = autoSurface({ root: document.body, config: surfaceConfig });
++  // Publishes window.__surface for `axe surface coverage` and browser-driving agents.
++  if (development) handle.surface.expose(window);
++}
+diff --git a/surface.config.js b/surface.config.js
+new file mode 100644
+--- /dev/null
++++ b/surface.config.js
+@@ -0,0 +1,32 @@
++// Surface config for this app, written by `axe surface init`. Yours to edit.
++//
++// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
++// page alone cannot tell it. An empty overlay is a working start.
++
++/** @type {import("@axe/surface/auto").SurfaceConfig} */
++const surfaceConfig = {
++  // Nothing here is required: autoSurface discovers the page's controls on its own. Run
++  // `axe surface coverage <url>` and add an entry for each gap it lists, most important first.
++  // Keys are CSS selectors for the control.
++  //
++  // controls: {
++  //   // rename: the name an agent reads, stated as the outcome ("Lock March", not "Lock button").
++  //   "#lock-month": { name: "Lock the month" },
++  //   // reason: why a disabled control is unavailable, in the app's own words.
++  //   "[data-testid=submit-plan]": { reason: "the plan has unsaved edits" },
++  //   // risk: how much a mistaken act costs; never none for a control that changes state.
++  //   "button.archive": { risk: "medium" },
++  //   // hide: controls an agent should never see (debug panels, the app's own chat).
++  //   ".debug-panel": { hide: true },
++  //   // handler: run the app's own function instead of a synthetic click (the same door).
++  //   "#export-csv": { handler: () => exportCsv() },
++  //   // approval: a person approves on the page before this runs.
++  //   "button.delete-plan": { risk: "high", approval: true },
++  //   // group: controls that belong to one object or panel.
++  //   "#toolbar button": { group: "Plan toolbar" },
++  //   // sensitive: an agent may set the field but never reads its value back.
++  //   "input[name=salary]": { sensitive: true },
++  // },
++};
++
++export default surfaceConfig;

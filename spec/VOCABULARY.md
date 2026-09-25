@@ -227,16 +227,19 @@ The DOM mirror ([S-DOM-1] in `spec/SURFACE.md`): attributes a rendered control c
 
 ## CLI commands
 
-| Category | Key         | Name              | Where | Meaning                                                     |
-| -------- | ----------- | ----------------- | ----- | ----------------------------------------------------------- |
-| cli      | init        | `axe init`        | CLI   | Scaffold an `axe.ts` for a framework.                       |
-| cli      | validate    | `axe validate`    | CLI   | Load an `axe.ts`, validate the manifest, lint descriptions. |
-| cli      | inspect     | `axe inspect`     | CLI   | Discover and print a manifest and its affordance graph.     |
-| cli      | preview     | `axe preview`     | CLI   | Call a read action and render the result to HTML.           |
-| cli      | conformance | `axe conformance` | CLI   | Run the conformance suite against a URL.                    |
-| cli      | audit       | `axe audit`       | CLI   | Produce the AXE Score and fix list.                         |
-| cli      | mcp         | `axe mcp`         | CLI   | Serve any AXE site as an MCP server over stdio.             |
-| cli      | generate    | `axe generate`    | CLI   | Derive actions from an OpenAPI document; files for review.  |
+| Category | Key             | Name                   | Where | Meaning                                                                              |
+| -------- | --------------- | ---------------------- | ----- | ------------------------------------------------------------------------------------ |
+| cli      | init            | `axe init`             | CLI   | Scaffold an `axe.ts` for a framework.                                                |
+| cli      | validate        | `axe validate`         | CLI   | Load an `axe.ts`, validate the manifest, lint descriptions.                          |
+| cli      | inspect         | `axe inspect`          | CLI   | Discover and print a manifest and its affordance graph.                              |
+| cli      | preview         | `axe preview`          | CLI   | Call a read action and render the result to HTML.                                    |
+| cli      | conformance     | `axe conformance`      | CLI   | Run the conformance suite against a URL.                                             |
+| cli      | audit           | `axe audit`            | CLI   | Produce the AXE Score and fix list.                                                  |
+| cli      | mcp             | `axe mcp`              | CLI   | Serve any AXE site as an MCP server over stdio.                                      |
+| cli      | generate        | `axe generate`         | CLI   | Derive actions from an OpenAPI document; files for review.                           |
+| cli      | surface         | `axe surface`          | CLI   | Add Surface to an existing app: `init`, `coverage`, `prompt`.                        |
+| cli      | surfaceInit     | `axe surface init`     | CLI   | Detect the app, print the smallest diff that mounts Surface behind a flag, apply it. |
+| cli      | surfaceCoverage | `axe surface coverage` | CLI   | Open the app headless and report what agents see: gaps and config suggestions.       |
 
 ## Fields
 
