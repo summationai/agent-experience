@@ -13,3 +13,4 @@ docs/**/*.md
 README.md
 site/dist
 site/test/__screenshots__
+docs/review/*/data

@@ -832,12 +832,19 @@
       "acts": 400,
       "ok": 311,
       "conflict": 89,
-      "related": 14,
-      "unrelated": 75,
+      "related": 15,
+      "unrelated": 74,
       "other": 0,
       "conflictRate": 0.223,
-      "unrelatedShareOfConflicts": 0.843,
-      "unrelatedRate": 0.188
+      "unrelatedShareOfConflicts": 0.831,
+      "unrelatedRate": 0.185,
+      "withRetries": {
+        "maxAttempts": 3,
+        "finalOk": 396,
+        "finalOkRate": 0.99,
+        "meanAttempts": 1.28,
+        "reobserveBytes": 69373
+      }
     },
     {
       "mode": "domain",
@@ -845,64 +852,99 @@
       "acts": 400,
       "ok": 311,
       "conflict": 89,
-      "related": 14,
-      "unrelated": 75,
+      "related": 15,
+      "unrelated": 74,
       "other": 0,
       "conflictRate": 0.223,
-      "unrelatedShareOfConflicts": 0.843,
-      "unrelatedRate": 0.188
+      "unrelatedShareOfConflicts": 0.831,
+      "unrelatedRate": 0.185,
+      "withRetries": {
+        "maxAttempts": 3,
+        "finalOk": 396,
+        "finalOkRate": 0.99,
+        "meanAttempts": 1.28,
+        "reobserveBytes": 71830
+      }
     },
     {
       "mode": "control",
       "meanEdits": 1,
       "acts": 400,
-      "ok": 134,
-      "conflict": 266,
-      "related": 63,
-      "unrelated": 203,
+      "ok": 148,
+      "conflict": 252,
+      "related": 51,
+      "unrelated": 201,
       "other": 0,
-      "conflictRate": 0.665,
-      "unrelatedShareOfConflicts": 0.763,
-      "unrelatedRate": 0.507
+      "conflictRate": 0.63,
+      "unrelatedShareOfConflicts": 0.798,
+      "unrelatedRate": 0.502,
+      "withRetries": {
+        "maxAttempts": 3,
+        "finalOk": 296,
+        "finalOkRate": 0.74,
+        "meanAttempts": 2.03,
+        "reobserveBytes": 305565
+      }
     },
     {
       "mode": "domain",
       "meanEdits": 1,
       "acts": 400,
-      "ok": 134,
-      "conflict": 266,
-      "related": 63,
-      "unrelated": 203,
+      "ok": 148,
+      "conflict": 252,
+      "related": 51,
+      "unrelated": 201,
       "other": 0,
-      "conflictRate": 0.665,
-      "unrelatedShareOfConflicts": 0.763,
-      "unrelatedRate": 0.507
+      "conflictRate": 0.63,
+      "unrelatedShareOfConflicts": 0.798,
+      "unrelatedRate": 0.502,
+      "withRetries": {
+        "maxAttempts": 3,
+        "finalOk": 296,
+        "finalOkRate": 0.74,
+        "meanAttempts": 2.03,
+        "reobserveBytes": 316380
+      }
     },
     {
       "mode": "control",
       "meanEdits": 3,
       "acts": 400,
-      "ok": 18,
-      "conflict": 382,
-      "related": 140,
-      "unrelated": 242,
+      "ok": 23,
+      "conflict": 377,
+      "related": 147,
+      "unrelated": 230,
       "other": 0,
-      "conflictRate": 0.955,
-      "unrelatedShareOfConflicts": 0.634,
-      "unrelatedRate": 0.605
+      "conflictRate": 0.943,
+      "unrelatedShareOfConflicts": 0.61,
+      "unrelatedRate": 0.575,
+      "withRetries": {
+        "maxAttempts": 3,
+        "finalOk": 57,
+        "finalOkRate": 0.142,
+        "meanAttempts": 2.85,
+        "reobserveBytes": 645469
+      }
     },
     {
       "mode": "domain",
       "meanEdits": 3,
       "acts": 400,
-      "ok": 18,
-      "conflict": 382,
-      "related": 140,
-      "unrelated": 242,
+      "ok": 23,
+      "conflict": 377,
+      "related": 147,
+      "unrelated": 230,
       "other": 0,
-      "conflictRate": 0.955,
-      "unrelatedShareOfConflicts": 0.634,
-      "unrelatedRate": 0.605
+      "conflictRate": 0.943,
+      "unrelatedShareOfConflicts": 0.61,
+      "unrelatedRate": 0.575,
+      "withRetries": {
+        "maxAttempts": 3,
+        "finalOk": 57,
+        "finalOkRate": 0.142,
+        "meanAttempts": 2.85,
+        "reobserveBytes": 668233
+      }
     }
   ]
 }

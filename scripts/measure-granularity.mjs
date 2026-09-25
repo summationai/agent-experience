@@ -627,12 +627,10 @@ async function twoActors(mode, meanEdits, trials = 400, n = 300) {
   const rand = prng(1600 + Math.round(meanEdits * 10));
   const rowsWithFields = [...app.rows.keys()].filter((r) => !app.rowState(r).locked);
   const counts = { acts: 0, ok: 0, conflict: 0, related: 0, unrelated: 0, other: 0 };
-  for (let t = 0; t < trials; t++) {
-    const target = rowsWithFields[Math.floor(rand() * rowsWithFields.length)];
-    const month = Math.floor(rand() * 6);
-    const id = `demand:${target}:${MONTHS[month]}`;
-    const rev = app.surface.currentRev();
-    // Poisson-distributed number of the person's edits in the agent's think time.
+  const retry = { finalOk: 0, attempts: 0, reobserveBytes: 0 };
+  // The person's edits in the agent's think time: Poisson with the given mean. Returns whether
+  // one of them touched the agent's row.
+  const personEdits = (target) => {
     let k = 0;
     for (let p = Math.exp(-meanEdits), s = p, u = rand(); u > s; k++) {
       p *= meanEdits / (k + 1);
@@ -645,19 +643,45 @@ async function twoActors(mode, meanEdits, trials = 400, n = 300) {
       app.human.edit(r, m, Math.floor(rand() * 1000));
       if (r === target) related = true;
     }
+    return related;
+  };
+  for (let t = 0; t < trials; t++) {
+    const target = rowsWithFields[Math.floor(rand() * rowsWithFields.length)];
+    const month = Math.floor(rand() * 6);
+    const id = `demand:${target}:${MONTHS[month]}`;
     const name = mode === "control" ? bridge.actionNameFor(id) : bridge.actionFor(id);
     const input = mode === "control" ? { text: "500" } : { entryId: id, text: "500" };
-    const { body } = await post(axe, name, input, {
-      expectedRev: rev,
-      idempotencyKey: `trial-${mode}-${meanEdits}-${t}`,
-    });
-    counts.acts++;
-    if (body.status === "ok") counts.ok++;
-    else if (body.status === "error" && body.error.code === "conflict") {
-      counts.conflict++;
-      if (related) counts.related++;
-      else counts.unrelated++;
-    } else counts.other++;
+    let rev = app.surface.currentRev();
+    // Up to three attempts; after a conflict the agent observes the one row again (filtered by
+    // the control's name) and acts at the new revision while the person keeps editing.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const related = personEdits(target);
+      const { body } = await post(axe, name, input, {
+        expectedRev: rev,
+        idempotencyKey: `trial-${mode}-${meanEdits}-${t}-${attempt}`,
+      });
+      retry.attempts++;
+      const conflict = body.status === "error" && body.error.code === "conflict";
+      if (attempt === 1) {
+        counts.acts++;
+        if (body.status === "ok") counts.ok++;
+        else if (conflict) {
+          counts.conflict++;
+          if (related) counts.related++;
+          else counts.unrelated++;
+        } else counts.other++;
+      }
+      if (body.status === "ok") {
+        retry.finalOk++;
+        break;
+      }
+      if (!conflict) break;
+      const seen = await post(axe, "plan.observe", {
+        query: `Demand for Widget ${target}, ${MONTHS[month]}`,
+      });
+      retry.reobserveBytes += seen.bytes;
+      rev = seen.body.output.rev;
+    }
   }
   return {
     meanEdits,
@@ -667,6 +691,13 @@ async function twoActors(mode, meanEdits, trials = 400, n = 300) {
       ? +(counts.unrelated / counts.conflict).toFixed(3)
       : 0,
     unrelatedRate: +(counts.unrelated / counts.acts).toFixed(3),
+    withRetries: {
+      maxAttempts: 3,
+      finalOk: retry.finalOk,
+      finalOkRate: +(retry.finalOk / counts.acts).toFixed(3),
+      meanAttempts: +(retry.attempts / counts.acts).toFixed(2),
+      reobserveBytes: retry.reobserveBytes,
+    },
   };
 }
 
@@ -788,14 +819,14 @@ for (const n of Object.keys(report.tasks))
 lines.push("");
 lines.push("## Two actors under one revision", "");
 lines.push(
-  "400 trials on a 300-control surface. Per trial the agent observes, a person makes a Poisson-distributed number of demand edits (mean in the first column) on random unlocked rows (10% on the agent's row), then the agent sets one demand field at the revision it observed. A conflict is related when the person edited the agent's row (the same entry or an entry the application may derive from), unrelated otherwise. The global revision refuses both; a per-entry revision would have accepted the unrelated ones.",
+  "400 trials on a 300-control surface. Per trial the agent observes, a person makes a Poisson-distributed number of demand edits (mean in the first column) on random unlocked rows (10% on the agent's row), then the agent sets one demand field at the revision it observed. After a conflict it observes that one row again (filtered by name) and retries, up to three attempts, while the person keeps editing at the same rate. A conflict on the first attempt is related when the person edited the agent's row (the same entry or an entry the application may derive from), unrelated otherwise. The global revision refuses both; a per-entry revision would have accepted the unrelated ones.",
   "",
-  "| Person's edits per agent act (mean) | Mode | Acts | ok | Conflicts | Related | Unrelated | Conflict rate | Unrelated share of conflicts |",
-  "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+  "| Person's edits per agent act (mean) | Mode | Acts | ok | Conflicts | Related | Unrelated | Conflict rate | Unrelated share of conflicts | ok within 3 attempts | Mean attempts | Re-observe bytes |",
+  "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
 );
 for (const r of report.twoActors)
   lines.push(
-    `| ${r.meanEdits} | ${r.mode} | ${r.acts} | ${r.ok} | ${r.conflict} | ${r.related} | ${r.unrelated} | ${(r.conflictRate * 100).toFixed(1)}% | ${(r.unrelatedShareOfConflicts * 100).toFixed(1)}% |`,
+    `| ${r.meanEdits} | ${r.mode} | ${r.acts} | ${r.ok} | ${r.conflict} | ${r.related} | ${r.unrelated} | ${(r.conflictRate * 100).toFixed(1)}% | ${(r.unrelatedShareOfConflicts * 100).toFixed(1)}% | ${(r.withRetries.finalOkRate * 100).toFixed(1)}% | ${r.withRetries.meanAttempts} | ${kb(r.withRetries.reobserveBytes)} |`,
   );
 lines.push("");
 

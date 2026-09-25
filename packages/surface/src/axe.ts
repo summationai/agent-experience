@@ -686,7 +686,7 @@ function bridgeCore(
     frozen: z.object({ reason: z.string() }).optional(),
     ledgerSeq: z.number().int(),
     total: z.number().int().describe("Rows that match the filters, on every page"),
-    nextCursor: z
+    [WIRE.field.nextCursor]: z
       .string()
       .optional()
       .describe("Present when more rows match; pass it as cursor with the same filters"),
@@ -812,7 +812,7 @@ function bridgeCore(
           };
         });
         const out: Record<string, unknown> = { ...view, entries, total: page.total };
-        if (page.nextCursor !== undefined) out["nextCursor"] = page.nextCursor;
+        if (page.nextCursor !== undefined) out[WIRE.field.nextCursor] = page.nextCursor;
         return out as unknown as z.infer<typeof ObserveOutput>;
       },
     }) as unknown as RegisteredAction;
@@ -1288,7 +1288,7 @@ export function domainActions(
       auth: mode,
       input: z
         .object({
-          entryId: z
+          [WIRE.field.entryId]: z
             .string()
             .min(1)
             .max(1024)
@@ -1361,7 +1361,9 @@ export function domainActions(
     (row, s) => {
       const e = s.get(row.id);
       const spec = e ? coverOf(e) : null;
-      return spec ? { action: nameOfSpec(spec), input: { entryId: row.id } } : undefined;
+      return spec
+        ? { action: nameOfSpec(spec), input: { [WIRE.field.entryId]: row.id } }
+        : undefined;
     },
     "Each actionable row names the action that acts on it, with its entryId bound.",
   );

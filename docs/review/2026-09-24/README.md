@@ -19,7 +19,7 @@ The engineering and product review of branch `herz/surface-integration` at `e563
 | 13 | Browser-local and server-side execution as explicit modes; reference app | 3 | [13-execution-modes.md](13-execution-modes.md) | pending |
 | 14 | Existing agent interfaces through adapters (WebMCP, elicitation, MCP Apps) | 3 | [14-agent-interface-adapters.md](14-agent-interface-adapters.md) | done |
 | 15 | Human oversight in the reference workflow | 3 | [15-human-oversight.md](15-human-oversight.md) | pending |
-| 16 | Capability granularity evaluated | 4 | [16-granularity.md](16-granularity.md) | pending |
+| 16 | Capability granularity evaluated | 4 | [16-granularity.md](16-granularity.md) | done |
 | 17 | Evaluation harness and external pilot plan | 4 | [17-evaluation.md](17-evaluation.md) | pending |
 | 18 | Audit claims clarified; roadmap prioritized | 4 | [18-claims-and-roadmap.md](18-claims-and-roadmap.md) | pending |
 

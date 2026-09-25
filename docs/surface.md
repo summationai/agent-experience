@@ -331,7 +331,7 @@ export const handler = axe.fetchHandler();
 ```
 <!-- /include -->
 
-The provider's set is `<ns>.observe` (read-only, with `display` over the entries and, per actionable row, a dynamic [affordance](presenting-results.md#affordances) that names the row's own action and carries the observation's `rev` as `expectedRev`), `<ns>.ledger` (read-only, `{ since?, limit? }` in, `{ ledgerSeq, entries }` out, with `display`), and one action per entry:
+The provider's set is `<ns>.observe` (read-only, filtered and paged as [Choosing granularity](#choosing-granularity) describes, with `display` over the entries and, per actionable row, a dynamic [affordance](presenting-results.md#affordances) that names the row's own action and carries the observation's `rev` as `expectedRev`), `<ns>.ledger` (read-only, `{ since?, limit? }` in, `{ ledgerSeq, entries }` out, with `display`), and one action per entry:
 
 - The action's `title` is the entry's `name`; its `description` is composed from the kind, the `object`, and the `effect`.
 - An action entry carries its `effect`'s `idempotent`, `reversible`, and `risk`. Its input requires `confirm: true` when the effect declares `confirm`, and takes an optional `text` described by the effect's `text` prompt.
@@ -358,6 +358,122 @@ The ledger is a complete record of what reached the surface. The bridge validate
 Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry's action passes the same `expectedRev` to `act`, so the protocol's check is the first gate and the surface's the second: two requests that both pass the server's check at one revision are ordered by the surface, and the later one is checked again when its turn comes. The handler receives the same value for its own write. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
 
 The set is rebuilt only when the registry changed shape (`registryVersion` moved: a register, an unregister, a `reconcile`); a `bump` alone reuses the previous set, and a re-registered row rebuilds only its own action. Invocation resolves the action name through a map, so hundreds of rows cost hundreds of small lookups on `/axe/state` and one lookup per act. An entry whose name fails the honesty lint (an instruction aimed at the agent) is not published; the bridge's `onError` option hears about it and the row stays in `observe`. A retried `idempotencyKey` for an action whose row has since left the board (the pick that was just drafted) is still answered from the idempotency store, so a lost response is recoverable.
+
+## Choosing granularity
+
+`surfaceActions` publishes one action per control. `domainActions` publishes a small, fixed set of parameterized actions instead: each covers the entries the application selects and takes the entry id as input. Both run the same handlers through `surface.act`, with the same revision guard, ladder, ledger, and `surface.act` events; only the shape of the manifest and the tool list differs. Neither is deleted in favor of the other: the numbers below say where each fits.
+
+<!-- include: examples/surface/granularity.ts#domain -->
+```ts
+import { createAXE } from "@axe/core";
+import { domainActions, surfaceActions } from "@axe/surface/axe";
+import { surface } from "./board";
+
+export const axe = createAXE({
+  name: "Fantasy Draft",
+  description:
+    "A draft board: observe which players can be drafted right now, then draft, undo, or flag them under one revision.",
+  baseUrl: "https://draft.example",
+  auth: { modes: ["user"], userLoginUrl: "https://draft.example/login" },
+  secret: process.env.AXE_SECRET,
+  revision: surface.currentRev,
+});
+
+// A fixed set of actions: draft.observe, draft.ledger, draft.pick, draft.undo. The manifest and
+// the MCP tool list stay the same whatever the board holds; the rows, their availability, and
+// the action for each come from draft.observe, which pages 50 rows at a time.
+export const domain = domainActions(surface, {
+  namespace: "draft",
+  domains: [
+    {
+      name: "pick",
+      title: "Draft a player",
+      description:
+        "Drafts one player from the board for your team, as the row's Draft button would.",
+      // Which entries this action acts on: the application's own grouping.
+      covers: (entry) => entry.id.startsWith("pick:me:"),
+      // True of every pick; an entry with a higher risk would be left uncovered and reported.
+      risk: "medium",
+      reversible: true,
+    },
+    {
+      name: "undo",
+      title: "Undo the last pick",
+      description: "Puts the most recent pick back on the board.",
+      covers: (entry) => entry.id === "undo",
+      risk: "medium",
+    },
+  ],
+});
+axe.addProvider(domain);
+```
+<!-- /include -->
+
+How the mapping works ([S-AXE-10] to [S-AXE-13] in [`spec/SURFACE.md`](../spec/SURFACE.md)):
+
+- **Coverage.** A registered entry belongs to the first spec whose `covers(entry)` returns true, decided once per registered entry object. `actionFor(id)` and `covered(name)` report the map. Without `domains`, the defaults are `set-field` (every field), `run-control` (every action entry) and `load-more` (every collection).
+- **Metadata holds for every covered entry.** A spec declares `risk`, `idempotent`, and `reversible` for the whole group. An entry whose own risk is higher, or that is not reversible or idempotent when the spec says it is, is not covered: `onError` hears about it and its row stays in `observe` without an affordance. The default `run-control` is declared `risk: "high"`, not reversible, not idempotent, so every control fits; declare narrower groups to publish narrower metadata.
+- **Input.** `{ entryId, text?, confirm? }`. The op is the entry's own (`TYPE_TEXT` for a field, `TOGGLE` for a switch, `CLICK` otherwise, `SCROLL_DOWN` for a collection). An `entryId` another action covers, or a field without `text`, is `invalid_input` before the surface, as an unknown action name would be, so it is not ledgered; an id no entry carries goes on to the surface and is `not_found` in the ledger.
+- **Availability.** A parameterized action is available while at least one entry it covers can be acted on; otherwise its `availability` carries the reason every covered entry shares (a freeze) or its `idleReason`. Per-entry availability is on each `observe` row, and an act on an unavailable entry is refused exactly as its own action would be: `needs_input` with its `requires`, `needs_human` for a handoff with a `url`, `unavailable` otherwise. A parameterized action cannot derive `humanHandoff` from its entries, so the spec declares it when a covered control can hand off.
+- **Revision and ledger.** Identical. The envelope's `expectedRev` goes to `act` unchanged; the ledger records the entry id as `target` and the op; the `surface.act` event names the domain action.
+- **Affordances.** Every actionable `observe` row carries an affordance naming the action that acts on it, with `entryId` bound and the observed `rev` as `expectedRev`.
+
+`<ns>.observe` takes filters and pages in both modes: `object` (exact), `kind`, `available` (rows with an `index`, or without), `query` (case-insensitive text in the name, id, or object), `limit`, and `cursor`. Rows keep registration order, keep the `index` they have in the whole observation, and the output carries `total` (rows matching the filters) and `nextCursor` while more match. The page size is published as the action's `pagination`: 50 rows by default and at most 200 for `domainActions`, 1000 and 1000 for `surfaceActions`, so a per-control surface of up to 1000 rows is still one call; the `observe` option (`pageSize`, `maxPageSize`) changes either. A cursor names the last row returned and the one after it, so a row that leaves between pages does not shift the next page; pages read at different revisions are different observations, and an act presents the `rev` of the page it read. `surface.observe()` is unchanged.
+
+<!-- include: examples/surface/granularity.ts#call -->
+```ts
+// An agent reads one page of rows about one player, then acts on the row with its id and the rev
+// it observed. The observe row carries the same call as an affordance with entryId bound.
+export async function draftGibbs(post: (path: string, body: unknown) => Promise<unknown>) {
+  const page = (await post("/axe/actions/draft.observe", {
+    input: { query: "Gibbs", available: true, limit: 10 },
+  })) as { output: { entries: { id: string }[] }; rev: number };
+  const row = page.output.entries[0];
+  if (!row) return undefined;
+  return post("/axe/actions/draft.pick", {
+    input: { entryId: row.id },
+    expectedRev: page.rev,
+    idempotencyKey: crypto.randomUUID(),
+  });
+}
+```
+<!-- /include -->
+
+### What the measurements say
+
+`node scripts/measure-granularity.mjs` serves one demand-plan application both ways and measures real payloads: the manifest, the derived MCP server's JSON-RPC messages, and `observe` output. The numbers are scripted and deterministic, not model performance; token counts are an estimate, bytes / 4. The full report, with the method, is [`docs/review/2026-09-24/data/granularity.md`](review/2026-09-24/data/granularity.md).
+
+| Controls | Mode | MCP tools | `tools/list` | Est. tokens | Notifications over 50 UI changes | Read before first correct act | Five tasks: bytes read |
+| -------: | ---- | --------: | -----------: | ----------: | -------------------------------: | ----------------------------: | ---------------------: |
+|        5 | per control | 12 | 13 KB | ~3,200 | 46 | 15 KB | not run |
+|        5 | domain | 10 | 11 KB | ~2,800 | 0 | 14 KB | not run |
+|       50 | per control | 56 | 72 KB | ~18,400 | 46 | 75 KB | 92 KB |
+|       50 | domain | 10 | 11 KB | ~2,750 | 0 | 14 KB | 31 KB |
+|      300 | per control | 297 | 401 KB | ~102,600 | 46 | 404 KB | 442 KB |
+|      300 | domain | 10 | 11 KB | ~2,750 | 0 | 14 KB | 54 KB |
+|     1000 | per control | 974 | 1325 KB | ~339,100 | 46 | 1328 KB | 1393 KB |
+|     1000 | domain | 10 | 11 KB | ~2,750 | 0 | 14 KB | 82 KB |
+
+Both scripted agents completed all five tasks at every size, verified against the application's state. The per-control tool list grows by about 1.4 KB per control; the domain list is constant. Per control, every re-registration moves `registryVersion` and sends `notifications/tools/list_changed`, including 25 to 28 of the 46 where no tool's description or schema changed; an agent that lists the tools again on each notification reads about 36 MB (KB and MB here are 1024-based) over the 50 changes at 300 controls. Server-side caching of the built actions ([S-AXE-9]) makes none of that smaller for the agent.
+
+### When to use which
+
+- **Per control** when the surface is small (tens of controls), when the tool list should read like the page (a human reviewing an agent's tools sees "Lock March"), when each control's own risk, reversibility, and `humanHandoff` should be on its own action for the audit, and when the rows rarely come and go. At 5 controls the two modes cost about the same.
+- **Domain actions** when the surface is large or churns (grids, boards with rows that come and go, pages that re-register on every edit), when the agent's context is the constraint, or when the MCP client pays for every `tools/list_changed`. The price: the agent reads `observe` before it acts (one filtered page), a group's metadata is the ceiling of its entries, and per-control availability is no longer in the manifest.
+- **Migrating.** Serve both side by side under different namespaces while agents move over, then drop the per-control provider. Per-control names are sticky per entry id for the life of the bridge; domain action names are fixed by the application, so they are the more stable of the two across deploys.
+
+<!-- include: examples/surface/granularity.ts#side-by-side -->
+```ts
+// While agents move over, serve the per-control actions beside them under another namespace.
+// Tool names in each namespace stay stable; both share the surface's revision and ledger.
+axe.addProvider(surfaceActions(surface, { namespace: "board" }));
+
+domain.actionFor("pick:me:Gibbs"); // "draft.pick"
+domain.covered("draft.undo"); // ["undo"]
+```
+<!-- /include -->
+
+Neither granularity changes the revision. It is global, and in a scripted run where a person edits one field per agent think time on a 300-control surface, 63% of the agent's first attempts were refused as `conflict`, 80% of those for an edit on another row; with a filtered re-observe and up to three attempts, 74% landed. [DECISIONS.md](../DECISIONS.md) ("Surface", granularity) has the proposal for a per-entry precondition and why it is not implemented.
 
 ## Who can observe and act
 
@@ -605,7 +721,7 @@ What the hooks own, as mounted tests pin it:
 
 ## What Surface does not do
 
-It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. It does not yet default `observe` to the visible window of a long list; scope by a field until it does. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 26 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
+It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. `surface.observe()` returns every row; the bridge's `<ns>.observe` filters and pages ([Choosing granularity](#choosing-granularity)), but nothing limits a local caller to the visible window of a long list. The revision is per application instance; two tabs of one user still resolve as the application's state store resolves them today. It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 26 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
 
 ## Next steps
 

@@ -66,13 +66,13 @@ One scripted agent per mode, the same five tasks against the same starting state
 
 ## Two actors under one revision
 
-400 trials on a 300-control surface. Per trial the agent observes, a person makes a Poisson-distributed number of demand edits (mean in the first column) on random unlocked rows (10% on the agent's row), then the agent sets one demand field at the revision it observed. A conflict is related when the person edited the agent's row (the same entry or an entry the application may derive from), unrelated otherwise. The global revision refuses both; a per-entry revision would have accepted the unrelated ones.
+400 trials on a 300-control surface. Per trial the agent observes, a person makes a Poisson-distributed number of demand edits (mean in the first column) on random unlocked rows (10% on the agent's row), then the agent sets one demand field at the revision it observed. After a conflict it observes that one row again (filtered by name) and retries, up to three attempts, while the person keeps editing at the same rate. A conflict on the first attempt is related when the person edited the agent's row (the same entry or an entry the application may derive from), unrelated otherwise. The global revision refuses both; a per-entry revision would have accepted the unrelated ones.
 
-| Person's edits per agent act (mean) | Mode | Acts | ok | Conflicts | Related | Unrelated | Conflict rate | Unrelated share of conflicts |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 0.25 | control | 400 | 311 | 89 | 14 | 75 | 22.3% | 84.3% |
-| 0.25 | domain | 400 | 311 | 89 | 14 | 75 | 22.3% | 84.3% |
-| 1 | control | 400 | 134 | 266 | 63 | 203 | 66.5% | 76.3% |
-| 1 | domain | 400 | 134 | 266 | 63 | 203 | 66.5% | 76.3% |
-| 3 | control | 400 | 18 | 382 | 140 | 242 | 95.5% | 63.4% |
-| 3 | domain | 400 | 18 | 382 | 140 | 242 | 95.5% | 63.4% |
+| Person's edits per agent act (mean) | Mode | Acts | ok | Conflicts | Related | Unrelated | Conflict rate | Unrelated share of conflicts | ok within 3 attempts | Mean attempts | Re-observe bytes |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.25 | control | 400 | 311 | 89 | 15 | 74 | 22.3% | 83.1% | 99.0% | 1.28 | 68 KB |
+| 0.25 | domain | 400 | 311 | 89 | 15 | 74 | 22.3% | 83.1% | 99.0% | 1.28 | 70 KB |
+| 1 | control | 400 | 148 | 252 | 51 | 201 | 63.0% | 79.8% | 74.0% | 2.03 | 298 KB |
+| 1 | domain | 400 | 148 | 252 | 51 | 201 | 63.0% | 79.8% | 74.0% | 2.03 | 309 KB |
+| 3 | control | 400 | 23 | 377 | 147 | 230 | 94.3% | 61.0% | 14.2% | 2.85 | 630 KB |
+| 3 | domain | 400 | 23 | 377 | 147 | 230 | 94.3% | 61.0% | 14.2% | 2.85 | 653 KB |

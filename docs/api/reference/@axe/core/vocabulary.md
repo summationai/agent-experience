@@ -203,6 +203,10 @@ type WireApi =
   | "toFormSchema"
   | "readOnlyHint"
   | "untrustedContentHint"
+  | "domainActions"
+  | "actionFor"
+  | "idleReason"
+  | "maxPageSize"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -495,7 +499,9 @@ type WireField =
   | "rev"
   | "expectedRev"
   | "currentRev"
-  | "event";
+  | "event"
+  | "entryId"
+  | "nextCursor";
 ```
 
 Union of every `field` name.
@@ -855,6 +861,7 @@ const api: Readonly<{
   act: "act";
   actContext: "ActContext";
   action: "action";
+  actionFor: "actionFor";
   actionNameFor: "actionNameFor";
   addProvider: "addProvider";
   allowCredentials: "allowCredentials";
@@ -898,6 +905,7 @@ const api: Readonly<{
   describeLive: "describeLive";
   destinationPolicy: "destinationPolicy";
   discover: "discover";
+  domainActions: "domainActions";
   emit: "emit";
   entries: "entries";
   entryIdFor: "entryIdFor";
@@ -921,6 +929,7 @@ const api: Readonly<{
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
   identity: "identity";
   idleMs: "idleMs";
+  idleReason: "idleReason";
   idleTimeoutMs: "idleTimeoutMs";
   includeDeprecated: "includeDeprecated";
   index: "index";
@@ -947,6 +956,7 @@ const api: Readonly<{
   manifestMaxAgeMs: "manifestMaxAgeMs";
   maxBodyBytes: "maxBodyBytes";
   maxEntries: "maxEntries";
+  maxPageSize: "maxPageSize";
   maxPollAttempts: "maxPollAttempts";
   maxResponseBytes: "maxResponseBytes";
   maxRetryAfterMs: "maxRetryAfterMs";
@@ -1234,6 +1244,7 @@ const field: Readonly<{
   email: "email";
   emptyMessage: "emptyMessage";
   entries: "entries";
+  entryId: "entryId";
   error: "error";
   errorCode: "errorCode";
   event: "event";
@@ -1283,6 +1294,7 @@ const field: Readonly<{
   mutates: "mutates";
   name: "name";
   next: "next";
+  nextCursor: "nextCursor";
   object: "object";
   objects: "objects";
   onBehalfOf: "onBehalfOf";
@@ -1754,6 +1766,7 @@ const WIRE: Readonly<{
      act: "act";
      actContext: "ActContext";
      action: "action";
+     actionFor: "actionFor";
      actionNameFor: "actionNameFor";
      addProvider: "addProvider";
      allowCredentials: "allowCredentials";
@@ -1797,6 +1810,7 @@ const WIRE: Readonly<{
      describeLive: "describeLive";
      destinationPolicy: "destinationPolicy";
      discover: "discover";
+     domainActions: "domainActions";
      emit: "emit";
      entries: "entries";
      entryIdFor: "entryIdFor";
@@ -1820,6 +1834,7 @@ const WIRE: Readonly<{
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
      identity: "identity";
      idleMs: "idleMs";
+     idleReason: "idleReason";
      idleTimeoutMs: "idleTimeoutMs";
      includeDeprecated: "includeDeprecated";
      index: "index";
@@ -1846,6 +1861,7 @@ const WIRE: Readonly<{
      manifestMaxAgeMs: "manifestMaxAgeMs";
      maxBodyBytes: "maxBodyBytes";
      maxEntries: "maxEntries";
+     maxPageSize: "maxPageSize";
      maxPollAttempts: "maxPollAttempts";
      maxResponseBytes: "maxResponseBytes";
      maxRetryAfterMs: "maxRetryAfterMs";
@@ -2045,6 +2061,7 @@ const WIRE: Readonly<{
      email: "email";
      emptyMessage: "emptyMessage";
      entries: "entries";
+     entryId: "entryId";
      error: "error";
      errorCode: "errorCode";
      event: "event";
@@ -2094,6 +2111,7 @@ const WIRE: Readonly<{
      mutates: "mutates";
      name: "name";
      next: "next";
+     nextCursor: "nextCursor";
      object: "object";
      objects: "objects";
      onBehalfOf: "onBehalfOf";
