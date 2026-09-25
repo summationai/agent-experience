@@ -142,6 +142,26 @@ URL checks do not stop request forgery. They see names, not addresses: a public 
 
 A surface holds field values, domain objects, and the text agents typed. In the browser (`expose`) that is the page's own data and adds no reader. Served through `@axe/surface/axe` it is published to whoever the server admits, so the bridge declares `auth` on every action it generates and defaults to `user`: a server that lists no `user` mode, including the public default, refuses the bridge rather than serving it, and a public surface is an explicit `auth: "none"`. Anonymous callers of a protected surface are refused by the runtime before the surface sees them, and the manifest and anonymous `/axe/state` never read it. A server hosting many users' surfaces resolves one per caller from a template (`scopedSurfaces`), so one user's values, reasons, and ledger never reach another. Fields marked `sensitive` never publish their value or keep their typed text, and the ledger's text policy (`keep`, `hash`, `omit`, `redact`) covers the rest. What each handler lets a caller do inside the application is still the handler's check. See [Surface](surface.md#who-can-observe-and-act).
 
+### A live tab reached through the relay
+
+`@axe/relay` lets an agent outside the browser act in a signed-in person's open tab ([Relay](relay.md), spec [S-RELAY-1] to [S-RELAY-10]). It puts a page that holds a live session within reach of software the person does not see, so each threat has a mitigation:
+
+| Threat | Mitigation |
+| --- | --- |
+| Another person's agent reaches the tab | The tab's token names its principal and tenant; an agent's verified identity (OAuth `identify`, the stdio principal, or a development pairing) must name the same. Another person's tab id is `not_found`. |
+| A stolen session cookie, or the relay as a cookie sink | The page never sends its session to the relay. It sends a relay token your backend minted for this purpose, with its own signing key and audience. |
+| A stolen relay token | It lives minutes (at most a day), and the connection closes when it lapses unless the page renews it for the same person. Stop and `rekey` revoke it. The relay accepts it only from an allowed origin. |
+| Another site's page connects a tab | The upgrade is refused unless `Origin` is on the allowlist; patterns are exact origins, `https://*.<domain>`, and `http://localhost:*`. |
+| The agent acts without the person knowing | The page shows an indicator while connected, with Stop. Stop revokes the token and refuses every later act. |
+| A consequential act the person did not want | High-risk and `confirm` controls wait for Approve in the page, bound to the entry, text, and revision, used once. |
+| A stale or cross-tab revision applies to the wrong state | The page's own check refuses it; presented revisions are offset per tab and per page instance, so one read before a reload or from another tab never matches. |
+| Private values leave the page | `sensitive` fields carry no value in any frame; the ledger keeps none of their text. |
+| An act without a record | The page's ledger records every forwarded act with the actor `<principal> (agent via relay)`; the relay's `onEvent` records connections, refusals, Stop, and pairing. |
+| A web page reaches a development relay (DNS rebinding, drive-by) | `devPairing` listens on loopback only, refuses a non-loopback peer or `Host`, needs the development key or stdio on `/mcp`, and an agent pairs only with the code the person reads from the tab. Wrong codes are rate limited. |
+| Prompt injection from page text | Names, reasons, values, and the tab's title reach the agent as data; the MCP server's instructions say so, as for any AXE result. |
+
+What remains yours: minting relay tokens only for the signed-in person in a request your session authenticated, a signing key used for nothing else, `origins` that match your application, TLS (`wss://`) in front of the relay, and routing a person's tabs and agents to one relay process. A script already running in your page can press Approve, as it can click any control; the gate protects against the agent, not against the page.
+
 ## What the SDK mitigates
 
 | Threat                               | Mechanism                                                                                                                              | Where                                      |
@@ -276,6 +296,7 @@ These are true of v0. The first two are deferred with reasons in [ROADMAP.md](..
 - **In-memory stores lose everything on restart.** Every open continuation, handoff, and idempotency record disappears and agents receive `not_found`. Use durable stores in production.
 - **Agent-side URL checks see names, not addresses.** `trust` and `destinationPolicy` cannot stop DNS rebinding or a public name that resolves to a private address. A host-side agent needs an egress policy as well.
 - **The origin rule relies on browsers sending `Origin` or `Sec-Fetch-Site`.** Every current browser sends `Origin` on `POST`. A browser old enough to send neither is treated like a server-to-server caller; the JSON rule and `SameSite` cookies still apply. The rule sees cookies only; other ambient credentials need `originCheck` set to `always`.
+- **The relay is in memory, in one process.** Tab records, pairings, and revocations reset when it restarts; a revoked token that has not expired is accepted again after a restart. Keep token lifetimes short.
 - **`toHTML` allows inline script in its CSP.** The rendered page's Content-Security-Policy meta tag permits inline script and styles so its one static script and stylesheet work without external files. A surface embedding the page should apply its own stricter policy.
 
 ## Reporting

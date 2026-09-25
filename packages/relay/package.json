@@ -1,0 +1,106 @@
+{
+  "name": "@axe/relay",
+  "version": "0.1.0",
+  "description": "Let an agent outside the browser drive a signed-in person's live tab through its Surface, over MCP: a browser client, a relay server, and short-lived relay tokens.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./client": {
+      "import": {
+        "types": "./dist/client.d.ts",
+        "default": "./dist/client.js"
+      },
+      "require": {
+        "types": "./dist/client.d.cts",
+        "default": "./dist/client.cjs"
+      }
+    },
+    "./server": {
+      "import": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.js"
+      },
+      "require": {
+        "types": "./dist/server.d.cts",
+        "default": "./dist/server.cjs"
+      }
+    },
+    "./token": {
+      "import": {
+        "types": "./dist/token.d.ts",
+        "default": "./dist/token.js"
+      },
+      "require": {
+        "types": "./dist/token.d.cts",
+        "default": "./dist/token.cjs"
+      }
+    },
+    "./cli": {
+      "import": {
+        "types": "./dist/cli.d.ts",
+        "default": "./dist/cli.js"
+      },
+      "require": {
+        "types": "./dist/cli.d.cts",
+        "default": "./dist/cli.cjs"
+      }
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "client": [
+        "./dist/client.d.ts"
+      ],
+      "server": [
+        "./dist/server.d.ts"
+      ],
+      "token": [
+        "./dist/token.d.ts"
+      ],
+      "cli": [
+        "./dist/cli.d.ts"
+      ]
+    }
+  },
+  "bin": {
+    "axe-relay": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@axe/core": "workspace:*",
+    "@axe/mcp": "workspace:*",
+    "@axe/surface": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^30.0.0",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.25.12",
+    "jsdom": "^30.1.1",
+    "playwright": "^1.63.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/summationai/agent-experience",
+    "directory": "packages/relay"
+  },
+  "keywords": [
+    "axe",
+    "agents",
+    "ai",
+    "surface",
+    "mcp",
+    "relay"
+  ]
+}

@@ -9,6 +9,7 @@
  *   axe audit <url>                  AXE Score and fix list
  *   axe mcp <url>                    serve the site as an MCP server over stdio
  *   axe generate <openapi.json>      derive actions from an OpenAPI document
+ *   axe relay --dev                  let an agent drive a signed-in person's live tab over MCP
  */
 import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
@@ -23,6 +24,7 @@ import { conformance } from "./commands/conformance";
 import { audit } from "./commands/audit";
 import { mcp } from "./commands/mcp";
 import { generateCommand } from "./commands/generate";
+import { relay } from "./commands/relay";
 
 const HELP = `axe — Agentic eXperience Engineering CLI
 
@@ -35,6 +37,7 @@ Usage:
   ${WIRE.cli.audit} <url> [--json] [--html <file>] [--browser] [--min-score <n>] [--auth <token>] [--no-mutate]
   ${WIRE.cli.mcp} <url> [--auth <token>]
   ${WIRE.cli.generate} <openapi.json> [--base-url <url>] [--out <axe.json>] [--code <axe.ts>] [--json]
+  ${WIRE.cli.relay} --dev [--stdio] [--port <n>] [--origin <url>]... (see ${WIRE.cli.relay} --help)
 
 Options:
   -h, --help       Show this help
@@ -101,6 +104,8 @@ export async function run(
         return await mcp(ctx);
       case WIRE.cli.generate:
         return await generateCommand(ctx);
+      case WIRE.cli.relay:
+        return await relay(ctx);
       default:
         stderr(`Unknown command "${command}".\n\n${HELP}`);
         return 1;

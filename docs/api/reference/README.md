@@ -9,6 +9,7 @@
 - [@axe/generate](@axe/generate.md)
 - [@axe/mcp](@axe/mcp.md)
 - [@axe/next](@axe/next.md)
+- [@axe/relay](@axe/relay/README.md)
 - [@axe/surface](@axe/surface/README.md)
 - [@axe/testing](@axe/testing.md)
 - [axe](axe.md)

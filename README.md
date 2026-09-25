@@ -66,7 +66,7 @@ Open `site/dist/index.html` from disk for the landing page and every doc as a st
 
 ## Packages
 
-The packages share one set of application logic and differ in how a caller reaches it: an HTTP runtime and its framework adapters, an MCP server, a browser registry with WebMCP and DOM adapters, a client, and tools that test and measure the result.
+The packages share one set of application logic and differ in how a caller reaches it: an HTTP runtime and its framework adapters, an MCP server, a browser registry with WebMCP and DOM adapters, a relay from a live tab to an MCP agent, a client, and tools that test and measure the result.
 
 | Package         | What it is                                                                                                                |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
@@ -77,9 +77,10 @@ The packages share one set of application logic and differ in how a caller reach
 | `@axe/next`     | Next.js App Router and Pages API adapter.                                                                                 |
 | `@axe/fetch`    | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                                            |
 | `@axe/surface`  | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions, WebMCP tools, or DOM attributes. |
+| `@axe/relay`    | A broker that lets an agent outside the browser (Claude Code over MCP) drive a signed-in person's live tab through its surface. |
 | `@axe/generate` | Derive actions from an OpenAPI document, a zod-typed function table, or a tRPC router; refuses to invent.                 |
 | `@axe/testing`  | Conformance suite, AXE audit, drift check, and test helpers.                                                              |
-| `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`. |
+| `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`, `axe relay`. |
 
 ## Developing
 

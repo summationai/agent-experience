@@ -1,0 +1,578 @@
+[AXE API reference](../../README.md) / [@axe/relay](README.md) / client
+
+# client
+
+## Interfaces
+
+<a id="connectrelayoptions"></a>
+
+### ConnectRelayOptions
+
+#### Properties
+
+<a id="approvalttlms"></a>
+
+##### approvalTtlMs?
+
+```ts
+optional approvalTtlMs?: number;
+```
+
+How long an approval request stays open, in ms. Default 300000 (five minutes).
+
+<a id="backoff"></a>
+
+##### backoff?
+
+```ts
+optional backoff?: object;
+```
+
+Reconnect backoff. Default: from 500 ms, doubling, at most 30000 ms, with jitter.
+
+###### initialMs?
+
+```ts
+optional initialMs?: number;
+```
+
+###### maxMs?
+
+```ts
+optional maxMs?: number;
+```
+
+<a id="describe"></a>
+
+##### describe?
+
+```ts
+optional describe?: () => object;
+```
+
+What the agent's tab list shows for this page. Default: `document.title` and `location.pathname` (never the query).
+
+###### Returns
+
+`object`
+
+###### path
+
+```ts
+path: string;
+```
+
+###### title
+
+```ts
+title: string;
+```
+
+<a id="gettoken"></a>
+
+##### getToken?
+
+```ts
+optional getToken?: () => string | Promise<string>;
+```
+
+Returns a fresh relay token; called on every connection and before the current one expires,
+so the connection outlives any one token. Prefer it to `token`.
+
+###### Returns
+
+`string` \| `Promise`\<`string`\>
+
+<a id="indicator"></a>
+
+##### indicator?
+
+```ts
+optional indicator?: boolean | Element;
+```
+
+The in-page indicator: `true` (the default) renders a small fixed panel in the page's corner,
+an `Element` renders it inside that element, and `false` renders nothing, in which case your
+own UI must show `onStatus` and offer `stop()`, `approve()`, and `deny()`.
+
+<a id="onstatus"></a>
+
+##### onStatus?
+
+```ts
+optional onStatus?: (status) => void;
+```
+
+Told after every change of `RelayStatus`.
+
+###### Parameters
+
+###### status
+
+[`RelayStatus`](#relaystatus)
+
+###### Returns
+
+`void`
+
+<a id="requireapproval"></a>
+
+##### requireApproval?
+
+```ts
+optional requireApproval?: (row) => boolean;
+```
+
+Which acts wait for the person's approval in the page. Default: an action whose effect is
+`risk: "high"` or declares `confirm`. Return false to let an entry run without approval.
+
+###### Parameters
+
+###### row
+
+`ObservedEntry`
+
+###### Returns
+
+`boolean`
+
+<a id="storage"></a>
+
+##### storage?
+
+```ts
+optional storage?: Pick<Storage, "getItem" | "setItem"> | null;
+```
+
+Where the tab id is kept across reloads. Default `sessionStorage`; `null` keeps it in memory.
+
+<a id="token"></a>
+
+##### token?
+
+```ts
+optional token?: string;
+```
+
+A relay token your backend minted for the signed-in person (`mintRelayToken`).
+
+<a id="url"></a>
+
+##### url
+
+```ts
+url: string;
+```
+
+The relay's tab endpoint: `wss://relay.example.com/tab`. An `http(s)` URL is converted, and a bare origin gets `/tab`.
+
+<a id="websocket"></a>
+
+##### WebSocket?
+
+```ts
+optional WebSocket?: {
+(url, protocols?): WebSocket;
+  CLOSED: 3;
+  CLOSING: 2;
+  CONNECTING: 0;
+  OPEN: 1;
+  prototype: WebSocket;
+};
+```
+
+The WebSocket constructor. Default: the global one.
+
+###### Parameters
+
+###### url
+
+`string` \| `URL`
+
+###### protocols?
+
+`string` \| `string`[]
+
+###### Returns
+
+`WebSocket`
+
+###### CLOSED
+
+```ts
+readonly CLOSED: 3;
+```
+
+###### CLOSING
+
+```ts
+readonly CLOSING: 2;
+```
+
+###### CONNECTING
+
+```ts
+readonly CONNECTING: 0;
+```
+
+###### OPEN
+
+```ts
+readonly OPEN: 1;
+```
+
+###### prototype
+
+```ts
+prototype: WebSocket;
+```
+
+***
+
+<a id="relayapproval"></a>
+
+### RelayApproval
+
+An act waiting for the person's decision in the page.
+
+#### Properties
+
+<a id="entryid"></a>
+
+##### entryId
+
+```ts
+entryId: string;
+```
+
+<a id="expiresat"></a>
+
+##### expiresAt
+
+```ts
+expiresAt: number;
+```
+
+When the request lapses, ms since the epoch.
+
+<a id="id"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+<a id="name"></a>
+
+##### name
+
+```ts
+name: string;
+```
+
+The control's name, in the application's words.
+
+<a id="state"></a>
+
+##### state
+
+```ts
+state: "pending" | "approved" | "denied";
+```
+
+<a id="text"></a>
+
+##### text?
+
+```ts
+optional text?: string;
+```
+
+The text the act carries, when it has one and the entry is not sensitive.
+
+***
+
+<a id="relayconnection"></a>
+
+### RelayConnection
+
+What `connectRelay` returns.
+
+#### Properties
+
+<a id="tabid"></a>
+
+##### tabId
+
+```ts
+readonly tabId: string;
+```
+
+#### Methods
+
+<a id="approve"></a>
+
+##### approve()
+
+```ts
+approve(id): boolean;
+```
+
+Approve a pending act; the agent's next identical call runs it. Returns false for an unknown id.
+
+###### Parameters
+
+###### id
+
+`string`
+
+###### Returns
+
+`boolean`
+
+<a id="deny"></a>
+
+##### deny()
+
+```ts
+deny(id): boolean;
+```
+
+Deny a pending act; the agent's next identical call is refused. Returns false for an unknown id.
+
+###### Parameters
+
+###### id
+
+`string`
+
+###### Returns
+
+`boolean`
+
+<a id="rekey"></a>
+
+##### rekey()
+
+```ts
+rekey(token?): void;
+```
+
+The signed-in person or the tenant changed in the page (a tenant switch without a reload):
+leave the relay under the old identity, dropping every pending approval, and connect again
+with `token` or a fresh `getToken()`. The relay forgets the old tab record and revokes its
+token, so no agent of the old principal or tenant reaches the page afterwards.
+
+###### Parameters
+
+###### token?
+
+`string`
+
+###### Returns
+
+`void`
+
+<a id="status"></a>
+
+##### status()
+
+```ts
+status(): RelayStatus;
+```
+
+###### Returns
+
+[`RelayStatus`](#relaystatus)
+
+<a id="stop"></a>
+
+##### stop()
+
+```ts
+stop(): void;
+```
+
+Disconnect for good (the Stop button): the relay revokes the token and refuses further acts.
+
+###### Returns
+
+`void`
+
+***
+
+<a id="relaystatus"></a>
+
+### RelayStatus
+
+What `onStatus` receives and `connection.status()` returns.
+
+#### Properties
+
+<a id="approvals"></a>
+
+##### approvals
+
+```ts
+approvals: RelayApproval[];
+```
+
+Acts waiting for the person's approval.
+
+<a id="pairingcode"></a>
+
+##### pairingCode
+
+```ts
+pairingCode: string | null;
+```
+
+The development pairing code to give the agent, while in `pairing`.
+
+<a id="principal"></a>
+
+##### principal
+
+```ts
+principal: string | null;
+```
+
+The person the relay recognized from the token; null before `ready`.
+
+<a id="reason"></a>
+
+##### reason
+
+```ts
+reason: string | null;
+```
+
+Why the relay refused or the connection stopped, when it said.
+
+<a id="state-1"></a>
+
+##### state
+
+```ts
+state: RelayState;
+```
+
+<a id="tabid-1"></a>
+
+##### tabId
+
+```ts
+tabId: string;
+```
+
+This browser tab's id; kept across reloads in `sessionStorage`.
+
+## Type Aliases
+
+<a id="relaystate"></a>
+
+### RelayState
+
+```ts
+type RelayState = 
+  | "connecting"
+  | "pairing"
+  | "connected"
+  | "acting"
+  | "reconnecting"
+  | "stopped"
+  | "refused";
+```
+
+Where the connection stands. `connecting`: opening the first connection. `pairing`: connected
+in development mode and waiting for an agent to pair with the code shown. `connected`: an agent
+may act. `acting`: an agent has read or acted through this tab. `reconnecting`: the connection
+dropped and the client is retrying. `stopped`: the person pressed Stop (or `stop()` was called),
+or the page is unloading. `refused`: the relay refused the page (origin, tenant, or token), and
+the client does not retry.
+
+## Variables
+
+<a id="relay_protocol"></a>
+
+### RELAY\_PROTOCOL
+
+```ts
+const RELAY_PROTOCOL: "axe-relay.v1" = "axe-relay.v1";
+```
+
+The WebSocket subprotocol and message version.
+
+## Functions
+
+<a id="connectrelay"></a>
+
+### connectRelay()
+
+```ts
+function connectRelay(surface, options): RelayConnection;
+```
+
+Connect this page's surface to a relay so an authorized agent can observe and act on it.
+Returns at once; the connection opens, authenticates, and reconnects in the background.
+
+#### Parameters
+
+##### surface
+
+`Surface`
+
+##### options
+
+[`ConnectRelayOptions`](#connectrelayoptions)
+
+#### Returns
+
+[`RelayConnection`](#relayconnection)
+
+***
+
+<a id="devtoken"></a>
+
+### devToken()
+
+```ts
+function devToken(relayUrl): () => Promise<string>;
+```
+
+A `getToken` for local development: asks a relay started with `axe relay --dev` for a
+development token. The relay serves it on loopback only, to allowed origins only; never use
+this in production, where your backend mints the token for the signed-in person.
+
+#### Parameters
+
+##### relayUrl
+
+`string`
+
+#### Returns
+
+() => `Promise`\<`string`\>
+
+***
+
+<a id="tabendpoint"></a>
+
+### tabEndpoint()
+
+```ts
+function tabEndpoint(url): string;
+```
+
+The relay's tab endpoint from what the application passed.
+
+#### Parameters
+
+##### url
+
+`string`
+
+#### Returns
+
+`string`
