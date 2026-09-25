@@ -123,6 +123,8 @@ export const DEFAULT_LEXICON: Required<Omit<RiskLexicon, "replace">> = {
     "start",
     "stop",
     "retry",
+    "reopen",
+    "resume",
     "post",
     "reply",
     "comment",
@@ -224,14 +226,19 @@ export interface RiskVerdict {
   unrecognized: boolean;
 }
 
-function compile(words: string[]): RegExp | null {
+/**
+ * One pattern for a word list. `anchored`: the word must lead the name (its verb position), so
+ * "Freeze (pause agents, cancel their requests)" is not a "cancel".
+ */
+function compile(words: string[], anchored = false): RegExp | null {
   const clean = words.map((w) => w.trim().toLowerCase()).filter(Boolean);
   if (!clean.length) return null;
   const alt = clean
     .sort((a, b) => b.length - a.length)
     .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"))
     .join("|");
-  return new RegExp(`(?:^|[^\\p{L}\\p{N}])(${alt})(?=$|[^\\p{L}\\p{N}])`, "iu");
+  const lead = anchored ? "^[^\\p{L}\\p{N}]*" : "(?:^|[^\\p{L}\\p{N}])";
+  return new RegExp(`${lead}(${alt})(?=$|[^\\p{L}\\p{N}])`, "iu");
 }
 
 export interface CompiledLexicon {
@@ -245,8 +252,8 @@ export function compileLexicon(lex: RiskLexicon | undefined): CompiledLexicon {
     lex?.replace ? (lex[k] ?? []) : [...DEFAULT_LEXICON[k], ...(lex?.[k] ?? [])];
   return {
     destructive: compile(pick("destructive")),
-    commit: compile(pick("commit")),
-    view: compile(pick("view")),
+    commit: compile(pick("commit"), true),
+    view: compile(pick("view"), true),
   };
 }
 
@@ -332,7 +339,7 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   if (opensConfirm(el)) return verdict("high", "app", "opens a confirmation dialog");
   if (input.inDialog?.alert) {
     // The affirmative button of a confirmation dialog confirms whatever the dialog describes.
-    const view = matchOf(lex.view, words);
+    const view = matchOf(lex.view, input.name);
     if (view) return verdict("low", "view", `“${view}” in a confirmation dialog`);
     return verdict("high", "app", `confirms the dialog “${input.inDialog.name || "confirmation"}”`);
   }
@@ -356,8 +363,8 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
     return verdict("medium", "app", `a ${role} outside a form may save on change`);
   }
   if (role === "switch") return verdict("medium", "app", "a switch usually saves on change");
-  const commit = matchOf(lex.commit, words);
-  const view = matchOf(lex.view, words);
+  const commit = matchOf(lex.commit, input.name) || matchOf(lex.commit, title);
+  const view = matchOf(lex.view, input.name) || matchOf(lex.view, title);
   const type = (el.getAttribute("type") ?? "").toLowerCase();
   const submits =
     (el.localName === "button" && (type === "submit" || (type === "" && inForm))) ||

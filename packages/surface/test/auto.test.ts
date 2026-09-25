@@ -337,6 +337,7 @@ const DANGER = `
   <button>Frobnicate</button>
   <button>Cancel subscription</button>
   <button>Cancel</button>
+  <button>Freeze (pause agents, cancel their requests)</button>
   <a href="/docs">Docs</a>
   <a href="https://elsewhere.example/">Partner site</a>
 </main>`;
@@ -353,6 +354,8 @@ describe("safety defaults [S-AUTO-7]", () => {
     expect(risk("Frobnicate")).toBe("high");
     expect(h.metaFor(byName(s, "Frobnicate").id)?.unrecognized).toBe(true);
     expect(risk("Cancel")).toBe("low");
+    // View and commit words count only in the verb position; destructive words anywhere.
+    expect(risk("Freeze (pause agents, cancel their requests)")).toBe("high");
     expect(risk("Docs")).toBe("low");
     expect(risk("Partner site")).toBe("medium");
     expect(byName(s, "Delete project").object).toBe("Danger zone");
