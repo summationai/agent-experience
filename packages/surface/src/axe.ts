@@ -240,6 +240,7 @@ const ObservedEntrySchema = z.object({
   name: z.string(),
   object: z.string().nullable(),
   rev: z.number().int(),
+  source: z.enum(["derived", "annotated"]).optional(),
   state: z
     .object({
       available: z.boolean(),
@@ -279,6 +280,7 @@ const ActOutputSchema = z.object({
   actor: z.string(),
   changed: z.array(z.string()),
   seq: z.number().int(),
+  notices: z.array(z.string()).optional(),
 });
 
 const MODES: readonly string[] = Object.values(WIRE.authMode);
