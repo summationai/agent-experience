@@ -115,7 +115,11 @@ When present, the manifest with `live.rev` and availability rendered (an `AXE` i
 ##### handle()
 
 ```ts
-handle(request, adapter?): Promise<Response>;
+handle(
+   request, 
+   adapter?, 
+   call?
+): Promise<Response>;
 ```
 
 Serve one AXE request. The second argument is the adapter context: an `identity` or `tenant`
@@ -130,6 +134,10 @@ established by the caller, used instead of the site's own `authenticate` (see `C
 ###### adapter?
 
 `AdapterContext`
+
+###### call?
+
+[`ToolCallContext`](#toolcallcontext)
 
 ###### Returns
 
@@ -419,6 +427,32 @@ current) and tell connected MCP clients when the tool list changed. Resolves to 
 ###### Returns
 
 `Promise`\<`boolean`\>
+
+***
+
+<a id="elicitationmodes"></a>
+
+### ElicitationModes
+
+The client's declared elicitation modes (spec: `{}` means form only).
+
+#### Properties
+
+<a id="form"></a>
+
+##### form
+
+```ts
+form: boolean;
+```
+
+<a id="url"></a>
+
+##### url
+
+```ts
+url: boolean;
+```
 
 ***
 
@@ -923,6 +957,213 @@ optional maxSessions?: number;
 ```
 
 Open sessions at most. A new session past the limit is refused with 503 until one closes. Default 1000.
+
+***
+
+<a id="toolcallcontext"></a>
+
+### ToolCallContext
+
+The MCP tool call an in-process AXE request is serving, passed as `AxeLike.handle`'s third
+argument. It lets the in-process server ask the user something through the client, within the
+same tool call, in the same session and as the same caller (the relay asks for approvals this
+way). Absent outside a tool call and for a URL or manifest source.
+
+#### Properties
+
+<a id="elicitation-1"></a>
+
+##### elicitation
+
+```ts
+elicitation: ElicitationModes;
+```
+
+The elicitation modes the client declared; none when elicitation is off or the transport cannot carry a server request.
+
+<a id="signal"></a>
+
+##### signal
+
+```ts
+signal: AbortSignal;
+```
+
+Aborted when the client cancels the tool call or the connection closes.
+
+#### Methods
+
+<a id="completeelicitation"></a>
+
+##### completeElicitation()
+
+```ts
+completeElicitation(elicitationId): Promise<void>;
+```
+
+Tell the client that a URL-mode elicitation is finished (`notifications/elicitation/complete`).
+
+###### Parameters
+
+###### elicitationId
+
+`string`
+
+###### Returns
+
+`Promise`\<`void`\>
+
+<a id="elicit"></a>
+
+##### elicit()
+
+```ts
+elicit(params): Promise<{
+[key: string]: unknown;
+  _meta?: {
+   [key: string]: unknown;
+     io.modelcontextprotocol/related-task?: {
+        taskId: string;
+     };
+     progressToken?: string | number;
+  };
+  action: "accept" | "cancel" | "decline";
+  content?: {
+   [key: string]: string | number | boolean | string[];
+  };
+}>;
+```
+
+Send an elicitation request to the client, related to this tool call. The client shows it to
+the user; the model cannot answer it. Rejects when the client cannot take it (a timeout, a
+stateless exchange, an undeclared mode).
+
+###### Parameters
+
+###### params
+
+  \| \{
+  `_meta?`: \{
+   \[`key`: `string`\]: `unknown`;
+     `io.modelcontextprotocol/related-task?`: \{
+        `taskId`: `string`;
+     \};
+     `progressToken?`: `string` \| `number`;
+  \};
+  `message`: `string`;
+  `mode?`: `"form"`;
+  `requestedSchema`: \{
+     `properties`: \{
+      \[`key`: `string`\]: 
+        \| \{
+        `default?`: `string`;
+        `description?`: `string`;
+        `enum`: `string`[];
+        `enumNames?`: `string`[];
+        `title?`: `string`;
+        `type`: `"string"`;
+      \}
+        \| \{
+        `default?`: `string`;
+        `description?`: `string`;
+        `enum`: `string`[];
+        `title?`: `string`;
+        `type`: `"string"`;
+      \}
+        \| \{
+        `default?`: `string`;
+        `description?`: `string`;
+        `oneOf`: `object`[];
+        `title?`: `string`;
+        `type`: `"string"`;
+      \}
+        \| \{
+        `default?`: `string`[];
+        `description?`: `string`;
+        `items`: \{
+           `enum`: `string`[];
+           `type`: `"string"`;
+        \};
+        `maxItems?`: `number`;
+        `minItems?`: `number`;
+        `title?`: `string`;
+        `type`: `"array"`;
+      \}
+        \| \{
+        `default?`: `string`[];
+        `description?`: `string`;
+        `items`: \{
+           `anyOf`: `object`[];
+        \};
+        `maxItems?`: `number`;
+        `minItems?`: `number`;
+        `title?`: `string`;
+        `type`: `"array"`;
+      \}
+        \| \{
+        `default?`: `boolean`;
+        `description?`: `string`;
+        `title?`: `string`;
+        `type`: `"boolean"`;
+      \}
+        \| \{
+        `default?`: `string`;
+        `description?`: `string`;
+        `format?`: `"email"` \| `"uri"` \| `"date"` \| `"date-time"`;
+        `maxLength?`: `number`;
+        `minLength?`: `number`;
+        `title?`: `string`;
+        `type`: `"string"`;
+      \}
+        \| \{
+        `default?`: `number`;
+        `description?`: `string`;
+        `maximum?`: `number`;
+        `minimum?`: `number`;
+        `title?`: `string`;
+        `type`: `"number"` \| `"integer"`;
+      \};
+     \};
+     `required?`: `string`[];
+     `type`: `"object"`;
+  \};
+  `task?`: \{
+     `ttl?`: `number`;
+  \};
+\}
+  \| \{
+  `_meta?`: \{
+   \[`key`: `string`\]: `unknown`;
+     `io.modelcontextprotocol/related-task?`: \{
+        `taskId`: `string`;
+     \};
+     `progressToken?`: `string` \| `number`;
+  \};
+  `elicitationId`: `string`;
+  `message`: `string`;
+  `mode`: `"url"`;
+  `task?`: \{
+     `ttl?`: `number`;
+  \};
+  `url`: `string`;
+\}
+
+###### Returns
+
+`Promise`\<\{
+\[`key`: `string`\]: `unknown`;
+  `_meta?`: \{
+   \[`key`: `string`\]: `unknown`;
+     `io.modelcontextprotocol/related-task?`: \{
+        `taskId`: `string`;
+     \};
+     `progressToken?`: `string` \| `number`;
+  \};
+  `action`: `"accept"` \| `"cancel"` \| `"decline"`;
+  `content?`: \{
+   \[`key`: `string`\]: `string` \| `number` \| `boolean` \| `string`[];
+  \};
+\}\>
 
 ## Variables
 

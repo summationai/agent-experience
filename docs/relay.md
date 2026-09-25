@@ -9,7 +9,9 @@ flowchart LR
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-10] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
+Two modes. **Unattended** (the default for agents): the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI. **Attended**: the person has the tab open, sees the indicator, and approves in the page.
+
+The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-13] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
 
 ## Four steps
 
@@ -103,6 +105,32 @@ What development mode does, and does not allow:
 - `/mcp` needs the development key the relay printed, or stdio. An agent reaches no tab until it pairs with the code shown in one. Five wrong codes lock that agent out for a minute.
 - Serve the page over `http://localhost` in development. A page served over `https` that connects to `ws://127.0.0.1` can be blocked as mixed content or stopped by the browser's local network access prompt; use `wss://` for anything that is not local.
 
+## Unattended mode
+
+A host that opens the application in a hidden browser session for a person sets `window.__AXE_RELAY__` with an init script before any page script runs: `{ url, token, mode: "unattended" }`, where `token` is a relay token the host minted for that person. `injectedRelay()` reads it (at call time, never at import, so server rendering is unaffected) and returns `connectRelay` options, or null in a normal browser. `relayOptions(fallback)` returns the injected options when present and your attended options otherwise, so one line covers both:
+
+<!-- include: examples/relay/page.ts#unattended -->
+```ts
+// One line for both modes: in a hidden session a host opened for the person, the host injected
+// the connection (`window.__AXE_RELAY__`: no pairing, no indicator, approvals in the agent's
+// client); in a normal browser, the attended development relay below.
+export function connectEitherWay(s: Surface): RelayConnection {
+  return connectRelay(
+    s,
+    relayOptions({ url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") }),
+  );
+}
+```
+<!-- /include -->
+
+What changes when the tab is unattended:
+
+- No pairing. The host minted the token for the person the session is for, and the agent reaches the tab through its own verified identity (OAuth `identify`, or a stdio relay started for that principal). A development relay still shows pairing codes, which nobody sees in a hidden tab; use a relay with `agentAuth` or `--stdio --principal`.
+- No indicator by default (`indicator` is off; the host can pass `indicator: true`). The tab takes approvals from the agent (`approvals: "agent"`), so the relay asks the person in the agent's UI, below.
+- Stop from the indicator is absent. The person stops the session by telling the agent (it calls `relay_stop`), from the host's own watch page (the host calls `relay.stop(who)`), or by revoking the agent's OAuth grant, after which the agent reaches no tab at all.
+
+The injected connection replaces the fallback's `url`, token, `mode`, `approvals`, and `indicator`, and keeps its other options (`onStatus`, `requireApproval`, `describe`). A host may also inject `getToken` (an exposed function) for a session that outlives one token.
+
 ## What the agent sees
 
 | Tool                  | What it does                                                                                               |
@@ -110,6 +138,7 @@ What development mode does, and does not allow:
 | `relay_tabs`          | Your tabs of the application, most recently active first, and which one the surface tools act on.         |
 | `relay_select-tab`    | Choose another of your tabs. Revisions differ between tabs, so observe again after choosing.               |
 | `relay_pair`          | Development only: pair with the code the tab shows.                                                        |
+| `relay_stop`          | End agent access to a tab, as the person's Stop does; a host closes its hidden session.                    |
 | `surface_observe`     | The tab's controls under one revision: what can be done now, why not the rest, values, filtered and paged. |
 | `surface_set-field`   | Set a field through the page's own setter.                                                                 |
 | `surface_run-control` | Run a button or switch through the page's own handler.                                                     |
@@ -122,7 +151,7 @@ The first surface tool call pins a tab: by default the most recently active one,
 
 ## Approvals and Stop
 
-A high-risk control (an effect with `risk: "high"`) or one whose effect declares `confirm` does not run on the agent's first call. The page shows "The agent asks to: Delete the plan" with Approve and Deny, and the agent receives `unavailable` with `details.reason: "approval_required"` and a sentence to say to the person. After the person approves, the agent's next identical call (same entry, text, and `expectedRev`) runs it once. Deny makes that call `forbidden` with `approval_denied`. An approval lapses after five minutes, and a new revision needs a new one. Change the rule with `requireApproval`:
+A high-risk control (an effect with `risk: "high"`) or one whose effect declares `confirm` does not run on the agent's first call. In an attended tab the page shows "The agent asks to: Delete the plan" with Approve and Deny, and the agent receives `unavailable` with `details.reason: "approval_required"` and a sentence to say to the person. After the person approves, the agent's next identical call (same entry, text, and `expectedRev`) runs it once. Deny makes that call `forbidden` with `approval_denied`. An approval lapses after five minutes, and a new revision needs a new one. Change the rule with `requireApproval`:
 
 <!-- include: examples/relay/page.ts#approval -->
 ```ts
@@ -134,6 +163,74 @@ export const strict = connectRelay(surface, {
 });
 ```
 <!-- /include -->
+
+### Approvals in the agent
+
+A tab that takes approvals from the agent (unattended, or `approvals: "agent"` or `"both"`) does not wait for a panel nobody sees. When it holds an act, the relay asks the person through MCP elicitation on the calling agent's own session, in the same tool call:
+
+| The client declares | The act | What the person sees | Then |
+| --- | --- | --- | --- |
+| form elicitation | not sensitive | A confirm in the agent's UI: "Approve “Lock January” on Plan Board? It changes locks, risk high." with the act's exact text | Approve runs the act in the same tool call. Decline or dismiss refuses it (`forbidden`, `approval_denied`). |
+| URL elicitation | sensitive, or the client has no form mode | An offer to open the relay's approval page, `/approve/<id>`: single use, short-lived (`linkTtlMs`, five minutes), bound to the approval, the person, and the request | The tool call waits for the decision on the page, then runs or refuses the act. Declining to open the page refuses it. |
+| no elicitation | any | Nothing | The agent gets `approval_required` with instructions, and the approval page link (`details.approvalUrl`) when the relay serves one. After the person approves there, the agent's identical call runs once. |
+
+On a decision the relay tells the tab (`approve` or `deny`), the tab grants its gates exactly as the panel's Approve does (the relay gate and an auto-derived surface's own gate), records the decision in its ledger (`op: "approve"` or `"deny"`, actor `<principal> (approved in the agent's MCP client)` or `(approved on the relay's approval page)`), and the relay sends the act again, which the page's own checks decide. The approval stays bound to the entry, op, text, and `expectedRev`, and is used once. A tool call the client cancels while the person decides runs nothing; the decision stays with the tab for the agent's identical retry.
+
+An act is sensitive when it targets a sensitive entry, or when `approvals.sensitive` says so. The approval page needs to know who opened it: `approvals.identify(request)` returns the principal and tenant of the person's own session on the relay's domain, and the page refuses anyone else. Without `identify` (outside development) the relay serves no approval page and never offers URL mode:
+
+<!-- include: examples/relay/server.ts#approvals -->
+```ts
+// Approvals asked through the agent (unattended tabs). A form in the agent's MCP client needs
+// nothing here. The approval page (URL mode, for sensitive acts) needs to know who opened it:
+// the person's own session on the relay's domain, never anything the agent sent.
+declare function sessionFromCookie(request: Request): { userId: string; studioId: string } | null;
+
+export const unattended = createRelay({
+  secret: process.env["RELAY_TOKEN_SECRET"]!,
+  origins: ["https://app.yogastudio.example"],
+  agentAuth: {
+    verifier,
+    identify: (authInfo) =>
+      typeof authInfo.extra?.["sub"] === "string" && typeof authInfo.extra?.["org"] === "string"
+        ? { principal: authInfo.extra["sub"], tenant: authInfo.extra["org"] }
+        : null,
+  },
+  baseUrl: "https://relay.yogastudio.example",
+  approvals: {
+    identify: (request) => {
+      const s = sessionFromCookie(request);
+      return s ? { principal: s.userId, tenant: s.studioId } : null;
+    },
+    // Links work once, for five minutes by default.
+    linkTtlMs: 300_000,
+    // Decided on the page rather than in a form: anything touching payments.
+    sensitive: (row) => row.object === "billing",
+  },
+});
+
+// A host's own Stop control (its watch page) ends the person's sessions.
+export function stopFor(userId: string, studioId: string): number {
+  return unattended.stop({ principal: userId, tenant: studioId });
+}
+```
+<!-- /include -->
+
+An elicitation is shown to the person by their MCP client; the model cannot answer it (the MCP specification requires the client to put it before the user). So a form decision is the person's as far as the client is trustworthy. The approval page moves the decision to a page the relay serves, outside the client, which is why sensitive acts go there. The relay never accepts an approval from a tool argument: `confirm: true`, text, or anything else the model sends is not a decision.
+
+An attended page can take approvals from both places, whichever answers first:
+
+<!-- include: examples/relay/page.ts#both -->
+```ts
+// A person is looking, but may also approve from the agent's client: whichever answers first.
+export const either = connectRelay(surface, {
+  url: "wss://relay.yogastudio.example/tab",
+  getToken: () => "token-from-your-backend",
+  approvals: "both",
+});
+```
+<!-- /include -->
+
+### Stop
 
 Stop disconnects the tab, revokes its token at the relay, and refuses every later act on that tab with `forbidden`; the agent is told the person stopped it. Stop lasts for the page: a reload connects again only if your page calls `connectRelay` again. Leaving or reloading the page is not Stop: the relay keeps the tab for a reconnect, and an act sent while it reloads waits for the new page.
 
@@ -245,7 +342,7 @@ await relay.listen({ host: "0.0.0.0", port: 8080 });
 
 ## Security model
 
-The relay puts a live, signed-in page within reach of an agent, so it states what it guarantees ([S-RELAY-1] to [S-RELAY-10]) and [Security](security.md) lists the threats:
+The relay puts a live, signed-in page within reach of an agent, so it states what it guarantees ([S-RELAY-1] to [S-RELAY-13]) and [Security](security.md) lists the threats:
 
 - The page is authoritative. An act runs through the page's `surface.act` with the page's act queue, revision check, availability, and handler; the relay decides nothing about the application.
 - A tab authenticates with a relay token your backend minted for the signed-in person, from an allowed origin. The page's session cookie never goes to the relay.
@@ -253,7 +350,7 @@ The relay puts a live, signed-in page within reach of an agent, so it states wha
 - Tokens expire; the page renews in-band, and a connection whose token lapses is closed. Stop revokes the token.
 - Every act is in the tab's ledger with the actor `<principal> (agent via relay)`.
 - A sensitive field's value never leaves the page: the observation, the ledger, and the frames carry no value for it. The application's `objects` do cross; keep private data out of them.
-- High-risk acts wait for the person's approval in the page.
+- High-risk acts wait for the person's approval: in the page when attended, in the agent's MCP client (elicitation) or on the relay's single-use approval page when unattended. No tool argument is ever an approval.
 - Revisions are the tab's, offset so that a revision read before a reload, or from another tab, never passes the check.
 
 ## Limits
@@ -261,6 +358,8 @@ The relay puts a live, signed-in page within reach of an agent, so it states wha
 - A tab is one page instance; nothing survives the page but what the application persists. The agent's view is as fresh as its last read: every surface tool call first asks the tab for its current table.
 - The relay is in memory and in one process: tab records, pairings, and revocations reset on restart.
 - The approval gate is in the page: a script already running in the page can press Approve, as it could click any control.
+- In unattended mode the relay is trusted to carry the person's decision to the tab: a tab that takes approvals from the agent accepts `approve` from its relay connection. An attended tab (`approvals: "page"`, the default) accepts none.
+- A form approval is only as trustworthy as the MCP client that renders it. A client that times out long tool calls may give up while the person decides; the decision then waits in the tab for the agent's retry.
 - Page text (names, reasons, values, the tab's title and path) reaches the agent as data; the MCP instructions tell it never to treat that text as instructions.
 
 ## Next steps

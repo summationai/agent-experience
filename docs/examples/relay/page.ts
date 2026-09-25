@@ -2,7 +2,7 @@
 // browser, after the controls are registered.
 import { createSurface } from "@axe/surface";
 import type { Surface } from "@axe/surface";
-import { connectRelay, devToken } from "@axe/relay/client";
+import { connectRelay, devToken, relayOptions } from "@axe/relay/client";
 import type { RelayConnection, RelayStatus } from "@axe/relay/client";
 
 const surface = createSurface({ app: "studio-schedule" });
@@ -80,5 +80,26 @@ if (location.hostname === "localhost") {
   });
 }
 // #endregion dev
+
+// #region unattended
+// One line for both modes: in a hidden session a host opened for the person, the host injected
+// the connection (`window.__AXE_RELAY__`: no pairing, no indicator, approvals in the agent's
+// client); in a normal browser, the attended development relay below.
+export function connectEitherWay(s: Surface): RelayConnection {
+  return connectRelay(
+    s,
+    relayOptions({ url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") }),
+  );
+}
+// #endregion unattended
+
+// #region both
+// A person is looking, but may also approve from the agent's client: whichever answers first.
+export const either = connectRelay(surface, {
+  url: "wss://relay.yogastudio.example/tab",
+  getToken: () => "token-from-your-backend",
+  approvals: "both",
+});
+// #endregion both
 
 export { relay };

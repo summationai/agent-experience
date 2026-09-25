@@ -331,6 +331,32 @@ The MCP server over stdio, for one local agent (`claude mcp add ... -- axe relay
 
 `Promise`\<`DerivedMcpServer`\>
 
+<a id="stop"></a>
+
+##### stop()
+
+```ts
+stop(who, tabId?): number;
+```
+
+End agent access to one tab of `who` (or all of them, without `tabId`), as Stop does: the
+token is revoked, every later act is refused, and the page is told (a host then closes its
+session). For a host's own "stop" control. Returns how many tabs it stopped.
+
+###### Parameters
+
+###### who
+
+[`RelayPrincipal`](#relayprincipal)
+
+###### tabId?
+
+`string`
+
+###### Returns
+
+`number`
+
 <a id="tabs"></a>
 
 ##### tabs()
@@ -473,6 +499,87 @@ Verifies the bearer access token on every MCP request (`@axe/mcp`'s `auth.verifi
 
 ***
 
+<a id="relayapprovaloptions"></a>
+
+### RelayApprovalOptions
+
+Approvals asked through the agent, for tabs that take them from the agent (an unattended tab,
+or one connected with `approvals: "agent"` or `"both"`).
+
+#### Properties
+
+<a id="identify-1"></a>
+
+##### identify?
+
+```ts
+optional identify?: (request) => MaybePromise<RelayPrincipal | null>;
+```
+
+Who opened an approval page: the principal and tenant of the person's own session on this
+request (a cookie your identity provider set for the relay's domain, for instance), or null.
+The page accepts a decision only from the principal and tenant the approval is for. Without
+it the relay serves no approval page outside development, and never offers URL mode.
+In development (`devPairing`), the default trusts any loopback caller.
+
+###### Parameters
+
+###### request
+
+`Request`
+
+###### Returns
+
+[`MaybePromise`](#maybepromise)\<[`RelayPrincipal`](#relayprincipal) \| `null`\>
+
+<a id="linkttlms"></a>
+
+##### linkTtlMs?
+
+```ts
+optional linkTtlMs?: number;
+```
+
+How long an approval link works, in ms. Default 300000 (five minutes).
+
+<a id="pageurl"></a>
+
+##### pageUrl?
+
+```ts
+optional pageUrl?: string;
+```
+
+The public origin approval pages are linked under. Default `baseUrl` (or the address `listen` bound). Must be `https`, or `http` on a loopback host.
+
+<a id="sensitive"></a>
+
+##### sensitive?
+
+```ts
+optional sensitive?: (row, request) => boolean;
+```
+
+Which acts are decided on the approval page (URL mode) rather than in a form in the client:
+default, an act on a sensitive entry. A form shows its text to the MCP client; a page the
+relay serves does not.
+
+###### Parameters
+
+###### row
+
+`ObservedEntry`
+
+###### request
+
+`ActRequest`
+
+###### Returns
+
+`boolean`
+
+***
+
 <a id="relaylistenoptions"></a>
 
 ### RelayListenOptions
@@ -526,6 +633,16 @@ optional agentAuth?: RelayAgentAuth;
 ```
 
 How agents authenticate over HTTP. Without it (and without `devPairing`) `/mcp` is not served.
+
+<a id="approvals"></a>
+
+##### approvals?
+
+```ts
+optional approvals?: RelayApprovalOptions;
+```
+
+Approvals asked through the agent's MCP client (elicitation) and the relay's approval page.
 
 <a id="audience"></a>
 
@@ -814,6 +931,16 @@ connectedAt: string;
 lastActiveAt: string;
 ```
 
+<a id="mode"></a>
+
+##### mode
+
+```ts
+mode: RelayMode;
+```
+
+`unattended`: a hidden session a host runs for the person; approvals come through the agent.
+
 <a id="origin"></a>
 
 ##### origin
@@ -1033,10 +1160,20 @@ type RelayEvent =
   type: "tab.disconnected";
 }
   | {
+  by: "page" | "agent" | "owner";
   principal: string;
   tabId: string;
   tenant: string;
   type: "tab.stopped";
+}
+  | {
+  decision: "approve" | "deny";
+  entryId: string;
+  principal: string;
+  tabId: string;
+  tenant: string;
+  type: "approval.decided";
+  via: "agent-form" | "approval-page";
 }
   | {
   agent: string;
@@ -1051,6 +1188,175 @@ type RelayEvent =
 ```
 
 One line of the relay's own audit stream (connections, refusals, Stop, pairing).
+
+#### Union Members
+
+##### Type Literal
+
+```ts
+{
+  origin: string;
+  principal: string;
+  tabId: string;
+  tenant: string;
+  type: "tab.connected";
+}
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  origin: string | null;
+  reason: string;
+  type: "tab.refused";
+}
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  principal: string;
+  tabId: string;
+  tenant: string;
+  type: "tab.disconnected";
+}
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  by: "page" | "agent" | "owner";
+  principal: string;
+  tabId: string;
+  tenant: string;
+  type: "tab.stopped";
+}
+```
+
+###### by
+
+```ts
+by: "page" | "agent" | "owner";
+```
+
+Who stopped it: the person in the page, the agent (`relay_stop`), or the relay's owner (`relay.stop`).
+
+###### principal
+
+```ts
+principal: string;
+```
+
+###### tabId
+
+```ts
+tabId: string;
+```
+
+###### tenant
+
+```ts
+tenant: string;
+```
+
+###### type
+
+```ts
+type: "tab.stopped";
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  decision: "approve" | "deny";
+  entryId: string;
+  principal: string;
+  tabId: string;
+  tenant: string;
+  type: "approval.decided";
+  via: "agent-form" | "approval-page";
+}
+```
+
+###### decision
+
+```ts
+decision: "approve" | "deny";
+```
+
+###### entryId
+
+```ts
+entryId: string;
+```
+
+###### principal
+
+```ts
+principal: string;
+```
+
+###### tabId
+
+```ts
+tabId: string;
+```
+
+###### tenant
+
+```ts
+tenant: string;
+```
+
+###### type
+
+```ts
+type: "approval.decided";
+```
+
+###### via
+
+```ts
+via: "agent-form" | "approval-page";
+```
+
+Where the person decided: a form in the agent's MCP client, or the relay's approval page.
+
+***
+
+##### Type Literal
+
+```ts
+{
+  agent: string;
+  principal: string;
+  tenant: string;
+  type: "agent.paired";
+}
+```
+
+***
+
+##### Type Literal
+
+```ts
+{
+  agent: string;
+  type: "pairing.failed";
+}
+```
 
 ## Variables
 
@@ -1258,11 +1564,27 @@ Re-exports [RELAY_PROTOCOL](client.md#relay_protocol)
 
 ***
 
+<a id="relayapprovalchannel"></a>
+
+### RelayApprovalChannel
+
+Re-exports [RelayApprovalChannel](client.md#relayapprovalchannel)
+
+***
+
 <a id="relayclaimvalue"></a>
 
 ### RelayClaimValue
 
 Re-exports [RelayClaimValue](token.md#relayclaimvalue)
+
+***
+
+<a id="relaymode"></a>
+
+### RelayMode
+
+Re-exports [RelayMode](client.md#relaymode)
 
 ***
 

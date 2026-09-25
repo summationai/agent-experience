@@ -298,7 +298,8 @@ async function makeBridge(
       sharesCredentials,
       clientFor(caller, call) {
         if (!caller && !call) return root;
-        if (!caller) return new AXEClient(root.manifest(), { ...shared, fetch: inProcess(undefined, call) });
+        if (!caller)
+          return new AXEClient(root.manifest(), { ...shared, fetch: inProcess(undefined, call) });
         const adapter: AdapterContext = {};
         if (caller.identity !== undefined) adapter.identity = caller.identity;
         if (caller.tenant !== undefined) adapter.tenant = caller.tenant;

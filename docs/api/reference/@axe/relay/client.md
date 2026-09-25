@@ -10,6 +10,20 @@
 
 #### Properties
 
+<a id="approvals"></a>
+
+##### approvals?
+
+```ts
+optional approvals?: RelayApprovalChannel;
+```
+
+Where the person decides an act that needs approval: `page` (the indicator's Approve and
+Deny, or your own UI), `agent` (the relay asks through the calling agent's MCP client, and
+tells this tab the answer), or `both` (whichever answers first). Default `page` when
+attended, `agent` when unattended. Only with `agent` or `both` does the tab accept a decision
+from the relay.
+
 <a id="approvalttlms"></a>
 
 ##### approvalTtlMs?
@@ -91,9 +105,22 @@ so the connection outlives any one token. Prefer it to `token`.
 optional indicator?: boolean | Element;
 ```
 
-The in-page indicator: `true` (the default) renders a small fixed panel in the page's corner,
-an `Element` renders it inside that element, and `false` renders nothing, in which case your
-own UI must show `onStatus` and offer `stop()`, `approve()`, and `deny()`.
+The in-page indicator: `true` (the default when attended) renders a small fixed panel in the
+page's corner, an `Element` renders it inside that element, and `false` (the default when
+unattended) renders nothing, in which case your own UI must show `onStatus` and offer
+`stop()`, `approve()`, and `deny()` when a person is looking.
+
+<a id="mode"></a>
+
+##### mode?
+
+```ts
+optional mode?: RelayMode;
+```
+
+`attended` (the default): a person is looking at this tab. `unattended`: the tab runs in a
+hidden browser session a host started for the person (`injectedRelay()` says so), so the
+indicator is off by default and approvals go to the agent's MCP client.
 
 <a id="onstatus"></a>
 
@@ -229,6 +256,68 @@ prototype: WebSocket;
 
 ***
 
+<a id="injectedrelayconfig"></a>
+
+### InjectedRelayConfig
+
+What a host puts in `window.__AXE_RELAY__`.
+
+#### Properties
+
+<a id="gettoken-1"></a>
+
+##### getToken?
+
+```ts
+optional getToken?: () => string | Promise<string>;
+```
+
+Optional: a function (an exposed binding) that returns a fresh token, for sessions that outlive one.
+
+###### Returns
+
+`string` \| `Promise`\<`string`\>
+
+<a id="indicator-1"></a>
+
+##### indicator?
+
+```ts
+optional indicator?: boolean;
+```
+
+Show the in-page indicator. Default: on when attended, off when unattended.
+
+<a id="mode-1"></a>
+
+##### mode
+
+```ts
+mode: RelayMode;
+```
+
+<a id="token-1"></a>
+
+##### token
+
+```ts
+token: string;
+```
+
+A relay token the host minted for the person the session is for.
+
+<a id="url-1"></a>
+
+##### url
+
+```ts
+url: string;
+```
+
+The relay's tab endpoint.
+
+***
+
 <a id="relayapproval"></a>
 
 ### RelayApproval
@@ -278,7 +367,7 @@ The control's name, in the application's words.
 ##### state
 
 ```ts
-state: "pending" | "approved" | "denied";
+state: "approved" | "pending" | "denied";
 ```
 
 <a id="text"></a>
@@ -410,7 +499,7 @@ What `onStatus` receives and `connection.status()` returns.
 
 #### Properties
 
-<a id="approvals"></a>
+<a id="approvals-1"></a>
 
 ##### approvals
 
@@ -470,6 +559,33 @@ This browser tab's id; kept across reloads in `sessionStorage`.
 
 ## Type Aliases
 
+<a id="relayapprovalchannel"></a>
+
+### RelayApprovalChannel
+
+```ts
+type RelayApprovalChannel = "page" | "agent" | "both";
+```
+
+Where the person decides an act that needs approval: `page`, the tab's own agent panel;
+`agent`, the calling agent's MCP client (elicitation), with the relay's approval page for
+sensitive acts; `both`, whichever answers first.
+
+***
+
+<a id="relaymode"></a>
+
+### RelayMode
+
+```ts
+type RelayMode = "attended" | "unattended";
+```
+
+`attended`: a person is looking at the tab (the default). `unattended`: the tab runs in a hidden
+browser session a host started for the person (`@axe/host`), and no one is looking at it.
+
+***
+
 <a id="relaystate"></a>
 
 ### RelayState
@@ -493,6 +609,19 @@ or the page is unloading. `refused`: the relay refused the page (origin, tenant,
 the client does not retry.
 
 ## Variables
+
+<a id="injected_relay_global"></a>
+
+### INJECTED\_RELAY\_GLOBAL
+
+```ts
+const INJECTED_RELAY_GLOBAL: "__AXE_RELAY__" = "__AXE_RELAY__";
+```
+
+The global a host (`@axe/host`) sets with an init script, before any page script runs, when it
+opens the application in a hidden browser session for a person: `window.__AXE_RELAY__`.
+
+***
 
 <a id="relay_protocol"></a>
 
@@ -554,6 +683,49 @@ this in production, where your backend mints the token for the signed-in person.
 #### Returns
 
 () => `Promise`\<`string`\>
+
+***
+
+<a id="injectedrelay"></a>
+
+### injectedRelay()
+
+```ts
+function injectedRelay(): ConnectRelayOptions | null;
+```
+
+The connection a host injected into this page (`window.__AXE_RELAY__`), as `connectRelay`
+options, or null in a normal browser (and on the server). Reads the global when called, never
+at import. No pairing: the host minted the token for the person the session is for.
+
+#### Returns
+
+[`ConnectRelayOptions`](#connectrelayoptions) \| `null`
+
+***
+
+<a id="relayoptions"></a>
+
+### relayOptions()
+
+```ts
+function relayOptions(fallback): ConnectRelayOptions;
+```
+
+`injectedRelay()` when a host injected a connection, else `fallback` (your attended relay, such
+as the development one). The injected connection replaces the fallback's `url`, token,
+`mode`, `approvals`, and `indicator`; the fallback's other options (`onStatus`,
+`requireApproval`, `describe`, ...) are kept. `connectRelay(surface, relayOptions(dev))`.
+
+#### Parameters
+
+##### fallback
+
+[`ConnectRelayOptions`](#connectrelayoptions)
+
+#### Returns
+
+[`ConnectRelayOptions`](#connectrelayoptions)
 
 ***
 

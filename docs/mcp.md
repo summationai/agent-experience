@@ -133,6 +133,8 @@ export const textOnly = await createMcpServer(axe, { elicitation: false, apps: f
 
 A form waits up to `timeoutMs` (default ten minutes) for the user. The continuation token must still be valid when the answer arrives; a site should expire tokens for sensitive kinds within 15 minutes ([K-6](../spec/KINDS.md)), which is one reason those go to the page rather than a form.
 
+An in-process AXE server can ask the user too: `AxeLike.handle` receives the tool call as a third argument, a `ToolCallContext` with the client's declared modes, `elicit` (related to the same tool call, in the same session), `completeElicitation` for URL mode, and the call's abort `signal`. The relay uses it to ask for approvals in the agent's UI ([Relay](relay.md), "Approvals in the agent").
+
 ## MCP Apps view (experimental)
 
 The MCP Apps extension lets a host render an HTML view that a server provides ([P-MCP-8](../spec/AXE-PROTOCOL.md#22-mcp-mapping)). The installed MCP SDK has no types for it, so the bridge implements the extension's wire shape from its specification and marks it experimental.

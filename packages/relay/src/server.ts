@@ -1,6 +1,6 @@
 /**
  * @axe/relay/server: the broker between a signed-in person's live browser tab and an agent
- * outside the browser (spec/SURFACE.md §9.1, [S-RELAY-1] to [S-RELAY-9]).
+ * outside the browser (spec/SURFACE.md §9.1, [S-RELAY-1] to [S-RELAY-13]).
  *
  * Tabs connect with `connectRelay` from `@axe/relay/client` and authenticate with a short-lived
  * relay token the application's backend minted for the signed-in person. For each tab the relay

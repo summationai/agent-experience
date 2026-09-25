@@ -144,7 +144,7 @@ A surface holds field values, domain objects, and the text agents typed. In the 
 
 ### A live tab reached through the relay
 
-`@axe/relay` lets an agent outside the browser act in a signed-in person's open tab ([Relay](relay.md), spec [S-RELAY-1] to [S-RELAY-10]). It puts a page that holds a live session within reach of software the person does not see, so each threat has a mitigation:
+`@axe/relay` lets an agent outside the browser act in a signed-in person's open tab ([Relay](relay.md), spec [S-RELAY-1] to [S-RELAY-13]). It puts a page that holds a live session within reach of software the person does not see, so each threat has a mitigation:
 
 | Threat | Mitigation |
 | --- | --- |
@@ -153,12 +153,16 @@ A surface holds field values, domain objects, and the text agents typed. In the 
 | A stolen relay token | It lives minutes (at most a day), and the connection closes when it lapses unless the page renews it for the same person. Stop and `rekey` revoke it. The relay accepts it only from an allowed origin. |
 | Another site's page connects a tab | The upgrade is refused unless `Origin` is on the allowlist; patterns are exact origins, `https://*.<domain>`, and `http://localhost:*`. |
 | The agent acts without the person knowing | The page shows an indicator while connected, with Stop. Stop revokes the token and refuses every later act. |
-| A consequential act the person did not want | High-risk and `confirm` controls wait for Approve in the page, bound to the entry, text, and revision, used once. |
+| A consequential act the person did not want | High-risk and `confirm` controls wait for Approve in the page (attended) or in the agent's MCP client or the relay's approval page (unattended), bound to the entry, text, and revision, used once. |
+| The model approves its own act | An unattended approval is an MCP elicitation, which the client shows to the person and the model cannot answer, or the relay's approval page, which checks the person's own session. No tool argument (`confirm`, text, anything) counts as a decision. |
+| A leaked approval link | Single use, short-lived (five minutes by default), bound to one approval, one principal and tenant, and one request; it answers only the person `approvals.identify` recognizes, needs a nonce from the page it served, refuses a cross-origin post, and cannot be framed. |
 | A stale or cross-tab revision applies to the wrong state | The page's own check refuses it; presented revisions are offset per tab and per page instance, so one read before a reload or from another tab never matches. |
 | Private values leave the page | `sensitive` fields carry no value in any frame; the ledger keeps none of their text. |
 | An act without a record | The page's ledger records every forwarded act with the actor `<principal> (agent via relay)`; the relay's `onEvent` records connections, refusals, Stop, and pairing. |
 | A web page reaches a development relay (DNS rebinding, drive-by) | `devPairing` listens on loopback only, refuses a non-loopback peer or `Host`, needs the development key or stdio on `/mcp`, and an agent pairs only with the code the person reads from the tab. Wrong codes are rate limited. |
 | Prompt injection from page text | Names, reasons, values, and the tab's title reach the agent as data; the MCP server's instructions say so, as for any AXE result. |
+
+**Unattended mode.** When a host runs the application in a hidden browser session for a person, no one watches the tab, so approvals move to the agent's UI. An elicitation is rendered by the person's MCP client, and the MCP specification requires that the model cannot answer it; a form decision is therefore the person's as far as that client is trustworthy. For sensitive acts the relay sends the person to its own approval page (URL mode), which puts the decision outside the client, on a page that establishes who the person is from their own session. A client that declares no elicitation gets the old `approval_required` refusal with instructions, never an act run on the model's say-so. A tab accepts a decision from the relay only if the page connected with `approvals: "agent"` or `"both"` (an unattended tab does); an attended tab ignores it, so a relay compromise alone does not approve anything in a tab a person is watching. Every decision is recorded in the tab's ledger with who made it and where, and in the relay's `onEvent` (`approval.decided`). The person ends the session by telling the agent (`relay_stop`), from the host's own control (`relay.stop`), or by revoking the agent's OAuth grant.
 
 What remains yours: minting relay tokens only for the signed-in person in a request your session authenticated, a signing key used for nothing else, `origins` that match your application, TLS (`wss://`) in front of the relay, and routing a person's tabs and agents to one relay process. A script already running in your page can press Approve, as it can click any control; the gate protects against the agent, not against the page.
 

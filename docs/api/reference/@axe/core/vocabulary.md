@@ -228,6 +228,14 @@ type WireApi =
   | "tabRetentionMs"
   | "mintRelayToken"
   | "verifyRelayToken"
+  | "injectedRelay"
+  | "relayOptions"
+  | "approvals"
+  | "linkTtlMs"
+  | "approvalUrl"
+  | "tabId"
+  | "ToolCallContext"
+  | "completeElicitation"
   | "autoSurface"
   | "formatCoverage"
   | "checkConfig"
@@ -925,7 +933,9 @@ const api: Readonly<{
   allowedOrigins: "allowedOrigins";
   allowHttp: "allowHttp";
   appendHandoffId: "appendHandoffId";
+  approvals: "approvals";
   approvalState: "approvalState";
+  approvalUrl: "approvalUrl";
   approvedBy: "approvedBy";
   approveHandoff: "approveHandoff";
   attributesFor: "attributesFor";
@@ -949,6 +959,7 @@ const api: Readonly<{
   claims: "claims";
   clientFor: "clientFor";
   combineSinks: "combineSinks";
+  completeElicitation: "completeElicitation";
   completeHandoff: "completeHandoff";
   completion: "completion";
   confirm: "confirm";
@@ -1005,6 +1016,7 @@ const api: Readonly<{
   idleTimeoutMs: "idleTimeoutMs";
   includeDeprecated: "includeDeprecated";
   index: "index";
+  injectedRelay: "injectedRelay";
   invoke: "invoke";
   invokeAction: "invokeAction";
   isAxePath: "isAxePath";
@@ -1020,6 +1032,7 @@ const api: Readonly<{
   keyFor: "keyFor";
   kinds: "kinds";
   ledger: "ledger";
+  linkTtlMs: "linkTtlMs";
   lintAction: "lintAction";
   lintAgentText: "lintAgentText";
   lintManifest: "lintManifest";
@@ -1074,6 +1087,7 @@ const api: Readonly<{
   registerGenerated: "registerGenerated";
   registerTool: "registerTool";
   registryVersion: "registryVersion";
+  relayOptions: "relayOptions";
   requestApproval: "requestApproval";
   requestedSchema: "requestedSchema";
   requestPolicy: "requestPolicy";
@@ -1117,6 +1131,7 @@ const api: Readonly<{
   surfaceSelector: "surfaceSelector";
   sweepIntervalMs: "sweepIntervalMs";
   syncTimeoutMs: "syncTimeoutMs";
+  tabId: "tabId";
   tabRetentionMs: "tabRetentionMs";
   thaw: "thaw";
   timeoutMs: "timeoutMs";
@@ -1125,6 +1140,7 @@ const api: Readonly<{
   toJsonSchema: "toJsonSchema";
   tokenStore: "tokenStore";
   toMarkdown: "toMarkdown";
+  toolCallContext: "ToolCallContext";
   toolNameFor: "toolNameFor";
   toWebRequest: "toWebRequest";
   trust: "trust";
@@ -1886,7 +1902,9 @@ const WIRE: Readonly<{
      allowedOrigins: "allowedOrigins";
      allowHttp: "allowHttp";
      appendHandoffId: "appendHandoffId";
+     approvals: "approvals";
      approvalState: "approvalState";
+     approvalUrl: "approvalUrl";
      approvedBy: "approvedBy";
      approveHandoff: "approveHandoff";
      attributesFor: "attributesFor";
@@ -1910,6 +1928,7 @@ const WIRE: Readonly<{
      claims: "claims";
      clientFor: "clientFor";
      combineSinks: "combineSinks";
+     completeElicitation: "completeElicitation";
      completeHandoff: "completeHandoff";
      completion: "completion";
      confirm: "confirm";
@@ -1966,6 +1985,7 @@ const WIRE: Readonly<{
      idleTimeoutMs: "idleTimeoutMs";
      includeDeprecated: "includeDeprecated";
      index: "index";
+     injectedRelay: "injectedRelay";
      invoke: "invoke";
      invokeAction: "invokeAction";
      isAxePath: "isAxePath";
@@ -1981,6 +2001,7 @@ const WIRE: Readonly<{
      keyFor: "keyFor";
      kinds: "kinds";
      ledger: "ledger";
+     linkTtlMs: "linkTtlMs";
      lintAction: "lintAction";
      lintAgentText: "lintAgentText";
      lintManifest: "lintManifest";
@@ -2035,6 +2056,7 @@ const WIRE: Readonly<{
      registerGenerated: "registerGenerated";
      registerTool: "registerTool";
      registryVersion: "registryVersion";
+     relayOptions: "relayOptions";
      requestApproval: "requestApproval";
      requestedSchema: "requestedSchema";
      requestPolicy: "requestPolicy";
@@ -2078,6 +2100,7 @@ const WIRE: Readonly<{
      surfaceSelector: "surfaceSelector";
      sweepIntervalMs: "sweepIntervalMs";
      syncTimeoutMs: "syncTimeoutMs";
+     tabId: "tabId";
      tabRetentionMs: "tabRetentionMs";
      thaw: "thaw";
      timeoutMs: "timeoutMs";
@@ -2086,6 +2109,7 @@ const WIRE: Readonly<{
      toJsonSchema: "toJsonSchema";
      tokenStore: "tokenStore";
      toMarkdown: "toMarkdown";
+     toolCallContext: "ToolCallContext";
      toolNameFor: "toolNameFor";
      toWebRequest: "toWebRequest";
      trust: "trust";
