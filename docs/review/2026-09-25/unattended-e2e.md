@@ -591,7 +591,7 @@ Revision: 519363000006. Pass it as expectedRev on your next mutating call so a c
 
 ## What the agent saw
 
-- `surface_read` of `/plan`: the section "FY27 H1 demand" with the field Status: draft, "Revision 1", "Total 23,850 units", who is signed in, and the 3 × 6 demand table with its numbers (Widgets, March 2027: 1220). The app's revision 1 is presented to the agent as the relay's revision (918733000000 in the first run): the agent passes that as `expectedRev`.
+- `surface_read` of `/plan`: the section "FY27 H1 demand" with the field Status: draft, "Revision 1", "Total 23,850 units", who is signed in, and the 3 × 6 demand table with its numbers (Widgets, March 2027: 1220). The app's revision 1 is presented to the agent as the relay's revision (519363000000 in this run): the agent passes that as `expectedRev`.
 - `surface_observe`: 18 editable cells (their ids come from the app's own `data-surface-id` annotations), Save unavailable ("There are no unsaved changes"), Submit for approval available, Approve and lock unavailable ("The plan must be submitted for approval before it can be locked"), Reopen unavailable ("The plan is already a draft"), Sign out and Freeze held for the person's approval by the default policy, the approval dialog, History, and `page:navigate`.
 - After Submit, Approve and lock was held by the default policy (`risk: high`, name matches "approve"); the run-control call raised one form elicitation and ran once in the same tool call after it was accepted. The tab's ledger records the approval as `dev (approved in the agent's MCP client)` and every act as `dev (agent via relay)`.
 
