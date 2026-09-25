@@ -2,6 +2,8 @@
 
 Everything in AXE is built from a dozen ideas. This page defines each one, shows the wire shape, and says when to use it. The normative text is the [protocol spec](../spec/AXE-PROTOCOL.md); this page is the map.
 
+Most of these ideas are about behavior, not the wire: a typed action with declared risk, a result that is one of five statuses, availability with a reason, a revision that makes a stale write fail, a handoff bound to the exact call. They hold whether an agent reaches your application over MCP, through WebMCP tools in a page, by reading the page, or as an AXE client. The manifest and the HTTP paths are how an AXE client sees them; the other interfaces carry the same actions and results in their own form ([MCP](mcp.md), [WebMCP](webmcp.md), [Surface](surface.md)).
+
 ## Manifest
 
 The manifest is the document an agent reads first: who you are, what you can do, how to authenticate, and what the rules are. It is served at `/.well-known/axe.json` (and `/axe/manifest`), cached for a few minutes, and contains every action definition.

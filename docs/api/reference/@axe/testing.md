@@ -42,6 +42,19 @@ max: number;
 score: number;
 ```
 
+0 when the category is not scored.
+
+<a id="scored"></a>
+
+##### scored
+
+```ts
+scored: boolean;
+```
+
+False when every check in the category skipped. An unscored category earns nothing and is
+left out of the total, which is then scaled to 100 over the categories that were scored.
+
 <a id="title"></a>
 
 ##### title
@@ -90,7 +103,7 @@ docs: string;
 earned: number;
 ```
 
-Fraction earned, 0..1.
+Fraction earned, 0..1. Always 0 for a skipped check, which is excluded from the score.
 
 <a id="id-1"></a>
 
@@ -172,7 +185,7 @@ docs: string;
 points: number;
 ```
 
-Points recoverable.
+Points of the total score recoverable by fixing this check completely.
 
 <a id="title-2"></a>
 

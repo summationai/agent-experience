@@ -67,7 +67,9 @@ The difference between `description` and `instructions`: `description` tells the
 
 Thirteen kinds in five namespaces, normative in [`spec/KINDS.md`](../spec/KINDS.md). Every kind's payload is an object with no additional properties; strings are non-empty; money is a number in major units with an ISO 4217 `currency`. The JSON Schemas under [`spec/schemas/kinds/`](../spec/schemas/kinds/) are generated from `@axe/core/kinds`, and a test fails if the two drift.
 
-The registry exists so agents can hold credentials keyed by kind. If your requirement fits one of these, use it: an agent that holds a `payment.card` token fulfills your requirement in one confirmation, and cannot fulfill `x-yourorg.card` at all.
+The registry exists so agents can hold credentials keyed by kind. If your requirement fits one of these, use it: an agent that holds a `payment.card` token can fulfill your requirement in one confirmation, and cannot fulfill `x-yourorg.card` at all.
+
+A kind is a payload shape. The registry defines what a `payment.ach-debit` or `identity.government-id` payload looks like and the SDK validates it; it does not show that any agent wallet produces one (none is known to today), that a payment will clear, or that an identity is real. Charging, verifying, and authorizing stay with your payment provider and your own checks in `onContinue`. Offer a `fallback` handoff so a person can finish when no agent holds the kind.
 
 ### payment
 
@@ -393,7 +395,7 @@ The waiver entry is built by hand rather than with `accept` so that the schema p
 
 ## How agents fulfill kinds
 
-An agent that supports AXE holds a wallet and a credential store keyed by kind. When a `needs_input` arrives, it walks `accepts` in order and asks each store whether it can produce a payload for that kind. `@axe/client` models this as a `Fulfiller`: a list of kinds and a function that returns a payload or nothing. The client's `run` drives the whole ladder: invoke, try each `accepts` entry against the registered `fulfillers`, call `/axe/continue`, follow a further `needs_input`, poll `pending`, and surface a handoff only when nothing else works.
+An agent that supports AXE can hold a wallet and a credential store keyed by kind; this is the design the client supports, not a description of agents that exist today. When a `needs_input` arrives, it walks `accepts` in order and asks each store whether it can produce a payload for that kind. `@axe/client` models this as a `Fulfiller`: a list of kinds and a function that returns a payload or nothing. The client's `run` drives the whole ladder: invoke, try each `accepts` entry against the registered `fulfillers`, call `/axe/continue`, follow a further `needs_input`, poll `pending`, and surface a handoff only when nothing else works.
 
 Before any payload for an entry marked `sensitive` is sent, the client calls its `confirm` callback with the action, the entry, the payload, and your `message`. The agent shows the user a summary ("Oakridge needs a $500 refundable deposit by bank transfer. Use your checking account ending 4471?") and sends only on a yes. A client with no `confirm` skips sensitive options entirely, which is why a requirement that offers only sensitive kinds should carry a `fallback`.
 

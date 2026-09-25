@@ -235,7 +235,7 @@ Affordance graph:
   entry points: classes.search
 ```
 
-The manifest itself is plain JSON at `/.well-known/axe.json`. Any agent can call the action with `fetch`:
+The manifest itself is plain JSON at `/.well-known/axe.json`. Any HTTP client can call the action with `fetch`:
 
 ```sh
 curl -s -X POST http://localhost:3000/axe/actions/classes.search \
@@ -351,9 +351,9 @@ Claude calls `classes_search` with `{ "from": "2026-10-01", "style": "yin" }`, a
 
 ## What you have
 
-- A manifest at `/.well-known/axe.json` that any agent can discover.
+- A manifest at `/.well-known/axe.json` that an AXE client can discover.
 - One typed, described, presentable action at `/axe/actions/classes.search`.
-- A passing conformance check and an audit score with a fix list.
+- A passing conformance check (with the ladder checks skipped, so not yet verified) and an audit score with a fix list.
 - An MCP server derived from the same declaration.
 
 Everything from here is additive. You never have to change what you shipped today to add a booking action, a payment requirement, or a human handoff.

@@ -10,7 +10,7 @@ They solve different problems and compose. AXE is a site's declaration and HTTP 
 
 MCP already covers more than tool calls. Elicitation lets a server ask the user for input in a form, or send them to a page in URL mode, in the middle of a tool call. The MCP Apps extension lets a host render a server's interactive view. HTTP servers are OAuth 2.1 resource servers that verify tokens an authorization server issued. The derived server uses all three where the client supports them ([MCP](mcp.md#what-maps-to-mcps-own-features-and-what-does-not)); in the browser, [WebMCP](webmcp.md) plays the same role for a page's own controls.
 
-What AXE adds on top: discovery at a domain (there is no well-known path for "the MCP server for this business"); typed requirement kinds with one shared shape and sensitivity per kind, so the same `contact.email` or `payment.ach-debit` means the same thing at every site; a three-rung ladder whose follow-ups resume the original operation with a continuation or resume token bound to the caller and tenant; revision-guarded live state (`rev`, `expectedRev`); and honesty rules with an audit that checks them. If your only consumer is one MCP client, write the tool directly. If you want every agent to find you, write the manifest and derive the tools. Details in [MCP](mcp.md).
+What AXE adds on top: a well-known path at a domain for clients that look (there is none for "the MCP server for this business", and publishing one does not make agents look); typed requirement kinds with one shared shape and sensitivity per kind, so the same `contact.email` or `payment.ach-debit` means the same thing at every site; a three-rung ladder whose follow-ups resume the original operation with a continuation or resume token bound to the caller and tenant; revision-guarded live state (`rev`, `expectedRev`); and honesty rules with an audit that checks them. If your only consumer is one MCP client and you need none of that, write the tool directly. If you want the same actions, permissions, and results over MCP, in the browser, and for AXE clients, declare them once and derive the tools. Details in [MCP](mcp.md).
 
 ### How is this different from OpenAPI?
 
@@ -24,7 +24,7 @@ You can generate an OpenAPI document from a manifest trivially: one `POST /axe/a
 
 ### How is this different from schema.org and JSON-LD?
 
-schema.org describes things on pages: an event, an organization, an offer, marked up so a crawler can extract them. AXE describes actions: search, book, upload, apply, return. The well-known kind registry in [`spec/KINDS.md`](../spec/KINDS.md) is the analogue of schema.org vocabulary for requirement payloads: `contact.address`, `identity.government-id`, and `payment.ach-debit` are shared shapes so an agent's wallet and a site agree without negotiation. A site can carry both: keep JSON-LD on the pages for crawlers, and point `display.item.url` at those pages so agent-facing and human-facing data are the same thing.
+schema.org describes things on pages: an event, an organization, an offer, marked up so a crawler can extract them. AXE describes actions: search, book, upload, apply, return. The well-known kind registry in [`spec/KINDS.md`](../spec/KINDS.md) is the analogue of schema.org vocabulary for requirement payloads: `contact.address`, `identity.government-id`, and `payment.ach-debit` are shared shapes, so an agent that holds such a value and a site agree on its form without negotiation. A shape is not an agreement to accept it: no wallet is known to fill these kinds today, and whether a payload authorizes anything is decided by your payment provider or identity check. A site can carry both: keep JSON-LD on the pages for crawlers, and point `display.item.url` at those pages so agent-facing and human-facing data are the same thing.
 
 ### How is this different from Agent Protocol and A2A?
 
@@ -38,16 +38,16 @@ What the shape implies is a second thing the design takes seriously: SEO produce
 
 ### Will agents actually use it?
 
-Adoption is the open question, and nobody can promise it. What makes it likely: discovery is one `GET` to a fixed path, so an agent framework can add AXE support in an afternoon; every manifest is an MCP server without extra work, so the agents people already run can use it today; and a structured `needs_input` or `needs_human` is strictly better for an agent than a screenshot of a form it could not complete.
+Adoption of the AXE protocol itself is an open question, and nothing in this repository shows it: no agent framework is known to read AXE manifests today, and publishing one does not change that. The SDK is designed so that you do not have to wait for it. The same actions reach agents through interfaces they already support: an MCP server derived from your actions (`axe mcp`, `serveHttp`), WebMCP tools registered from a page's surface, and page controls whose names and reasons a browser agent reads from the DOM. Whether a given agent uses those tools well is something to measure on your own tasks; [Evaluation](evaluation.md) describes the scripted harness this repository runs and what it does not show.
 
-What v0 does not solve: there is no directory or crawler, so an agent finds a site by starting from its URL, and there is no signed manifest or agent identity attestation. Platforms can publish an index at `/.well-known/axe-index.json` so their tenants are enumerable, and `robots.txt` can carry `AXE-Manifest` and `AXE-Index` lines for crawlers that look. The rest is in [ROADMAP.md](../ROADMAP.md).
+What v0 does not solve: there is no directory or crawler, and there is no signed manifest or agent identity attestation. An agent that speaks AXE finds a site by starting from its URL; platforms can publish an index at `/.well-known/axe-index.json`, and `robots.txt` can carry `AXE-Manifest` and `AXE-Index` lines for crawlers that look. The roadmap favors discovery you control (MCP server configurations, registries you run, WebMCP) over publishing and hoping; see [ROADMAP.md](../ROADMAP.md#selective-discovery).
 
 ### What stops a site from lying to agents?
 
 Four things, in decreasing order of certainty.
 
 1. **Registration and linting.** The SDK refuses a mutating action declared `readOnly`, an example that fails its own schema, a `display` pointer that resolves to nothing, and agent-read text that instructs the agent. `axe validate` runs the same checks in CI.
-2. **Audit detection.** `axe audit` flags persuasion, affordance spam, structurally identical custom kinds, and consent bundles, and treats agent-directed imperatives and false `readOnly` as hard failures.
+2. **Audit detection.** `axe audit` flags persuasion, affordance spam, structurally identical custom kinds, and consent bundles, and treats agent-directed imperatives and false `readOnly` as hard failures. These are pattern matches over known phrasings; a paraphrase passes them.
 3. **Parity spot-check.** The audit prints the values an agent received next to `display.item.url` and, with a browser, looks for them on the human page. Cloaking is surfaced, not scored, because a false accusation on a dynamic page would teach teams to ignore the section.
 4. **Reputation, which belongs to the agent.** There is no central authority. [Spec §18.3](../spec/AXE-PROTOCOL.md#183-reputation) says it plainly: agents build trust from observed parity, handoff rate, error rate, and whether `examples` match live responses, the way search engines built ranking from observed quality. A site that lies is ranked against by the agents it lies to.
 
@@ -57,7 +57,7 @@ No. An action's `handler` is a function; it calls whatever your booking, admissi
 
 ### Does AXE process payments?
 
-No, and it never holds card numbers. Payment kinds carry a credential your payment service provider can charge: `payment.card` is a PSP-issued token, `payment.ach-debit` is an authorization with the NACHA-required text, `payment.wire-confirmation` is a reference number after the fact, `payment.invoice` is billing details for net terms. Your `onContinue` hands the payload to the PSP you already use. The SDK validates the shape and never logs the payload. Payment execution and tokenization are out of scope by design; see [ROADMAP.md](../ROADMAP.md).
+No, and it never holds card numbers. Payment kinds are payload shapes for a credential your payment service provider can charge: `payment.card` is a PSP-issued token, `payment.ach-debit` is an authorization with the NACHA-required text, `payment.wire-confirmation` is a reference number after the fact, `payment.invoice` is billing details for net terms. Your `onContinue` hands the payload to the PSP you already use. The SDK validates the shape and never logs the payload. A payload that validates is not an accepted payment or a valid authorization; only your PSP can say that. No agent wallet is known to produce these kinds today, so offer a `fallback` handoff to your own payment page. Payment execution and tokenization are out of scope by design; see [ROADMAP.md](../ROADMAP.md).
 
 ### What about authentication and OAuth?
 
