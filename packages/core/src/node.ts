@@ -79,6 +79,7 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
       result TEXT,
       created_at INTEGER NOT NULL
     )`);
+    db.exec(`CREATE INDEX IF NOT EXISTS ${this.table}_expires ON ${this.table} (expires)`);
   }
 
   async get(key: string): Promise<IdempotencyRecord | undefined> {
@@ -151,10 +152,19 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
       .run(key, owner);
   }
 
-  /** Delete expired rows. Call it from a periodic job; correctness never depends on it. */
-  prune(): number {
+  /**
+   * Delete rows that expired at or before `before` (epoch milliseconds, default now) and return how
+   * many. Expired rows are already ignored by every read, so correctness never depends on this; it
+   * bounds the table ([P-LIM-4]). Call it from a periodic job, for example every few minutes. The
+   * same statement, for a job outside Node: `DELETE FROM axe_operations_v1 WHERE expires <= ?`
+   * with the current epoch milliseconds (the `expires` column is indexed). A `before` later than
+   * now is refused: it would delete claims and records that are still live.
+   */
+  prune(before: number = this.now()): number {
+    if (!Number.isFinite(before) || before > this.now())
+      throw new Error("SqliteIdempotencyStore.prune: `before` must be a time no later than now.");
     return Number(
-      this.db.prepare(`DELETE FROM ${this.table} WHERE expires <= ?`).run(this.now()).changes,
+      this.db.prepare(`DELETE FROM ${this.table} WHERE expires <= ?`).run(before).changes,
     );
   }
 

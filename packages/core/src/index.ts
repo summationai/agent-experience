@@ -64,6 +64,8 @@ export type {
 } from "./results";
 export { MemoryTokenStore, TokenSigner, hashJson, canonicalJson } from "./tokens";
 export type { TokenStore, TokenRecord, TokenType } from "./tokens";
+export { DEFAULT_MAX_ENTRIES, DEFAULT_SWEEP_INTERVAL_MS } from "./retention";
+export type { RetentionOptions } from "./retention";
 export {
   MemoryIdempotencyStore,
   DEFAULT_IDEMPOTENCY_TTL_SECONDS,

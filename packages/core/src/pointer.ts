@@ -31,6 +31,8 @@ export function getPointer(value: unknown, pointer: JsonPointer): unknown {
       if (!/^(0|[1-9][0-9]*)$/.test(token)) return undefined;
       current = current[Number(token)];
     } else if (typeof current === "object") {
+      // Own members only: "/__proto__" or "/constructor" never reaches the prototype chain.
+      if (!Object.prototype.hasOwnProperty.call(current, token)) return undefined;
       current = (current as Record<string, unknown>)[token];
     } else {
       return undefined;
@@ -65,7 +67,7 @@ function branches(schema: JsonSchema): JsonSchema[] {
 function stepSchema(schema: JsonSchema, token: string, root: JsonSchema): JsonSchema | undefined {
   const s = deref(schema, root);
   const props = s["properties"];
-  if (props && typeof props === "object" && token in (props as Record<string, unknown>)) {
+  if (props && typeof props === "object" && Object.prototype.hasOwnProperty.call(props, token)) {
     const p = (props as Record<string, unknown>)[token];
     if (p && typeof p === "object") return p as JsonSchema;
   }

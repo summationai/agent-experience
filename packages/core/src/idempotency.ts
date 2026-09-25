@@ -11,6 +11,8 @@
  * see docs/deploying.md, "Operations, claims, and crashes".
  */
 import type { Result } from "./types";
+import { ExpiringMap } from "./retention";
+import type { RetentionOptions } from "./retention";
 
 /** A completed operation: the fingerprint it ran with and the envelope it produced. */
 export interface IdempotencyRecord {
@@ -85,24 +87,31 @@ type MemoryEntry =
  * In-memory `IdempotencyStore`. Every method runs without awaiting between its read and its write,
  * so claims are atomic among all runtimes in one process that share the instance. Nothing survives
  * a restart and nothing is shared with another process.
+ *
+ * Retention is bounded ([P-LIM-4]): expired entries are swept on writes at most once per
+ * `sweepIntervalMs`, and at `maxEntries` the oldest completed entries (and claims whose lease has
+ * passed) are evicted first. An evicted completed entry shortens the idempotency window for that
+ * key: a retry after eviction runs the handler again. A claim whose lease is still running is never
+ * evicted; when every entry is one, `claim` throws. No timer runs, so nothing keeps a process alive.
  */
 export class MemoryIdempotencyStore implements IdempotencyStore {
-  private readonly map = new Map<string, MemoryEntry>();
+  private readonly map: ExpiringMap<MemoryEntry>;
   private readonly now: () => number;
 
-  /** `now` is the clock for leases and expiry, injectable for tests. */
-  constructor(options: { now?: () => number } = {}) {
-    this.now = options.now ?? Date.now;
+  /** `now` is the clock for leases and expiry, injectable for tests. See `RetentionOptions`. */
+  constructor(options: RetentionOptions = {}) {
+    this.map = new ExpiringMap<MemoryEntry>("MemoryIdempotencyStore", options);
+    this.now = this.map.now;
   }
 
   async get(key: string): Promise<IdempotencyRecord | undefined> {
-    const entry = this.live(key);
+    const entry = this.map.get(key);
     return entry?.state === "completed" ? entry.record : undefined;
   }
 
   async claim(key: string, request: ClaimRequest): Promise<ClaimOutcome> {
     const now = this.now();
-    const entry = this.live(key);
+    const entry = this.map.get(key);
     if (entry?.state === "completed") return { outcome: "completed", record: entry.record };
     if (entry && !(entry.leaseExpiresAt <= now && entry.fingerprint === request.fingerprint)) {
       return {
@@ -111,13 +120,17 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
         leaseExpiresAt: entry.leaseExpiresAt,
       };
     }
-    this.map.set(key, {
-      state: "in_progress",
-      fingerprint: request.fingerprint,
-      owner: request.owner,
-      leaseExpiresAt: now + request.leaseSeconds * 1000,
-      expiresAt: now + Math.max(request.ttlSeconds, request.leaseSeconds) * 1000,
-    });
+    this.map.set(
+      key,
+      {
+        state: "in_progress",
+        fingerprint: request.fingerprint,
+        owner: request.owner,
+        leaseExpiresAt: now + request.leaseSeconds * 1000,
+        expiresAt: now + Math.max(request.ttlSeconds, request.leaseSeconds) * 1000,
+      },
+      this.evictable,
+    );
     return { outcome: "acquired" };
   }
 
@@ -127,31 +140,39 @@ export class MemoryIdempotencyStore implements IdempotencyStore {
     record: IdempotencyRecord,
     ttlSeconds: number,
   ): Promise<boolean> {
-    const entry = this.live(key);
+    const entry = this.map.get(key);
     if (entry?.state !== "in_progress" || entry.owner !== owner) return false;
-    this.map.set(key, { state: "completed", record, expiresAt: this.now() + ttlSeconds * 1000 });
+    this.map.set(
+      key,
+      { state: "completed", record, expiresAt: this.now() + ttlSeconds * 1000 },
+      this.evictable,
+    );
     return true;
   }
 
   async release(key: string, owner: string): Promise<void> {
-    const entry = this.live(key);
+    const entry = this.map.get(key);
     if (entry?.state === "in_progress" && entry.owner === owner) this.map.delete(key);
   }
 
-  /** Number of live records, completed or in progress, for tests. */
+  /** Drop every expired entry now; returns how many. Writes do this on their own; see `sweepIntervalMs`. */
+  sweep(): number {
+    return this.map.sweep();
+  }
+
+  /** Drop every entry. Later calls throw. There is no timer to stop. */
+  close(): void {
+    this.map.close();
+  }
+
+  /** Number of entries held, completed or in progress (expired ones not yet swept included), for tests. */
   get size(): number {
     return this.map.size;
   }
 
-  private live(key: string): MemoryEntry | undefined {
-    const entry = this.map.get(key);
-    if (!entry) return undefined;
-    if (entry.expiresAt <= this.now()) {
-      this.map.delete(key);
-      return undefined;
-    }
-    return entry;
-  }
+  /** Completed entries, and claims whose lease has passed, may be evicted; a running claim may not. */
+  private readonly evictable = (entry: MemoryEntry): boolean =>
+    entry.state === "completed" || entry.leaseExpiresAt <= this.now();
 }
 
 /** Default idempotency window: 24 hours. */

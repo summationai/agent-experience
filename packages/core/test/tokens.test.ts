@@ -277,7 +277,8 @@ describe("runtime honesty and payload limits", () => {
   });
 
   it("enforces the 10 MiB decoded-size limit on document.base64 payloads", async () => {
-    const { axe } = apartmentsAXE();
+    // A 10 MiB document is about 14 MiB of base64, above the default body limit ([P-LIM-1]).
+    const { axe } = apartmentsAXE({ maxBodyBytes: 16 * 1024 * 1024 });
     axe.register(
       action("docs.upload", {
         title: "Upload",

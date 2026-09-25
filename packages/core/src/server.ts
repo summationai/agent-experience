@@ -178,6 +178,14 @@ export interface AXEConfig {
    * runs the handler again (docs/deploying.md, "Operations, claims, and crashes").
    */
   operationLeaseSeconds?: number;
+  /**
+   * Largest request body the runtime reads, in bytes (spec [P-LIM-1]). A larger body is refused
+   * with `invalid_input`, `details.reason: "payload_too_large"`, and HTTP 413, before it is parsed:
+   * on a `Content-Length` above the limit nothing is read, and a body without one is read only up
+   * to the limit. Default 1048576 (1 MiB). A body parser in front of the runtime that has already
+   * consumed the body applies its own limit first (docs/deploying.md, "Limits and retention").
+   */
+  maxBodyBytes?: number;
   /** Reject mutating calls without `idempotencyKey`. Default true. */
   requireIdempotencyKey?: boolean;
   cors?: CorsConfig;
@@ -208,6 +216,10 @@ export interface AXEConfig {
 }
 
 const CONTINUATION_TTL = 15 * 60;
+/** Default `maxBodyBytes`: 1 MiB. */
+export const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
+/** Deepest nesting of arrays and objects accepted in a request body ([P-LIM-2]). */
+export const MAX_JSON_DEPTH = 64;
 /** Decoded-size limit for `document.base64` payloads (spec/KINDS.md). */
 export const MAX_BASE64_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const RESUME_TTL = 24 * 60 * 60;
@@ -271,6 +283,8 @@ export class AXE {
   private finalized = false;
   private basePath: string;
   private readonly policy: ResolvedRequestPolicy;
+  /** The request body limit in bytes, after defaults ([P-LIM-1]). Adapters that read a raw stream honor it. */
+  readonly maxBodyBytes: number;
 
   readonly config: AXEConfig & { auth: AuthConfig };
 
@@ -311,6 +325,12 @@ export class AXE {
     }
     this.basePath = base.pathname.replace(/\/$/, "");
     this.policy = resolveRequestPolicy(config);
+    this.maxBodyBytes = config.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+    if (!Number.isSafeInteger(this.maxBodyBytes) || this.maxBodyBytes < 1) {
+      throw new Error(
+        `createAXE: maxBodyBytes must be a positive integer number of bytes. Received ${String(config.maxBodyBytes)}.`,
+      );
+    }
     let secret = config.secret;
     if (!secret) {
       secret = crypto.randomUUID() + crypto.randomUUID();
@@ -987,7 +1007,7 @@ export class AXE {
     return this.json(
       request,
       { status: WIRE.status.error, error } satisfies Result,
-      HTTP_STATUS[error.code],
+      httpStatusOf(error),
       extra,
     );
   }
@@ -1002,7 +1022,7 @@ export class AXE {
         // An operation in progress ([P-OP-2]) says when to retry, like a rate limit does.
         extra[WIRE.header.retryAfter] = String(ra);
       }
-      return this.json(request, result, HTTP_STATUS[result.error.code], extra);
+      return this.json(request, result, httpStatusOf(result.error), extra);
     }
     if (result.status === WIRE.status.pending) {
       return this.json(request, result, 200, {
@@ -1033,49 +1053,66 @@ export class AXE {
     return undefined;
   }
 
+  /**
+   * Read and parse a JSON object body within the limits ([P-LIM-1], [P-LIM-2]): a `Content-Length`
+   * above `maxBodyBytes` is refused before anything is read, and a body without one is read from
+   * its stream only up to the limit, then cancelled.
+   */
   private async readBody(
     request: Request,
   ): Promise<{ body: Record<string, unknown> } | { error: Result }> {
+    const invalid = (message: string, details?: Record<string, JsonValue>): { error: Result } => ({
+      error: {
+        status: WIRE.status.error,
+        error: fail(WIRE.error.invalidInput, message, details ? { details } : {}).error,
+      },
+    });
+    const tooLarge = () =>
+      invalid(
+        `The request body is larger than this site accepts (${this.maxBodyBytes} bytes). Nothing was read or run; send a smaller request, or use a document URL kind for large files.`,
+        { reason: WIRE.reason.payloadTooLarge, maxBodyBytes: this.maxBodyBytes },
+      );
+    const declared = request.headers.get("content-length");
+    if (declared !== null && /^\d+$/.test(declared.trim()) && Number(declared) > this.maxBodyBytes)
+      return tooLarge();
     let text: string;
     try {
-      text = await request.text();
+      const read = await readBounded(request, this.maxBodyBytes);
+      if (read === undefined) return tooLarge();
+      text = read;
     } catch {
-      return {
-        error: {
-          status: WIRE.status.error,
-          error: fail(WIRE.error.invalidInput, "Could not read the request body.").error,
-        },
-      };
+      return invalid("Could not read the request body.");
     }
-    if (!text.trim())
+    if (!text.trim()) return invalid("Request body is required and must be a JSON object.");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text) as unknown;
+    } catch {
+      return invalid("Request body is not valid JSON.");
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      return invalid("Request body must be a JSON object.");
+    if (jsonDepthExceeds(parsed, MAX_JSON_DEPTH)) {
       return {
         error: {
           status: WIRE.status.error,
           error: fail(
             WIRE.error.invalidInput,
-            "Request body is required and must be a JSON object.",
+            `The request body nests arrays and objects more than ${MAX_JSON_DEPTH} levels deep. Nothing was run.`,
+            {
+              issues: [
+                {
+                  path: "",
+                  message: `nesting deeper than ${MAX_JSON_DEPTH} levels`,
+                  expected: `<= ${MAX_JSON_DEPTH} levels`,
+                },
+              ],
+            },
           ).error,
         },
       };
-    try {
-      const parsed = JSON.parse(text) as unknown;
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        return {
-          error: {
-            status: WIRE.status.error,
-            error: fail(WIRE.error.invalidInput, "Request body must be a JSON object.").error,
-          },
-        };
-      }
-      return { body: parsed as Record<string, unknown> };
-    } catch {
-      return {
-        error: {
-          status: WIRE.status.error,
-          error: fail(WIRE.error.invalidInput, "Request body is not valid JSON.").error,
-        },
-      };
     }
+    return { body: parsed as Record<string, unknown> };
   }
 
   private sanitizeContext(raw: unknown): RequestContext {
@@ -1561,6 +1598,9 @@ export class AXE {
     const context = this.sanitizeContext("body" in read ? read.body["context"] : undefined);
     const hookCtx = this.hook("action", name, request, context, tenant);
     if (proto) return this.runHooksAndFinish(hookCtx, proto, startedAt, WIRE.ladder.error, null);
+    // An oversized body is refused as such whatever the action ([P-LIM-1]).
+    if ("error" in read && isTooLarge(read.error))
+      return this.runHooksAndFinish(hookCtx, read.error, startedAt, WIRE.ladder.error, null);
     if (!a) {
       // An action that is gone may be gone because its own last invocation removed it (a Surface
       // row that leaves the board when drafted). A retry of that attempt is the same attempt
@@ -1748,7 +1788,11 @@ export class AXE {
       });
     }
     const input = inputParsed.data as JsonValue;
-    const inputHash = await hashJson(input);
+    // The fingerprint is the input as the agent sent it, canonicalized, never the parsed value
+    // (spec [P-SCHEMA-6]): a parsed value may hold what JSON cannot (a Date from a transform
+    // hashes as {}), and a retry of an action that no longer exists can only be matched on
+    // what was sent (replayForUnknown).
+    const inputHash = await hashJson(rawInput as JsonValue);
     // Tokens, idempotency keys, and operation claims are scoped to the acting principal: the site
     // key, the user, or both ([P-TOK-6], [P-TOK-7]).
     const principal = principalOf(identity?.onBehalfOf, siteKey?.id);
@@ -1807,7 +1851,8 @@ export class AXE {
       // A stale observation is refused before a human is asked to sign in ([P-LIVE-3]).
       const stale = await this.staleCheck(expectedRev, request, tenant);
       if (stale) return err(stale);
-      const login: NonNullable<TokenRecord["login"]> = { input, context };
+      // The raw input: the resume parses it again, so a transform must not run twice.
+      const login: NonNullable<TokenRecord["login"]> = { input: rawInput as JsonValue, context };
       if (key !== undefined) login.idempotencyKey = key;
       if (expectedRev !== undefined) login.expectedRev = expectedRev;
       const h = await this.mintHandoff(
@@ -2338,6 +2383,65 @@ function ladderFor(result: Result): Ladder {
 
 function kindFor(result: Result): string | null {
   return result.status === WIRE.status.needsInput ? (result.accepts[0]?.kind ?? null) : null;
+}
+
+function isTooLarge(result: Result): boolean {
+  return (
+    result.status === WIRE.status.error &&
+    result.error.details?.["reason"] === WIRE.reason.payloadTooLarge
+  );
+}
+
+/** The HTTP status for an error body: the code's mapped status, or 413 for an oversized body ([P-LIM-1]). */
+function httpStatusOf(error: ErrorBody): number {
+  if (
+    error.code === WIRE.error.invalidInput &&
+    error.details?.["reason"] === WIRE.reason.payloadTooLarge
+  )
+    return 413;
+  return HTTP_STATUS[error.code];
+}
+
+/**
+ * The body as text, read from its stream until the end or until more than `max` bytes arrive, in
+ * which case the stream is cancelled and undefined is returned. Nothing past `max + chunk` bytes is
+ * held in memory.
+ */
+async function readBounded(request: Request, max: number): Promise<string | undefined> {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => undefined);
+      return undefined;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    bytes.set(c, offset);
+    offset += c.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+/** Whether a parsed JSON value nests arrays and objects deeper than `max`. Iterative, so a deep value cannot exhaust the stack. */
+export function jsonDepthExceeds(value: unknown, max: number): boolean {
+  const stack: [unknown, number][] = [[value, 1]];
+  while (stack.length > 0) {
+    const [v, depth] = stack.pop()!;
+    if (v === null || typeof v !== "object") continue;
+    if (depth > max) return true;
+    for (const child of Array.isArray(v) ? v : Object.values(v as object))
+      if (child !== null && typeof child === "object") stack.push([child, depth + 1]);
+  }
+  return false;
 }
 
 function isLoopback(host: string): boolean {
