@@ -485,7 +485,19 @@ function minifyCss(css) {
 // Landing page assembly
 // ---------------------------------------------------------------------------
 
-const EXTERNAL_ALLOW = [GITHUB_REPO, "https://www.npmjs.com/", "https://registry.npmjs.org/"];
+// Besides the repository and npm, pages may cite the primary sources of the standards the SDK
+// adapts to (WebMCP, MCP and its Apps extension). Anything else is a broken or unintended link.
+const EXTERNAL_ALLOW = [
+  GITHUB_REPO,
+  "https://www.npmjs.com/",
+  "https://registry.npmjs.org/",
+  "https://webmachinelearning.github.io/webmcp",
+  "https://github.com/webmachinelearning/webmcp",
+  "https://developer.chrome.com/docs/ai/",
+  "https://modelcontextprotocol.io/specification/",
+  "https://apps.extensions.modelcontextprotocol.io/",
+  "https://github.com/modelcontextprotocol/",
+];
 
 async function renderIndex({ highlighter, fixtures, rendered, sourceSet }) {
   let html = readFileSync(join(SITE, "src/index.html"), "utf8");

@@ -25,7 +25,7 @@ You do not touch the site. Add the page to `docs/`, link it from the ordered lis
 
 - **reproducible**: two builds are byte-identical, and the committed `site/dist/` matches a fresh build.
 - **offline**: every page loads from `file://` in Chromium with all network requests aborted, with zero console errors, failed requests, or broken images; the landing page and one docs page also load in Firefox and WebKit.
-- **links**: every `href` and `src` in the output resolves; external links point only at the repository and npm.
+- **links**: every `href` and `src` in the output resolves; external links point only at the repository, npm, and the primary sources of the standards the SDK adapts to (WebMCP, MCP, and the MCP Apps extension).
 - **demos**: the ladder demo plays both paths and reports the expected `status` sequence; choosing a unit in the rendered search binds its id into the ladder; search and the theme toggle work from the keyboard.
 - **screenshots**: the landing page at four widths in light and dark, compared with the baselines committed under `site/test/__screenshots__/`. Regenerate them with `node site/test/run.mjs --update-screenshots` and look at them.
 - **llms**: `llms.txt` starts with a title and summary, every link in it resolves in the repository and in the published copy, and `llms-full.txt` carries every docs and spec page.
