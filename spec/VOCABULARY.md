@@ -644,6 +644,22 @@ Public identifiers for serving `@axe/mcp` over HTTP to many callers and for keep
 | api      | manifestMaxAgeMs          | `manifestMaxAgeMs`          | `@axe/client` | Client option: longest a manifest is used before revalidation; a shorter site max-age wins (default 300000). |
 | api      | onManifestChange          | `onManifestChange`          | `@axe/client` | Subscribe to manifest refreshes that changed the actions; returns an unsubscribe function.                   |
 
+## Agent interface adapters
+
+Public identifiers of the WebMCP adapter and of the elicitation mapping (review 2026-09-24, item 14). `registerTool`, `modelContext`, and `consequentialHint` are the WebMCP draft's names (Community Group draft of 2026-09-17); `requestedSchema` is MCP's (specification 2025-11-25).
+
+| Category | Key                  | Name                   | Where                 | Meaning                                                                                                                |
+| -------- | -------------------- | ---------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| api      | exposeWebMcp         | `exposeWebMcp`         | `@axe/surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                 |
+| api      | modelContext         | `modelContext`         | `@axe/surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                           |
+| api      | registerTool         | `registerTool`         | WebMCP                | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                        |
+| api      | consequentialHint    | `consequentialHint`    | WebMCP                | Tool annotation for an effect that cannot be undone; set on a control that is not reversible.                          |
+| api      | requestedSchema      | `requestedSchema`      | MCP elicitation       | The flat JSON Schema of a form-mode elicitation; built by `@axe/mcp` from a kind's payload schema.                     |
+| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@axe/mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind. |
+| api      | toFormSchema         | `toFormSchema`         | `@axe/mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                           |
+| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                | Tool annotation: the tool changes nothing; set on the observe tool.                                                    |
+| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.               |
+
 ## Generate API
 
 Public identifiers of `@axe/generate`, which derives actions from definitions an application already has (`docs/generating.md`). Kept in their own table so the SDK API table above stays stable.

@@ -2,7 +2,7 @@
 
 `@axe/client` is the agent side of AXE: discover a manifest, invoke actions, satisfy requirements from a wallet or credential store, hand off to the human when nothing else works, resume, poll. It has no runtime dependencies and runs in Node 20+ and browsers. This page shows how to drive it from any agent framework, how to handle each result status honestly, and how to talk to your user when the site needs them.
 
-If your agent already speaks MCP and you only want the tools, [MCP](mcp.md) covers the derived server. Read on when you are building the loop yourself.
+If your agent already speaks MCP and you only want the tools, [MCP](mcp.md) covers the derived server. That server also asks the user through MCP elicitation and shows `display` through MCP Apps when your client declares them. Read on when you are building the loop yourself.
 
 ## Discover and invoke
 

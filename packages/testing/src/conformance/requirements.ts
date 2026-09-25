@@ -331,6 +331,42 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
     },
     { test: "@axe/mcp axe_continue and axe_resume take expectedRev; a stale one applies nothing" },
   ],
+  "P-MCP-6": [
+    {
+      test: "@axe/mcp a form-capable client is asked for a non-sensitive kind in a flat form, and the answer continues the action",
+    },
+    {
+      test: "@axe/mcp decline and cancel return the needs_input result to the model, whose axe_continue still works",
+    },
+    { test: "@axe/mcp a client without the capability gets the needs_input text as before" },
+    {
+      test: "@axe/mcp over HTTP sessions the form reaches the calling client mid-call, and the continuation runs as that caller",
+    },
+    { test: "@axe/mcp stateless HTTP cannot carry a server request, so the client gets the text" },
+  ],
+  "P-MCP-7": [
+    {
+      test: "@axe/mcp a sensitive kind is never put in a form; URL mode offers the site's page when the client has it",
+    },
+    {
+      test: "@axe/mcp needs_human is offered as the site's page in URL mode, never in a form; login_required is left to MCP authorization",
+    },
+    {
+      test: "@axe/mcp only schemas in the form subset become forms; sensitivity is decided before the schema",
+    },
+    { test: "@axe/mcp over HTTP sessions a URL-capable client is offered the handoff page" },
+  ],
+  "P-MCP-8": [
+    {
+      test: "@axe/mcp a host that negotiated the extension gets the ui:// view on display tools and the escaped rendering with each result",
+    },
+    {
+      test: "@axe/mcp a host without the extension sees no view, no resource, and the same text result",
+    },
+    {
+      test: "@axe/mcp the view initializes with the host, renders the escaped presentation, and runs nothing from the result",
+    },
+  ],
   "P-HON-1": [{ check: "manifest.honesty" }],
   "P-HON-2": [{ check: "manifest.honesty" }],
   "P-HON-3": [{ check: "audit.parity" }],

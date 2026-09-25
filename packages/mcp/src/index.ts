@@ -47,7 +47,6 @@ import { present, stateToMarkdown, toHTML, toMarkdown } from "@axe/client/presen
 import { elicitationModes, isOpenableUrl, payloadFrom, planElicitation } from "./elicitation";
 import type { ElicitationModes } from "./elicitation";
 import {
-  APPS_EXTENSION,
   APPS_MIME_TYPE,
   PRESENTATION_META_KEY,
   PRESENTATION_RESOURCE,

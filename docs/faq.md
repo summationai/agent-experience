@@ -8,7 +8,9 @@ They solve different problems and compose. AXE is a site's declaration and HTTP 
 
 `@axe/mcp` derives an MCP server from any manifest: each action becomes a tool with the same JSON Schema, `needs_input` results list the accepted kinds and point at `axe_continue`, `needs_human` results carry the handoff text and point at `axe_resume`, and `pending` points at `axe_poll`. `axe mcp <url>` runs it over stdio; `serveHttp` mounts it on the Streamable HTTP transport.
 
-What MCP alone does not give a site: discovery at a domain (there is no well-known path for "the MCP server for this business"), an escalation ladder (a tool either returns or errors), `display` hints, and human handoff semantics (no `resumeToken`, no `whatAgentShouldSayToUser`). If your only consumer is one MCP client, write the tool directly. If you want every agent to find you, write the manifest and derive the tools. Details in [MCP](mcp.md).
+MCP already covers more than tool calls. Elicitation lets a server ask the user for input in a form, or send them to a page in URL mode, in the middle of a tool call. The MCP Apps extension lets a host render a server's interactive view. HTTP servers are OAuth 2.1 resource servers that verify tokens an authorization server issued. The derived server uses all three where the client supports them ([MCP](mcp.md#what-maps-to-mcps-own-features-and-what-does-not)); in the browser, [WebMCP](webmcp.md) plays the same role for a page's own controls.
+
+What AXE adds on top: discovery at a domain (there is no well-known path for "the MCP server for this business"); typed requirement kinds with one shared shape and sensitivity per kind, so the same `contact.email` or `payment.ach-debit` means the same thing at every site; a three-rung ladder whose follow-ups resume the original operation with a continuation or resume token bound to the caller and tenant; revision-guarded live state (`rev`, `expectedRev`); and honesty rules with an audit that checks them. If your only consumer is one MCP client, write the tool directly. If you want every agent to find you, write the manifest and derive the tools. Details in [MCP](mcp.md).
 
 ### How is this different from OpenAPI?
 
@@ -61,7 +63,7 @@ No, and it never holds card numbers. Payment kinds carry a credential your payme
 
 Three modes: `none` for public reads, `site` for an API key you issue to an agent operator (your `verifySiteKey` function decides), and `user` for acting on behalf of a specific person. In `user` mode an agent can pass through a bearer token the person already granted it, mapped to `onBehalfOf` by your `authenticate` function; when no identity can be established, the server returns a `login_required` handoff to your `userLoginUrl`, and the resume token is bound to whoever signs in. The claimed identity in the request body is never trusted.
 
-No OAuth 2.1 authorization server ships in v0. Most sites have one or use a vendor, and running one is its own product. [Auth](auth.md) shows where yours plugs in: its access tokens go through `authenticate`, its authorization endpoint becomes `userLoginUrl`.
+No OAuth 2.1 authorization server ships in v0, deliberately: issuing tokens is a different job from checking them. Most sites have one or use a vendor, and running one is its own product. [Auth](auth.md) shows where yours plugs in: its access tokens go through `authenticate`, its authorization endpoint becomes `userLoginUrl`. On the MCP side, `@axe/mcp` is a resource server: it verifies each request's access token and publishes the RFC 9728 metadata that tells clients where your authorization server is ([MCP](mcp.md#authentication-over-http)).
 
 ### Can I use it from Python or Go?
 

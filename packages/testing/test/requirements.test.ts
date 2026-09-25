@@ -55,6 +55,9 @@ describe("requirement coverage", () => {
       "packages/mcp/test/mcp.test.ts",
       "packages/mcp/test/http.test.ts",
       "packages/mcp/test/freshness.test.ts",
+      "packages/mcp/test/elicitation.test.ts",
+      "packages/mcp/test/apps.test.ts",
+      "packages/mcp/test/apps-view.test.ts",
       "packages/client/test/freshness.test.ts",
     ]
       .map((p) => readFileSync(join(root, p), "utf8"))

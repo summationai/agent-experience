@@ -310,7 +310,7 @@ optional execution?: object;
 ###### execution.taskSupport?
 
 ```ts
-optional taskSupport?: "optional" | "required" | "forbidden";
+optional taskSupport?: "required" | "optional" | "forbidden";
 ```
 
 ###### icons?
@@ -419,6 +419,70 @@ current) and tell connected MCP clients when the tool list changed. Resolves to 
 ###### Returns
 
 `Promise`\<`boolean`\>
+
+***
+
+<a id="formatoptions"></a>
+
+### FormatOptions
+
+#### Properties
+
+<a id="presentation"></a>
+
+##### presentation?
+
+```ts
+optional presentation?: boolean;
+```
+
+EXPERIMENTAL. Attach the `toHTML` rendering of a `display` result for the MCP Apps view.
+
+***
+
+<a id="formschema"></a>
+
+### FormSchema
+
+A form-mode `requestedSchema` for a kind's payload schema, and whether the payload was wrapped.
+
+#### Properties
+
+<a id="requestedschema"></a>
+
+##### requestedSchema
+
+```ts
+requestedSchema: object;
+```
+
+###### properties
+
+```ts
+properties: Record<string, Schema>;
+```
+
+###### required?
+
+```ts
+optional required?: string[];
+```
+
+###### type
+
+```ts
+type: "object";
+```
+
+<a id="wrapped"></a>
+
+##### wrapped
+
+```ts
+wrapped: boolean;
+```
+
+The kind's payload is a single primitive, collected as the property `value`.
 
 ***
 
@@ -561,6 +625,18 @@ Close every session and stop the idle sweep.
 
 #### Properties
 
+<a id="apps"></a>
+
+##### apps?
+
+```ts
+optional apps?: boolean;
+```
+
+EXPERIMENTAL. Offer the MCP Apps view (`ui://axe/presentation`) for actions with `display`,
+only to a host that declared the `io.modelcontextprotocol/ui` extension. `false` turns it
+off. Default on.
+
 <a id="client-2"></a>
 
 ##### client?
@@ -572,6 +648,25 @@ optional client?: ClientOptions;
 Options for the underlying AXE client (auth, agent identification, fetch). Over HTTP with
 `serveHttp`, `auth` and `headers` here are one identity shared by every MCP client; see
 `ServeHttpOptions.clientFor` for per-caller identity.
+
+<a id="elicitation"></a>
+
+##### elicitation?
+
+```ts
+optional elicitation?: 
+  | boolean
+  | {
+  timeoutMs?: number;
+};
+```
+
+MCP elicitation for the ladder, used only with a client that declared the `elicitation`
+capability (and a transport that can carry a server request: stdio, in-memory, or HTTP
+sessions, not stateless HTTP). A `needs_input` whose preferred kind is not sensitive and fits
+the form subset is asked for in a form and continued; a sensitive kind or a `needs_human`
+step is offered as the site's page in URL mode when the client supports it. `false` turns it
+off. Default: on, with `timeoutMs` 600000 (ten minutes) for the user to answer.
 
 <a id="name"></a>
 
@@ -829,6 +924,80 @@ optional maxSessions?: number;
 
 Open sessions at most. A new session past the limit is refused with 503 until one closes. Default 1000.
 
+## Variables
+
+<a id="apps_extension"></a>
+
+### APPS\_EXTENSION
+
+```ts
+const APPS_EXTENSION: "io.modelcontextprotocol/ui" = "io.modelcontextprotocol/ui";
+```
+
+A minimal MCP Apps view for AXE `display` (review item 14, 2026-09-24). EXPERIMENTAL.
+
+The installed MCP SDK (1.30.1) has no types for the Apps extension, so this module implements
+the wire shape from the extension's specification (SEP-1865, "MCP Apps", stable version
+2026-01-26, read 2026-09-24 at github.com/modelcontextprotocol/ext-apps and
+apps.extensions.modelcontextprotocol.io):
+
+- A host that renders Apps declares `capabilities.extensions["io.modelcontextprotocol/ui"]`
+  with `mimeTypes` including `text/html;profile=mcp-app`. Servers SHOULD check it before
+  offering UI; the bridge offers nothing to a host that did not declare it.
+- A UI resource has a `ui://` URI and that MIME type, and is read with `resources/read`
+  (`text`). A tool points at it with `_meta.ui.resourceUri`.
+- The view is an iframe that speaks JSON-RPC over `postMessage`: it sends `ui/initialize`,
+  then `ui/notifications/initialized`, and receives `ui/notifications/tool-result` with the
+  tool's `CallToolResult`. The host's default CSP allows inline script and style and no
+  network (`connect-src 'none'`, images from `'self'` and `data:` only).
+
+The view here is one static page for every `display` action. Each `ok` result of such an
+action carries the `toHTML` rendering in `_meta["axe/presentation"].html`; the view parses it
+with `DOMParser` (which runs no script), drops scripts, event-handler attributes, the affordance
+buttons (they have no effect inside a host), and anything but the page's `<style>` and
+`<main>`, and shows it. The text content stays the Markdown
+rendering, which is what a host without Apps shows ([P-MCP-8]).
+
+***
+
+<a id="apps_mime_type"></a>
+
+### APPS\_MIME\_TYPE
+
+```ts
+const APPS_MIME_TYPE: "text/html;profile=mcp-app" = "text/html;profile=mcp-app";
+```
+
+***
+
+<a id="presentation_meta_key"></a>
+
+### PRESENTATION\_META\_KEY
+
+```ts
+const PRESENTATION_META_KEY: "axe/presentation" = "axe/presentation";
+```
+
+***
+
+<a id="presentation_uri"></a>
+
+### PRESENTATION\_URI
+
+```ts
+const PRESENTATION_URI: "ui://axe/presentation" = "ui://axe/presentation";
+```
+
+***
+
+<a id="presentation_view_html"></a>
+
+### PRESENTATION\_VIEW\_HTML
+
+```ts
+const PRESENTATION_VIEW_HTML: "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Result</title>\n<style>body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}#axe-root>pre{white-space:pre-wrap;padding:16px;margin:0}</style>\n</head>\n<body>\n<div id=\"axe-root\"><p style=\"padding:16px;margin:0\">Waiting for the result.</p></div>\n<script>(function(){\nvar nextId=1,pending={},hostCaps={};\nvar root=document.getElementById(\"axe-root\");\nfunction post(m){window.parent.postMessage(m,\"*\")}\nfunction request(method,params){var id=nextId++;post({jsonrpc:\"2.0\",id:id,method:method,params:params});return new Promise(function(res,rej){pending[id]={res:res,rej:rej}})}\nfunction textOf(result){var c=(result&&result.content)||[];var out=[];for(var i=0;i<c.length;i++){if(c[i]&&c[i].type===\"text\")out.push(String(c[i].text||\"\"))}return out.join(\"\n\")}\nfunction clean(node){var all=node.querySelectorAll(\"*\");for(var i=0;i<all.length;i++){var el=all[i];var names=[];for(var j=0;j<el.attributes.length;j++){var n=el.attributes[j].name;if(/^on/i.test(n)||n===\"srcdoc\")names.push(n)}for(var k=0;k<names.length;k++)el.removeAttribute(names[k]);var href=el.getAttribute(\"href\");if(href&&!/^https?:/i.test(href))el.removeAttribute(\"href\");var src=el.getAttribute(\"src\");if(src&&!/^https?:/i.test(src))el.removeAttribute(\"src\")}}\nfunction render(result){var meta=result&&result._meta&&result._meta[\"axe/presentation\"];var html=meta&&typeof meta.html===\"string\"?meta.html:null;if(!html){var pre=document.createElement(\"pre\");pre.textContent=textOf(result)||\"No result.\";root.replaceChildren(pre);return}\nvar doc=new DOMParser().parseFromString(html,\"text/html\");var dead=doc.querySelectorAll(\"script,iframe,object,embed,form,link,meta,base,.axe-actions\");for(var i=0;i<dead.length;i++)dead[i].remove();\nvar main=doc.querySelector(\"main\");if(!main){root.textContent=textOf(result);return}clean(main);\nvar styles=doc.querySelectorAll(\"style\");var head=document.head;var old=head.querySelectorAll(\"style[data-axe]\");for(var s=0;s<old.length;s++)old[s].remove();for(var t=0;t<styles.length;t++){var st=document.createElement(\"style\");st.setAttribute(\"data-axe\",\"\");st.textContent=styles[t].textContent;head.appendChild(st)}\nroot.replaceChildren(document.importNode(main,true))}\nwindow.addEventListener(\"message\",function(e){if(e.source!==window.parent)return;var m=e.data;if(!m||m.jsonrpc!==\"2.0\")return;\nif(m.id!=null&&pending[m.id]&&((\"result\" in m)||(\"error\" in m))){var p=pending[m.id];delete pending[m.id];if(\"error\" in m)p.rej(m.error);else p.res(m.result);return}\nif(m.method===\"ui/notifications/tool-result\")render(m.params||{})});\ndocument.addEventListener(\"click\",function(e){var a=e.target&&e.target.closest?e.target.closest(\"a[href]\"):null;if(!a||!hostCaps.openLinks)return;e.preventDefault();request(\"ui/open-link\",{url:a.href}).catch(function(){})});\nrequest(\"ui/initialize\",{protocolVersion:\"2026-01-26\",appCapabilities:{},clientInfo:{name:\"axe-presentation\",version:\"0.1.0\"}}).then(function(r){hostCaps=(r&&r.hostCapabilities)||{};post({jsonrpc:\"2.0\",method:\"ui/notifications/initialized\",params:{}})},function(){})\n})();</script>\n</body>\n</html>\n";
+```
+
 ## Functions
 
 <a id="createmcpserver"></a>
@@ -865,7 +1034,8 @@ Create an MCP server from an AXE server instance, a manifest object, or a URL to
 function formatResult(
    result, 
    action, 
-   brand
+   brand, 
+   options?
 ): object;
 ```
 
@@ -884,6 +1054,10 @@ Render a result envelope as MCP tool content. Exported for tests and custom brid
 ##### brand
 
 `Brand` \| `undefined`
+
+##### options?
+
+[`FormatOptions`](#formatoptions) = `{}`
 
 #### Returns
 
@@ -1029,6 +1203,26 @@ optional structuredContent?: object;
 ```ts
 [key: string]: unknown
 ```
+
+***
+
+<a id="issensitiveaccept"></a>
+
+### isSensitiveAccept()
+
+```ts
+function isSensitiveAccept(accept): boolean;
+```
+
+#### Parameters
+
+##### accept
+
+`Pick`\<[`Accept`](client/index.md#accept), `"kind"` \| `"sensitive"`\>
+
+#### Returns
+
+`boolean`
 
 ***
 
@@ -1227,6 +1421,31 @@ Connect the server to stdio (for Claude Desktop, Claude Code, and `axe mcp`).
 #### Returns
 
 `Promise`\<`void`\>
+
+***
+
+<a id="toformschema"></a>
+
+### toFormSchema()
+
+```ts
+function toFormSchema(schema): FormSchema | null;
+```
+
+The form subset of a payload schema, or null when any part of it has no form rendering (a
+nested object, an array of objects, a union, a reference). Keywords outside the subset that
+only narrow a value (a format other than the four, for instance) are dropped; the site
+validates the payload again on `/axe/continue`.
+
+#### Parameters
+
+##### schema
+
+`JsonSchema`
+
+#### Returns
+
+[`FormSchema`](#formschema) \| `null`
 
 ***
 

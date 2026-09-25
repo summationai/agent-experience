@@ -194,6 +194,15 @@ type WireApi =
   | "protectedResourceMetadata"
   | "manifestMaxAgeMs"
   | "onManifestChange"
+  | "exposeWebMcp"
+  | "modelContext"
+  | "registerTool"
+  | "consequentialHint"
+  | "requestedSchema"
+  | "isSensitiveAccept"
+  | "toFormSchema"
+  | "readOnlyHint"
+  | "untrustedContentHint"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -872,6 +881,7 @@ const api: Readonly<{
   completeHandoff: "completeHandoff";
   completion: "completion";
   confirm: "confirm";
+  consequentialHint: "consequentialHint";
   consoleSink: "consoleSink";
   continue: "continue";
   cors: "cors";
@@ -893,6 +903,7 @@ const api: Readonly<{
   entryIdFor: "entryIdFor";
   entrySlug: "entrySlug";
   expose: "expose";
+  exposeWebMcp: "exposeWebMcp";
   fetchHandler: "fetchHandler";
   formatAuditHtml: "formatAuditHtml";
   formatAuditTable: "formatAuditTable";
@@ -922,6 +933,7 @@ const api: Readonly<{
   isNeedsInput: "isNeedsInput";
   isOk: "isOk";
   isPending: "isPending";
+  isSensitiveAccept: "isSensitiveAccept";
   jsonlFileSink: "jsonlFileSink";
   jsonSchemaToZod: "jsonSchemaToZod";
   keyFor: "keyFor";
@@ -941,6 +953,7 @@ const api: Readonly<{
   maxRisk: "maxRisk";
   maxSessions: "maxSessions";
   maxWaitMs: "maxWaitMs";
+  modelContext: "modelContext";
   needsInput: "needsInput";
   observe: "observe";
   onActionEvent: "onActionEvent";
@@ -965,11 +978,14 @@ const api: Readonly<{
   present: "present";
   protectedResourceMetadata: "protectedResourceMetadata";
   prune: "prune";
+  readOnlyHint: "readOnlyHint";
   reconcile: "reconcile";
   redactEvent: "redactEvent";
   register: "register";
   registerGenerated: "registerGenerated";
+  registerTool: "registerTool";
   registryVersion: "registryVersion";
+  requestedSchema: "requestedSchema";
   requestPolicy: "requestPolicy";
   requireCompletion: "requireCompletion";
   requiredScopes: "requiredScopes";
@@ -1011,6 +1027,7 @@ const api: Readonly<{
   sweepIntervalMs: "sweepIntervalMs";
   thaw: "thaw";
   timeoutMs: "timeoutMs";
+  toFormSchema: "toFormSchema";
   toHTML: "toHTML";
   toJsonSchema: "toJsonSchema";
   tokenStore: "tokenStore";
@@ -1022,6 +1039,7 @@ const api: Readonly<{
   ttlSeconds: "ttlSeconds";
   unavailable: "unavailable";
   unregister: "unregister";
+  untrustedContentHint: "untrustedContentHint";
   useSurface: "useSurface";
   useSurfaceProps: "useSurfaceProps";
   validateJsonSchema: "validateJsonSchema";
@@ -1762,6 +1780,7 @@ const WIRE: Readonly<{
      completeHandoff: "completeHandoff";
      completion: "completion";
      confirm: "confirm";
+     consequentialHint: "consequentialHint";
      consoleSink: "consoleSink";
      continue: "continue";
      cors: "cors";
@@ -1783,6 +1802,7 @@ const WIRE: Readonly<{
      entryIdFor: "entryIdFor";
      entrySlug: "entrySlug";
      expose: "expose";
+     exposeWebMcp: "exposeWebMcp";
      fetchHandler: "fetchHandler";
      formatAuditHtml: "formatAuditHtml";
      formatAuditTable: "formatAuditTable";
@@ -1812,6 +1832,7 @@ const WIRE: Readonly<{
      isNeedsInput: "isNeedsInput";
      isOk: "isOk";
      isPending: "isPending";
+     isSensitiveAccept: "isSensitiveAccept";
      jsonlFileSink: "jsonlFileSink";
      jsonSchemaToZod: "jsonSchemaToZod";
      keyFor: "keyFor";
@@ -1831,6 +1852,7 @@ const WIRE: Readonly<{
      maxRisk: "maxRisk";
      maxSessions: "maxSessions";
      maxWaitMs: "maxWaitMs";
+     modelContext: "modelContext";
      needsInput: "needsInput";
      observe: "observe";
      onActionEvent: "onActionEvent";
@@ -1855,11 +1877,14 @@ const WIRE: Readonly<{
      present: "present";
      protectedResourceMetadata: "protectedResourceMetadata";
      prune: "prune";
+     readOnlyHint: "readOnlyHint";
      reconcile: "reconcile";
      redactEvent: "redactEvent";
      register: "register";
      registerGenerated: "registerGenerated";
+     registerTool: "registerTool";
      registryVersion: "registryVersion";
+     requestedSchema: "requestedSchema";
      requestPolicy: "requestPolicy";
      requireCompletion: "requireCompletion";
      requiredScopes: "requiredScopes";
@@ -1901,6 +1926,7 @@ const WIRE: Readonly<{
      sweepIntervalMs: "sweepIntervalMs";
      thaw: "thaw";
      timeoutMs: "timeoutMs";
+     toFormSchema: "toFormSchema";
      toHTML: "toHTML";
      toJsonSchema: "toJsonSchema";
      tokenStore: "tokenStore";
@@ -1912,6 +1938,7 @@ const WIRE: Readonly<{
      ttlSeconds: "ttlSeconds";
      unavailable: "unavailable";
      unregister: "unregister";
+     untrustedContentHint: "untrustedContentHint";
      useSurface: "useSurface";
      useSurfaceProps: "useSurfaceProps";
      validateJsonSchema: "validateJsonSchema";

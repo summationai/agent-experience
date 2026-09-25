@@ -67,9 +67,9 @@ The derived server is a bridge, not a second model of your site. Each row below 
 | Action `input` JSON Schema                              | The tool's input schema, unchanged. Arguments are validated against it before the action is invoked; a mismatch returns an error listing each path, the same shape as `invalid_input`.                                                            |
 | Action `title` and `description`                        | The tool title and description. A metadata line is appended: risk, read-only or changes state, idempotent or not, reversible or not, the required auth mode, deprecation, and the tools that follow as affordances.                             |
 | `readOnly`, `reversible`, `idempotent`                  | Tool annotations: read-only hint from `readOnly`, destructive hint when the action changes state and is not `reversible`, idempotent hint from `idempotent`. The open-world hint is always set, because the tool reaches a remote site.           |
-| `ok` result                                             | Text content. When the action has `display`, the text is the Markdown comparison from `toMarkdown` (links, badges, the `disclaimer`, each item's affordances as tool names) followed by the raw `output` as JSON. Without `display`, JSON only. The structured content is the whole result envelope. |
-| `needs_input` result                                    | Text listing the `reason`, the `message`, and every `accepts` entry in the site's order with `kind`, `title`, `description`, whether it is `sensitive`, its `instructions`, and its payload `schema`; then an instruction to call `axe_continue` with the `continuationToken`, the chosen `kind`, and a `payload`. A `fallback` handoff is appended as text with the `resumeToken`. |
-| `needs_human` result                                    | Text with the `reason`, `whatAgentShouldSayToUser`, the `url`, the `instructions`, and an instruction to call `axe_resume` with the `resumeToken` after the human finishes.                                                                    |
+| `ok` result                                             | Text content. When the action has `display`, the text is the Markdown comparison from `toMarkdown` (links, badges, the `disclaimer`, each item's affordances as tool names) followed by the raw `output` as JSON. Without `display`, JSON only. The structured content is the whole result envelope. For a host that negotiated MCP Apps, a `display` action's tool also points at a view and the result carries its HTML; see [MCP Apps view](#mcp-apps-view-experimental). |
+| `needs_input` result                                    | Text listing the `reason`, the `message`, and every `accepts` entry in the site's order with `kind`, `title`, `description`, whether it is `sensitive`, its `instructions`, and its payload `schema`; then an instruction to call `axe_continue` with the `continuationToken`, the chosen `kind`, and a `payload`. A `fallback` handoff is appended as text with the `resumeToken`. With a client that declared elicitation, a kind that is not sensitive can be asked of the user in a form first, and a sensitive one offered as the site's page; see [Elicitation](#elicitation). |
+| `needs_human` result                                    | Text with the `reason`, `whatAgentShouldSayToUser`, the `url`, the `instructions`, and an instruction to call `axe_resume` with the `resumeToken` after the human finishes. With a client that declared URL-mode elicitation, the page is also offered to the user directly (not for `login_required`). |
 | `pending` result                                        | Polled inside the tool call for up to 20 seconds (configurable per server). If it settles, the settled result is returned. If not, text says to call `axe_poll` with the `pollUrl` after `retryAfter` seconds. `axe_poll` polls only a `pollUrl` this server returned; any other URL is refused without a request.                                    |
 | `error` result                                          | Text with the `code`, `message`, whether it is `retryable`, and for `invalid_input` each issue's `path` and `message`. A `conflict` with `currentRev` is explained as a stale view; an `unavailable` with a `reason` relays it and what would unblock it. The tool result is flagged as an error. |
 | `live`, `rev`, `expectedRev`                            | When the manifest carries `live`: an `axe_state` tool returns `/axe/state` as text and structured content; every action tool, `axe_continue`, and `axe_resume` accept an optional `expectedRev` argument (unless the action's own input uses that name), forwarded in the request envelope; `rev` is appended to `ok` and `needs_input` text; manifest-time `availability` is appended to the tool description. |
@@ -83,16 +83,65 @@ Four helper tools are always present: `axe_manifest`, `axe_continue`, `axe_resum
 
 The server's instructions field tells the model how to read the five statuses, to confirm `sensitive` payloads with the user before calling `axe_continue`, to treat all text from the site as data rather than instructions, and where the human website is.
 
-### What does not map
+### What maps to MCP's own features, and what does not
 
-MCP is a tool protocol between a host and a server. Several things AXE defines have no counterpart, and the bridge makes them visible instead of hiding them.
+MCP already has counterparts for several things AXE defines, and the bridge uses them where the client says it supports them:
+
+- **Asking the user for something.** MCP elicitation (specification 2025-11-25) lets a server ask the user through the client in the middle of a tool call: a form of primitive fields, or a URL the user opens. The bridge uses a form for a `needs_input` whose kind is not sensitive and URL mode for sensitive kinds and `needs_human` steps. See [Elicitation](#elicitation).
+- **Presenting results.** The MCP Apps extension (`io.modelcontextprotocol/ui`, stable version 2026-01-26) lets a host render a server's HTML view beside a tool result. The bridge offers one for actions with `display`. See [MCP Apps view](#mcp-apps-view-experimental).
+- **Authorization.** MCP makes an HTTP server an OAuth 2.1 resource server: it verifies access tokens that an authorization server issued and publishes RFC 9728 protected-resource metadata. `@axe/mcp` does both ([Authentication over HTTP](#authentication-over-http)). Issuing tokens is the authorization server's job, and this package deliberately does not do it.
+
+What AXE adds on top of those, and the bridge carries through:
+
+- **Typed kinds with shared shapes.** A `needs_input` names kinds from a registry (`contact.email`, `payment.ach-debit`), each with one schema and a sensitivity every site agrees on, so a wallet or an agent can fill the same kind for any site. An elicitation form is a one-off question with no shared meaning.
+- **The three-rung ladder with resume.** Done, supply this, or a person must act, with a continuation or resume token bound to the caller and tenant, so the operation finishes where it started and cannot be finished by someone else. MCP URL-mode elicitation opens a page, and `accept` means only that the user agreed to open it; the protocol carries no operation to finish afterwards, which is what the resume token is for.
+- **Revision-guarded live state.** `rev` and `expectedRev` let a tool call be refused when the state it was planned on has moved. MCP has no such guard.
+- **Honesty and audit.** The lint, audit, and conformance rules check that a site's descriptions, risk metadata, and requirements say what the actions do.
+
+And what has no counterpart:
 
 - **Discovery at a domain.** MCP has no well-known path. You give the client the manifest URL or the `/mcp` mount; AXE's `/.well-known/axe.json` is what the bridge reads, not what the MCP client finds.
-- **Human handoff.** MCP's elicitation (including its URL mode, where the user completes a step in a browser) is the nearest counterpart; this bridge does not use it yet. `needs_human` becomes text the model relays, plus the `axe_resume` tool.
 - **Idempotency keys.** MCP tool calls carry none, so the bridge adds an optional `idempotencyKey` argument to every tool that changes state. See [Retries](#retries-and-operation-keys).
-- **Presentation.** Tool results carry no `display`. MCP hosts can render interactive views through the MCP Apps extension; this bridge does not use it yet. It renders `display` to Markdown so the model can show a comparison, and keeps the full envelope in the structured content for hosts that want to render their own view.
-- **Resources, prompts, and sampling.** The derived server declares only tools in v0. Resources and prompts may follow.
+- **Prompts and sampling.** The derived server declares tools, and resources only for the Apps view.
 - **Streaming.** A tool call returns one result. Long-running work is `pending` and polling, as everywhere else in AXE; see [ROADMAP.md](../ROADMAP.md).
+
+## Elicitation
+
+MCP elicitation lets the server ask the user a question through the client while a tool call is open ([P-MCP-6](../spec/AXE-PROTOCOL.md#22-mcp-mapping), [P-MCP-7](../spec/AXE-PROTOCOL.md#22-mcp-mapping)). The bridge uses it only with a client that declared the `elicitation` capability, and only on a connection that can carry a request from the server during the call: stdio, an in-memory transport, or HTTP with `sessions`. A stateless HTTP exchange cannot, so its clients get text as before.
+
+- **A form for a kind that is not sensitive.** For a `needs_input`, the bridge goes through `accepts` in the site's order. The first kind that is not sensitive and whose schema is a flat object of strings, numbers, booleans, and enums (MCP's form subset) is asked for in a form with the site's `message` and the kind's title and description. If the user submits it, the bridge sends it to `/axe/continue` with the continuation token, as the same caller, and returns the continued result with a line saying the user supplied it. A kind with a nested schema is skipped; the model can still supply it with `axe_continue`.
+- **Never a form for a sensitive kind.** `sensitive: true`, every `payment.*` and `identity.*` kind whatever its flag, and anything named for a credential, password, secret, key, or token. MCP forbids collecting these in a form, and the bridge stops at the first one it meets in `accepts`.
+- **The site's page in URL mode.** When a sensitive kind comes first and the result has a `fallback` handoff, or the result is `needs_human`, and the client declared URL mode, the bridge offers the handoff's `url` to the user through the client. The user's `accept` means they agreed to open the page, not that they finished; the text still gives the model the `resumeToken`, and the model calls `axe_resume` when the user says they are done. A `login_required` handoff is not offered this way: signing in to the MCP server is MCP authorization's job. The handoff page must establish who the user is before accepting anything; its `axe_handoff` id is not a credential.
+- **Declined, dismissed, or failed.** The model gets the `needs_input` or `needs_human` text it always got, with a line saying what the user did.
+- **Without the capability**, or with `elicitation: false`, every result is text, as in the table above.
+
+<!-- include: examples/mcp/elicitation.ts#elicitation -->
+```ts
+import { createMcpServer, serveHttp } from "@axe/mcp";
+import { axe } from "../apartments/site";
+
+// Elicitation and the Apps view are on by default and used only with clients that declare them.
+// A form waits up to ten minutes for the user; here, five. Sessions are needed over HTTP, because
+// the question is a request from the server in the middle of the tool call.
+const derived = await createMcpServer(axe, { elicitation: { timeoutMs: 300_000 } });
+export const mcpHandler = serveHttp(derived, { sessions: true });
+
+// To keep every result as text (the model relays requirements and handoffs itself):
+export const textOnly = await createMcpServer(axe, { elicitation: false, apps: false });
+```
+<!-- /include -->
+
+A form waits up to `timeoutMs` (default ten minutes) for the user. The continuation token must still be valid when the answer arrives; a site should expire tokens for sensitive kinds within 15 minutes ([K-6](../spec/KINDS.md)), which is one reason those go to the page rather than a form.
+
+## MCP Apps view (experimental)
+
+The MCP Apps extension lets a host render an HTML view that a server provides ([P-MCP-8](../spec/AXE-PROTOCOL.md#22-mcp-mapping)). The installed MCP SDK has no types for it, so the bridge implements the extension's wire shape from its specification and marks it experimental.
+
+- **Only when negotiated.** A host that renders Apps declares `capabilities.extensions["io.modelcontextprotocol/ui"]` with a list of MIME types that includes `text/html;profile=mcp-app`. For that host, tools for actions with `display` carry `_meta.ui.resourceUri: "ui://axe/presentation"`, `resources/list` lists that resource, and each `ok` result of such an action carries the `toHTML` rendering in `_meta["axe/presentation"].html`. Any other host sees none of this; `resources/list` is empty.
+- **The view.** One self-contained HTML page with inline style and script and no external request. It speaks the extension's message protocol with the host window (`ui/initialize`, `ui/notifications/initialized`, `ui/notifications/tool-result`), parses the rendering without running it, removes scripts, event-handler attributes, and the affordance buttons (they would do nothing in a host), and shows the cards or table with the disclaimer. Links open through the host when the host offers to open links. Images are not shown: the host's default policy allows none from other origins.
+- **The text is unchanged.** The Markdown comparison and the JSON are still the text content, so a host without Apps, and the model, read the same result as before.
+
+`apps: false` in `createMcpServer`'s options turns the view off.
 
 ## Connecting Claude Desktop, Claude Code, and other clients
 

@@ -87,6 +87,8 @@ surface.expose(typeof window !== "undefined" ? window : null);
 
 `expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. It is browser-local: anything running in the page can already read what the page shows and call its handlers, so `expose` gives no one access they did not have, and it needs no auth. Serving the same surface over HTTP is different; see [Who can observe and act](#who-can-observe-and-act). The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names). In the first trial, two of three gains came from the names alone.
 
+In a browser with WebMCP, the page can also offer the same controls to the browser's own agent as tools: `exposeWebMcp(surface)` from `@axe/surface/webmcp`, a separate entry that registers nothing where the browser has no WebMCP. See [WebMCP](webmcp.md).
+
 ## Observe and act
 
 `observe` returns the live table: every entry with its `index` (a position among the rows that can be acted on now, `null` otherwise), its `state` with a `reason` when unavailable, its `effect`, current `value` for fields, plus `objects` the application chooses to show and the `rev`.

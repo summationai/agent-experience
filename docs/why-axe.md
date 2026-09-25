@@ -55,7 +55,7 @@ You may already have an API. It is not the same thing, and the difference is spe
 - **Requirements an agent can satisfy.** An API returns `402` or a validation error. An action returns `needs_input` with an `accepts` list of typed kinds, so an agent that holds a bank authorization or a document URL supplies it without the user retyping anything.
 - **Risk metadata.** `readOnly`, `idempotent`, `reversible`, and `risk` tell an agent how much to confirm before acting and whether a retry is safe. Most APIs leave this to prose.
 - **Presentation hints.** `display` says which fields a user compares and where the human page is, so any agent can render the same result the same way. An API has no opinion about presentation.
-- **An MCP server for free.** `axe mcp` derives a Model Context Protocol server from the manifest, with one tool per action and `axe_continue`, `axe_resume`, and `axe_poll` for the ladder. You maintain one declaration.
+- **An MCP server for free.** `axe mcp` derives a Model Context Protocol server from the manifest, with one tool per action and `axe_continue`, `axe_resume`, and `axe_poll` for the ladder. With clients that support them, it also uses MCP's own features: elicitation to ask the user for a requirement or send them to the handoff page, and the Apps extension to show `display` as a view. You maintain one declaration.
 
 The relationship to OpenAPI, MCP, and the other standards is covered question by question in the [FAQ](faq.md).
 
