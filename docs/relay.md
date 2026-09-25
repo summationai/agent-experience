@@ -149,6 +149,8 @@ The injected connection replaces the fallback's `url`, token, `mode`, `approvals
 
 These are `domainActions`' default set: a fixed tool list whatever the page holds. `surface_read` and `surface_wait` are answered by the tab's auto surface ([Reading the page](auto-surface.md#reading-the-page)); a tab without one answers them with the reason, and `content: false` on `createRelay` leaves them out. Pass `domains` to `createRelay` for the application's own parameterized actions (for example the set `@axe/surface/auto` builds). The usual `axe_state`, `axe_continue`, and `axe_resume` tools are there too, so a control that declares `requires` or a handoff climbs the ladder exactly as it does on a server.
 
+An act whose click navigates the page (a link, a form that posts and reloads) is answered `ok` with `navigated: true` just before the page unloads: the tab sees the navigation begin (`beforeunload`) and says so before its connection closes. An act the page never answers for any other reason (it crashed or closed, or `actTimeoutMs` passed) is `unavailable` with `details.reason: "outcome_unknown"` and `retryable: false`: the act was sent and may have taken effect, so the agent is told to observe before acting again, nothing retries it automatically, and a retry with the same `idempotencyKey` returns the same answer instead of running it twice ([S-RELAY-14]).
+
 The first surface tool call pins a tab: by default the most recently active one, and it stays the agent's tab until the agent chooses another with `relay_select-tab`. A tab another tab became active in front of does not change under the agent.
 
 ## Approvals and Stop

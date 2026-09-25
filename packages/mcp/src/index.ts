@@ -1104,7 +1104,14 @@ export function formatResult(
           `Stale: you acted on revision ${String(d[WIRE.field.expectedRev])} but the site is at revision ${String(d[WIRE.field.currentRev])}. Nothing was applied. Read the current state (${WIRE.tool.state} or the read tool you used) and decide again with the current rev.`,
         );
       }
-      if (e.code === WIRE.error.unavailable && typeof d[WIRE.field.reason] === "string") {
+      if (
+        e.code === WIRE.error.unavailable &&
+        d[WIRE.field.reason] === WIRE.reason.outcomeUnknown
+      ) {
+        lines.push(
+          "Outcome unknown: the request was sent and may have taken effect. Read the current state before deciding whether to do it again; a retry with the same idempotencyKey returns this answer.",
+        );
+      } else if (e.code === WIRE.error.unavailable && typeof d[WIRE.field.reason] === "string") {
         const req = d[WIRE.field.requires];
         const handoff = d[WIRE.field.handoff] as { url?: string } | undefined;
         lines.push(`Not available right now: ${String(d[WIRE.field.reason])}.`);

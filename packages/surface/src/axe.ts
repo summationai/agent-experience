@@ -331,6 +331,7 @@ const ActOutputSchema = z.object({
   changed: z.array(z.string()),
   seq: z.number().int(),
   notices: z.array(z.string()).optional(),
+  navigated: z.boolean().optional(),
 });
 
 const MODES: readonly string[] = Object.values(WIRE.authMode);

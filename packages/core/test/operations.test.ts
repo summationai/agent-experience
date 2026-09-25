@@ -239,6 +239,38 @@ describe("failure paths [P-OP-3]", () => {
     expect(s.runs.write).toBe(2);
   });
 
+  it("an error whose outcome is unknown is stored: a retry with the same key is answered with it and does not run", async () => {
+    let runs = 0;
+    const axe = createAXE({
+      name: "Review",
+      description: "Review test application for checking action execution and authentication.",
+      baseUrl: BASE,
+      secret: SECRET,
+    });
+    axe.register(
+      action("test.send", {
+        title: "Send",
+        description: "Sends a test message whose delivery may not be confirmed before the reply.",
+        risk: "low",
+        input: z.object({ n: z.number() }),
+        output: z.object({ attempt: z.number() }),
+        handler: ({ fail }) => {
+          runs += 1;
+          return fail(WIRE.error.unavailable, "The page unloaded while acting.", {
+            retryable: false,
+            details: { reason: WIRE.reason.outcomeUnknown },
+          });
+        },
+      }),
+    );
+    const body = { input: { n: 1 }, idempotencyKey: "unknown-1" };
+    const first = (await post(axe, "/axe/actions/test.send", body)).body as ErrorResult;
+    expect(first.error).toMatchObject({ code: "unavailable", retryable: false });
+    const second = (await post(axe, "/axe/actions/test.send", body)).body;
+    expect(second).toEqual(first);
+    expect(runs).toBe(1);
+  });
+
   it("an abandoned claim blocks retries until its lease passes, then the same operation takes it over", async () => {
     let now = 1_000_000;
     const idempotencyStore = new MemoryIdempotencyStore({ now: () => now });

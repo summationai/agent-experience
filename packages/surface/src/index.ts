@@ -337,6 +337,11 @@ export interface ActOutput {
   seq: number;
   /** What the page said in response, when the handler reported it (`HandlerReport.notices`). */
   notices?: string[];
+  /**
+   * The act's click navigated the page (a link, a form that reloads it): set by the relay's tab
+   * when the page began to unload before the act settled ([S-RELAY-14]). Observe the new page.
+   */
+  navigated?: boolean;
 }
 
 /** `act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`. Every result carries the `seq` of its ledger entry (`output.seq`, or `error.details.seq`). */

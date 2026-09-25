@@ -356,6 +356,24 @@ function errorResult(
   return { status: "error", error: { code, message, retryable, ...(details ? { details } : {}) } };
 }
 
+/**
+ * An act the tab received and did not answer: the page unloaded mid-act (a click that navigated,
+ * a form that posted and reloaded, a closed tab) or the answer did not come in time. The act was
+ * sent and may have taken effect, so this is never "nothing applied" and never retryable: a retry
+ * could run it twice, and the runtime stores it under the call's idempotency key ([P-OP-3]).
+ */
+function outcomeUnknown(e: unknown): ErrorResult {
+  const lost = e instanceof Error && e.message === "disconnected";
+  return errorResult(
+    "unavailable",
+    lost
+      ? "The page unloaded while acting (a click that navigates, a form that reloads the page, or a closed tab). The act was sent and may have taken effect. Observe before acting again; do not repeat it blindly."
+      : "The tab did not answer in time. The act was sent and may have taken effect. Observe before acting again; do not repeat it blindly.",
+    false,
+    { reason: "outcome_unknown", cause: lost ? "tab_disconnected" : "tab_timeout" },
+  );
+}
+
 type TabState = "connected" | "disconnected" | "stopped";
 
 /** One browser tab: its connection, its mirror, and the requests in flight. */
@@ -596,21 +614,12 @@ class TabRecord implements TabLink {
       if (m.observation) this.adopt(m.observation, m.ledger ?? []);
       return await this.relay.askPerson(this, forwarded, reply);
     } catch (e) {
-      const lost = e instanceof Error && e.message === "disconnected";
-      return {
-        result:
-          this.now() === "stopped"
-            ? this.stoppedResult()
-            : errorResult(
-                "unavailable",
-                lost
-                  ? "The tab went away while the act was in flight. If it ran, the revision moved: observe again before deciding whether to retry."
-                  : "The tab did not answer in time. If the act ran, the revision moved: observe again before deciding whether to retry.",
-                true,
-                { reason: lost ? "tab_disconnected" : "tab_timeout" },
-              ),
-      };
+      return { result: this.stopped() ?? outcomeUnknown(e) };
     }
+  }
+
+  private stopped(): ErrorResult | null {
+    return this.now() === "stopped" ? this.stoppedResult() : null;
   }
 
   /** Send the act again (after a decision), as the same request. */
@@ -624,15 +633,7 @@ class TabRecord implements TabLink {
       if (m.t !== "result") throw new Error("unexpected reply");
       return { result: m.result, observation: m.observation, ledger: m.ledger };
     } catch (e) {
-      const lost = e instanceof Error && e.message === "disconnected";
-      return {
-        result: errorResult(
-          "unavailable",
-          "The tab did not answer after the decision. If the act ran, the revision moved: observe again before deciding whether to retry.",
-          true,
-          { reason: lost ? "tab_disconnected" : "tab_timeout" },
-        ),
-      };
+      return { result: outcomeUnknown(e) };
     }
   }
 

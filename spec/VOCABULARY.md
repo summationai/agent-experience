@@ -211,17 +211,18 @@ Markup an application adds so a derived surface leaves a subtree alone ([S-AUTO-
 
 ## Reason conventions
 
-| Category | Key                | Name                   | Where                                     | Meaning                                                                                                  |
-| -------- | ------------------ | ---------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| reason   | loginRequired      | `login_required`       | `needs_human` `handoff.reason`            | Emitted by the SDK when a `user` action is called without identity.                                      |
-| reason   | paymentRequired    | `payment_required`     | `needs_input` `reason`                    | Recommended reason string when `accepts` are payment kinds.                                              |
-| reason   | consentRequired    | `consent_required`     | `needs_input` `reason`                    | Recommended reason string when `accepts` are consent kinds.                                              |
-| reason   | identityRequired   | `identity_required`    | `needs_input` `reason`                    | Recommended reason string when `accepts` are identity kinds.                                             |
-| reason   | documentRequired   | `document_required`    | `needs_input` `reason`                    | Recommended reason string when `accepts` are document kinds.                                             |
-| reason   | crossOriginRefused | `cross_origin_refused` | `error.details.reason` on `forbidden`     | Emitted by the SDK when a credentialed POST comes from an origin the site does not accept ([P-TRANS-2]). |
-| reason   | jsonRequired       | `json_required`        | `error.details.reason` on `unsupported`   | Emitted by the SDK when a POST to a state-changing endpoint is not `application/json` ([P-TRANS-1]).     |
-| reason   | payloadTooLarge    | `payload_too_large`    | `error.details.reason` on `invalid_input` | Emitted by the SDK, with HTTP 413, when a request body is larger than `maxBodyBytes` ([P-LIM-1]).        |
-| reason   | approvalRequired   | `approval_required`    | `needs_human` `handoff.reason`            | The default reason of an approval request made with `requestApproval` ([P-APPR-1]).                      |
+| Category | Key                | Name                   | Where                                     | Meaning                                                                                                                                                                          |
+| -------- | ------------------ | ---------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| reason   | loginRequired      | `login_required`       | `needs_human` `handoff.reason`            | Emitted by the SDK when a `user` action is called without identity.                                                                                                              |
+| reason   | paymentRequired    | `payment_required`     | `needs_input` `reason`                    | Recommended reason string when `accepts` are payment kinds.                                                                                                                      |
+| reason   | consentRequired    | `consent_required`     | `needs_input` `reason`                    | Recommended reason string when `accepts` are consent kinds.                                                                                                                      |
+| reason   | identityRequired   | `identity_required`    | `needs_input` `reason`                    | Recommended reason string when `accepts` are identity kinds.                                                                                                                     |
+| reason   | documentRequired   | `document_required`    | `needs_input` `reason`                    | Recommended reason string when `accepts` are document kinds.                                                                                                                     |
+| reason   | crossOriginRefused | `cross_origin_refused` | `error.details.reason` on `forbidden`     | Emitted by the SDK when a credentialed POST comes from an origin the site does not accept ([P-TRANS-2]).                                                                         |
+| reason   | jsonRequired       | `json_required`        | `error.details.reason` on `unsupported`   | Emitted by the SDK when a POST to a state-changing endpoint is not `application/json` ([P-TRANS-1]).                                                                             |
+| reason   | payloadTooLarge    | `payload_too_large`    | `error.details.reason` on `invalid_input` | Emitted by the SDK, with HTTP 413, when a request body is larger than `maxBodyBytes` ([P-LIM-1]).                                                                                |
+| reason   | approvalRequired   | `approval_required`    | `needs_human` `handoff.reason`            | The default reason of an approval request made with `requestApproval` ([P-APPR-1]).                                                                                              |
+| reason   | outcomeUnknown     | `outcome_unknown`      | `error.details.reason` on `unavailable`   | The work was sent and may have taken effect (an act whose page unloaded before it answered); `retryable` is false and the result is stored under the idempotency key ([P-OP-3]). |
 
 ## MCP tool names
 

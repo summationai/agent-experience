@@ -245,7 +245,7 @@ Threats that remain yours: the blast radius of an agent session (narrow what you
 - Everything is in memory in one process: sessions, the relay's tabs, and Stop holds reset on restart.
 - The hosted page is a real browser page. What the page cannot do headless (a CAPTCHA, a second factor, a hardware key) fails the session, and the agent is told it could not start.
 - Watching is screenshots, polled once a second, in development; there is no live stream.
-- An act whose click navigates the page (a link) is reported as `conflict` after the new page connects, although the click ran; observe again after a navigation.
+- An act whose click navigates the page (a link, a form that posts and reloads) is answered `ok` with `navigated: true` just before the page unloads, and the agent is told to observe the new page. An act whose page goes away without a navigation it could see (a crash, a closed page), or does not answer in time, is `unavailable` with `details.reason: "outcome_unknown"` and `retryable: false`: it was sent and may have taken effect, so it is neither retried nor reported as nothing applied ([S-RELAY-14]).
 - The development storage state is one person's cookies. It expires like any session, and anyone who can read the file can use it.
 
 ## Next steps

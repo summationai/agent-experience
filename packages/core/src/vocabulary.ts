@@ -658,6 +658,8 @@ export const reason = /* @__PURE__ */ Object.freeze({
   payloadTooLarge: "payload_too_large",
   /** The default reason of an approval request made with `requestApproval` ([P-APPR-1]). */
   approvalRequired: "approval_required",
+  /** The work was sent and may have taken effect (an act whose page unloaded before it answered); `retryable` is false and the result is stored under the idempotency key ([P-OP-3]). */
+  outcomeUnknown: "outcome_unknown",
 } as const);
 
 /** `tool` names. */
@@ -1454,7 +1456,7 @@ export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-s
 /** Union of every `markup` name. */
 export type WireMarkup = "data-surface-ignore";
 /** Union of every `reason` name. */
-export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required" | "cross_origin_refused" | "json_required" | "payload_too_large" | "approval_required";
+export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required" | "cross_origin_refused" | "json_required" | "payload_too_large" | "approval_required" | "outcome_unknown";
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
@@ -1614,6 +1616,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "reason", key: "jsonRequired", name: "json_required" },
   { category: "reason", key: "payloadTooLarge", name: "payload_too_large" },
   { category: "reason", key: "approvalRequired", name: "approval_required" },
+  { category: "reason", key: "outcomeUnknown", name: "outcome_unknown" },
   { category: "tool", key: "continue", name: "axe_continue" },
   { category: "tool", key: "resume", name: "axe_resume" },
   { category: "tool", key: "manifest", name: "axe_manifest" },

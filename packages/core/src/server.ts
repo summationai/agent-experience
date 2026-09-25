@@ -1925,7 +1925,8 @@ export class AXE {
 
   /**
    * Settle a claim this request holds ([P-OP-3]): store a non-error result for replay, and release
-   * the claim on an `error` so the operation may be retried. `storeErrors` keeps a terminal error
+   * the claim on an `error` so the operation may be retried, except an error whose outcome is
+   * unknown (`details.reason: "outcome_unknown"`), which is stored. `storeErrors` keeps a terminal error
    * (a poll's). A lost lease is reported to `onError`; the result still goes to this caller.
    */
   private async settleOperation(
@@ -1935,7 +1936,14 @@ export class AXE {
     result: Result,
     storeErrors = false,
   ): Promise<void> {
-    if (result.status === WIRE.status.error && !storeErrors) {
+    // An error whose outcome is unknown (the work was sent and may have run: `details.reason`
+    // `outcome_unknown`) is kept like a success, so a retry with the same key is answered with it
+    // rather than running the work a second time.
+    const unknown =
+      result.status === WIRE.status.error &&
+      (result.error.details as { reason?: unknown } | undefined)?.reason ===
+        WIRE.reason.outcomeUnknown;
+    if (result.status === WIRE.status.error && !storeErrors && !unknown) {
       await this.idempotency.release(key, claim.owner);
       return;
     }

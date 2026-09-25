@@ -250,8 +250,7 @@ describe("unattended mode in Chromium", () => {
 
     // The page's own link within the app: a new page, the same session and tab.
     const tabId = host.sessions()[0]!.tabId;
-    // The click runs and the page navigates. (The relay's answer for an act whose page unloads
-    // mid-act is not asserted here: the client retries after the reload and gets `conflict`.)
+    // The click runs and the page navigates (the answer is asserted in the next test).
     await alice.call("surface_run-control", {
       entryId: row(still.rows, "Other page").id,
       expectedRev: still.rev,
@@ -266,6 +265,55 @@ describe("unattended mode in Chromium", () => {
       );
     });
     expect(host.sessions()[0]!.tabId).toBe(tabId);
+  });
+
+  it("a click that navigates is reported as having run, never as nothing applied, and is not retried", async (ctx) => {
+    if (missing) return ctx.skip();
+    const { host, agent: open } = await start();
+    const alice = await open("agent-alice", () => ({
+      action: "accept",
+      content: { approve: true },
+    }));
+    const truthful = (r: Awaited<ReturnType<typeof alice.call>>) => {
+      expect(r.text).not.toMatch(/nothing (was )?applied/i);
+      expect(r.result.error?.code).not.toBe("conflict");
+      if (r.result.status === "ok") {
+        expect((r.result.output as { navigated?: boolean }).navigated).toBe(true);
+      } else {
+        expect(r.result.error).toMatchObject({
+          code: "unavailable",
+          retryable: false,
+          details: { reason: "outcome_unknown" },
+        });
+      }
+    };
+
+    // A link.
+    const first = await observe(alice);
+    const loads = () => fixture.seen.filter((s) => s.path === "/other" && s.session === "alice");
+    const before = loads().length;
+    const link = await alice.call("surface_run-control", {
+      entryId: row(first.rows, "Other page").id,
+      expectedRev: first.rev,
+    });
+    truthful(link);
+    await until(() => host.page(ALICE)!.url().endsWith("/other"));
+    expect(loads().length - before).toBe(1);
+
+    // A form that posts and reloads: submitted exactly once.
+    await until(async () =>
+      (await observe(alice).catch(() => null))?.rows.some((r) => r.name === "Send report"),
+    );
+    const second = await observe(alice);
+    const posts = () => fixture.seen.filter((s) => s.path === "/submitted" && s.method === "POST");
+    const submit = await alice.call("surface_run-control", {
+      entryId: row(second.rows, "Send report").id,
+      expectedRev: second.rev,
+    });
+    truthful(submit);
+    await until(() => host.page(ALICE)!.url().endsWith("/submitted"));
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(posts()).toHaveLength(1);
   });
 
   it("host_screenshot returns the hidden page as a PNG", async (ctx) => {

@@ -47,7 +47,7 @@ export interface Fixture {
   /** Another origin (127.0.0.1 instead of localhost): a hosted page must never reach it. */
   foreign: string;
   /** Every request the app received: path and the `session` cookie it carried. */
-  seen: { path: string; session: string | null; header: string | null }[];
+  seen: { path: string; session: string | null; header: string | null; method?: string }[];
   foreignHits: string[];
   close(): Promise<void>;
 }
@@ -73,6 +73,7 @@ function page(path: string, user: string | null, foreign: string): string {
 <button id="add" type="button">Add one</button> <output id="count">0</output>
 <button id="delete" type="button">Delete everything</button>
 <a href="/other">Other page</a>
+<form method="post" action="/submitted"><input type="hidden" name="what" value="report"><button type="submit">Send report</button></form>
 <a href="${foreign}/steal">Partner site</a>
 </main>
 <script>
@@ -113,6 +114,7 @@ export async function startFixture(): Promise<Fixture> {
       path,
       session: cookieOf(req, "session"),
       header: typeof header === "string" ? header : null,
+      method: req.method ?? "GET",
     });
     if (path === "/bundle.js") {
       res.writeHead(200, { "Content-Type": "text/javascript" });
@@ -126,7 +128,7 @@ export async function startFixture(): Promise<Fixture> {
       });
       return void res.end("<!doctype html><title>Signed in</title><p>signed in</p>");
     }
-    if (path === "/" || path === "/other") {
+    if (path === "/" || path === "/other" || path === "/submitted") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       return void res.end(page(path, cookieOf(req, "session"), foreign));
     }

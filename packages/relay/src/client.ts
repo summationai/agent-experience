@@ -332,6 +332,8 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
   let changeTimer: ReturnType<typeof setTimeout> | undefined;
   let actor = "agent via relay";
   const approvals = new Map<string, RelayApproval & { key: string }>();
+  /** Acts running in the page, by the relay's request id. */
+  const inflight = new Map<number, { since: number; request: ActRequest; entryId: string }>();
   const status: RelayStatus = {
     state: "connecting",
     tabId,
@@ -390,11 +392,50 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     send({ t: "active" });
   };
   const onUnload = (): void => {
+    // An act whose click navigated this page (a link, a form that posts and reloads) never
+    // settles here: say so before the socket closes, so the agent is told the act ran. Only for
+    // an unload that began as a navigation (`beforeunload` fired): a page closed by its browser
+    // (a host ending the session) leaves the relay to report the outcome as unknown.
+    for (const [id, a] of navigating ? inflight : []) {
+      let seq = lastSeq();
+      try {
+        seq =
+          surface.record({ op: a.request.op, target: a.entryId, actor, changed: [] }).seq ?? seq;
+      } catch {
+        // the answer stands without its ledger line
+      }
+      send({
+        t: "result",
+        re: id,
+        result: {
+          status: "ok",
+          output: {
+            rev: surface.currentRev(),
+            id: a.entryId,
+            actor,
+            changed: [],
+            seq,
+            navigated: true,
+            notices: [
+              "The page navigated while acting: the act ran and the page is loading another page. Observe (or read) the new page before acting again.",
+            ],
+          },
+        },
+        observation: surface.observe(),
+        ledger: ledgerSince(a.since),
+      });
+    }
+    inflight.clear();
     // Leaving the page is not Stop: the token is not revoked, and a reload reattaches.
     shutDown(1000, "unload", "stopped", null);
   };
+  let navigating = false;
+  const onBeforeUnload = (): void => {
+    navigating = true;
+  };
   if (typeof addEventListener === "function") {
     addEventListener("focus", onActive);
+    addEventListener("beforeunload", onBeforeUnload);
     addEventListener("pagehide", onUnload);
   }
   if (typeof document !== "undefined") document.addEventListener("visibilitychange", onActive);
@@ -403,6 +444,7 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     offChange();
     if (typeof removeEventListener === "function") {
       removeEventListener("focus", onActive);
+      removeEventListener("beforeunload", onBeforeUnload);
       removeEventListener("pagehide", onUnload);
     }
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onActive);
@@ -547,9 +589,11 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     }
     if (status.state === "connected") publish({ state: "acting" });
     let result: ActResult;
+    inflight.set(id, { since, request, entryId: row?.id ?? String(request.target) });
     try {
       result = await surface.act({ ...request, actor });
     } catch (e) {
+      if (!inflight.delete(id)) return;
       // The handler threw; the surface recorded it as `internal` [S-LED-4].
       return reply(
         errorOf(
@@ -558,6 +602,8 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         ),
       );
     }
+    // Answered already when the page unloaded mid-act.
+    if (!inflight.delete(id)) return;
     reply(result);
   };
 
