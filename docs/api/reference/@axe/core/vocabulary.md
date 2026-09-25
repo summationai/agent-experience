@@ -213,6 +213,17 @@ type WireApi =
   | "actionFor"
   | "idleReason"
   | "maxPageSize"
+  | "autoSurface"
+  | "formatCoverage"
+  | "checkConfig"
+  | "autoDomains"
+  | "autoActions"
+  | "useAutoSurface"
+  | "useAutoSurfaceHandle"
+  | "elementFor"
+  | "metaFor"
+  | "debounceMs"
+  | "quietMs"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -508,7 +519,9 @@ type WireField =
   | "currentRev"
   | "event"
   | "entryId"
-  | "nextCursor";
+  | "nextCursor"
+  | "nameFrom"
+  | "staleConfig";
 ```
 
 Union of every `field` name.
@@ -885,6 +898,9 @@ const api: Readonly<{
   authenticate: "authenticate";
   authFor: "authFor";
   authInfo: "authInfo";
+  autoActions: "autoActions";
+  autoDomains: "autoDomains";
+  autoSurface: "autoSurface";
   availability: "availability";
   axeExpress: "axeExpress";
   axeFetch: "axeFetch";
@@ -892,6 +908,7 @@ const api: Readonly<{
   axeNextPages: "axeNextPages";
   bump: "bump";
   cancelHandoff: "cancelHandoff";
+  checkConfig: "checkConfig";
   checkDestination: "checkDestination";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
@@ -911,6 +928,7 @@ const api: Readonly<{
   createTestClient: "createTestClient";
   currentRev: "currentRev";
   customKind: "customKind";
+  debounceMs: "debounceMs";
   defaultRisk: "defaultRisk";
   describe: "describe";
   describeEntry: "describeEntry";
@@ -918,6 +936,7 @@ const api: Readonly<{
   destinationPolicy: "destinationPolicy";
   discover: "discover";
   domainActions: "domainActions";
+  elementFor: "elementFor";
   emit: "emit";
   entries: "entries";
   entryIdFor: "entryIdFor";
@@ -928,6 +947,7 @@ const api: Readonly<{
   formatAuditHtml: "formatAuditHtml";
   formatAuditTable: "formatAuditTable";
   formatConformanceTable: "formatConformanceTable";
+  formatCoverage: "formatCoverage";
   formatDriftReport: "formatDriftReport";
   formatResult: "formatResult";
   formatWarnings: "formatWarnings";
@@ -976,6 +996,7 @@ const api: Readonly<{
   maxRisk: "maxRisk";
   maxSessions: "maxSessions";
   maxWaitMs: "maxWaitMs";
+  metaFor: "metaFor";
   modelContext: "modelContext";
   needsInput: "needsInput";
   observe: "observe";
@@ -1001,6 +1022,7 @@ const api: Readonly<{
   present: "present";
   protectedResourceMetadata: "protectedResourceMetadata";
   prune: "prune";
+  quietMs: "quietMs";
   readOnlyHint: "readOnlyHint";
   reconcile: "reconcile";
   redactEvent: "redactEvent";
@@ -1064,6 +1086,8 @@ const api: Readonly<{
   unavailable: "unavailable";
   unregister: "unregister";
   untrustedContentHint: "untrustedContentHint";
+  useAutoSurface: "useAutoSurface";
+  useAutoSurfaceHandle: "useAutoSurfaceHandle";
   useSurface: "useSurface";
   useSurfaceProps: "useSurfaceProps";
   validateJsonSchema: "validateJsonSchema";
@@ -1308,6 +1332,7 @@ const field: Readonly<{
   modes: "modes";
   mutates: "mutates";
   name: "name";
+  nameFrom: "nameFrom";
   next: "next";
   nextCursor: "nextCursor";
   object: "object";
@@ -1351,6 +1376,7 @@ const field: Readonly<{
   since: "since";
   sites: "sites";
   sort: "sort";
+  staleConfig: "staleConfig";
   state: "state";
   status: "status";
   steps: "steps";
@@ -1798,6 +1824,9 @@ const WIRE: Readonly<{
      authenticate: "authenticate";
      authFor: "authFor";
      authInfo: "authInfo";
+     autoActions: "autoActions";
+     autoDomains: "autoDomains";
+     autoSurface: "autoSurface";
      availability: "availability";
      axeExpress: "axeExpress";
      axeFetch: "axeFetch";
@@ -1805,6 +1834,7 @@ const WIRE: Readonly<{
      axeNextPages: "axeNextPages";
      bump: "bump";
      cancelHandoff: "cancelHandoff";
+     checkConfig: "checkConfig";
      checkDestination: "checkDestination";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
@@ -1824,6 +1854,7 @@ const WIRE: Readonly<{
      createTestClient: "createTestClient";
      currentRev: "currentRev";
      customKind: "customKind";
+     debounceMs: "debounceMs";
      defaultRisk: "defaultRisk";
      describe: "describe";
      describeEntry: "describeEntry";
@@ -1831,6 +1862,7 @@ const WIRE: Readonly<{
      destinationPolicy: "destinationPolicy";
      discover: "discover";
      domainActions: "domainActions";
+     elementFor: "elementFor";
      emit: "emit";
      entries: "entries";
      entryIdFor: "entryIdFor";
@@ -1841,6 +1873,7 @@ const WIRE: Readonly<{
      formatAuditHtml: "formatAuditHtml";
      formatAuditTable: "formatAuditTable";
      formatConformanceTable: "formatConformanceTable";
+     formatCoverage: "formatCoverage";
      formatDriftReport: "formatDriftReport";
      formatResult: "formatResult";
      formatWarnings: "formatWarnings";
@@ -1889,6 +1922,7 @@ const WIRE: Readonly<{
      maxRisk: "maxRisk";
      maxSessions: "maxSessions";
      maxWaitMs: "maxWaitMs";
+     metaFor: "metaFor";
      modelContext: "modelContext";
      needsInput: "needsInput";
      observe: "observe";
@@ -1914,6 +1948,7 @@ const WIRE: Readonly<{
      present: "present";
      protectedResourceMetadata: "protectedResourceMetadata";
      prune: "prune";
+     quietMs: "quietMs";
      readOnlyHint: "readOnlyHint";
      reconcile: "reconcile";
      redactEvent: "redactEvent";
@@ -1977,6 +2012,8 @@ const WIRE: Readonly<{
      unavailable: "unavailable";
      unregister: "unregister";
      untrustedContentHint: "untrustedContentHint";
+     useAutoSurface: "useAutoSurface";
+     useAutoSurfaceHandle: "useAutoSurfaceHandle";
      useSurface: "useSurface";
      useSurfaceProps: "useSurfaceProps";
      validateJsonSchema: "validateJsonSchema";
@@ -2133,6 +2170,7 @@ const WIRE: Readonly<{
      modes: "modes";
      mutates: "mutates";
      name: "name";
+     nameFrom: "nameFrom";
      next: "next";
      nextCursor: "nextCursor";
      object: "object";
@@ -2176,6 +2214,7 @@ const WIRE: Readonly<{
      since: "since";
      sites: "sites";
      sort: "sort";
+     staleConfig: "staleConfig";
      state: "state";
      status: "status";
      steps: "steps";

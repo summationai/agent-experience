@@ -434,6 +434,14 @@ optional object?: string;
 role: string;
 ```
 
+<a id="source"></a>
+
+##### source?
+
+```ts
+optional source?: EntrySource;
+```
+
 <a id="state"></a>
 
 ##### state?
@@ -441,6 +449,19 @@ role: string;
 ```ts
 optional state?: Availability;
 ```
+
+<a id="value"></a>
+
+##### value?
+
+```ts
+optional value?: JsonValue;
+```
+
+The control's own toggle or selection state, when it has one, as the page shows it:
+`{ checked }` for a checkbox, switch, or radio (`true`, `false`, or `"mixed"`), `{ pressed }`
+for a toggle button, `{ selected }` for a tab or option, `{ expanded }` for a disclosure. Never
+part of the `name` ([S-DOM-1]).
 
 ***
 
@@ -473,6 +494,16 @@ changed: string[];
 ```ts
 id: string;
 ```
+
+<a id="notices"></a>
+
+##### notices?
+
+```ts
+optional notices?: string[];
+```
+
+What the page said in response, when the handler reported it (`HandlerReport.notices`).
 
 <a id="rev"></a>
 
@@ -642,6 +673,14 @@ role: string;
 
 ```ts
 optional sort?: JsonValue;
+```
+
+<a id="source-1"></a>
+
+##### source?
+
+```ts
+optional source?: EntrySource;
 ```
 
 <a id="total"></a>
@@ -894,7 +933,15 @@ The value is private ([S-PRV-1]): it never appears in `observe()`, `describeEntr
 mirror, or the ledger's `text` (successful acts and refusals alike), and the bridge's action
 events never carry it. The row says `sensitive: true` instead of carrying `value`.
 
-<a id="value"></a>
+<a id="source-2"></a>
+
+##### source?
+
+```ts
+optional source?: EntrySource;
+```
+
+<a id="value-1"></a>
 
 ##### value?
 
@@ -960,6 +1007,17 @@ and adopts nothing from the report. Throwing a `SurfaceConflict` does the same.
 ```ts
 optional currentRev?: number;
 ```
+
+<a id="notices-1"></a>
+
+##### notices?
+
+```ts
+optional notices?: string[];
+```
+
+Text the page showed in response (a toast, a status line), for the agent to read in the act's
+output. `autoSurface` reports what appeared while the page settled ([S-AUTO-5]).
 
 <a id="rev-1"></a>
 
@@ -1492,6 +1550,16 @@ Present on a sensitive field ([S-PRV-1]), which carries no `value`.
 optional sort?: JsonValue;
 ```
 
+<a id="source-3"></a>
+
+##### source?
+
+```ts
+optional source?: "derived" | "annotated";
+```
+
+Present on an entry that is not declared ([S-AUTO-1]): `derived` or `annotated`.
+
 <a id="state-1"></a>
 
 ##### state?
@@ -1532,7 +1600,7 @@ optional requires?: Accept[];
 optional total?: number | null;
 ```
 
-<a id="value-1"></a>
+<a id="value-2"></a>
 
 ##### value?
 
@@ -2305,6 +2373,22 @@ What `availability(id)` returns: the wire shape of an unavailable-with-reason re
 ```ts
 type EntryKind = "action" | "field" | "collection";
 ```
+
+***
+
+<a id="entrysource"></a>
+
+### EntrySource
+
+```ts
+type EntrySource = "derived" | "annotated" | "declared";
+```
+
+Where an entry came from, which is also what it guarantees ([S-AUTO-1]): `derived` was read from
+the rendered page by `autoSurface` and acts through the page's own events; `annotated` is derived
+and refined by configuration or `data-surface-*` attributes; `declared` was registered by the
+application (or given a real handler by configuration) and runs the application's own function.
+An entry without `source` is declared.
 
 ***
 
