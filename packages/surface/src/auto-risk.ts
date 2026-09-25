@@ -249,9 +249,23 @@ const DANGER_STYLE =
 
 /** A destructive styling hint on the control: a `danger` or `destructive` class, a variant attribute, a red button. */
 export function dangerStyled(el: Element): string {
-  const cls = typeof (el as HTMLElement).className === "string" ? (el as HTMLElement).className : el.getAttribute("class") ?? "";
+  const cls =
+    typeof (el as HTMLElement).className === "string"
+      ? (el as HTMLElement).className
+      : (el.getAttribute("class") ?? "");
   if (DANGER_STYLE.test(cls)) return "styled as destructive";
-  for (const attr of ["data-variant", "variant", "data-intent", "data-color", "data-type", "data-tone", "color", "intent", "kind", "appearance"]) {
+  for (const attr of [
+    "data-variant",
+    "variant",
+    "data-intent",
+    "data-color",
+    "data-type",
+    "data-tone",
+    "color",
+    "intent",
+    "kind",
+    "appearance",
+  ]) {
     const v = (el.getAttribute(attr) ?? "").toLowerCase();
     if (/^(danger|destructive|critical|negative|error|red)$/.test(v)) return `${attr}="${v}"`;
   }
@@ -279,7 +293,12 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   const { role, element: el } = input;
   const title = el.getAttribute("title") ?? "";
   const words = `${input.name} ${title}`.trim();
-  const verdict = (risk: Risk, mutates: string, why: string, extra: Partial<RiskVerdict> = {}): RiskVerdict => ({
+  const verdict = (
+    risk: Risk,
+    mutates: string,
+    why: string,
+    extra: Partial<RiskVerdict> = {},
+  ): RiskVerdict => ({
     risk,
     mutates,
     reversible: risk === "none" || risk === "low",
@@ -311,7 +330,10 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   if (role === "link") {
     if (input.href && input.origin && input.href.origin !== input.origin)
       return verdict("medium", "location", "leaves the site", { reversible: true });
-    return verdict("low", "location", "a link within the site", { reversible: true, idempotent: true });
+    return verdict("low", "location", "a link within the site", {
+      reversible: true,
+      idempotent: true,
+    });
   }
   if (role === "tab" || role === "treeitem" || role === "menuitemradio")
     return verdict("low", "view", `a ${role}: changes what is shown`);
@@ -319,7 +341,8 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   if (role === "combobox-trigger") return verdict("low", "view", "opens a list of choices");
   const inForm = !!el.closest("form");
   if (role === "checkbox" || role === "radio" || role === "menuitemcheckbox") {
-    if (inForm) return verdict("low", "form", `a ${role} in a form: nothing is saved until it is submitted`);
+    if (inForm)
+      return verdict("low", "form", `a ${role} in a form: nothing is saved until it is submitted`);
     if (el.closest('tr, [role="row"]')) return verdict("low", "view", "selects a row");
     return verdict("medium", "app", `a ${role} outside a form may save on change`);
   }
@@ -330,7 +353,8 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   const submits =
     (el.localName === "button" && (type === "submit" || (type === "" && inForm))) ||
     (el.localName === "input" && type === "submit");
-  if (commit) return verdict("medium", submits || inForm ? "form" : "app", `name matches “${commit}”`);
+  if (commit)
+    return verdict("medium", submits || inForm ? "form" : "app", `name matches “${commit}”`);
   if (submits) return verdict("medium", "form", "submits a form");
   if (el.localName === "summary") return verdict("low", "view", "opens or closes a disclosure");
   if (view) return verdict("low", "view", `name matches “${view}”`);

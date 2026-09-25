@@ -252,7 +252,10 @@ interface Built {
 }
 
 function signature(entry: Entry, meta: AutoEntryMeta): string {
-  return JSON.stringify(entry, (k, v) => (typeof v === "function" ? undefined : v)) + JSON.stringify(meta);
+  return (
+    JSON.stringify(entry, (k, v) => (typeof v === "function" ? undefined : v)) +
+    JSON.stringify(meta)
+  );
 }
 
 /**
@@ -260,10 +263,13 @@ function signature(entry: Entry, meta: AutoEntryMeta): string {
  * change (coalesced), and register, replace, or unregister entries so the table matches the page.
  */
 export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle {
-  const doc = options.root?.ownerDocument ?? (typeof document !== "undefined" ? document : undefined);
+  const doc =
+    options.root?.ownerDocument ?? (typeof document !== "undefined" ? document : undefined);
   const rootEl = options.root ?? doc?.body;
   if (!doc || !rootEl)
-    throw new Error("autoSurface needs a rendered page: call it in the browser after the DOM exists, or pass `root`.");
+    throw new Error(
+      "autoSurface needs a rendered page: call it in the browser after the DOM exists, or pass `root`.",
+    );
   const win = windowOf(rootEl);
   let config: SurfaceConfig = options.config ?? {};
   const surface = options.surface ?? createSurface(config.app ? { app: config.app } : {});
@@ -308,7 +314,12 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
   const watch = (node: Node) => {
     if (!observer || observed.has(node)) return;
     observed.add(node);
-    observer.observe(node, { subtree: true, childList: true, attributes: true, characterData: true });
+    observer.observe(node, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
   };
   watch(rootEl);
   const onEvent = () => schedule();
@@ -345,7 +356,11 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       }
       const tag = el.localName;
       if (tag === "script" || tag === "style" || tag === "template" || tag === "noscript") return;
-      if (el.hasAttribute("hidden") && el.getAttribute("hidden") !== "until-found" && hiddenMode === "skip")
+      if (
+        el.hasAttribute("hidden") &&
+        el.getAttribute("hidden") !== "until-found" &&
+        hiddenMode === "skip"
+      )
         return;
       let isCandidate = false;
       try {
@@ -365,20 +380,34 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
           markup: "expose the data behind it with surface.setObjects() or declare its controls",
         });
       }
-      if (tag === "svg" && !el.closest("button, a, [role=button], [role=link]") && !isHidden(el, ctx)) {
+      if (
+        tag === "svg" &&
+        !el.closest("button, a, [role=button], [role=link]") &&
+        !isHidden(el, ctx)
+      ) {
         const shapes = el.querySelectorAll("path, rect, circle, line, polyline, polygon").length;
         const lib = opaqueKind(el);
-        if ((shapes >= 12 || lib) && !norm(el.getAttribute("aria-label")) && !el.getAttribute("aria-labelledby")) {
+        if (
+          (shapes >= 12 || lib) &&
+          !norm(el.getAttribute("aria-label")) &&
+          !el.getAttribute("aria-labelledby")
+        ) {
           const title = opaqueTitle(el);
           gaps.push({
             kind: "chart",
             message: `${lib ? lib.charAt(0).toUpperCase() + lib.slice(1) : `An SVG with ${shapes} shapes (a chart?)`}${title ? ` (“${title}”)` : ""} is an opaque region: no accessible name or data, so agents see nothing of it.`,
             selector: selectorFor(el),
-            markup: 'add role="img" and an aria-label that states what it shows (or enable the library\'s accessibility module), or publish its data with surface.setObjects()',
+            markup:
+              'add role="img" and an aria-label that states what it shows (or enable the library\'s accessibility module), or publish its data with surface.setObjects()',
           });
         }
       }
-      if (tag.includes("-") && !el.shadowRoot && !el.children.length && win.customElements?.get(tag))
+      if (
+        tag.includes("-") &&
+        !el.shadowRoot &&
+        !el.children.length &&
+        win.customElements?.get(tag)
+      )
         gaps.push({
           kind: "closed-shadow",
           message: `<${tag}> renders into a closed shadow root (or nothing): its controls cannot be read.`,
@@ -428,12 +457,22 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     if (role === "listbox-select") return "field";
     if (FIELD_ROLES.has(role)) {
       const tag = el.localName;
-      if (tag === "input" || tag === "textarea" || tag === "select" || el.hasAttribute("contenteditable"))
+      if (
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        el.hasAttribute("contenteditable")
+      )
         return "field";
       return null;
     }
     if (COLLECTION_ROLES.has(role)) return "collection";
-    if (LANDMARK_ROLES.has(role) && config.landmarks !== false && role !== "banner" && role !== "contentinfo")
+    if (
+      LANDMARK_ROLES.has(role) &&
+      config.landmarks !== false &&
+      role !== "banner" &&
+      role !== "contentinfo"
+    )
       return "landmark";
     return null;
   }
@@ -484,7 +523,11 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
           kind: "custom-widget",
           message: `A clickable <${el.localName}>${text ? ` (“${text}”)` : ""} has no role, so it is not on the surface.`,
           selector,
-          suggestion: { match: { selector, route }, role: "button", name: text || "describe what it does" },
+          suggestion: {
+            match: { selector, route },
+            role: "button",
+            name: text || "describe what it does",
+          },
           markup: 'use a <button>, or add role="button", tabindex="0", and an accessible name',
         });
       }
@@ -502,7 +545,11 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
             kind: "duplicate-name",
             message: `${n} controls named “${first.name}” (${first.role}) share one context; their keys carry an ordinal (~2, ~3), which shifts when one is added before another.`,
             entryId: first.pin ?? first.key,
-            suggestion: { match: { key: `${base}~2` }, id: `${slug(first.name)}-2`, name: `${first.name} (say which)` },
+            suggestion: {
+              match: { key: `${base}~2` },
+              id: `${slug(first.name)}-2`,
+              name: `${first.name} (say which)`,
+            },
             markup: "give each a name that says which one (aria-label), or a data-surface-id",
           });
         }
@@ -516,7 +563,10 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
         if (dup) {
           id = `${id}~${dup + 1}`;
           b.entry = { ...b.entry, id } as Entry;
-          (b.entry as unknown as Record<symbol, AutoEntryMark>)[AUTO_META] = { key: b.meta.key, ...(b.meta.group ? { group: b.meta.group } : {}) };
+          (b.entry as unknown as Record<symbol, AutoEntryMark>)[AUTO_META] = {
+            key: b.meta.key,
+            ...(b.meta.group ? { group: b.meta.group } : {}),
+          };
         }
         // An entry the application registered itself under this id wins ([S-AUTO-2]).
         const live = surface.get(id);
@@ -535,7 +585,8 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     });
     const declaredNames = new Map<string, string>();
     for (const e of surface.entries())
-      if (!next.has(e.id) && !registered.has(e.id)) declaredNames.set(norm(nameText(e)).toLowerCase(), e.id);
+      if (!next.has(e.id) && !registered.has(e.id))
+        declaredNames.set(norm(nameText(e)).toLowerCase(), e.id);
     for (const [id, b] of next) {
       const other = declaredNames.get(norm(nameText(b.entry)).toLowerCase());
       if (other && b.meta.source !== "declared")
@@ -577,7 +628,12 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     return typeof e.name === "function" ? e.name() : e.name;
   }
 
-  function describe(el: Element, ctx: ScanContext, route: string, forcedRole?: string): Candidate | null {
+  function describe(
+    el: Element,
+    ctx: ScanContext,
+    route: string,
+    forcedRole?: string,
+  ): Candidate | null {
     const role = forcedRole ?? roleFromRules(el) ?? roleOf(el);
     const pin = el.getAttribute("data-surface-id");
     if (role === "file") {
@@ -586,7 +642,8 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
           kind: "file-input",
           message: `A file input (“${accessibleName(el, role, ctx).name || "unnamed"}”) cannot be filled by an agent through the page.`,
           selector: selectorFor(el),
-          markup: "declare an entry whose handler takes a document the agent supplies (requires with document.url)",
+          markup:
+            "declare an entry whose handler takes a document the agent supplies (requires with document.url)",
         });
       return null;
     }
@@ -647,11 +704,16 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
         kind: "icon-only",
         message: `An icon-only ${role} is named “${name}” from its icon's class only.`,
         selector,
-        suggestion: { match: { selector, route }, name: name.charAt(0).toUpperCase() + name.slice(1) },
+        suggestion: {
+          match: { selector, route },
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+        },
         markup: `add aria-label="${name.charAt(0).toUpperCase() + name.slice(1)}" (or what it does)`,
       });
     }
-    const pathKey = where.path.map((s) => (s.kind === "landmark" ? slug(s.label.replace(":", "-")) : `${s.kind}:${slug(s.label, 32)}`));
+    const pathKey = where.path.map((s) =>
+      s.kind === "landmark" ? slug(s.label.replace(":", "-")) : `${s.kind}:${slug(s.label, 32)}`,
+    );
     const baseKey = `${route}#${pathKey.join("/")}${pathKey.length ? "/" : ""}${role}:${slug(name)}`;
     return {
       el,
@@ -669,11 +731,24 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
   }
 
   /** The rules that match a candidate, merged in order; a later rule's fields win. */
-  function overlayFor(c: Candidate, route: string): { rule: Omit<SurfaceRule, "match">; hits: number[] } {
+  function overlayFor(
+    c: Candidate,
+    route: string,
+  ): { rule: Omit<SurfaceRule, "match">; hits: number[] } {
     const merged: Omit<SurfaceRule, "match"> = {};
     const hits: number[] = [];
     rules().forEach((r, i) => {
-      if (!ruleMatches(r.match, { key: c.key, pin: c.pin, element: c.el, route, role: c.role, name: c.name })) return;
+      if (
+        !ruleMatches(r.match, {
+          key: c.key,
+          pin: c.pin,
+          element: c.el,
+          route,
+          role: c.role,
+          name: c.name,
+        })
+      )
+        return;
       hits.push(i);
       ruleHitsNow[i] = (ruleHitsNow[i] ?? 0) + 1;
       const { match: _m, effect, ...rest } = r;
@@ -710,7 +785,11 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     if (rule.hide) return null;
     const id = rule.id ?? c.pin ?? c.key;
     const name = rule.name ?? c.name;
-    const nameFrom: NameFrom = rule.name ? "config" : c.pin && c.nameFrom === "pin" ? "pin" : c.nameFrom;
+    const nameFrom: NameFrom = rule.name
+      ? "config"
+      : c.pin && c.nameFrom === "pin"
+        ? "pin"
+        : c.nameFrom;
     const object = rule.object ?? (c.object || undefined);
     const handler = rule.handler;
     const source: EntrySource = handler
@@ -747,13 +826,21 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
           }));
       if (sensitive) meta.sensitive = true;
       let readOnlyReason: string | null =
-        rule.state === "unavailable" ? (rule.reason ?? "unavailable") : rule.state === "available" ? null : blocked;
+        rule.state === "unavailable"
+          ? (rule.reason ?? "unavailable")
+          : rule.state === "available"
+            ? null
+            : blocked;
       if (!readOnlyReason && rule.state !== "available" && isReadOnly(el))
         readOnlyReason = rule.reason ?? (reasonOf(el, ctx) || "read only in the page");
-      if (readOnlyReason && blocked && rule.reason && readOnlyReason === blocked && !c.hidden) readOnlyReason = rule.reason;
-      if (!readOnlyReason && sensitive && !rule.editable) readOnlyReason = "a private field: the person types it";
-      if (!readOnlyReason && rule.approval === true && !isApproved(id)) readOnlyReason = "needs the person's approval";
-      if (!readOnlyReason && policy.medium === "deny") readOnlyReason = "agents may not edit fields on this site";
+      if (readOnlyReason && blocked && rule.reason && readOnlyReason === blocked && !c.hidden)
+        readOnlyReason = rule.reason;
+      if (!readOnlyReason && sensitive && !rule.editable)
+        readOnlyReason = "a private field: the person types it";
+      if (!readOnlyReason && rule.approval === true && !isApproved(id))
+        readOnlyReason = "needs the person's approval";
+      if (!readOnlyReason && policy.medium === "deny")
+        readOnlyReason = "agents may not edit fields on this site";
       const role = c.role === "listbox-select" ? "listbox" : c.role;
       const entry: Entry = {
         id,
@@ -788,7 +875,8 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
           kind: "virtualized",
           message: `“${name}” renders ${facts.loaded}${facts.total !== null ? ` of ${facts.total}` : ""} rows: only the visible rows are on the surface; load-more scrolls it.`,
           entryId: id,
-          markup: "set aria-rowcount (or aria-setsize) so the total is known, or declare the collection with its data",
+          markup:
+            "set aria-rowcount (or aria-setsize) so the total is known, or declare the collection with its data",
         });
       const canMore = !blocked && (facts.loadMore || facts.scroller);
       const entry: Entry = {
@@ -839,7 +927,12 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
         },
         lexicon,
       );
-      effect = { mutates: verdict.mutates, risk: verdict.risk, reversible: verdict.reversible, idempotent: verdict.idempotent };
+      effect = {
+        mutates: verdict.mutates,
+        risk: verdict.risk,
+        reversible: verdict.reversible,
+        idempotent: verdict.idempotent,
+      };
       why = verdict.why;
       unrecognized = verdict.unrecognized;
     }
@@ -862,15 +955,32 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
         kind: "unclassified-risk",
         message: `“${name}” (${c.role}) was not recognized, so it is treated as a high-risk change${decision === "approve" ? " that needs the person's approval" : ""}.`,
         entryId: id,
-        suggestion: { match: { key: c.key }, effect: { mutates: "say what it changes", risk: "medium" } },
+        suggestion: {
+          match: { key: c.key },
+          effect: { mutates: "say what it changes", risk: "medium" },
+        },
       });
     }
     let state: Availability = { available: true };
-    const reason = rule.state === "unavailable" ? (rule.reason ?? "unavailable") : rule.state === "available" ? null : blocked;
+    const reason =
+      rule.state === "unavailable"
+        ? (rule.reason ?? "unavailable")
+        : rule.state === "available"
+          ? null
+          : blocked;
     if (reason) {
-      state = { available: false, reason: blocked && rule.reason && !c.hidden && rule.state !== "unavailable" ? rule.reason : reason };
+      state = {
+        available: false,
+        reason:
+          blocked && rule.reason && !c.hidden && rule.state !== "unavailable"
+            ? rule.reason
+            : reason,
+      };
     } else if (decision === "deny") {
-      state = { available: false, reason: "agents may not do this on this site; the person can do it themselves" };
+      state = {
+        available: false,
+        reason: "agents may not do this on this site; the person can do it themselves",
+      };
     } else if (decision === "approve" && !isApproved(id)) {
       state = {
         available: false,
@@ -915,7 +1025,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
   }
 
   const gone = (id: string) =>
-    new SurfaceConflict(`The control ${id} is no longer on the page; nothing was done. Observe again and choose again.`);
+    new SurfaceConflict(
+      `The control ${id} is no longer on the page; nothing was done. Observe again and choose again.`,
+    );
 
   /** Start watching before the act's events, so changes made while they dispatch count. */
   const watches = new WeakMap<ActWatch, Set<string>>();
@@ -966,11 +1078,17 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
   ): Promise<unknown> {
     const h = handlers.get(id);
     if (!h) return dispatch();
-    return Promise.resolve(h({ entryId: id, element: el, text, actor, expectedRev: context.expectedRev, dispatch }));
+    return Promise.resolve(
+      h({ entryId: id, element: el, text, actor, expectedRev: context.expectedRev, dispatch }),
+    );
   }
 
   function actionHandler(id: string, how: "control" | "landmark") {
-    return async (actor: string, text: string | undefined, context: ActContext): Promise<HandlerReport> => {
+    return async (
+      actor: string,
+      text: string | undefined,
+      context: ActContext,
+    ): Promise<HandlerReport> => {
       const el = liveElement(id);
       if (!el && !handlers.has(id)) throw gone(id);
       consumeApproval(id);
@@ -997,7 +1115,10 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       consumeApproval(id);
       const dispatch = async () => {
         if (!el) return;
-        if (!typeInto(el, text)) throw new SurfaceConflict(`“${text}” is not one of the options of ${id}; nothing was chosen.`);
+        if (!typeInto(el, text))
+          throw new SurfaceConflict(
+            `“${text}” is not one of the options of ${id}; nothing was chosen.`,
+          );
       };
       const watch = watchAct(el);
       try {
@@ -1077,7 +1198,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       throw new Error(`navigate: "${path}" is not a path.`);
     }
     if (url.origin !== win.location.origin)
-      throw new Error(`navigate: "${path}" is not on this site (${win.location.origin}); only same-origin paths open.`);
+      throw new Error(
+        `navigate: "${path}" is not on this site (${win.location.origin}); only same-origin paths open.`,
+      );
     const how = config.navigate ?? "link";
     const target = url.pathname + url.search + url.hash;
     if (typeof how === "function") return void (await how(target));
@@ -1199,17 +1322,39 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       if (!available) counts.unavailable++;
       if (meta?.policy === "approve" || meta?.policy === "deny") {
         if (meta.policy === "approve") counts.awaitingApproval++;
-        approvalsOut.push({ id: e.id, name: nameText(e), risk: meta.risk ?? "high", why: meta.riskWhy ?? "", policy: meta.policy });
+        approvalsOut.push({
+          id: e.id,
+          name: nameText(e),
+          risk: meta.risk ?? "high",
+          why: meta.riskWhy ?? "",
+          policy: meta.policy,
+        });
       }
     }
     const stale: StaleRule[] = [];
     rules().forEach((r, i) => {
       if ((ruleHitsNow[i] ?? 0) > 0) return;
-      const scoped = r.match.route !== undefined && ruleMatches({ route: r.match.route }, { key: "", pin: null, element: null, route: currentRoute, role: "", name: "" });
+      const scoped =
+        r.match.route !== undefined &&
+        ruleMatches(
+          { route: r.match.route },
+          { key: "", pin: null, element: null, route: currentRoute, role: "", name: "" },
+        );
       if (scoped)
-        stale.push({ index: i, match: r.match, status: "stale", message: `It is scoped to ${currentRoute} and matched no control here: the control was renamed, moved, or removed.` });
+        stale.push({
+          index: i,
+          match: r.match,
+          status: "stale",
+          message: `It is scoped to ${currentRoute} and matched no control here: the control was renamed, moved, or removed.`,
+        });
       else if (r.match.route === undefined && !(ruleHitsEver[i] ?? 0))
-        stale.push({ index: i, match: r.match, status: "unmatched", message: "It has matched no control on any page seen so far; add a route to scope it, or fix the match." });
+        stale.push({
+          index: i,
+          match: r.match,
+          status: "unmatched",
+          message:
+            "It has matched no control on any page seen so far; add a route to scope it, or fix the match.",
+        });
     });
     const suggestions = gaps.flatMap((g) => (g.suggestion ? [g.suggestion] : []));
     counts.gaps = gaps.length;

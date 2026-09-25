@@ -103,5 +103,14 @@ export function autoDomains(options: AutoDomainsOptions = {}): DomainActionSpec[
 }
 
 function isLandmarkRole(role: string): boolean {
-  return ["main", "navigation", "search", "complementary", "region", "form", "banner", "contentinfo"].includes(role);
+  return [
+    "main",
+    "navigation",
+    "search",
+    "complementary",
+    "region",
+    "form",
+    "banner",
+    "contentinfo",
+  ].includes(role);
 }

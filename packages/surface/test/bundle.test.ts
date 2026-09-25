@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { build } from "esbuild";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 
 /**
  * The browser-bundle smoke test. A real integration (a legacy grid bundled with esbuild) found
@@ -28,23 +29,31 @@ async function bundle(contents: string, extraExternal: string[] = []) {
       "@axe/surface/react": join(src, "react.ts"),
       "@axe/surface/axe": join(src, "axe.ts"),
       "@axe/surface/webmcp": join(src, "webmcp.ts"),
+      "@axe/surface/auto": join(src, "auto.ts"),
     },
   });
-  const inputs = Object.keys(result.metafile.inputs);
+  // Modules that contribute code to the output: a module imported and then tree-shaken to nothing
+  // is not in the bundle.
+  const inputs = Object.values(result.metafile.outputs).flatMap((o) =>
+    Object.entries(o.inputs)
+      .filter(([, v]) => v.bytesInOutput > 0)
+      .map(([k]) => k),
+  );
   // Every import the bundle still makes at runtime: with `platform: "browser"` a Node built-in
   // fails the build outright, and anything left is listed here as external.
-  const imports = Object.values(result.metafile.outputs).flatMap((o) =>
-    o.imports.map((i) => i.path),
-  );
-  return { bytes: result.outputFiles[0]!.contents.byteLength, inputs, imports };
+  const imports = [
+    ...new Set(Object.values(result.metafile.outputs).flatMap((o) => o.imports.map((i) => i.path))),
+  ];
+  const output = result.outputFiles[0]!.contents;
+  return { bytes: output.byteLength, gzip: gzipSync(output).byteLength, inputs, imports };
 }
 
 describe("browser bundle", () => {
   it("@axe/surface and @axe/surface/react bundle for the browser without Node built-ins or Zod, under 50 kB minified", async () => {
     const out = await bundle(
       `import * as surface from "@axe/surface";
-       import * as react from "@axe/surface/react";
-       console.log(surface, react);`,
+       import { useSurface, useSurfaceProps, toSurfaceProps } from "@axe/surface/react";
+       console.log(surface, useSurface, useSurfaceProps, toSurfaceProps);`,
     );
     expect(out.imports).toEqual(["react"]);
     expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
@@ -53,6 +62,8 @@ describe("browser bundle", () => {
     expect(out.inputs.some((f) => f.includes("vocabulary"))).toBe(true);
     // The WebMCP adapter is an optional subpath: neither entry pulls it in.
     expect(out.inputs.filter((f) => /webmcp/.test(f))).toEqual([]);
+    // Nor the derivation: the hooks alone tree-shake SurfaceProvider and @axe/surface/auto away.
+    expect(out.inputs.filter((f) => /auto-dom/.test(f))).toEqual([]);
     console.log(`@axe/surface + @axe/surface/react: ${out.bytes} bytes minified for the browser`);
     expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);
   });
@@ -76,5 +87,34 @@ describe("browser bundle", () => {
     expect(out.inputs.filter((f) => /react/.test(f))).toEqual([]);
     console.log(`@axe/surface/webmcp: ${out.bytes} bytes minified for the browser`);
     expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);
+  });
+
+  it("@axe/surface/auto bundles for the browser without Node built-ins, Zod, or React, under 100 kB minified and 35 kB gzipped", async () => {
+    const out = await bundle(
+      `import { autoSurface, formatCoverage } from "@axe/surface/auto";
+       console.log(autoSurface, formatCoverage);`,
+    );
+    expect(out.imports).toEqual([]);
+    expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
+    expect(out.inputs.filter((f) => /react/.test(f))).toEqual([]);
+    expect(out.inputs.filter((f) => /jsdom/.test(f))).toEqual([]);
+    console.log(
+      `@axe/surface/auto (with the surface core): ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
+    );
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(100 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(35 * 1024);
+  });
+
+  it("SurfaceProvider from @axe/surface/react carries the derivation and nothing server-side", async () => {
+    const out = await bundle(
+      `import { SurfaceProvider } from "@axe/surface/react";
+       console.log(SurfaceProvider);`,
+    );
+    expect(out.imports).toEqual(["react"]);
+    expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
+    console.log(
+      `SurfaceProvider: ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
+    );
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(36 * 1024);
   });
 });

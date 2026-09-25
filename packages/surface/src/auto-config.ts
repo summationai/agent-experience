@@ -66,7 +66,9 @@ export interface SurfaceRule {
   /** Force the availability: `unavailable` needs `reason`. */
   state?: "available" | "unavailable";
   /** What the control changes and how risky that is; merged over the derived effect. */
-  effect?: Partial<Pick<Effect, "mutates" | "risk" | "reversible" | "idempotent" | "confirm" | "text">>;
+  effect?: Partial<
+    Pick<Effect, "mutates" | "risk" | "reversible" | "idempotent" | "confirm" | "text">
+  >;
   /** The field's value is private ([S-PRV-1]). */
   sensitive?: boolean;
   /** Let an agent type into a sensitive field. Default false: a sensitive field is read only to agents. */
@@ -195,7 +197,8 @@ export function ruleMatches(match: SurfaceMatch, s: MatchSubject): boolean {
   let any = false;
   if (match.key !== undefined) {
     any = true;
-    if (!(match.key.includes("*") ? globMatch(match.key, s.key) : match.key === s.key)) return false;
+    if (!(match.key.includes("*") ? globMatch(match.key, s.key) : match.key === s.key))
+      return false;
   }
   if (match.id !== undefined) {
     any = true;
@@ -216,7 +219,8 @@ export function ruleMatches(match: SurfaceMatch, s: MatchSubject): boolean {
   }
   if (match.role !== undefined) {
     any = true;
-    if (match.role !== s.role && !(match.role === "combobox" && s.role === "combobox-trigger")) return false;
+    if (match.role !== s.role && !(match.role === "combobox" && s.role === "combobox-trigger"))
+      return false;
   }
   if (match.name !== undefined) {
     any = true;
@@ -234,9 +238,12 @@ export function checkConfig(config: SurfaceConfig): string[] {
       out.push(`${where}: needs a match object.`);
       return;
     }
-    const keys = Object.keys(r.match).filter((k) => (r.match as Record<string, unknown>)[k] !== undefined);
+    const keys = Object.keys(r.match).filter(
+      (k) => (r.match as Record<string, unknown>)[k] !== undefined,
+    );
     if (!keys.length) out.push(`${where}: match is empty, so it would match nothing.`);
-    if (r.state === "unavailable" && !r.reason) out.push(`${where}: state "unavailable" needs a reason.`);
+    if (r.state === "unavailable" && !r.reason)
+      out.push(`${where}: state "unavailable" needs a reason.`);
     if (r.group && !(config.groups && r.group in config.groups))
       out.push(`${where}: group "${r.group}" is not declared under groups.`);
     if (r.match.selector) {
@@ -248,6 +255,7 @@ export function checkConfig(config: SurfaceConfig): string[] {
     }
   });
   for (const name of Object.keys(config.groups ?? {}))
-    if (!/^[a-z][a-z0-9-]*$/.test(name)) out.push(`groups.${name}: use lowercase letters, digits, and hyphens.`);
+    if (!/^[a-z][a-z0-9-]*$/.test(name))
+      out.push(`groups.${name}: use lowercase letters, digits, and hyphens.`);
   return out;
 }

@@ -428,7 +428,10 @@ export function textOf(node: Node, ctx: ScanContext, skip?: Element, depth = 0):
           return;
         }
       }
-      if (el.localName === "img" || (el.localName === "input" && el.getAttribute("type") === "image")) {
+      if (
+        el.localName === "img" ||
+        (el.localName === "input" && el.getAttribute("type") === "image")
+      ) {
         const alt = norm(el.getAttribute("alt"));
         if (alt) text += ` ${alt} `;
         return;
@@ -440,7 +443,8 @@ export function textOf(node: Node, ctx: ScanContext, skip?: Element, depth = 0):
       }
       if (el.localName === "input" && d > 0) {
         const input = el as HTMLInputElement;
-        if (TEXT_INPUT_TYPES.has(input.type) && input.type !== "password") text += ` ${input.value} `;
+        if (TEXT_INPUT_TYPES.has(input.type) && input.type !== "password")
+          text += ` ${input.value} `;
         return;
       }
       if (el.localName === "slot") {
@@ -529,12 +533,18 @@ export function iconHint(el: Element): string {
     const href = icon.getAttribute("href") ?? icon.getAttribute("xlink:href");
     if (icon.localName === "use" && href && href.includes("#"))
       return humanizeIcon(href.slice(href.indexOf("#") + 1));
-    const cls = typeof icon.className === "string" ? icon.className : icon.getAttribute("class") ?? "";
+    const cls =
+      typeof icon.className === "string" ? icon.className : (icon.getAttribute("class") ?? "");
     const m =
       /(?:^|\s)(?:lucide|fa|fas|far|bi|ri|ti|tabler|mdi|heroicon|icon|ph|feather|octicon|gg|la|codicon)-([a-z][a-z0-9-]*)/i.exec(
         cls,
       );
-    if (m && !/^(solid|regular|light|thin|duotone|brands|lg|sm|xs|fw|\dx|outline|filled|icon)$/i.test(m[1]!))
+    if (
+      m &&
+      !/^(solid|regular|light|thin|duotone|brands|lg|sm|xs|fw|\dx|outline|filled|icon)$/i.test(
+        m[1]!,
+      )
+    )
       return humanizeIcon(m[1]!);
     // Material Icons put the ligature name in the text: that is text content, read elsewhere.
   }
@@ -581,7 +591,14 @@ export function accessibleName(el: Element, role: string, ctx: ScanContext): Nam
       if (alt) return done(alt, "alt");
     }
   }
-  if (tag === "input" || tag === "select" || tag === "textarea" || tag === "button" || tag === "meter" || tag === "progress") {
+  if (
+    tag === "input" ||
+    tag === "select" ||
+    tag === "textarea" ||
+    tag === "button" ||
+    tag === "meter" ||
+    tag === "progress"
+  ) {
     const labels = labelsOf(el);
     const t = norm(labels.map((l) => labelText(l, el, ctx)).join(" "));
     if (t) return done(t, "label");
@@ -608,7 +625,9 @@ export function accessibleName(el: Element, role: string, ctx: ScanContext): Nam
   if (isContentEditable(el)) {
     // Rich-text editors (ProseMirror, Tiptap, Lexical) often carry their placeholder on the first
     // empty paragraph as `data-placeholder`.
-    const ph = el.getAttribute("data-placeholder") ?? el.querySelector("[data-placeholder]")?.getAttribute("data-placeholder");
+    const ph =
+      el.getAttribute("data-placeholder") ??
+      el.querySelector("[data-placeholder]")?.getAttribute("data-placeholder");
     if (norm(ph)) return done(norm(ph), "placeholder");
   }
   if (FIELD_ROLES.has(role) || role === "listbox-select") {
@@ -663,14 +682,21 @@ export function nearbyLabel(el: Element, ctx: ScanContext): string {
   for (let level = 0; cur && level < 3; level++) {
     let sib = cur.previousElementSibling;
     for (let i = 0; sib && i < 2; i++) {
-      if (!isHidden(sib, ctx) && !sib.querySelector("input, select, textarea, button, [contenteditable]")) {
+      if (
+        !isHidden(sib, ctx) &&
+        !sib.querySelector("input, select, textarea, button, [contenteditable]")
+      ) {
         const t = textOf(sib, ctx).text;
         if (t && t.length <= 60) return t.replace(/[:*]\s*$/, "").trim();
       }
       sib = sib.previousElementSibling;
     }
     cur = cur.parentElement;
-    if (cur && (cur.localName === "form" || cur.localName === "body" || LANDMARK_ROLES.has(roleOf(cur)))) break;
+    if (
+      cur &&
+      (cur.localName === "form" || cur.localName === "body" || LANDMARK_ROLES.has(roleOf(cur)))
+    )
+      break;
   }
   return precedingHeading(el, ctx);
 }
@@ -725,7 +751,12 @@ export function nameOfContainer(el: Element, ctx: ScanContext): string {
     const legend = el.querySelector(":scope > legend");
     if (legend) return clampText(textOf(legend, ctx).text, 60);
   }
-  if (isDialog(el) || el.localName === "section" || el.localName === "article" || el.localName === "form") {
+  if (
+    isDialog(el) ||
+    el.localName === "section" ||
+    el.localName === "article" ||
+    el.localName === "form"
+  ) {
     return clampText(firstHeadingIn(el, ctx), 60);
   }
   return "";
@@ -745,7 +776,9 @@ export interface ContextSegment {
 /** The label of a table or grid row: its row header, else the first non-empty cell that is not the control's own. */
 function rowLabel(row: Element, control: Element, ctx: ScanContext): string {
   const cells = Array.from(
-    row.querySelectorAll(':scope > th, :scope > td, :scope > [role="rowheader"], :scope > [role="cell"], :scope > [role="gridcell"]'),
+    row.querySelectorAll(
+      ':scope > th, :scope > td, :scope > [role="rowheader"], :scope > [role="cell"], :scope > [role="gridcell"]',
+    ),
   );
   const header = cells.find((c) => c.localName === "th" || c.getAttribute("role") === "rowheader");
   if (header) {
@@ -762,7 +795,10 @@ function rowLabel(row: Element, control: Element, ctx: ScanContext): string {
 }
 
 /** Named containers from the outside in, and the object context (the innermost meaningful label). */
-export function contextOf(el: Element, ctx: ScanContext): { path: ContextSegment[]; object: string } {
+export function contextOf(
+  el: Element,
+  ctx: ScanContext,
+): { path: ContextSegment[]; object: string } {
   const segs: ContextSegment[] = [];
   let sectionHeadingSeen = false;
   let cur: Element | null = composedParent(el);
@@ -783,14 +819,37 @@ export function contextOf(el: Element, ctx: ScanContext): { path: ContextSegment
       const name = nameOfContainer(cur, ctx);
       if (!landmark) landmark = cur;
       segs.push({ kind: "landmark", label: name ? `${role}:${name}` : role });
-    } else if (role === "menu" || role === "menubar" || role === "toolbar" || role === "tablist" || role === "listbox" || role === "group" || role === "radiogroup") {
+    } else if (
+      role === "menu" ||
+      role === "menubar" ||
+      role === "toolbar" ||
+      role === "tablist" ||
+      role === "listbox" ||
+      role === "group" ||
+      role === "radiogroup"
+    ) {
       const name = nameOfContainer(cur, ctx);
-      if (name) segs.push({ kind: role === "group" || role === "radiogroup" ? "group" : "menu", label: name });
-    } else if (!role && cur !== el && (cur.hasAttribute("aria-labelledby") || (cur.hasAttribute("aria-label") && cur.localName === "div"))) {
+      if (name)
+        segs.push({
+          kind: role === "group" || role === "radiogroup" ? "group" : "menu",
+          label: name,
+        });
+    } else if (
+      !role &&
+      cur !== el &&
+      (cur.hasAttribute("aria-labelledby") ||
+        (cur.hasAttribute("aria-label") && cur.localName === "div"))
+    ) {
       // A div layout names its panels with aria-labelledby and no role: a region all the same.
       const name = nameOfContainer(cur, ctx);
       if (name) segs.push({ kind: "region", label: name });
-    } else if (!sectionHeadingSeen && (cur.localName === "article" || cur.localName === "li" || role === "article" || role === "listitem")) {
+    } else if (
+      !sectionHeadingSeen &&
+      (cur.localName === "article" ||
+        cur.localName === "li" ||
+        role === "article" ||
+        role === "listitem")
+    ) {
       const h = firstHeadingIn(cur, ctx);
       if (h && !cur.contains(el.closest('h1, h2, h3, h4, h5, h6, [role="heading"]'))) {
         segs.push({ kind: "section", label: clampText(h, 60) });
@@ -806,8 +865,14 @@ export function contextOf(el: Element, ctx: ScanContext): { path: ContextSegment
     if (h) segs.push({ kind: "section", label: clampText(h, 60) });
   }
   // The object: the innermost named container; a landmark counts only when it has a name.
-  const inner = [...segs].reverse().find((s) => s.kind !== "frame" && (s.kind !== "landmark" || s.label.includes(":")));
-  const object = !inner ? "" : inner.kind === "landmark" ? inner.label.slice(inner.label.indexOf(":") + 1) : inner.label;
+  const inner = [...segs]
+    .reverse()
+    .find((s) => s.kind !== "frame" && (s.kind !== "landmark" || s.label.includes(":")));
+  const object = !inner
+    ? ""
+    : inner.kind === "landmark"
+      ? inner.label.slice(inner.label.indexOf(":") + 1)
+      : inner.label;
   return { path: segs, object };
 }
 
@@ -825,7 +890,20 @@ export function isDisabled(el: Element): boolean {
   const group = el.parentElement?.closest('[aria-disabled="true"]');
   if (group) {
     const r = group.getAttribute("role");
-    if (r && ["group", "toolbar", "menu", "menubar", "tablist", "radiogroup", "listbox", "grid", "tree"].includes(r))
+    if (
+      r &&
+      [
+        "group",
+        "toolbar",
+        "menu",
+        "menubar",
+        "tablist",
+        "radiogroup",
+        "listbox",
+        "grid",
+        "tree",
+      ].includes(r)
+    )
       return true;
   }
   return false;
@@ -861,7 +939,11 @@ export function reasonOf(el: Element, ctx: ScanContext): string {
   if (title) return title;
   const wrapper = el.parentElement;
   if (wrapper && wrapper.children.length === 1) {
-    const t = norm(wrapper.getAttribute("title") ?? wrapper.getAttribute("data-tooltip") ?? wrapper.getAttribute("aria-label"));
+    const t = norm(
+      wrapper.getAttribute("title") ??
+        wrapper.getAttribute("data-tooltip") ??
+        wrapper.getAttribute("aria-label"),
+    );
     if (t) return t;
   }
   const form = (el as HTMLButtonElement).form ?? el.closest("form");
@@ -874,10 +956,13 @@ export function reasonOf(el: Element, ctx: ScanContext): string {
           ? idrefText(field, "aria-describedby", ctx)
           : "";
       const label = accessibleName(field, roleOf(field), ctx).name;
-      if (msg || label) errors.push(msg && label ? `${label}: ${msg}` : msg || `${label} is invalid`);
+      if (msg || label)
+        errors.push(msg && label ? `${label}: ${msg}` : msg || `${label} is invalid`);
     }
     if (!errors.length) {
-      for (const alert of Array.from(form.querySelectorAll('[role="alert"], [aria-live="assertive"]'))) {
+      for (const alert of Array.from(
+        form.querySelectorAll('[role="alert"], [aria-live="assertive"]'),
+      )) {
         const t = textOf(alert, ctx).text;
         if (t && !isHidden(alert, ctx)) errors.push(t);
       }
@@ -887,7 +972,10 @@ export function reasonOf(el: Element, ctx: ScanContext): string {
       (f) => "value" in f && !(f as HTMLInputElement).value,
     );
     if (required.length) {
-      const names = required.slice(0, 3).map((f) => accessibleName(f, roleOf(f), ctx).name).filter(Boolean);
+      const names = required
+        .slice(0, 3)
+        .map((f) => accessibleName(f, roleOf(f), ctx).name)
+        .filter(Boolean);
       if (names.length) return `fill in ${names.join(", ")} first`;
     }
   }
@@ -901,7 +989,8 @@ export function fieldValue(el: Element): string | string[] {
     const labels = Array.from(s.selectedOptions ?? []).map((o) => norm(o.label || o.text));
     return s.multiple ? labels : (labels[0] ?? "");
   }
-  if (el.localName === "input" || el.localName === "textarea") return (el as HTMLInputElement).value;
+  if (el.localName === "input" || el.localName === "textarea")
+    return (el as HTMLInputElement).value;
   return clampText(norm(el.textContent), 2000);
 }
 
@@ -917,7 +1006,10 @@ export function selectChoices(el: HTMLSelectElement): string[] {
 }
 
 /** An action's toggle or selection state (`{ checked }`, `{ pressed }`, `{ selected }`, `{ expanded }`), or undefined. */
-export function actionValue(el: Element, role: string): Record<string, boolean | string> | undefined {
+export function actionValue(
+  el: Element,
+  role: string,
+): Record<string, boolean | string> | undefined {
   const out: Record<string, boolean | string> = {};
   const tri = (v: string | null) => (v === "mixed" ? "mixed" : v === "true");
   if (el.localName === "input" && (role === "checkbox" || role === "radio" || role === "switch")) {
@@ -929,7 +1021,8 @@ export function actionValue(el: Element, role: string): Record<string, boolean |
   if (el.localName === "summary") {
     const d = el.parentElement;
     if (d && d.localName === "details") out.expanded = (d as HTMLDetailsElement).open;
-  } else if (el.hasAttribute("aria-expanded")) out.expanded = el.getAttribute("aria-expanded") === "true";
+  } else if (el.hasAttribute("aria-expanded"))
+    out.expanded = el.getAttribute("aria-expanded") === "true";
   if (role === "combobox-trigger") {
     const shown = norm(el.textContent);
     if (shown) out.value = clampText(shown, 120);
@@ -961,7 +1054,8 @@ export interface CollectionFacts {
   sort: { column: string; direction: string } | null;
 }
 
-const LOAD_MORE = /^(load|show|view|see|fetch) (\d+ )?(more|all)\b|^more( results| items| rows)?$|^next page$/i;
+const LOAD_MORE =
+  /^(load|show|view|see|fetch) (\d+ )?(more|all)\b|^more( results| items| rows)?$|^next page$/i;
 
 export function collectionFacts(el: Element, role: string, ctx: ScanContext): CollectionFacts {
   let rows: Element[];
@@ -975,7 +1069,9 @@ export function collectionFacts(el: Element, role: string, ctx: ScanContext): Co
   // Grids with pinned columns (ag-grid) render one row element per column container with the same
   // aria-rowindex: count each index once.
   const shown = rows.filter((r) => !isHidden(r, ctx));
-  const indexes = new Set(shown.map((r) => r.getAttribute("aria-rowindex")).filter((v) => v !== null));
+  const indexes = new Set(
+    shown.map((r) => r.getAttribute("aria-rowindex")).filter((v) => v !== null),
+  );
   const loaded = indexes.size && indexes.size < shown.length ? indexes.size : shown.length;
   let total: number | null = null;
   const rowcount = Number(el.getAttribute("aria-rowcount"));
@@ -988,7 +1084,9 @@ export function collectionFacts(el: Element, role: string, ctx: ScanContext): Co
   }
   let virtualized = total !== null && total > loaded;
   if (!virtualized) {
-    const idx = Number(rows[0]?.getAttribute("aria-rowindex") ?? rows[0]?.getAttribute("aria-posinset"));
+    const idx = Number(
+      rows[0]?.getAttribute("aria-rowindex") ?? rows[0]?.getAttribute("aria-posinset"),
+    );
     if (Number.isFinite(idx) && idx > 2) virtualized = true;
   }
   if (!virtualized && rows.length > 1) {
@@ -1001,7 +1099,9 @@ export function collectionFacts(el: Element, role: string, ctx: ScanContext): Co
   // A scroller: the element itself or its nearest ancestor that scrolls (overflow auto/scroll).
   let scroller: Element | null = null;
   // A viewport inside the grid (ag-grid's body viewport) scrolls before the grid itself does.
-  for (const inner of Array.from(el.querySelectorAll('[class*="viewport"], [style*="overflow"]')).slice(0, 4)) {
+  for (const inner of Array.from(
+    el.querySelectorAll('[class*="viewport"], [style*="overflow"]'),
+  ).slice(0, 4)) {
     const s = styleOf(inner, ctx);
     if (/auto|scroll/.test(`${s?.overflowY ?? ""} ${s?.overflow ?? ""}`)) {
       const box = inner as HTMLElement;
@@ -1026,11 +1126,17 @@ export function collectionFacts(el: Element, role: string, ctx: ScanContext): Co
   }
   // A load-more control inside the collection, or right after it.
   let loadMore: Element | null = null;
-  const probe = [el, el.nextElementSibling, el.parentElement?.nextElementSibling].filter(Boolean) as Element[];
+  const probe = [el, el.nextElementSibling, el.parentElement?.nextElementSibling].filter(
+    Boolean,
+  ) as Element[];
   for (const scope of probe) {
-    const buttons = [scope, ...Array.from(scope.querySelectorAll("button, [role=button], a[href]"))];
+    const buttons = [
+      scope,
+      ...Array.from(scope.querySelectorAll("button, [role=button], a[href]")),
+    ];
     for (const b of buttons) {
-      if (!(b.localName === "button" || b.getAttribute("role") === "button" || b.localName === "a")) continue;
+      if (!(b.localName === "button" || b.getAttribute("role") === "button" || b.localName === "a"))
+        continue;
       const n = accessibleName(b, roleOf(b), ctx).name;
       if (LOAD_MORE.test(n) && !isHidden(b, ctx)) {
         loadMore = b;
@@ -1041,8 +1147,16 @@ export function collectionFacts(el: Element, role: string, ctx: ScanContext): Co
   }
   let sort: CollectionFacts["sort"] = null;
   const sorted = el.querySelector('[aria-sort="ascending"], [aria-sort="descending"]');
-  if (sorted) sort = { column: textOf(sorted, ctx).text, direction: sorted.getAttribute("aria-sort")! };
-  return { total, loaded, virtualized, loadMore, scroller: scroller ?? (virtualized ? el : null), sort };
+  if (sorted)
+    sort = { column: textOf(sorted, ctx).text, direction: sorted.getAttribute("aria-sort")! };
+  return {
+    total,
+    loaded,
+    virtualized,
+    loadMore,
+    scroller: scroller ?? (virtualized ? el : null),
+    sort,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1140,12 +1254,18 @@ export function activate(el: Element): void {
   const at = center(el);
   const base = { bubbles: true, cancelable: true, composed: true, button: 0, ...at };
   const P = (win.PointerEvent ?? win.MouseEvent) as typeof MouseEvent;
-  const pointer = { ...base, pointerId: 1, pointerType: "mouse", isPrimary: true } as MouseEventInit;
+  const pointer = {
+    ...base,
+    pointerId: 1,
+    pointerType: "mouse",
+    isPrimary: true,
+  } as MouseEventInit;
   el.dispatchEvent(new P("pointerover", pointer));
   el.dispatchEvent(new P("pointerenter", { ...pointer, bubbles: false }));
   el.dispatchEvent(new win.MouseEvent("mouseover", base));
   const downPointer = el.dispatchEvent(new P("pointerdown", { ...pointer, buttons: 1 }));
-  const downMouse = downPointer && el.dispatchEvent(new win.MouseEvent("mousedown", { ...base, buttons: 1 }));
+  const downMouse =
+    downPointer && el.dispatchEvent(new win.MouseEvent("mousedown", { ...base, buttons: 1 }));
   if (downMouse && typeof (el as HTMLElement).focus === "function")
     (el as HTMLElement).focus({ preventScroll: true });
   el.dispatchEvent(new P("pointerup", pointer));
@@ -1175,7 +1295,8 @@ function nativeSetter(el: Element, prop: "value"): ((v: string) => void) | undef
 export function typeInto(el: Element, text: string): boolean {
   const win = windowOf(el);
   reveal(el);
-  if (typeof (el as HTMLElement).focus === "function") (el as HTMLElement).focus({ preventScroll: true });
+  if (typeof (el as HTMLElement).focus === "function")
+    (el as HTMLElement).focus({ preventScroll: true });
   const fire = () => {
     el.dispatchEvent(new win.Event("input", { bubbles: true, composed: true }));
     el.dispatchEvent(new win.Event("change", { bubbles: true }));
@@ -1188,12 +1309,17 @@ export function typeInto(el: Element, text: string): boolean {
         const parsed: unknown = JSON.parse(text);
         wanted = Array.isArray(parsed) ? parsed.map(String) : [text];
       } catch {
-        wanted = text.split(",").map((t) => t.trim()).filter(Boolean);
+        wanted = text
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
       }
     } else wanted = [text];
     const pick = (w: string) =>
       Array.from(s.options).find((o) => o.value === w) ??
-      Array.from(s.options).find((o) => norm(o.label || o.text).toLowerCase() === norm(w).toLowerCase());
+      Array.from(s.options).find(
+        (o) => norm(o.label || o.text).toLowerCase() === norm(w).toLowerCase(),
+      );
     const chosen = wanted.map(pick);
     if (chosen.some((o) => !o)) return false;
     if (s.multiple) {
@@ -1222,7 +1348,13 @@ export function typeInto(el: Element, text: string): boolean {
     sel.addRange(range);
   }
   const IE = (win.InputEvent ?? win.Event) as unknown as typeof Event;
-  const init = { bubbles: true, cancelable: true, composed: true, inputType: "insertText", data: text } as EventInit;
+  const init = {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    inputType: "insertText",
+    data: text,
+  } as EventInit;
   // Editors built on beforeinput (Lexical, Slate) take the edit here and cancel the default.
   const proceed = el.dispatchEvent(new IE("beforeinput", init));
   if (!proceed) {
@@ -1232,7 +1364,8 @@ export function typeInto(el: Element, text: string): boolean {
   // Editors that observe DOM mutations (ProseMirror, Tiptap) take a real editing command.
   let done = false;
   try {
-    done = !!doc && typeof doc.execCommand === "function" && doc.execCommand("insertText", false, text);
+    done =
+      !!doc && typeof doc.execCommand === "function" && doc.execCommand("insertText", false, text);
   } catch {
     done = false;
   }
@@ -1285,23 +1418,31 @@ export class ActWatch {
     const MO = win.MutationObserver;
     this.mo = MO ? new MO((records) => this.take(records)) : null;
     for (const r of roots)
-      this.mo?.observe(r, { subtree: true, childList: true, attributes: true, characterData: true });
+      this.mo?.observe(r, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        characterData: true,
+      });
   }
   private take(records: MutationRecord[]): void {
     this.last = Date.now();
     for (const rec of records) {
       if (rec.type === "childList") {
-        for (const n of Array.from(rec.addedNodes)) this.consider(n.nodeType === 1 ? (n as Element) : n.parentElement, n);
+        for (const n of Array.from(rec.addedNodes))
+          this.consider(n.nodeType === 1 ? (n as Element) : n.parentElement, n);
       } else if (rec.type === "characterData") {
         this.consider(rec.target.parentElement, rec.target);
       }
     }
   }
   private consider(host: Element | null, node: Node): void {
-    if (!host || (this.ignore && (this.ignore.contains(host) || host.contains(this.ignore)))) return;
+    if (!host || (this.ignore && (this.ignore.contains(host) || host.contains(this.ignore))))
+      return;
     const notice =
-      host.closest('[role="alert"], [role="status"], [role="log"], [aria-live]:not([aria-live="off"]), [data-sonner-toast], [class*="toast" i], [class*="snackbar" i], [class*="notification" i], [class*="notistack" i]') ??
-      (topLevel(host) ? host : null);
+      host.closest(
+        '[role="alert"], [role="status"], [role="log"], [aria-live]:not([aria-live="off"]), [data-sonner-toast], [class*="toast" i], [class*="snackbar" i], [class*="notification" i], [class*="notistack" i]',
+      ) ?? (topLevel(host) ? host : null);
     if (!notice) return;
     const text = clampText(norm(node.textContent), 200);
     if (text && /[\p{L}\p{N}]/u.test(text) && !this.texts.includes(text)) this.texts.push(text);
@@ -1311,7 +1452,9 @@ export class ActWatch {
     if (this.mo) this.take(this.mo.takeRecords());
     this.mo?.disconnect();
     // Keep the outermost text of nested additions only.
-    const out = this.texts.filter((t, i) => !this.texts.some((o, j) => j !== i && o.length > t.length && o.includes(t)));
+    const out = this.texts.filter(
+      (t, i) => !this.texts.some((o, j) => j !== i && o.length > t.length && o.includes(t)),
+    );
     return out.slice(0, 5);
   }
 }
@@ -1327,7 +1470,11 @@ function topLevel(el: Element): boolean {
   }
   if (!cur || cur.parentElement !== body) return false;
   // A dialog is a container of controls, reported as entries; not a notice.
-  return !cur.matches('[role="dialog"], [role="alertdialog"], dialog, [role="menu"], [role="listbox"]') && !cur.querySelector('[role="dialog"], [role="menu"], [role="listbox"]');
+  return (
+    !cur.matches(
+      '[role="dialog"], [role="alertdialog"], dialog, [role="menu"], [role="listbox"]',
+    ) && !cur.querySelector('[role="dialog"], [role="menu"], [role="listbox"]')
+  );
 }
 
 /**
@@ -1355,7 +1502,11 @@ export async function settle(
     const tick = () => {
       const now = Date.now();
       if (now - watch.last >= quietMs || now - start >= timeoutMs) resolve();
-      else setTimeout(tick, Math.max(5, Math.min(quietMs - (now - watch.last), timeoutMs - (now - start))));
+      else
+        setTimeout(
+          tick,
+          Math.max(5, Math.min(quietMs - (now - watch.last), timeoutMs - (now - start))),
+        );
     };
     setTimeout(tick, quietMs);
   });
@@ -1385,7 +1536,19 @@ export function opaqueTitle(el: Element): string {
 // Custom widgets: clickable elements without a role
 // ---------------------------------------------------------------------------------------------
 
-const NATIVE_INTERACTIVE = new Set(["a", "button", "input", "select", "textarea", "summary", "label", "option", "details", "video", "audio"]);
+const NATIVE_INTERACTIVE = new Set([
+  "a",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "summary",
+  "label",
+  "option",
+  "details",
+  "video",
+  "audio",
+]);
 
 /**
  * An element a person can click that assistive technology cannot see as a control: an `onclick`
@@ -1394,7 +1557,8 @@ const NATIVE_INTERACTIVE = new Set(["a", "button", "input", "select", "textarea"
  * keep on DOM nodes; nothing is called.
  */
 export function isCustomWidget(el: Element): boolean {
-  if (NATIVE_INTERACTIVE.has(el.localName) || el.hasAttribute("role") || isContentEditable(el)) return false;
+  if (NATIVE_INTERACTIVE.has(el.localName) || el.hasAttribute("role") || isContentEditable(el))
+    return false;
   let clickable = el.hasAttribute("onclick");
   if (!clickable) {
     const ti = el.getAttribute("tabindex");
@@ -1404,7 +1568,12 @@ export function isCustomWidget(el: Element): boolean {
     for (const key of Object.keys(el)) {
       if (key.startsWith("__reactProps$")) {
         const props = (el as unknown as Record<string, Record<string, unknown> | undefined>)[key];
-        if (props && (typeof props.onClick === "function" || typeof props.onMouseDown === "function" || typeof props.onPointerDown === "function"))
+        if (
+          props &&
+          (typeof props.onClick === "function" ||
+            typeof props.onMouseDown === "function" ||
+            typeof props.onPointerDown === "function")
+        )
           clickable = true;
         break;
       }

@@ -19,9 +19,17 @@ afterEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-function start(html: string, config?: SurfaceConfig, extra: Parameters<typeof autoSurface>[0] = {}) {
+function start(
+  html: string,
+  config?: SurfaceConfig,
+  extra: Parameters<typeof autoSurface>[0] = {},
+) {
   document.body.innerHTML = html;
-  const h = autoSurface({ ...(config ? { config } : {}), observe: { settle: { quietMs: 5, timeoutMs: 100 }, debounceMs: 0 }, ...extra });
+  const h = autoSurface({
+    ...(config ? { config } : {}),
+    observe: { settle: { quietMs: 5, timeoutMs: 100 }, debounceMs: 0 },
+    ...extra,
+  });
   handles.push(h);
   return h;
 }
@@ -30,12 +38,21 @@ const rows = (s: Surface) => s.observe().entries;
 const byName = (s: Surface, name: string, role?: string): ObservedEntry => {
   const found = rows(s).filter((r) => r.name === name && (!role || r.role === role));
   if (found.length !== 1)
-    throw new Error(`expected one entry named ${name}, found ${found.length}: ${rows(s).map((r) => `${r.role}:${r.name}`).join(", ")}`);
+    throw new Error(
+      `expected one entry named ${name}, found ${found.length}: ${rows(s)
+        .map((r) => `${r.role}:${r.name}`)
+        .join(", ")}`,
+    );
   return found[0]!;
 };
-const act = (s: Surface, target: string, extra: Partial<Parameters<Surface["act"]>[0]> = {}): Promise<ActResult> => {
+const act = (
+  s: Surface,
+  target: string,
+  extra: Partial<Parameters<Surface["act"]>[0]> = {},
+): Promise<ActResult> => {
   const row = s.observe().entries.find((r) => r.id === target)!;
-  const op = row.kind === "field" ? "TYPE_TEXT" : row.kind === "collection" ? "SCROLL_DOWN" : "CLICK";
+  const op =
+    row.kind === "field" ? "TYPE_TEXT" : row.kind === "collection" ? "SCROLL_DOWN" : "CLICK";
   return s.act({ op, target, expectedRev: s.currentRev(), ...extra });
 };
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
@@ -94,7 +111,10 @@ describe("derivation [S-AUTO-2]", () => {
 
   it("a read-only field says why, from its title", () => {
     const s = start(FORM).surface;
-    expect(byName(s, "Bio").edit).toMatchObject({ readOnly: true, reason: "Bios are managed by HR" });
+    expect(byName(s, "Bio").edit).toMatchObject({
+      readOnly: true,
+      reason: "Bios are managed by HR",
+    });
   });
 
   it("gives the object context from the landmark, form, and heading", () => {
@@ -119,11 +139,16 @@ describe("icon-only controls", () => {
     expect(byName(s, "Open notifications").role).toBe("button");
     const trash = byName(s, "trash");
     expect(h.metaFor(trash.id)).toMatchObject({ nameFrom: "icon", confidence: "low" });
-    expect(h.metaFor(byName(s, "Billing").id)).toMatchObject({ nameFrom: "href", confidence: "low" });
+    expect(h.metaFor(byName(s, "Billing").id)).toMatchObject({
+      nameFrom: "href",
+      confidence: "low",
+    });
     const cov = h.coverage();
     const kinds = cov.gaps.map((g) => g.kind);
     expect(kinds).toContain("icon-only");
-    const unnamed = cov.gaps.filter((g) => g.kind === "icon-only" && g.message.includes("has no accessible name"));
+    const unnamed = cov.gaps.filter(
+      (g) => g.kind === "icon-only" && g.message.includes("has no accessible name"),
+    );
     expect(unnamed).toHaveLength(1);
     expect(unnamed[0]!.suggestion).toMatchObject({ name: "say what it does" });
   });
@@ -150,7 +175,9 @@ describe("keys [S-AUTO-3]", () => {
     h.refresh();
     const after = new Set(rows(s).map((r) => r.id));
     for (const id of before) expect(after.has(id)).toBe(true);
-    expect(rows(s).find((r) => r.name === "Remove" && r.object === "Grace")!.id).toBe(removeGrace.id);
+    expect(rows(s).find((r) => r.name === "Remove" && r.object === "Grace")!.id).toBe(
+      removeGrace.id,
+    );
   });
 
   it("the route is part of the key, with id-like segments collapsed", () => {
@@ -158,7 +185,11 @@ describe("keys [S-AUTO-3]", () => {
     expect(defaultRoute({ pathname: "/p/0b0e8a8e-7a1c-4d3b-9c9d-2f8b1e0c1a2b/" })).toBe("/p/:id");
     window.history.replaceState({}, "", "/teams/42");
     const s = start(table(["Ada"])).surface;
-    expect(rows(s).find((r) => r.name === "Remove")!.id.startsWith("/teams/:id#")).toBe(true);
+    expect(
+      rows(s)
+        .find((r) => r.name === "Remove")!
+        .id.startsWith("/teams/:id#"),
+    ).toBe(true);
   });
 
   it("data-surface-id pins the id", () => {
@@ -169,7 +200,9 @@ describe("keys [S-AUTO-3]", () => {
 
   it("duplicates in one context get an ordinal and a coverage gap", () => {
     const h = start(`<main><button>Save</button><button>Save</button></main>`);
-    const ids = rows(h.surface).filter((r) => r.name === "Save").map((r) => r.id);
+    const ids = rows(h.surface)
+      .filter((r) => r.name === "Save")
+      .map((r) => r.id);
     expect(ids[1]).toBe(`${ids[0]}~2`);
     expect(h.coverage().gaps.some((g) => g.kind === "duplicate-name")).toBe(true);
   });
@@ -219,7 +252,9 @@ describe("acting by the same door [S-AUTO-4]", () => {
   });
 
   it("a rich-text editor without a name is named from its placeholder and typed into with input events", async () => {
-    const h = start(`<main><h2>Notes</h2><div class="ProseMirror" contenteditable="true"><p data-placeholder="Write a note…" class="is-empty"></p></div></main>`);
+    const h = start(
+      `<main><h2>Notes</h2><div class="ProseMirror" contenteditable="true"><p data-placeholder="Write a note…" class="is-empty"></p></div></main>`,
+    );
     const s = h.surface;
     const ed = byName(s, "Write a note…");
     expect(ed.kind).toBe("field");
@@ -358,7 +393,10 @@ describe("safety defaults [S-AUTO-7]", () => {
     expect(byName(s, "Cancel").effect?.risk).toBe("low");
     expect(byName(s, "Yes").object).toBe("Remove Ada?");
     // The page behind the modal is unavailable, with the dialog named.
-    expect(byName(s, "Open").state).toEqual({ available: false, reason: "behind the open dialog “Remove Ada?”; close it first" });
+    expect(byName(s, "Open").state).toEqual({
+      available: false,
+      reason: "behind the open dialog “Remove Ada?”; close it first",
+    });
   });
 });
 
@@ -366,7 +404,11 @@ describe("configuration overlay [S-CFG-*]", () => {
   it("renames, re-objects, sets reason, risk, hides, and pins", () => {
     const h = start(DANGER + `<button disabled>Archive</button>`, {
       rules: [
-        { match: { name: "Frobnicate" }, name: "Recompute the forecast", effect: { risk: "medium", mutates: "forecast" } },
+        {
+          match: { name: "Frobnicate" },
+          name: "Recompute the forecast",
+          effect: { risk: "medium", mutates: "forecast" },
+        },
         { match: { name: "Archive" }, reason: "only owners can archive", object: "Project" },
         { match: { name: "Wipe" }, hide: true },
         { match: { role: "link", name: "Docs" }, id: "docs-link" },
@@ -377,7 +419,10 @@ describe("configuration overlay [S-CFG-*]", () => {
     expect(f.effect).toMatchObject({ risk: "medium", mutates: "forecast" });
     expect(f.state?.available).toBe(true);
     expect(f.source).toBe("annotated");
-    expect(byName(s, "Archive").state).toEqual({ available: false, reason: "only owners can archive" });
+    expect(byName(s, "Archive").state).toEqual({
+      available: false,
+      reason: "only owners can archive",
+    });
     expect(byName(s, "Archive").object).toBe("Project");
     expect(rows(s).some((r) => r.name === "Wipe")).toBe(false);
     expect(byName(s, "Docs").id).toBe("docs-link");
@@ -387,7 +432,12 @@ describe("configuration overlay [S-CFG-*]", () => {
     const calls: string[] = [];
     const h = start(DANGER, {
       policy: { high: "allow" },
-      rules: [{ match: { name: "Delete project" }, handler: ({ entryId, element }) => void calls.push(`${entryId}:${element?.textContent}`) }],
+      rules: [
+        {
+          match: { name: "Delete project" },
+          handler: ({ entryId, element }) => void calls.push(`${entryId}:${element?.textContent}`),
+        },
+      ],
     });
     let clicked = 0;
     document.querySelector("button")!.addEventListener("click", () => clicked++);
@@ -406,7 +456,9 @@ describe("configuration overlay [S-CFG-*]", () => {
     const r = byName(h.surface, "Account number");
     expect(r.sensitive).toBe(true);
     expect(r.edit?.readOnly).toBe(true);
-    h.configure({ rules: [{ match: { name: "Account number" }, sensitive: true, editable: true }] });
+    h.configure({
+      rules: [{ match: { name: "Account number" }, sensitive: true, editable: true }],
+    });
     const again = byName(h.surface, "Account number");
     expect(again.edit?.readOnly).toBe(false);
     expect((await act(h.surface, again.id, { text: "999" })).status).toBe("ok");
@@ -416,7 +468,13 @@ describe("configuration overlay [S-CFG-*]", () => {
 
   it("groups fold matches into a domain action; unmatched rules are reported stale", () => {
     const h = start(DANGER, {
-      groups: { "manage-project": { title: "Manage the project", description: "Delete or reset the project.", risk: "high" } },
+      groups: {
+        "manage-project": {
+          title: "Manage the project",
+          description: "Delete or reset the project.",
+          risk: "high",
+        },
+      },
       rules: [
         { match: { name: "/^(delete|reset)/i" }, group: "manage-project" },
         { match: { route: "/", name: "Rename project" }, name: "x" },
@@ -436,8 +494,19 @@ describe("configuration overlay [S-CFG-*]", () => {
     const h = autoSurface({ observe: { debounceMs: 0 } });
     handles.push(h);
     expect(rows(h.surface).some((r) => r.name === "Quarterly report")).toBe(false);
-    expect(h.coverage().gaps.find((g) => g.kind === "custom-widget")?.suggestion).toMatchObject({ role: "button" });
-    h.configure({ rules: [{ match: { selector: ".card" }, role: "button", name: "Open the quarterly report", effect: { risk: "low", mutates: "view" } }] });
+    expect(h.coverage().gaps.find((g) => g.kind === "custom-widget")?.suggestion).toMatchObject({
+      role: "button",
+    });
+    h.configure({
+      rules: [
+        {
+          match: { selector: ".card" },
+          role: "button",
+          name: "Open the quarterly report",
+          effect: { risk: "low", mutates: "view" },
+        },
+      ],
+    });
     expect(byName(h.surface, "Open the quarterly report").effect?.risk).toBe("low");
   });
 
@@ -445,7 +514,16 @@ describe("configuration overlay [S-CFG-*]", () => {
     window.history.replaceState({}, "", "/admin");
     const h = start(`<button>Refresh</button>`, {
       routes: { exclude: ["/admin/**", "/admin"] },
-      declare: [{ id: "chat.send", kind: "action", role: "button", name: "Send a chat message", effect: { mutates: "chat", risk: "medium" }, handler: () => {} }],
+      declare: [
+        {
+          id: "chat.send",
+          kind: "action",
+          role: "button",
+          name: "Send a chat message",
+          effect: { mutates: "chat", risk: "medium" },
+          handler: () => {},
+        },
+      ],
     });
     expect(rows(h.surface).map((r) => r.id)).toEqual(["chat.send"]);
   });
@@ -464,14 +542,17 @@ describe("shadow DOM, frames, virtualized lists", () => {
   });
 
   it("reports a virtualized grid as partial coverage and scrolls it to load more", async () => {
-    const h = start(`<main><div role="grid" aria-label="Orders" aria-rowcount="501" style="overflow: auto; height: 200px">
+    const h =
+      start(`<main><div role="grid" aria-label="Orders" aria-rowcount="501" style="overflow: auto; height: 200px">
       <div role="row" aria-rowindex="1"><div role="columnheader">Order</div></div>
       <div role="row" aria-rowindex="2"><div role="gridcell">A-1</div></div>
       <div role="row" aria-rowindex="3"><div role="gridcell">A-2</div></div></div></main>`);
     const grid = byName(h.surface, "Orders");
     expect(grid).toMatchObject({ kind: "collection", total: 500, loaded: 2 });
     expect(grid.index).not.toBeNull();
-    expect(h.coverage().gaps.find((g) => g.kind === "virtualized")?.message).toMatch(/only the visible rows/);
+    expect(h.coverage().gaps.find((g) => g.kind === "virtualized")?.message).toMatch(
+      /only the visible rows/,
+    );
     let scrolled = 0;
     document.querySelector('[role="grid"]')!.addEventListener("scroll", () => scrolled++);
     expect((await act(h.surface, grid.id)).status).toBe("ok");
@@ -479,14 +560,17 @@ describe("shadow DOM, frames, virtualized lists", () => {
   });
 
   it("counts a pinned-column grid's rows once per aria-rowindex (ag-grid)", () => {
-    const row = (i: number) => `<div role="row" aria-rowindex="${i}"><div role="gridcell">r${i}</div></div>`;
+    const row = (i: number) =>
+      `<div role="row" aria-rowindex="${i}"><div role="gridcell">r${i}</div></div>`;
     const h = start(`<div role="grid" aria-label="Positions" aria-rowcount="100">
       <div class="left">${row(2)}${row(3)}</div><div class="center">${row(2)}${row(3)}</div></div>`);
     expect(byName(h.surface, "Positions")).toMatchObject({ loaded: 2, total: 100 });
   });
 
   it("a table with a load-more button loads more by clicking it", async () => {
-    const h = start(`<main><h2>Invoices</h2><table><tbody><tr><td>INV-1</td></tr></tbody></table><button id="more">Load more</button></main>`);
+    const h = start(
+      `<main><h2>Invoices</h2><table><tbody><tr><td>INV-1</td></tr></tbody></table><button id="more">Load more</button></main>`,
+    );
     let n = 0;
     document.getElementById("more")!.addEventListener("click", () => n++);
     const t = byName(h.surface, "Invoices");
@@ -496,7 +580,8 @@ describe("shadow DOM, frames, virtualized lists", () => {
 
   it("reports canvas and chart regions as opaque, naming the library", () => {
     const shapes = Array.from({ length: 14 }, () => "<rect></rect>").join("");
-    const h = start(`<main><div class="highcharts-container"><svg class="highcharts-root"><text class="highcharts-title">Revenue</text>${shapes}</svg></div>
+    const h =
+      start(`<main><div class="highcharts-container"><svg class="highcharts-root"><text class="highcharts-title">Revenue</text>${shapes}</svg></div>
       <div class="gc-spread-sheet"><canvas></canvas></div></main>`);
     const gaps = h.coverage().gaps;
     expect(gaps.find((g) => g.kind === "chart")?.message).toMatch(/Highcharts chart \(“Revenue”\)/);
@@ -506,7 +591,9 @@ describe("shadow DOM, frames, virtualized lists", () => {
 
 describe("navigate [S-AUTO-11]", () => {
   it("landmarks and a navigate entry that opens a same-origin path", async () => {
-    const h = start(`<nav aria-label="Primary"><a href="/reports">Reports</a></nav><main><h1>Home</h1></main>`);
+    const h = start(
+      `<nav aria-label="Primary"><a href="/reports">Reports</a></nav><main><h1>Home</h1></main>`,
+    );
     const s = h.surface;
     expect(byName(s, "Primary").role).toBe("navigation");
     expect(byName(s, "Main content").role).toBe("main");
@@ -518,15 +605,28 @@ describe("navigate [S-AUTO-11]", () => {
     const nav = byName(s, "Go to a page of this site");
     expect((await act(s, nav.id, { text: "/reports" })).status).toBe("ok");
     expect(followed).toBe("/reports");
-    await expect(act(s, nav.id, { text: "https://evil.example/" })).rejects.toThrow(/not on this site/);
+    await expect(act(s, nav.id, { text: "https://evil.example/" })).rejects.toThrow(
+      /not on this site/,
+    );
   });
 });
 
 describe("coverage [S-AUTO-10]", () => {
   it("counts by kind and source, lists approvals and gaps, and formats as Markdown", () => {
-    const h = start(FORM + ICONS + DANGER, { rules: [{ match: { name: "Docs" }, name: "Read the docs" }] }, { now: () => new Date("2026-09-25T00:00:00Z") });
+    const h = start(
+      FORM + ICONS + DANGER,
+      { rules: [{ match: { name: "Docs" }, name: "Read the docs" }] },
+      { now: () => new Date("2026-09-25T00:00:00Z") },
+    );
     const surface = h.surface;
-    surface.register({ id: "declared.one", kind: "action", role: "button", name: "Declared thing", effect: { mutates: "x" }, handler: () => {} });
+    surface.register({
+      id: "declared.one",
+      kind: "action",
+      role: "button",
+      name: "Declared thing",
+      effect: { mutates: "x" },
+      handler: () => {},
+    });
     const c = h.coverage();
     expect(c.counts.bySource.declared).toBe(1);
     expect(c.counts.bySource.annotated).toBe(1);
@@ -541,7 +641,11 @@ describe("coverage [S-AUTO-10]", () => {
 
   it("expose publishes coverage on window.__surface", () => {
     start(`<button>Refresh</button>`, undefined, { expose: true });
-    const pub = (window as unknown as { __surface: { coverage: () => { counts: { entries: number } }; observe: () => unknown } }).__surface;
+    const pub = (
+      window as unknown as {
+        __surface: { coverage: () => { counts: { entries: number } }; observe: () => unknown };
+      }
+    ).__surface;
     expect(pub.coverage().counts.entries).toBeGreaterThan(0);
   });
 });
@@ -549,7 +653,14 @@ describe("coverage [S-AUTO-10]", () => {
 describe("lifecycle", () => {
   it("stop unregisters derived entries and leaves the application's own", () => {
     const surface = createSurface();
-    surface.register({ id: "mine", kind: "action", role: "button", name: "Mine", effect: { mutates: "x" }, handler: () => {} });
+    surface.register({
+      id: "mine",
+      kind: "action",
+      role: "button",
+      name: "Mine",
+      effect: { mutates: "x" },
+      handler: () => {},
+    });
     document.body.innerHTML = `<button>Refresh</button>`;
     const h = autoSurface({ surface });
     expect(surface.entries().length).toBeGreaterThan(1);
@@ -559,7 +670,14 @@ describe("lifecycle", () => {
 
   it("an application entry pinned by data-surface-id is not derived again", () => {
     const surface = createSurface();
-    surface.register({ id: "draft", kind: "action", role: "button", name: "Draft Gibbs", effect: { mutates: "draft" }, handler: () => {} });
+    surface.register({
+      id: "draft",
+      kind: "action",
+      role: "button",
+      name: "Draft Gibbs",
+      effect: { mutates: "draft" },
+      handler: () => {},
+    });
     document.body.innerHTML = `<button data-surface-id="draft" aria-label="Draft Gibbs">Draft</button>`;
     const h = autoSurface({ surface });
     handles.push(h);

@@ -1482,3 +1482,6 @@ export function scopedSurfaces(options: ScopedSurfacesOptions): ScopedSurfaces {
     size: () => live.size,
   };
 }
+
+// The recommended bridge for a surface derived by `@axe/surface/auto` ([S-AUTO-11]).
+export { autoActions } from "./auto-actions";

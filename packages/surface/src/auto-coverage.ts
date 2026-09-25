@@ -136,7 +136,9 @@ export function formatCoverage(c: Coverage, options: FormatCoverageOptions = {})
       `. ${k.unavailable} unavailable now; ${k.awaitingApproval} need the person's approval; ${k.gaps} gaps.`,
   );
   if (c.frames.crossOrigin || c.frames.sameOrigin)
-    lines.push(`Frames: ${c.frames.sameOrigin} same-origin read, ${c.frames.crossOrigin} cross-origin skipped.`);
+    lines.push(
+      `Frames: ${c.frames.sameOrigin} same-origin read, ${c.frames.crossOrigin} cross-origin skipped.`,
+    );
   if (c.configErrors.length) {
     lines.push("", "## Configuration errors", "");
     for (const e of c.configErrors) lines.push(`- ${e}`);
@@ -163,16 +165,34 @@ export function formatCoverage(c: Coverage, options: FormatCoverageOptions = {})
   if (c.staleConfig.length) {
     lines.push("", `## Configuration that matched nothing (${c.staleConfig.length})`, "");
     for (const s of c.staleConfig)
-      lines.push(`- rules[${s.index}] ${code(JSON.stringify(s.match))}: ${s.status}. ${esc(s.message)}`);
+      lines.push(
+        `- rules[${s.index}] ${code(JSON.stringify(s.match))}: ${s.status}. ${esc(s.message)}`,
+      );
   }
   if (c.suggestions.length) {
-    lines.push("", "## Suggested configuration", "", "Paste into `rules` and edit the names and effects to say what each control does.", "");
+    lines.push(
+      "",
+      "## Suggested configuration",
+      "",
+      "Paste into `rules` and edit the names and effects to say what each control does.",
+      "",
+    );
     lines.push("```json", JSON.stringify({ rules: c.suggestions.slice(0, 50) }, null, 2), "```");
   }
-  const limit = options.entries === undefined ? 200 : options.entries === true ? Infinity : options.entries === false ? 0 : options.entries;
+  const limit =
+    options.entries === undefined
+      ? 200
+      : options.entries === true
+        ? Infinity
+        : options.entries === false
+          ? 0
+          : options.entries;
   if (limit > 0 && c.entries.length) {
     lines.push("", "## Entries", "");
-    lines.push("| Id | Kind | Role | Name | Source | Name from | Risk | Policy |", "| --- | --- | --- | --- | --- | --- | --- | --- |");
+    lines.push(
+      "| Id | Kind | Role | Name | Source | Name from | Risk | Policy |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    );
     for (const e of c.entries.slice(0, limit))
       lines.push(
         `| ${code(e.id)} | ${e.kind} | ${e.role} | ${esc(e.name)}${e.available ? "" : " (unavailable)"} | ${e.source} | ${e.nameFrom} (${e.confidence}) | ${e.risk ?? ""} | ${e.policy ?? ""} |`,
