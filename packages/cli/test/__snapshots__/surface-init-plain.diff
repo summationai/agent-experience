@@ -12,24 +12,33 @@ diff --git a/surface.js b/surface.js
 new file mode 100644
 --- /dev/null
 +++ b/surface.js
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,27 @@
 +// Agent Surface for this page, written by `axe surface init`. Yours to edit.
 +//
-+// On when the page is served from localhost; off everywhere else. Replace `enabled` with your
-+// feature-flag check to turn it on elsewhere.
++// On when the page is served from localhost; off everywhere else. Always on in a session a host
++// runs for an agent (`axe host`, which injects window.__AXE_RELAY__). Replace `development` in
++// `enabled` with your feature-flag check to turn it on elsewhere.
 +//
 +// @axe/surface/auto is a bare module specifier: load this file through your bundler, or map
 +// the specifier with an import map to the package's built files.
 +import { autoSurface } from "@axe/surface/auto";
++import { connectRelay, injectedRelay } from "@axe/relay/client";
 +import surfaceConfig from "./surface.config.js";
 +
 +const development =
 +  typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
-+const enabled = development;
++const enabled = development || injectedRelay() !== null;
++
++// The relay carries the page's surface to an agent outside the browser (an MCP client). A host
++// that runs this app for an agent (unattended mode, `axe host`) injects the connection;
++// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay
++// for a person's own tab (attended mode, with pairing).
 +
 +if (enabled) {
 +  // expose publishes window.__surface for `axe surface coverage` and browser-driving agents.
 +  const handle = autoSurface({ root: document.body, config: surfaceConfig, expose: development });
++  const options = injectedRelay();
++  if (options) connectRelay(handle.surface, options);
 +}
 diff --git a/surface.config.js b/surface.config.js
 new file mode 100644

@@ -343,11 +343,28 @@ export function installCommand(d: Detection, withRelay: boolean, vendor?: string
 
 const quoteArg = (a: string) => (/^[\w@./:=+-]+$/.test(a) ? a : `'${a}'`);
 
+/** A name for the MCP server: the app's package name, as a word. */
+function serverName(d: Detection): string {
+  let name = "";
+  try {
+    name = String(
+      (JSON.parse(readFileSync(join(d.dir, "package.json"), "utf8")) as { name?: unknown }).name ??
+        "",
+    );
+  } catch {
+    // no package.json: the directory's name
+  }
+  const word = (name.split("/").pop() || basename(d.dir))
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return word || "app";
+}
+
 function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
   const d = plan.detection;
-  const withRelay = o.relay !== undefined;
-  const registry = installCommand(d, withRelay);
-  const tar = installCommand(d, withRelay, o.vendor ?? "vendor");
+  const registry = installCommand(d, true);
+  const tar = installCommand(d, true, o.vendor ?? "vendor");
   const flagName = defaultFlagName(d.framework);
   const devUrl =
     d.framework === "next"
@@ -358,6 +375,7 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
   const config = posix(
     relative(d.dir, join(d.outDir, `surface.config.${d.typescript ? "ts" : "js"}`)),
   );
+  const name = serverName(d);
   const steps: { text: string; more?: string[] }[] = [];
   if (!installed)
     steps.push({
@@ -365,7 +383,7 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
       more: [
         registry.argv.map(quoteArg).join(" "),
         "Unpublished (0.1.0 is not on npm): pack the SDK from a checkout and install the tarballs:",
-        `<sdk-checkout>/scripts/pack-for-consumer.sh ${o.vendor ?? "vendor"} core surface${withRelay ? " relay" : ""}`,
+        `<sdk-checkout>/scripts/pack-for-consumer.sh ${o.vendor ?? "vendor"} core surface relay`,
         tar.argv.map(quoteArg).join(" "),
         `and in ${tar.overrides!.file}: "${tar.overrides!.key}": ${JSON.stringify(tar.overrides!.value)}`,
         "Commit the tarballs, their SOURCE pin, and the lockfile together; a Dockerfile or CI job that installs from the lockfile copies the vendor directory in before the install step.",
@@ -373,24 +391,38 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     });
   steps.push(
     {
-      text: `Run the app in development${
-        o.flag !== undefined && !/^[A-Z]/.test(o.flag)
-          ? ", with your flag on"
-          : o.flagHook
-            ? `, with ${o.flagHook} true`
+      text: `Run the app in development (${devUrl}). Surface is always on in a session the host runs for an agent${
+        o.flagHook
+          ? `; in a person's browser, when ${o.flagHook} is true`
+          : o.flag !== undefined && !/^[A-Z]/.test(o.flag)
+            ? "; in a person's browser, when your flag is on"
             : flagName
-              ? ` (Surface is on there; ${o.flag ?? flagName}=1 turns it on in a build)`
-              : " from localhost (Surface is on there only)"
+              ? `; in a person's browser, in development (${o.flag ?? flagName}=1 turns it on in a build)`
+              : "; in a person's browser, from localhost only"
       }.`,
+    },
+    {
+      text: "Sign in once, for the agent, in the browser this opens (the session is saved to .axe/host-state.json; keep .axe/ out of git):",
+      more: [`npx ${WIRE.cli.host} login ${devUrl}`],
+    },
+    {
+      text: "Connect Claude: the host runs the app headless for you, and the agent acts through its UI (approvals appear in Claude):",
+      more: [
+        `claude mcp add ${name} -- npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
+        `Claude Desktop and absolute paths: run npx ${WIRE.cli.host} --dev --app ${devUrl} --name ${name}, which prints both.`,
+      ],
     },
     { text: `See what an agent sees: npx ${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]` },
     {
       text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: npx ${WIRE.cli.surface} prompt`,
     },
     {
-      text: withRelay
-        ? "Connect an agent: start the relay (npx axe relay --dev) and add its MCP server to your agent."
-        : "Connect an agent: re-run with --relay-dev to reach this tab from an MCP client, or let a browser agent drive window.__surface.",
+      text:
+        o.relay === DEV_RELAY_URL
+          ? "Fallback, the person's own tab (attended): npx axe relay --dev, then pair the agent with the code the tab shows."
+          : o.relay !== undefined
+            ? "Fallback, the person's own tab (attended): the tab connects to your relay; mint its token in /api/relay-token."
+            : "Fallback, the person's own tab (attended): re-run with --relay-dev, or let a browser agent drive window.__surface.",
     },
   );
   return steps.flatMap((s, i) => [
@@ -476,7 +508,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let installed = false;
   if (values.install && !values["dry-run"]) {
-    const cmd = installCommand(d, o.relay !== undefined, o.vendor);
+    const cmd = installCommand(d, true, o.vendor);
     ctx.stdout(`Running: ${cmd.argv.map(quoteArg).join(" ")}  (in ${cmd.cwd})`);
     if (cmd.overrides && writeOverrides(d.dir, cmd.overrides))
       ctx.stdout(

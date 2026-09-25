@@ -22,28 +22,46 @@ diff --git a/app/surface.tsx b/app/surface.tsx
 new file mode 100644
 --- /dev/null
 +++ b/app/surface.tsx
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,43 @@
 +// Agent Surface for this app, written by `axe surface init`. Yours to edit.
 +//
 +// <AgentSurface> wraps the app root. On, autoSurface discovers the controls under it and, in
 +// development, publishes window.__surface for `axe surface coverage` and browser agents.
 +// Off, it renders its children and nothing else. Overlay config: ./surface.config.
 +// Nothing here runs at import time: the provider starts discovery (and the relay) in an
-+// effect, so a server render renders the children only.
++// effect, so a server render renders the children only. injectedRelay() reads
++// window.__AXE_RELAY__ when called and is null on the server.
 +//
 +// On when useFeatureFlag("ui_axe_surface") (from ~/feature-flags) is true; that hook decides every
-+// environment. A hook needs its provider above the mount: mount below it with --mount.
++// environment. A hook needs its provider above the mount: mount below it with --mount. Always on in
++// a session a host runs for an agent (`axe host`, which injects window.__AXE_RELAY__).
 +import type { ReactNode } from "react";
 +import { SurfaceProvider } from "@axe/surface/react";
++import { connectRelay, injectedRelay } from "@axe/relay/client";
 +import { useFeatureFlag } from "~/feature-flags";
 +import surfaceConfig from "./surface.config";
 +
 +const development = import.meta.env.DEV;
 +
++// The relay carries the page's surface to an agent outside the browser (an MCP client). A host
++// that runs this app for an agent (unattended mode, `axe host`) injects the connection;
++// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay
++// for a person's own tab (attended mode, with pairing).
++
 +export function AgentSurface({ children }: { children: ReactNode }) {
-+    const enabled = useFeatureFlag("ui_axe_surface");
++    const enabled = useFeatureFlag("ui_axe_surface") || injectedRelay() !== null;
 +    return (
-+        <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development}>
++        <SurfaceProvider
++            config={surfaceConfig}
++            flag={enabled}
++            expose={development}
++            onReady={(handle) => {
++                const options = injectedRelay();
++                if (!options) return;
++                const connection = connectRelay(handle.surface, options);
++                return () => connection.stop();
++            }}
++        >
 +            {children}
 +        </SurfaceProvider>
 +    );

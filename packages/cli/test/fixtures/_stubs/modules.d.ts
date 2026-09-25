@@ -57,17 +57,20 @@ declare module "@axe/surface/react" {
 }
 
 declare module "@axe/relay/client" {
+  export interface ConnectRelayOptions {
+    url: string;
+    token?: string;
+    getToken?: () => Promise<string> | string;
+    mode?: "attended" | "unattended";
+    indicator?: boolean | Element;
+  }
   export function connectRelay(
     surface: unknown,
-    options: {
-      url: string;
-      token?: string;
-      getToken?: () => Promise<string> | string;
-      indicator?: boolean | Element;
-    },
+    options: ConnectRelayOptions,
   ): { stop(): void; rekey(token?: string): void };
   export function devToken(relayUrl: string): () => Promise<string>;
-  export function relayOptions<T>(fallback: T): T;
+  export function injectedRelay(): ConnectRelayOptions | null;
+  export function relayOptions(fallback: ConnectRelayOptions): ConnectRelayOptions;
 }
 
 declare module "react-router" {

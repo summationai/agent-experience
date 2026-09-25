@@ -11,7 +11,7 @@ export const MODULES = {
   react: "@axe/surface/react",
   /** `autoSurface`, `SurfaceConfig`, `formatCoverage`. */
   auto: "@axe/surface/auto",
-  /** `connectRelay`, `relayOptions`. */
+  /** `connectRelay`, `injectedRelay`, `devToken`. */
   relayClient: "@axe/relay/client",
 } as const;
 
@@ -22,8 +22,8 @@ export const NAMES = {
   config: "SurfaceConfig",
   formatCoverage: "formatCoverage",
   connectRelay: "connectRelay",
-  /** The injected connection of a host running the app for an agent (`axe host`), else the app's own. */
-  relayOptions: "relayOptions",
+  /** The connection a host injected (`window.__AXE_RELAY__`), read when called; null elsewhere. */
+  injectedRelay: "injectedRelay",
 } as const;
 
 /**

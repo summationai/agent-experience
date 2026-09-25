@@ -249,3 +249,11 @@ What the first integration into a legacy-DOM application asked for, made general
 - `@axe/relay/client`: when the page begins a navigation (`beforeunload`, then `pagehide`) while an act runs, the tab answers the act before its connection closes: `ok` with `navigated: true`, `changed: []`, a notice to observe the new page, and a ledger line. Reliable in headless Chromium (12 of 12 runs, link and form post).
 - `@axe/relay/server`: any other act the tab does not answer (the page crashed or closed, or `actTimeoutMs` passed, also after an approval) is `unavailable`, `retryable: false`, `details: { reason: "outcome_unknown", cause: "tab_disconnected" | "tab_timeout" }`, "The act was sent and may have taken effect. Observe before acting again". Not retried by the SDK.
 - `@axe/core` ([P-OP-3] amended): an `error` whose `details.reason` is `outcome_unknown` is stored under its idempotency key like a success, so a retry with the same key is answered with it and never runs the work twice. `@axe/mcp` explains the reason in the tool text. `@axe/surface`: `ActOutput.navigated`. Vocabulary: `outcome_unknown`.
+
+### `axe surface init`: unattended by default
+
+- The generated provider always connects the connection a host injected, whatever the flags: `onReady` runs `const options = injectedRelay(); if (!options) return; connectRelay(handle.surface, options)` (with `--relay-dev`, `injectedRelay() ?? (development ? relay : null)`: the development relay only in development; with `--relay <url>`, `injectedRelay() ?? relay`). The generated code no longer uses `relayOptions`.
+- The provider's `flag` is on inside a hosted session even when the app's own gate is off there: `enabled = <flag or development gate> || injectedRelay() !== null` (call-time, null on the server). The same for the plain-page setup.
+- `@axe/relay` is always installed alongside `@axe/surface` (install commands and tarball overrides).
+- Next steps print the host first: `npx axe host login <url>`, then `claude mcp add <name> -- npx axe host --dev --stdio --app <url>` (the name from the app's package.json), with the attended relay last as the fallback.
+- The fixture typecheck stubs gain `injectedRelay` and `ConnectRelayOptions`.

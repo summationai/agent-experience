@@ -97,6 +97,11 @@ interface Gate {
   says: string;
 }
 
+/** Always on in a session a host runs for an agent, whatever the app's own gate says. */
+const HOSTED = `${NAMES.injectedRelay}() !== null`;
+const HOSTED_SAYS =
+  "Always on in a session a host runs for an agent (`axe host`, which injects window.__AXE_RELAY__).";
+
 function gate(o: TemplateOptions): Gate {
   const env = envOf(o.framework);
   const dev = env ? env.dev : LOCAL_DEV;
@@ -106,28 +111,58 @@ function gate(o: TemplateOptions): Gate {
     return {
       imports: [`import { ${o.flag.name} } from "${o.flag.module}";`],
       module: [devLine],
-      body: [`const enabled = ${o.flag.call};`],
-      says: `On when ${o.flag.call} (from ${o.flag.module}) is true; that ${hook ? "hook" : "check"} decides every environment.${hook ? " A hook needs its provider above the mount: mount below it with --mount." : ""}`,
+      body: [`const enabled = ${o.flag.call} || ${HOSTED};`],
+      says: `On when ${o.flag.call} (from ${o.flag.module}) is true; that ${hook ? "hook" : "check"} decides every environment.${hook ? " A hook needs its provider above the mount: mount below it with --mount." : ""} ${HOSTED_SAYS}`,
     };
   }
   if (!env)
     return {
       imports: [],
-      module: [devLine, "const enabled = development;"],
+      module: [devLine, `const enabled = development || ${HOSTED};`],
       body: [],
-      says: "On when the page is served from localhost; off everywhere else. Replace `enabled` with your feature-flag check to turn it on elsewhere.",
+      says: `On when the page is served from localhost; off everywhere else. ${HOSTED_SAYS} Replace \`development\` in \`enabled\` with your feature-flag check to turn it on elsewhere.`,
     };
   const name = o.flag.kind === "env" ? o.flag.name : `${env.prefix}SURFACE`;
   return {
     imports: [],
-    module: [devLine, `const enabled = development || ${env.read(name)} === "1";`],
+    module: [devLine, `const enabled = development || ${env.read(name)} === "1" || ${HOSTED};`],
     body: [],
-    says: `On in development, and in a build made with ${name}=1. Production builds are off unless that is set.`,
+    says: `On in development, and in a build made with ${name}=1. Production builds are off unless that is set. ${HOSTED_SAYS}`,
   };
 }
 
-function relayLines(o: TemplateOptions): { imports: string[]; module: string[] } {
-  if (!o.relay) return { imports: [], module: [] };
+interface RelayLines {
+  imports: string[];
+  module: string[];
+  /** The expression for the connection options, or null for none (`options` in the code). */
+  options: string;
+}
+
+/**
+ * The relay connection. Always the one a host injected (unattended: `axe host` runs the app for an
+ * agent, and nobody pairs); with `--relay-dev`, the development relay in development otherwise
+ * (attended: the person's own tab, with pairing); with `--relay <url>`, the app's own relay.
+ */
+function relayLines(o: TemplateOptions): RelayLines {
+  const injected = `${NAMES.injectedRelay}()`;
+  const imports = (extra: string[] = []) => [
+    `import { ${[NAMES.connectRelay, ...extra, NAMES.injectedRelay].join(", ")} } from "${MODULES.relayClient}";`,
+  ];
+  const intro = [
+    "",
+    "// The relay carries the page's surface to an agent outside the browser (an MCP client). A host",
+    "// that runs this app for an agent (unattended mode, `axe host`) injects the connection;",
+  ];
+  if (!o.relay)
+    return {
+      imports: imports(),
+      module: [
+        ...intro,
+        "// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay",
+        "// for a person's own tab (attended mode, with pairing).",
+      ],
+      options: injected,
+    };
   const env = envOf(o.framework);
   const url = env
     ? `${env.read(`${env.prefix}SURFACE_RELAY_URL`)} ?? "${o.relay}"`
@@ -140,14 +175,13 @@ function relayLines(o: TemplateOptions): { imports: string[]; module: string[] }
     ? `  getToken: devToken("${httpBase}"), // development only; outside it, fetch a token from the app`
     : `  getToken: () => fetch("/api/relay-token", { method: "POST" }).then((r) => r.json()).then((b) => b.token), // your endpoint that mints a relay token for the signed-in user`;
   return {
-    imports: [
-      `import { ${NAMES.connectRelay}${dev ? ", devToken" : ""}, ${NAMES.relayOptions} } from "${MODULES.relayClient}";`,
-    ],
+    imports: imports(dev ? ["devToken"] : []),
     module: [
-      "",
-      "// The relay carries this tab's surface to an agent outside the page (an MCP client).",
-      `// ${NAMES.relayOptions} prefers the connection a host injects when it runs this app for an agent`,
-      "// (unattended mode, `axe host`); in a person's own browser it is the one below.",
+      ...intro,
+      dev
+        ? "// otherwise, in development, the person's own tab connects to the development relay"
+        : "// otherwise the person's own tab connects to the app's relay (attended mode).",
+      ...(dev ? ["// (`axe relay --dev`, attended mode, with pairing)."] : []),
       ...(env ? [`// Override the URL with ${env.prefix}SURFACE_RELAY_URL.`] : []),
       "const relay = {",
       `  url: ${url},`,
@@ -155,6 +189,7 @@ function relayLines(o: TemplateOptions): { imports: string[]; module: string[] }
       "  // indicator: false, // hides the relay's on-page indicator, whose text is not translated",
       "};",
     ],
+    options: dev ? `${injected} ?? (development ? relay : null)` : `${injected} ?? relay`,
   };
 }
 
@@ -167,14 +202,12 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     `${PROVIDER_PROPS.config}={surfaceConfig}`,
     `${PROVIDER_PROPS.flag}={enabled}`,
     `${PROVIDER_PROPS.expose}={development}`,
-    ...(o.relay
-      ? [
-          `${PROVIDER_PROPS.onReady}={(handle) => {`,
-          `  const connection = ${NAMES.connectRelay}(handle.surface, ${NAMES.relayOptions}(relay));`,
-          "  return () => connection.stop();",
-          "}}",
-        ]
-      : []),
+    `${PROVIDER_PROPS.onReady}={(handle) => {`,
+    `  const options = ${r.options};`,
+    "  if (!options) return;",
+    `  const connection = ${NAMES.connectRelay}(handle.surface, options);`,
+    "  return () => connection.stop();",
+    "}}",
   ];
   const open =
     props.length <= 3
@@ -188,7 +221,8 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     `// development, publishes window.${PAGE_GLOBAL} for \`axe surface coverage\` and browser agents.`,
     "// Off, it renders its children and nothing else. Overlay config: ./surface.config.",
     "// Nothing here runs at import time: the provider starts discovery (and the relay) in an",
-    "// effect, so a server render renders the children only.",
+    "// effect, so a server render renders the children only. injectedRelay() reads",
+    "// window.__AXE_RELAY__ when called and is null on the server.",
     "//",
     ...comment(g.says),
     ...(ts ? [`import type { ReactNode } from "react";`] : []),
@@ -238,7 +272,8 @@ export function plainSurfaceFile(o: TemplateOptions): string {
     "if (enabled) {",
     "  // expose publishes window.__surface for `axe surface coverage` and browser-driving agents.",
     `  const handle = ${NAMES.autoSurface}({ ${AUTO_OPTIONS.root}: document.body, ${AUTO_OPTIONS.config}: surfaceConfig, expose: development });`,
-    ...(o.relay ? [`  ${NAMES.connectRelay}(handle.surface, ${NAMES.relayOptions}(relay));`] : []),
+    `  const options = ${r.options};`,
+    `  if (options) ${NAMES.connectRelay}(handle.surface, options);`,
     "}",
     "",
   ];
