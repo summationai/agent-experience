@@ -21,6 +21,6 @@ The engineering and product review of branch `herz/surface-integration` at `e563
 | 15 | Human oversight in the reference workflow | 3 | [15-human-oversight.md](15-human-oversight.md) | done |
 | 16 | Capability granularity evaluated | 4 | [16-granularity.md](16-granularity.md) | done |
 | 17 | Evaluation harness and external pilot plan | 4 | [17-evaluation.md](17-evaluation.md) | pending |
-| 18 | Audit claims clarified; roadmap prioritized | 4 | [18-claims-and-roadmap.md](18-claims-and-roadmap.md) | pending |
+| 18 | Audit claims clarified; roadmap prioritized | 4 | [18-claims-and-roadmap.md](18-claims-and-roadmap.md) | done |
 
 Each item file follows one shape: **Finding** (what the review said and what this checkout showed on reproduction), **Change** (files, public API, spec rule ids, migration), **Tests** (names, what they fail on without the change), **Limitations** (what is still not guaranteed), **Status**.

@@ -4,6 +4,8 @@
 
 A **kind** names the type of payload an agent can submit to satisfy a `needs_input` requirement. Well-known kinds exist so that an agent's wallet or credential store can fulfill a requirement automatically: when a site asks for `payment.ach-debit`, every conforming agent knows the shape without reading prose.
 
+This registry defines payload shapes and the validation rules below. It does not define how a credential is issued, whether a payment clears, or whether an identity document is genuine; those are decided by the site's payment provider and its own checks. A payload that validates against a kind is well-formed, not accepted. The existence of a kind is not evidence that any agent wallet supports it.
+
 Rules:
 
 **[K-1]** Kind names are namespace-dot-name, kebab-case: `payment.ach-debit`. Well-known namespaces are `payment`, `identity`, `document`, `contact`, and `consent`. Sites MUST NOT define new kinds in these namespaces.

@@ -2,7 +2,9 @@
 
 **Agentic eXperience Engineering — because your site should smell good to agents too.**
 
-AXE is an open, HTTP-native protocol and a TypeScript SDK that let any organization with a website expose a streamlined, agent-specific interface next to its human one: what the site can do, how to present results, what it needs to finish, and when a human must step in. You wrap functions you already have; agents get a manifest, typed actions, a structured escalation ladder, and an MCP server for free.
+A TypeScript SDK for exposing an application's existing capabilities to people and to agents through the same logic. You wrap functions you already have as typed actions, or register the live controls of a running app. Both get explicit permissions (who may call what, as which principal), availability with a reason, one result shape with five statuses (`ok`, `needs_input`, `needs_human`, `pending`, `error`), human approval bound to the exact call, and retries that replay a completed operation's result instead of running it again ([limits](docs/security.md#known-gaps)).
+
+Agents reach that logic through interfaces they already use: an MCP server (`@axe/mcp`), WebMCP tools in the browser (`@axe/surface/webmcp`), or the page's own controls, which carry the same names in the DOM for browser agents. AXE (`axe/0.1`) is the HTTP representation underneath. It is useful on its own, but you do not need agents to adopt it: publishing a manifest does not make an arbitrary agent find or use your site.
 
 [![CI](https://img.shields.io/badge/ci-github_actions-blue)](.github/workflows/ci.yml) [![Protocol](https://img.shields.io/badge/protocol-axe%2F0.1-informational)](spec/AXE-PROTOCOL.md) [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE) [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
@@ -39,7 +41,7 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 ```
 <!-- /include -->
 
-Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters), and an agent can now discover `/.well-known/axe.json`, call `POST /axe/actions/classes.search`, and connect through `npx axe mcp https://sunriseyoga.example`.
+Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
 - **[Getting started](docs/getting-started.md)** — from `npm install` to a passing conformance check in 15 minutes.
 - **[Concepts](docs/concepts.md)** — manifest, actions, display and affordances, the result envelope, the escalation ladder.
@@ -47,21 +49,34 @@ Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line e
 - **[All docs](docs/README.md)** — designing actions, presenting results, requirements and kinds, human handoff, auth, integrations, MCP, agent builders, testing, security, audit, analytics, platforms, deploying, API reference, FAQ.
 - **For agents implementing this:** [llms.txt](llms.txt) — how to integrate AXE and Surface into an existing application, with the rules, the packaging, the tests, and the reading order.
 
+## What is and is not claimed
+
+The repository makes four kinds of claim, each with its own evidence:
+
+- **Protocol conformance.** `axe conformance` checks the wire behavior it can exercise against a URL. A skipped check was not verified. See [Testing and conformance](docs/testing-and-conformance.md#what-conformance-does-not-show).
+- **Tested security properties.** Token binding, atomic operations, authorization of polls and Surface reads, CSRF, and the rest are pinned by named tests in the SDK's suites, listed per property in the [review checklist](docs/review/2026-09-24/README.md). They cover this code, not your deployment or your handlers.
+- **Measured task effectiveness.** A scripted harness measures task outcomes against the reference app, as a regression signal. It is not a measure of model performance. See [Evaluation](docs/evaluation.md).
+- **Heuristic checks.** The honesty lints are regular expressions and the parity check is a sample. See [What a score does not mean](docs/audit.md#what-a-score-does-not-mean).
+
+None of this is evidence of production readiness, agent adoption, or commercial value. Who benefits first is a hypothesis: teams building interactive business applications (planning tools, administrative workflows) where people and agents share work. The [roadmap](ROADMAP.md) says which parts are open SDK work and which are commercial hypotheses.
+
 ## Website
 
 Open `site/dist/index.html` from disk for the landing page and every doc as a static site; it needs no server and makes no network requests. The same directory deploys as plain static files anywhere. `pnpm site:build` regenerates it from `docs/`; see [docs/site.md](docs/site.md).
 
 ## Packages
 
+The packages share one set of application logic and differ in how a caller reaches it: an HTTP runtime and its framework adapters, an MCP server, a browser registry with WebMCP and DOM adapters, a client, and tools that test and measure the result.
+
 | Package         | What it is                                                                                                                |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `@axe/core`     | Protocol types, schemas, well-known kinds, and the framework-free server runtime.                                         |
 | `@axe/client`   | Agent-side client: discover, invoke, continue, resume, present.                                                           |
-| `@axe/mcp`      | Derive an MCP server (stdio or Streamable HTTP) from any AXE site.                                                        |
+| `@axe/mcp`      | Derive an MCP server (stdio or Streamable HTTP) from any AXE site, with elicitation and MCP Apps where the client has them. |
 | `@axe/express`  | Express and Connect adapter.                                                                                              |
 | `@axe/next`     | Next.js App Router and Pages API adapter.                                                                                 |
 | `@axe/fetch`    | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                                            |
-| `@axe/surface`  | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions.                     |
+| `@axe/surface`  | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions, WebMCP tools, or DOM attributes. |
 | `@axe/generate` | Derive actions from an OpenAPI document, a zod-typed function table, or a tRPC router; refuses to invent.                 |
 | `@axe/testing`  | Conformance suite, AXE audit, drift check, and test helpers.                                                              |
 | `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`. |

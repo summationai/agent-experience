@@ -235,7 +235,7 @@ Affordance graph:
   entry points: classes.search
 ```
 
-The manifest itself is plain JSON at `/.well-known/axe.json`. Any agent can call the action with `fetch`:
+The manifest itself is plain JSON at `/.well-known/axe.json`. Any HTTP client can call the action with `fetch`:
 
 ```sh
 curl -s -X POST http://localhost:3000/axe/actions/classes.search \
@@ -301,10 +301,12 @@ PASS  manifest.schema                 Manifest validates against the schema
 ...
 PASS  runtime.example-roundtrip       Read actions return ok for their examples; outputs validate; display resolves
 ...
-35 passed, 0 failed, 1 warnings, 18 skipped. Conformant.
+36 passed, 0 failed, 1 warnings, 27 skipped. Conformant.
+Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised. Each skip's detail line says what the run lacked.
+...
 ```
 
-The skipped checks exercise mutating actions and the escalation ladder; they run once you add a mutating action and pass `--auth`. The one warning is a hint you can fix with a single line in `robots.txt`; see [Deploying](deploying.md#discovery).
+The skipped checks exercise mutating actions and the escalation ladder; they run once you add a mutating action and pass `--auth`. Until then they are not verified, which is what the second line says. The one warning is a hint you can fix with a single line in `robots.txt`; see [Deploying](deploying.md#discovery).
 
 `axe audit` gives you the AXE Score and a fix list, in the style of Lighthouse:
 
@@ -313,10 +315,10 @@ npx axe audit http://localhost:3000
 ```
 
 ```
-AXE Score: 89 / 100   http://localhost:3000/
+AXE Score: 88 / 100   http://localhost:3000/
 ...
 Fix list (highest impact first):
- 1. +7.5 Affordance graph is connected: reads lead somewhere, transactions are reachable [Actionable]
+ 1. +9.2 Affordance graph is connected: reads lead somewhere, transactions are reachable [Actionable]
     classes.search returns a list but offers no affordances
     See docs/presenting-results.md#affordances
  2. +3.2 robots.txt directive, link tag, or header points at the manifest [Discoverable]
@@ -349,9 +351,9 @@ Claude calls `classes_search` with `{ "from": "2026-10-01", "style": "yin" }`, a
 
 ## What you have
 
-- A manifest at `/.well-known/axe.json` that any agent can discover.
+- A manifest at `/.well-known/axe.json` that an AXE client can discover.
 - One typed, described, presentable action at `/axe/actions/classes.search`.
-- A passing conformance check and an audit score with a fix list.
+- A passing conformance check (with the ladder checks skipped, so not yet verified) and an audit score with a fix list.
 - An MCP server derived from the same declaration.
 
 Everything from here is additive. You never have to change what you shipped today to add a booking action, a payment requirement, or a human handoff.

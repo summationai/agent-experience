@@ -62,10 +62,12 @@ describe("conformance suite", () => {
       "ladder.fallback-resume",
       "ladder.resume-replay",
       "ladder.handoff-shape",
-      "ladder.needs-human-avoidable",
     ]) {
       expect(byId[id], id).toBe("pass");
     }
+    // The fixture's mutating actions answer needs_input, never needs_human, so there is nothing
+    // for this check to judge: it skips rather than passing vacuously (review item 18).
+    expect(byId["ladder.needs-human-avoidable"]).toBe("skip");
     expect(report.ok).toBe(true);
     expect(report.observations.needsInput[0]!.action).toBe("applications.submit");
     const table = formatConformanceTable(report);
