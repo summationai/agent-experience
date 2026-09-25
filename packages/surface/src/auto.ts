@@ -33,6 +33,7 @@ import {
   COLLECTION_ROLES,
   FIELD_ROLES,
   LANDMARK_ROLES,
+  MORE_ONLY_ROLES,
   ActWatch,
   ScanContext,
   accessibleName,
@@ -879,6 +880,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
             "set aria-rowcount (or aria-setsize) so the total is known, or declare the collection with its data",
         });
       const canMore = !blocked && (facts.loadMore || facts.scroller);
+      // A plain list is a collection only when it can load more: otherwise it is layout.
+      if (MORE_ONLY_ROLES.has(c.role) && !facts.loadMore && !facts.scroller && !facts.virtualized)
+        return null;
       const entry: Entry = {
         id,
         kind: "collection",

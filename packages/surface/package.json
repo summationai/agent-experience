@@ -48,6 +48,16 @@
         "types": "./dist/webmcp.d.cts",
         "default": "./dist/webmcp.cjs"
       }
+    },
+    "./auto": {
+      "import": {
+        "types": "./dist/auto.d.ts",
+        "default": "./dist/auto.js"
+      },
+      "require": {
+        "types": "./dist/auto.d.cts",
+        "default": "./dist/auto.cjs"
+      }
     }
   },
   "typesVersions": {
@@ -60,6 +70,9 @@
       ],
       "webmcp": [
         "./dist/webmcp.d.ts"
+      ],
+      "auto": [
+        "./dist/auto.d.ts"
       ]
     }
   },
@@ -71,7 +84,8 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test:browser": "node test/browser/run.mjs"
   },
   "dependencies": {
     "@axe/core": "workspace:*"

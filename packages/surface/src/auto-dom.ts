@@ -99,7 +99,17 @@ export const ACTION_ROLES = new Set([
 /** Roles that become field entries (when the element holds an editable value). */
 export const FIELD_ROLES = new Set(["textbox", "searchbox", "combobox", "spinbutton", "slider"]);
 /** Roles that become collection entries. */
-export const COLLECTION_ROLES = new Set(["grid", "treegrid", "table", "listbox", "tree"]);
+export const COLLECTION_ROLES = new Set([
+  "grid",
+  "treegrid",
+  "table",
+  "listbox",
+  "tree",
+  "list",
+  "feed",
+]);
+/** Collection roles registered only when they can load more (a scrolling or infinite list). */
+export const MORE_ONLY_ROLES = new Set(["list", "feed"]);
 /** Landmarks a `navigate` act can bring into view. */
 export const LANDMARK_ROLES = new Set([
   "main",
@@ -189,6 +199,9 @@ export function roleOf(el: Element): string {
     }
     case "table":
       return "table";
+    case "ul":
+    case "ol":
+      return "list";
     case "nav":
       return "navigation";
     case "main":
@@ -257,6 +270,8 @@ export const CANDIDATE_SELECTOR = [
   "select",
   "textarea",
   "table",
+  "ul",
+  "ol",
   "[contenteditable]",
   "[role]",
   "[data-surface-id]",
@@ -1061,6 +1076,10 @@ export function collectionFacts(el: Element, role: string, ctx: ScanContext): Co
   let rows: Element[];
   if (role === "listbox" || role === "tree") {
     rows = Array.from(el.querySelectorAll('[role="option"], [role="treeitem"]'));
+  } else if (role === "list" || role === "feed") {
+    rows = Array.from(
+      el.querySelectorAll(':scope > li, :scope > [role="listitem"], :scope > [role="article"]'),
+    );
   } else {
     rows = Array.from(el.querySelectorAll('tr, [role="row"]')).filter(
       (r) => !r.closest("thead") && !r.querySelector('th[scope="col"], [role="columnheader"]'),
