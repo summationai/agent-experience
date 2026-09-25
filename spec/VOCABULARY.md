@@ -734,6 +734,12 @@ Public identifiers of `@axe/surface/auto`, which derives a surface from the rend
 | field    | staleConfig          | `staleConfig`          | coverage `staleConfig`                | Configuration rules that matched no control: `stale` on their route, or `unmatched` anywhere yet.                        |
 | api      | debounceMs           | `debounceMs`           | `autoSurface` option `observe`        | How long DOM changes are coalesced before a re-scan.                                                                     |
 | api      | quietMs              | `quietMs`              | `autoSurface` option `observe.settle` | How long the page must go without a DOM change before an act reports.                                                    |
+| api      | formatRead           | `formatRead`           | `@axe/surface/auto`                   | A read of the page (`handle.read()`) as Markdown: sections, fields, tables, lists, and what could not be read.           |
+| api      | contentDomains       | `contentDomains`       | `@axe/surface/auto`                   | The read-only page-content actions `read` and `wait`, served as `<ns>.read` and `<ns>.wait` [S-AUTO-16].                 |
+| api      | maxChars             | `maxChars`             | `handle.read()`, `<ns>.read` input    | At most this many characters of Markdown per read result (default 12000, at most 50000); `nextCursor` continues.         |
+| api      | maxRows              | `maxRows`              | `handle.read()`, `<ns>.read` input    | At most this many rows per table and items per list in a read (default 50, at most 500).                                 |
+| api      | pollMs               | `pollMs`               | `handle.wait()`, `<ns>.wait` input    | How often a wait checks its condition at least, beside every DOM change (default 250 ms).                                |
+| field    | revMoved             | `revMoved`             | wait condition `revMoved`             | A wait condition: the surface's revision is no longer the one given.                                                     |
 
 ## Generate API
 
