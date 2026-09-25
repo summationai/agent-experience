@@ -68,7 +68,7 @@ export function axeNextPages(axe: AXE, options: NextPagesAdapterOptions = {}) {
       // default); the core applies `maxBodyBytes` to it again. A raw stream is read only up to
       // `maxBodyBytes + 1` bytes ([P-LIM-1]).
       if (req.body !== undefined && req.readableEnded !== false) {
-        init.body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+        init.body = typeof req.body === "string" ? req.body : serializeParsed(req.body);
       } else {
         init.body = await readStream(req, axe.maxBodyBytes);
       }
@@ -122,4 +122,19 @@ function toArrayBufferBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(new ArrayBuffer(bytes.byteLength));
   out.set(bytes);
   return out;
+}
+
+/**
+ * Serialize a body a parser already turned into a value. A value nested deeply enough to
+ * overflow `JSON.stringify` is replaced by a body nested just past the core's limit, so the core
+ * answers it as it answers any over-deep body ([P-LIM-2]) instead of the adapter failing with 500.
+ */
+function serializeParsed(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch (e) {
+    if (!(e instanceof RangeError)) throw e;
+    const depth = 1000;
+    return `{"input":${"[".repeat(depth)}${"]".repeat(depth)}}`;
+  }
 }

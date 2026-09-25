@@ -117,6 +117,24 @@ Redirects are followed by hand (`redirect: "manual"`) so that every hop is check
 
 `trust.destinationPolicy` is called for every outbound URL, redirects included, after the built-in checks. It can only refuse. When your agent runs on a server with network access of its own, read [Security](security.md#request-forgery-from-a-host-side-agent) before pointing it at sites you do not operate.
 
+## Timeouts, cancellation, and budgets
+
+A site can be slow, stall halfway through a response, send more than you want to hold, or answer `pending` with `retryAfter: 0` forever. The client bounds each of these, inside the same path that applies the trust checks, so every hop of every request is covered ([spec §6.5](../spec/AXE-PROTOCOL.md#65-limits), [P-LIM-3]).
+
+| Bound                  | Option                                   | Default               | What happens                                                                                                  |
+| ---------------------- | ---------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Time per request       | `timeoutMs`                              | 30000                 | The request is aborted, redirects and the body read included; `AXEClientError` "timed out".                   |
+| Caller cancellation    | `signal` on `invoke`, `continue`, `resume`, `poll`, `state`, `run`, `discover`, and `AXEClient.discover` | none | The request is aborted; an already-aborted signal sends nothing. An aborted discovery stops instead of trying the next place. |
+| Response size          | `maxResponseBytes`                       | 4194304 (4 MiB)       | A larger `Content-Length` is refused before reading; a streamed body is cancelled once it passes the limit.   |
+| Polls                  | `maxPollAttempts`                        | 60                    | `poll()` and `run()` stop and return the last `pending`.                                                      |
+| Time spent polling     | `maxWaitMs`                              | 60000                 | The same. In `run()` both budgets are shared by every poll of the run.                                        |
+| Wait between polls     | `retryAfter` from the site               | at least 1 second     | Honored, but never less than one second and never past what is left of `maxWaitMs`.                           |
+
+<!-- include: examples/for-agent-builders/limits.ts#limits -->
+<!-- /include -->
+
+Everything the site sends is checked before it is used: a manifest from `discover()` must have the members the client reads (`baseUrl`, `actions[]` with `name`, `readOnly`, `input`, `output`, and so on), a result must have the members its `status` requires (a `needs_input` with a non-empty `accepts`, a `pending` with a `pollUrl` and a numeric `retryAfter`), and a live-state document must map each action to an `available` boolean. A document that fails is an `AXEClientError` that names the member, so a malformed site never reaches your fulfillers, your loop, or `present()`. Keys such as `__proto__` stay ordinary data. The checks are written by hand rather than with Zod so the client stays dependency-free and small.
+
 ## Handling each status in an agent loop
 
 `run` drives the whole [escalation ladder](concepts.md#the-escalation-ladder): it invokes, satisfies each `needs_input` from your fulfillers (confirming `sensitive` payloads), polls `pending` work, and surfaces a handoff only when nothing else works. What it settles to is a `RunOutcome` whose `status` is one of the same five values. Your loop is a switch over them.

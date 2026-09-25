@@ -130,7 +130,7 @@ module.exports = {
 
 Next passes the original URL through to the API route, so the adapter still sees `/axe/actions/applications.status` and routes it correctly. The adapter also honors an x-axe-original-path request header, which you only need when something in front of Next (nginx, a CDN rule) rewrites the path before Next sees it. Have that layer set the header to the path the agent requested.
 
-Two Pages API defaults are worth knowing. Next parses JSON bodies for API routes; the adapter serializes the parsed body back, and if you disable the body parser for the route, it reads the raw stream instead. And the adapter assumes `https` unless `X-Forwarded-Proto` says otherwise, which is right on Vercel and behind most load balancers and wrong on `localhost`; the `origin` option in the example makes both cases explicit.
+Two Pages API defaults are worth knowing. Next parses JSON bodies for API routes, within its size limit (`sizeLimit: "1mb"` by default); the adapter serializes the parsed body back, and if you disable the body parser for the route, it reads the raw stream instead, only up to the server's `maxBodyBytes`, answering 413 beyond it. The App Router adapter hands the `Request` to the core, which reads it within `maxBodyBytes` ([Deploying](../deploying.md#limits-and-retention)). And the adapter assumes `https` unless `X-Forwarded-Proto` says otherwise, which is right on Vercel and behind most load balancers and wrong on `localhost`; the `origin` option in the example makes both cases explicit.
 
 ## Passing your session in
 

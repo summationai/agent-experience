@@ -42,6 +42,8 @@ describe("conformance suite", () => {
       "manifest.affordances",
       "runtime.unknown-action",
       "runtime.invalid-input",
+      "runtime.body-limit",
+      "runtime.nesting-limit",
       "runtime.unsupported-version",
       "runtime.example-roundtrip",
       "runtime.pagination-roundtrip",
@@ -81,6 +83,19 @@ describe("conformance suite", () => {
     };
     expect(await statusOf({})).toBe("pass");
     expect(await statusOf({ requestPolicy: { requireJsonContentType: false } })).toBe("fail");
+  });
+
+  it("runtime.body-limit passes by default and fails when the server reads a 32 MiB body in full", async () => {
+    const statusOf = async (overrides: Parameters<typeof apartmentsAXE>[0]) => {
+      const { axe } = apartmentsAXE(overrides);
+      const report = await runConformance("https://oakridge-rentals.example", {
+        fetch: inProcess(axe),
+        auth: "user:dana",
+      });
+      return report.checks.find((c) => c.id === "runtime.body-limit")?.status;
+    };
+    expect(await statusOf({})).toBe("pass");
+    expect(await statusOf({ maxBodyBytes: 64 * 1024 * 1024 })).toBe("fail");
   });
 
   it("skips ladder and mutation checks without credentials or with --no-mutate", async () => {

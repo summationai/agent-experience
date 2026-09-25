@@ -1080,6 +1080,12 @@ export const api = /* @__PURE__ */ Object.freeze({
   maxResponseBytes: "maxResponseBytes",
   /** `poll` and `run` option: most poll requests before the last `pending` is returned (default 60). */
   maxPollAttempts: "maxPollAttempts",
+  /** Validate a value against a JSON Schema in the supported subset; never throws, refuses what it cannot apply ([P-SCHEMA-2]). */
+  validateJsonSchema: "validateJsonSchema",
+  /** Apply every lint rule to one action definition, the schema rules included. */
+  lintAction: "lintAction",
+  /** Whether a pattern has the nested-repetition shape that backtracks catastrophically ([P-SCHEMA-4]). */
+  isBacktrackingPattern: "isBacktrackingPattern",
   /** Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. */
   fromOpenAPI: "fromOpenAPI",
   /** Action source: a table of zod-typed functions keyed by action name. */
@@ -1102,6 +1108,58 @@ export const api = /* @__PURE__ */ Object.freeze({
   includeDeprecated: "includeDeprecated",
   /** tRPC option: build the router context from the AXE handler context. */
   createContext: "createContext",
+} as const);
+
+/** `schema` names. */
+export const schema = /* @__PURE__ */ Object.freeze({
+  /** Members not named by `properties` or `patternProperties`. */
+  additionalProperties: "additionalProperties",
+  /** Members whose names match a pattern. */
+  patternProperties: "patternProperties",
+  /** A schema every member name must match. */
+  propertyNames: "propertyNames",
+  /** Fewest members. */
+  minProperties: "minProperties",
+  /** Most members. */
+  maxProperties: "maxProperties",
+  /** Members required when another is present. */
+  dependentRequired: "dependentRequired",
+  /** A schema applied when a member is present. */
+  dependentSchemas: "dependentSchemas",
+  /** Schemas for the first array items, in order (tuples). */
+  prefixItems: "prefixItems",
+  /** Fewest array items. */
+  minItems: "minItems",
+  /** Most array items. */
+  maxItems: "maxItems",
+  /** No two array items deeply equal. */
+  uniqueItems: "uniqueItems",
+  /** Fewest items matching `contains`. */
+  minContains: "minContains",
+  /** Most items matching `contains`. */
+  maxContains: "maxContains",
+  /** Shortest string, in code points. */
+  minLength: "minLength",
+  /** Number strictly above. */
+  exclusiveMinimum: "exclusiveMinimum",
+  /** Number strictly below. */
+  exclusiveMaximum: "exclusiveMaximum",
+  /** Number an exact decimal multiple of ([P-SCHEMA-3]). */
+  multipleOf: "multipleOf",
+  /** Every schema must match. */
+  allOf: "allOf",
+  /** At least one schema must match. */
+  anyOf: "anyOf",
+  /** Exactly one schema must match. */
+  oneOf: "oneOf",
+  /** Ignored by the validator. */
+  writeOnly: "writeOnly",
+  /** Refuses every value in the SDK's validator ([P-SCHEMA-2]). */
+  unevaluatedProperties: "unevaluatedProperties",
+  /** Refuses every value in the SDK's validator ([P-SCHEMA-2]). */
+  unevaluatedItems: "unevaluatedItems",
+  /** Draft 7; refuses every value in the SDK's validator ([P-SCHEMA-2]). */
+  additionalItems: "additionalItems",
 } as const);
 
 /**
@@ -1136,6 +1194,7 @@ export const WIRE = /* @__PURE__ */ Object.freeze({
   cli,
   payload,
   api,
+  schema,
 } as const);
 
 export type Wire = typeof WIRE;
@@ -1190,7 +1249,9 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "validateJsonSchema" | "lintAction" | "isBacktrackingPattern" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+/** Union of every `schema` name. */
+export type WireSchema = "additionalProperties" | "patternProperties" | "propertyNames" | "minProperties" | "maxProperties" | "dependentRequired" | "dependentSchemas" | "prefixItems" | "minItems" | "maxItems" | "uniqueItems" | "minContains" | "maxContains" | "minLength" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf" | "allOf" | "anyOf" | "oneOf" | "writeOnly" | "unevaluatedProperties" | "unevaluatedItems" | "additionalItems";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1681,6 +1742,33 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "timeoutMs", name: "timeoutMs" },
   { category: "api", key: "maxResponseBytes", name: "maxResponseBytes" },
   { category: "api", key: "maxPollAttempts", name: "maxPollAttempts" },
+  { category: "api", key: "validateJsonSchema", name: "validateJsonSchema" },
+  { category: "api", key: "lintAction", name: "lintAction" },
+  { category: "api", key: "isBacktrackingPattern", name: "isBacktrackingPattern" },
+  { category: "schema", key: "additionalProperties", name: "additionalProperties" },
+  { category: "schema", key: "patternProperties", name: "patternProperties" },
+  { category: "schema", key: "propertyNames", name: "propertyNames" },
+  { category: "schema", key: "minProperties", name: "minProperties" },
+  { category: "schema", key: "maxProperties", name: "maxProperties" },
+  { category: "schema", key: "dependentRequired", name: "dependentRequired" },
+  { category: "schema", key: "dependentSchemas", name: "dependentSchemas" },
+  { category: "schema", key: "prefixItems", name: "prefixItems" },
+  { category: "schema", key: "minItems", name: "minItems" },
+  { category: "schema", key: "maxItems", name: "maxItems" },
+  { category: "schema", key: "uniqueItems", name: "uniqueItems" },
+  { category: "schema", key: "minContains", name: "minContains" },
+  { category: "schema", key: "maxContains", name: "maxContains" },
+  { category: "schema", key: "minLength", name: "minLength" },
+  { category: "schema", key: "exclusiveMinimum", name: "exclusiveMinimum" },
+  { category: "schema", key: "exclusiveMaximum", name: "exclusiveMaximum" },
+  { category: "schema", key: "multipleOf", name: "multipleOf" },
+  { category: "schema", key: "allOf", name: "allOf" },
+  { category: "schema", key: "anyOf", name: "anyOf" },
+  { category: "schema", key: "oneOf", name: "oneOf" },
+  { category: "schema", key: "writeOnly", name: "writeOnly" },
+  { category: "schema", key: "unevaluatedProperties", name: "unevaluatedProperties" },
+  { category: "schema", key: "unevaluatedItems", name: "unevaluatedItems" },
+  { category: "schema", key: "additionalItems", name: "additionalItems" },
   { category: "api", key: "fromOpenAPI", name: "fromOpenAPI" },
   { category: "api", key: "fromFunctions", name: "fromFunctions" },
   { category: "api", key: "fromTRPCRouter", name: "fromTRPCRouter" },

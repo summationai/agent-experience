@@ -232,6 +232,30 @@ describe("request policy through the Next adapters [P-TRANS-1] [P-TRANS-2]", () 
   });
 });
 
+describe("axeNextPages deep parsed body [P-LIM-2]", () => {
+  it("a deeply nested body Next already parsed is invalid_input, not a 500", async () => {
+    const pages = axeNextPages(server(), { origin: "https://admissions.northgate.example" });
+    const http = createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => chunks.push(c));
+      req.on("end", () => {
+        void pages(Object.assign(req, { body: JSON.parse(Buffer.concat(chunks).toString()) }), res);
+      });
+    });
+    await new Promise<void>((r) => http.listen(0, () => r()));
+    const port = (http.address() as { port: number }).port;
+    const n = 20_000;
+    const r = await fetch(`http://127.0.0.1:${port}/axe/actions/applications.status`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: `{"input":{"x":${"[".repeat(n)}${"]".repeat(n)}}}`,
+    });
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { error: { code: string } }).error.code).toBe("invalid_input");
+    await new Promise<void>((r) => http.close(() => r()));
+  });
+});
+
 describe("axeNextPages body limit [P-LIM-1]", () => {
   /** Send headers and the first bytes of a body, never the rest; resolve with the response. */
   function partialPost(port: number, headers: Record<string, string>, first: Buffer) {

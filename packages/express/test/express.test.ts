@@ -111,6 +111,17 @@ describe("axeExpress", () => {
     expect(((await anon.json()) as { status: string }).status).toBe("needs_human");
   });
 
+  it("a deeply nested body parsed by express.json() is invalid_input, not a 500 [P-LIM-2]", async () => {
+    const n = 20_000;
+    const r = await fetch(`${base}/axe/actions/classes.search`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: `{"input":{"from":${"[".repeat(n)}${"]".repeat(n)}}}`,
+    });
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { error: { code: string } }).error.code).toBe("invalid_input");
+  });
+
   it("works without express.json() by reading the raw stream", async () => {
     const app = express();
     app.use(axeExpress(server()));

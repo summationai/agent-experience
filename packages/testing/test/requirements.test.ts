@@ -46,9 +46,12 @@ describe("requirement coverage", () => {
       "packages/core/test/token-binding.test.ts",
       "packages/core/test/operations.test.ts",
       "packages/core/test/sqlite-store.test.ts",
+      "packages/core/test/limits.test.ts",
+      "packages/core/test/schema-boundaries.test.ts",
       "packages/client/test/client.test.ts",
       "packages/client/test/narrowing.test.ts",
       "packages/client/test/trust.test.ts",
+      "packages/client/test/limits.test.ts",
       "packages/mcp/test/mcp.test.ts",
     ]
       .map((p) => readFileSync(join(root, p), "utf8"))

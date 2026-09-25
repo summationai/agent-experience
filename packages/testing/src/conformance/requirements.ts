@@ -192,6 +192,55 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
       test: "@axe/core a crash after the business commit and before the result is stored: the retry re-runs, and operationId keeps the effect single",
     },
   ],
+  "P-LIM-1": [
+    { check: "runtime.body-limit" },
+    {
+      test: "@axe/core a body without Content-Length is read only up to the limit, then the stream is cancelled",
+    },
+  ],
+  "P-LIM-2": [
+    { check: "runtime.nesting-limit" },
+    { test: "@axe/core a deeply nested body is invalid_input, not a crash" },
+  ],
+  "P-LIM-3": [
+    { test: "@axe/client a request that never answers fails with a timeout after timeoutMs" },
+    { test: "@axe/client a body without Content-Length is read up to the limit, then cancelled" },
+    {
+      test: "@axe/client a site that says retryAfter 0 is polled at most once a second, not in a loop",
+    },
+    { test: "@axe/client discover() rejects malformed manifests and says why" },
+  ],
+  "P-LIM-4": [
+    {
+      test: "@axe/core MemoryIdempotencyStore sweeps abandoned unique keys, and evicts completed entries before a running claim",
+    },
+    {
+      test: "@axe/core MemoryTokenStore sweeps expired records on a later write, whether or not they are read again",
+    },
+  ],
+  "P-SCHEMA-1": [{ test: "@axe/core a required key is not satisfied by the prototype chain" }],
+  "P-SCHEMA-2": [
+    {
+      test: "@axe/core a keyword the validator does not implement refuses the value; annotations and x- keys are ignored",
+    },
+    { test: "@axe/core a $ref loop that consumes nothing is an issue, not a stack overflow" },
+  ],
+  "P-SCHEMA-3": [{ test: "@axe/core is exact on the decimal values as written" }],
+  "P-SCHEMA-4": [
+    {
+      test: "@axe/core flags quantified groups whose body ends in a loose repetition, and not Zod's built-in patterns",
+    },
+  ],
+  "P-SCHEMA-5": [
+    {
+      test: "@axe/core toJsonSchema marks every input node the server checks beyond JSON Schema with x-axe-refined",
+    },
+  ],
+  "P-SCHEMA-6": [
+    {
+      test: "@axe/core the same key with a different date is conflict, even though both parse to a Date",
+    },
+  ],
   "P-DISP-1": [{ check: "manifest.display-pointers" }],
   "P-DISP-2": [{ check: "manifest.display-pointers" }, { check: "runtime.example-roundtrip" }],
   "P-DISP-3": [{ check: "manifest.display-pointers" }],
