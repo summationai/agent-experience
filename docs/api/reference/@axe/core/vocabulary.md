@@ -647,6 +647,18 @@ Union of every `link` name.
 
 ***
 
+<a id="wiremarkup"></a>
+
+### WireMarkup
+
+```ts
+type WireMarkup = "data-surface-ignore";
+```
+
+Union of every `markup` name.
+
+***
+
 <a id="wireop"></a>
 
 ### WireOp
@@ -1555,6 +1567,20 @@ const link: Readonly<{
 
 ***
 
+<a id="markup"></a>
+
+### markup
+
+```ts
+const markup: Readonly<{
+  ignore: "data-surface-ignore";
+}>;
+```
+
+`markup` names.
+
+***
+
 <a id="op"></a>
 
 ### op
@@ -2352,6 +2378,9 @@ const WIRE: Readonly<{
   }>;
   link: Readonly<{
      manifestRel: "axe-manifest";
+  }>;
+  markup: Readonly<{
+     ignore: "data-surface-ignore";
   }>;
   op: Readonly<{
      click: "CLICK";

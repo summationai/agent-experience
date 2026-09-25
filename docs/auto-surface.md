@@ -43,6 +43,8 @@ A derived act cannot put the revision into your server's write, because a click 
 - **Acting.** A click is `pointerdown`, `mousedown`, focus, `pointerup`, `mouseup`, and `click()`, so menus that open on pointer down open. Typing sets the value through the element's native setter and fires `input` and `change`, so React's `onChange` runs. A select takes a label or a value. A rich-text editor gets `beforeinput` and an insertText edit. A list loads more through its "Load more" button or by scrolling. After acting, the surface waits for the page to settle, re-scans, and reports what changed and any text that appeared in a toast or status line as `notices`.
 - **Staleness.** Every DOM change that alters an entry moves the revision; one that alters nothing does not. An act presenting an old revision is refused as `conflict`.
 
+
+A subtree marked `data-surface-ignore` is never read: put it on your own agent UI (a chat panel, a debug drawer) so an agent does not drive the tools meant for driving it. The relay's in-page indicator carries it, and the scan skips the indicator whether or not it is marked, so an agent can never press the person's Stop, Approve, or Deny.
 ## Safety defaults
 
 Every derived action gets a risk from its role, words, styling, and surroundings, and the default policy asks the person before anything high risk.

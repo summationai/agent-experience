@@ -283,6 +283,25 @@ describe("acting by the same door [S-AUTO-4]", () => {
     if (r.status === "ok") expect(r.output.notices).toEqual(["Draft saved"]);
   });
 
+  it("a page that re-renders its own rows after an act does not report them as notices; new text does", async () => {
+    const h = start(
+      `<table><tbody id="rows"><tr><td>January</td><td><button id="save">Save January</button></td></tr></tbody></table>`,
+    );
+    document.getElementById("save")!.addEventListener("click", () => {
+      setTimeout(() => {
+        // The app's own refresh: the same rows again (the Plan Board demo does this).
+        document.getElementById("rows")!.innerHTML =
+          `<tr><td>January</td><td><button id="save">Save January</button></td></tr>`;
+        const t = document.createElement("div");
+        t.textContent = "January saved";
+        document.body.appendChild(t);
+      }, 1);
+    });
+    const r = await act(h.surface, byName(h.surface, "Save January").id);
+    expect(r.status).toBe("ok");
+    if (r.status === "ok") expect(r.output.notices).toEqual(["January saved"]);
+  });
+
   it("an act whose control left the page is a conflict, not a click on something else", async () => {
     const h = start(`<main><button id="x">Refresh</button></main>`);
     const id = byName(h.surface, "Refresh").id;
@@ -316,6 +335,51 @@ describe("revision and staleness [S-AUTO-6]", () => {
     document.getElementById("p")!.className = "y";
     await tick(5);
     expect(h.surface.currentRev()).toBe(rev);
+  });
+
+  it("a table that gains a row of text keeps the revision, so a live page does not refuse every act; a row with a control moves it", async () => {
+    const h = start(
+      `<main><button id="a">Refresh</button><table aria-label="History"><tbody id="rows"><tr><td>one</td></tr></tbody></table></main>`,
+    );
+    const s = h.surface;
+    const rev = s.currentRev();
+    const id = byName(s, "Refresh").id;
+    // A poll appends a history row: content an agent reads, not a control it acts on.
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>two</td>";
+    document.getElementById("rows")!.appendChild(tr);
+    await tick(5);
+    expect(s.currentRev()).toBe(rev);
+    expect((await s.act({ op: "CLICK", target: id, expectedRev: rev })).status).toBe("ok");
+    // A row that carries a control is a new entry, and moves the revision.
+    const before = s.currentRev();
+    const tr2 = document.createElement("tr");
+    tr2.innerHTML = "<td>three</td><td><button>Undo three</button></td>";
+    document.getElementById("rows")!.appendChild(tr2);
+    await tick(5);
+    expect(s.currentRev()).toBeGreaterThan(before);
+  });
+
+  it("never reads a subtree marked data-surface-ignore, or the relay's indicator (its Approve is the person's)", () => {
+    const h = start(
+      `<main><button>Refresh</button><aside data-surface-ignore><button>Ask Addison</button></aside></main>`,
+    );
+    const host = document.createElement("div");
+    host.setAttribute("data-axe-relay-indicator", "");
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.innerHTML = `<section aria-label="Agent access"><button>Stop the agent in this tab</button><button>Approve</button><button>Deny</button></section>`;
+    document.body.appendChild(host);
+    h.refresh();
+    const names = h.surface.observe().entries.map((e) => e.name);
+    expect(names).toContain("Refresh");
+    for (const n of [
+      "Ask Addison",
+      "Stop the agent in this tab",
+      "Approve",
+      "Deny",
+      "Agent access",
+    ])
+      expect(names).not.toContain(n);
   });
 
   it("observe flushes a change the observer has not delivered yet", () => {
@@ -379,6 +443,25 @@ describe("safety defaults [S-AUTO-7]", () => {
     expect(clicks).toBe(1);
     // One use: gated again.
     expect(byName(s, "Delete project").state?.available).toBe(false);
+  });
+
+  it("a trusted channel grants the gate through the surface's approver, and approving moves no revision", async () => {
+    const h = start(DANGER);
+    const s = h.surface;
+    const del = byName(s, "Delete project");
+    const rev = s.currentRev();
+    const approver = (s as unknown as Record<symbol, unknown>)[Symbol.for("axe.surface.approver")];
+    expect(typeof approver).toBe("function");
+    expect((approver as (id: string) => boolean)(del.id)).toBe(true);
+    expect(byName(s, "Delete project").state?.available).toBe(true);
+    // The agent's retry at the revision it observed is not stale: an approval is not a page change.
+    expect(s.currentRev()).toBe(rev);
+    expect((await s.act({ op: "CLICK", target: del.id, expectedRev: rev })).status).toBe("ok");
+    // Stopping removes the approver, so nothing can grant a gate on a surface no longer derived.
+    h.stop();
+    expect(
+      (s as unknown as Record<symbol, unknown>)[Symbol.for("axe.surface.approver")],
+    ).toBeUndefined();
   });
 
   it("policy can deny or allow high risk", () => {

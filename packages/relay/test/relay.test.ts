@@ -132,6 +132,12 @@ describe.skipIf(noJsdom)("relay: list, observe, act", () => {
     await p.status((s) => s.state === "acting");
     expect(p.indicator()?.textContent).toContain("An agent is acting in this tab");
     expect(p.indicator()?.querySelector('[data-action="stop"]')).not.toBeNull();
+    // Its host is marked so an auto-derived surface never reads the person's Stop/Approve/Deny.
+    expect(
+      p.window.document
+        .querySelector("[data-axe-relay-indicator]")
+        ?.hasAttribute("data-surface-ignore"),
+    ).toBe(true);
   });
 });
 

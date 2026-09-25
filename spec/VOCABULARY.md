@@ -203,6 +203,12 @@ The DOM mirror ([S-DOM-1] in `spec/SURFACE.md`): attributes a rendered control c
 | domAttribute | disabled      | `aria-disabled`       | rendered control | `true` on an unavailable action; the application keeps its own `disabled`.        |
 | domAttribute | readOnly      | `aria-readonly`       | rendered control | `true` on a read-only field.                                                      |
 
+Markup an application adds so a derived surface leaves a subtree alone ([S-AUTO-*] in `spec/SURFACE.md`):
+
+| Category | Key    | Name                  | Where       | Meaning                                                                                               |
+| -------- | ------ | --------------------- | ----------- | ----------------------------------------------------------------------------------------------------- |
+| markup   | ignore | `data-surface-ignore` | any element | A subtree an auto-derived surface never reads: the application's own agent UI, the relay's indicator. |
+
 ## Reason conventions
 
 | Category | Key                | Name                   | Where                                     | Meaning                                                                                                  |

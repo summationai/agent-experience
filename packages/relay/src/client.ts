@@ -160,8 +160,17 @@ export function devToken(relayUrl: string): () => Promise<string> {
 }
 
 /** Default approval rule: high risk, or an effect that asks for confirmation. */
+/** The surface's own approval gate (an auto-derived surface's policy), shared by symbol. */
+const APPROVER = Symbol.for("axe.surface.approver");
+
 function defaultRequireApproval(row: ObservedEntry): boolean {
-  return row.kind === "action" && (row.effect?.risk === "high" || row.effect?.confirm === true);
+  if (row.kind !== "action") return false;
+  // A control the surface itself holds for the person's approval: the same request, one decision.
+  const gated =
+    row.state?.available === false &&
+    (row.state as { handoff?: { reason?: string; url?: string } } | undefined)?.handoff?.reason ===
+      "approval_required";
+  return gated || row.effect?.risk === "high" || row.effect?.confirm === true;
 }
 
 function errorOf(
@@ -615,6 +624,16 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
       const a = approvals.get(id);
       if (!a || a.state !== "pending" || stopped) return false;
       a.state = "approved";
+      // The person approved in the page: grant the surface's own gate too, so one decision runs
+      // the act (an auto-derived surface holds unrecognized or destructive controls for approval).
+      const approver = (surface as unknown as Record<symbol, unknown>)[APPROVER];
+      if (typeof approver === "function") {
+        try {
+          (approver as (entryId: string) => boolean)(a.entryId);
+        } catch {
+          // The surface's gate refusing leaves the act to its own refusal.
+        }
+      }
       publish();
       return true;
     },
@@ -697,6 +716,8 @@ function createIndicator(
   const doc = container?.ownerDocument ?? document;
   const host = doc.createElement("div");
   host.setAttribute("data-axe-relay-indicator", "");
+  // Keep the indicator out of an auto-derived surface: Stop, Approve, and Deny are for the person.
+  host.setAttribute("data-surface-ignore", "");
   const root: ShadowRoot | HTMLElement =
     typeof host.attachShadow === "function" ? host.attachShadow({ mode: "open" }) : host;
   const style = doc.createElement("style");

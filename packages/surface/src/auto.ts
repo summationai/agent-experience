@@ -252,6 +252,42 @@ interface Built {
   element: Element | null;
 }
 
+/**
+ * Where a surface's approver lives, for a trusted channel that has just shown the person a request
+ * (the relay's in-page panel) to grant it. A symbol, not an import, so such a channel need not load
+ * this module. Never reachable by an agent: it is a property of the page's own object.
+ */
+export const APPROVER = Symbol.for("axe.surface.approver");
+
+/** Marks a subtree the scan never reads: the application's own agent UI, a debug panel. */
+export const IGNORE_ATTRIBUTE = "data-surface-ignore";
+/** The relay's in-page indicator, which the scan never reads whether or not it is marked ignored. */
+const RELAY_INDICATOR_ATTRIBUTE = "data-axe-relay-indicator";
+
+/**
+ * What an agent's plan can depend on, for deciding whether a change moves the revision. For a
+ * collection that is its identity and whether it can load more, not its content: a table that
+ * gains a row, or a list a poll refreshes, changes what an agent reads, not what it can act on,
+ * and moving the revision for it would refuse every act on a page that updates live. Rows that
+ * carry controls still move it, because those controls are entries of their own.
+ */
+function controlSignature(entry: Entry): string {
+  // The approval gate is not page state: a person approving (or an approval expiring) changes
+  // whether the act may run, not the page an agent planned against, so it must not make the
+  // agent's retry at the same revision stale.
+  if (
+    entry.kind === "action" &&
+    entry.state &&
+    !entry.state.available &&
+    entry.state.handoff?.reason === "approval_required" &&
+    !entry.state.handoff.url
+  )
+    entry = { ...entry, state: { available: true } };
+  if (entry.kind === "collection")
+    return JSON.stringify([entry.id, entry.kind, entry.name, typeof entry.more === "function"]);
+  return JSON.stringify(entry, (k, v) => (typeof v === "function" ? undefined : v));
+}
+
 function signature(entry: Entry, meta: AutoEntryMeta): string {
   return (
     JSON.stringify(entry, (k, v) => (typeof v === "function" ? undefined : v)) +
@@ -348,6 +384,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       .map((r) => r.match.selector!)
       .join(",");
     const visit = (el: Element) => {
+      // Never part of the surface: a subtree the application marked, and the relay's own
+      // indicator (its Stop, Approve, and Deny are the person's, never an agent's).
+      if (el.hasAttribute(IGNORE_ATTRIBUTE) || el.hasAttribute(RELAY_INDICATOR_ATTRIBUTE)) return;
       if (exclude) {
         try {
           if (el.matches(exclude)) return;
@@ -613,9 +652,11 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     }
     // Apply the difference.
     const changed: string[] = [];
+    let moved = false;
     for (const [id, b] of next) {
       const prev = registered.get(id);
       if (!prev || prev.sig !== b.sig) {
+        if (!prev || controlSignature(prev.entry) !== controlSignature(b.entry)) moved = true;
         surface.register(b.entry);
         changed.push(id);
       } else {
@@ -628,11 +669,12 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       // Only remove what is still ours.
       if (surface.get(id) === prev.entry) surface.unregister(id);
       changed.push(id);
+      moved = true;
     }
     registered = next;
     elements = new Map();
     for (const [id, b] of next) if (b.element) elements.set(id, b.element);
-    if (changed.length && bumpRevision) surface.bump({ derived: changed.length });
+    if (moved && bumpRevision) surface.bump({ derived: changed.length });
     for (const c of collectors) for (const id of changed) c.add(id);
     return changed;
   }
@@ -1436,9 +1478,14 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       declared.clear();
       if (surface.observe === patchedObserve) surface.observe = originalObserve;
       if (surface.act === patchedAct) surface.act = originalAct;
+      const slot = surface as unknown as Record<symbol, unknown>;
+      if (slot[APPROVER] === approver) delete slot[APPROVER];
       stopped = true;
     },
   };
   if (options.expose) handle.expose(options.expose === true ? win : options.expose);
+  // A trusted channel that showed the person the request (the relay's panel) grants it here.
+  const approver = (id: string): boolean => handle.approve(id);
+  (surface as unknown as Record<symbol, unknown>)[APPROVER] = approver;
   return handle;
 }

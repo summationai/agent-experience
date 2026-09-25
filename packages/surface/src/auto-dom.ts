@@ -1435,11 +1435,24 @@ export class ActWatch {
   readonly started = Date.now();
   private readonly texts: string[] = [];
   private readonly mo: MutationObserver | null;
+  /**
+   * The page's text just before the act. Something added near the top of the document counts
+   * as a notice only if its text is new: a page that re-renders its own table or rows after an
+   * act re-adds text that was already there, which is not a message to the agent.
+   */
+  private readonly before: string;
   constructor(
     roots: Node[],
     private readonly win: Win,
     private readonly ignore: Element | null,
   ) {
+    let before = "";
+    for (const r of roots) {
+      // A Document's own textContent is null; its text is its element's.
+      const host = r.nodeType === 9 ? (r as Document).documentElement : r;
+      before += " " + norm(host?.textContent ?? "");
+    }
+    this.before = before.length > 500_000 ? before.slice(0, 500_000) : before;
     const MO = win.MutationObserver;
     this.mo = MO ? new MO((records) => this.take(records)) : null;
     for (const r of roots)
@@ -1464,13 +1477,17 @@ export class ActWatch {
   private consider(host: Element | null, node: Node): void {
     if (!host || (this.ignore && (this.ignore.contains(host) || host.contains(this.ignore))))
       return;
-    const notice =
-      host.closest(
-        '[role="alert"], [role="status"], [role="log"], [aria-live]:not([aria-live="off"]), [data-sonner-toast], [class*="toast" i], [class*="snackbar" i], [class*="notification" i], [class*="notistack" i]',
-      ) ?? (topLevel(host) ? host : null);
+    const region = host.closest(
+      '[role="alert"], [role="status"], [role="log"], [aria-live]:not([aria-live="off"]), [data-sonner-toast], [class*="toast" i], [class*="snackbar" i], [class*="notification" i], [class*="notistack" i]',
+    );
+    const notice = region ?? (topLevel(host) ? host : null);
     if (!notice) return;
     const text = clampText(norm(node.textContent), 200);
-    if (text && /[\p{L}\p{N}]/u.test(text) && !this.texts.includes(text)) this.texts.push(text);
+    if (!text || !/[\p{L}\p{N}]/u.test(text) || this.texts.includes(text)) return;
+    // A live region or toast is a message even when it repeats ("Saved" again). The top-level
+    // heuristic is not: only text that was not on the page before the act counts.
+    if (!region && this.before.includes(text)) return;
+    this.texts.push(text);
   }
   /** Stop watching; the notices seen, at most five. */
   stop(): string[] {

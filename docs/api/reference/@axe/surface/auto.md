@@ -1721,6 +1721,20 @@ What an agent may do with a derived control at each risk level.
 
 ## Variables
 
+<a id="approver"></a>
+
+### APPROVER
+
+```ts
+const APPROVER: typeof APPROVER;
+```
+
+Where a surface's approver lives, for a trusted channel that has just shown the person a request
+(the relay's in-page panel) to grant it. A symbol, not an import, so such a channel need not load
+this module. Never reachable by an agent: it is a property of the page's own object.
+
+***
+
 <a id="auto_meta"></a>
 
 ### AUTO\_META
@@ -1740,6 +1754,18 @@ The key under which an auto surface marks the entries it registered (a global sy
 ```ts
 const DEFAULT_LEXICON: Required<Omit<RiskLexicon, "replace">>;
 ```
+
+***
+
+<a id="ignore_attribute"></a>
+
+### IGNORE\_ATTRIBUTE
+
+```ts
+const IGNORE_ATTRIBUTE: "data-surface-ignore" = "data-surface-ignore";
+```
+
+Marks a subtree the scan never reads: the application's own agent UI, a debug panel.
 
 ***
 

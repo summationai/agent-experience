@@ -630,6 +630,12 @@ export const domAttribute = /* @__PURE__ */ Object.freeze({
   readOnly: "aria-readonly",
 } as const);
 
+/** `markup` names. */
+export const markup = /* @__PURE__ */ Object.freeze({
+  /** A subtree an auto-derived surface never reads: the application's own agent UI, the relay's indicator. */
+  ignore: "data-surface-ignore",
+} as const);
+
 /** `reason` names. */
 export const reason = /* @__PURE__ */ Object.freeze({
   /** Emitted by the SDK when a `user` action is called without identity. */
@@ -1329,6 +1335,7 @@ export const WIRE = /* @__PURE__ */ Object.freeze({
   op,
   field,
   domAttribute,
+  markup,
   reason,
   tool,
   cli,
@@ -1380,6 +1387,8 @@ export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 export type WireField = "app" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "actor" | "changed" | "seq" | "ledgerSeq" | "revBefore" | "revAfter" | "limit" | "frozen" | "ignoredRev" | "conflict" | "textHash" | "source" | "tier" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "handoffId" | "operationStatus" | "maxBodyBytes" | "x-axe-refined" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant" | "live" | "availability" | "available" | "requires" | "rev" | "expectedRev" | "currentRev" | "event" | "entryId" | "nextCursor" | "nameFrom" | "staleConfig";
 /** Union of every `domAttribute` name. */
 export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-surface-object" | "data-surface-reason" | "aria-label" | "aria-disabled" | "aria-readonly";
+/** Union of every `markup` name. */
+export type WireMarkup = "data-surface-ignore";
 /** Union of every `reason` name. */
 export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required" | "cross_origin_refused" | "json_required" | "payload_too_large" | "approval_required";
 /** Union of every `tool` name. */
@@ -1531,6 +1540,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "domAttribute", key: "label", name: "aria-label" },
   { category: "domAttribute", key: "disabled", name: "aria-disabled" },
   { category: "domAttribute", key: "readOnly", name: "aria-readonly" },
+  { category: "markup", key: "ignore", name: "data-surface-ignore" },
   { category: "reason", key: "loginRequired", name: "login_required" },
   { category: "reason", key: "paymentRequired", name: "payment_required" },
   { category: "reason", key: "consentRequired", name: "consent_required" },
