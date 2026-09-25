@@ -143,7 +143,9 @@ export async function runRelayCli(argv: string[], io: RelayCliIo = {}): Promise<
       say(`     claude mcp add surface -- npx axe relay --dev --stdio`);
     }
     say("");
-    say('3. Open the page. The tab shows a pairing code; tell the agent: "pair with code XXXX-XXXX".');
+    say(
+      '3. Open the page. The tab shows a pairing code; tell the agent: "pair with code XXXX-XXXX".',
+    );
   }
   let stopped: () => void = () => undefined;
   const done = new Promise<void>((resolve) => (stopped = resolve));

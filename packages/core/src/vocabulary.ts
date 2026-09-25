@@ -676,6 +676,8 @@ export const cli = /* @__PURE__ */ Object.freeze({
   mcp: "axe mcp",
   /** Derive actions from an OpenAPI document; files for review. */
   generate: "axe generate",
+  /** Run the relay that lets an agent drive a signed-in tab. */
+  relay: "axe relay",
 } as const);
 
 /** `payload` names. */
@@ -1158,6 +1160,32 @@ export const api = /* @__PURE__ */ Object.freeze({
   idleReason: "idleReason",
   /** The largest `limit` `<ns>.observe` accepts; published as `pagination.pageSize.max`. */
   maxPageSize: "maxPageSize",
+  /** Connect a page's surface to a relay for the signed-in person; shows the indicator, answers observes and acts. */
+  connectRelay: "connectRelay",
+  /** `connectRelay` option: returns a fresh relay token, on every connection and before the current one expires. */
+  getToken: "getToken",
+  /** `connectRelay` option: told after every change of the connection's status, approvals included. */
+  onStatus: "onStatus",
+  /** `connectRelay` option: which rows wait for the person's approval; default high risk or `confirm`. */
+  requireApproval: "requireApproval",
+  /** Create a relay: tab connections, a mirror per tab served through `domainActions`, MCP over HTTP and stdio. */
+  createRelay: "createRelay",
+  /** `createRelay` option: check a tab's token yourself and name its principal and tenant. */
+  authenticateTab: "authenticateTab",
+  /** `createRelay` option: the OAuth `verifier` for agents over HTTP and `identify`, the principal a token speaks for. */
+  agentAuth: "agentAuth",
+  /** `createRelay` option: local development on loopback, with pairing codes and development tokens. */
+  devPairing: "devPairing",
+  /** `createRelay` option: how long a read waits for a fresh snapshot before serving the last one. */
+  syncTimeoutMs: "syncTimeoutMs",
+  /** `createRelay` option: how long an act waits for a reconnecting (reloading) tab. */
+  reconnectGraceMs: "reconnectGraceMs",
+  /** `createRelay` option: how long a disconnected or stopped tab stays listed. */
+  tabRetentionMs: "tabRetentionMs",
+  /** Mint a relay token (HS256 JWT: `sub`, `org`, `aud`, `exp`) for the signed-in person, in the backend. */
+  mintRelayToken: "mintRelayToken",
+  /** Check a relay token's signature, audience, and expiry; returns its principal, tenant, and claims or null. */
+  verifyRelayToken: "verifyRelayToken",
   /** Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. */
   fromOpenAPI: "fromOpenAPI",
   /** Action source: a table of zod-typed functions keyed by action name. */
@@ -1317,11 +1345,11 @@ export type WireReason = "login_required" | "payment_required" | "consent_requir
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
-export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate";
+export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate" | "axe relay";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "requestApproval" | "approvalState" | "getHandoff" | "approveHandoff" | "cancelHandoff" | "approvedBy" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "validateJsonSchema" | "lintAction" | "isBacktrackingPattern" | "clientFor" | "idleTimeoutMs" | "maxSessions" | "sessionCount" | "sessionIdGenerator" | "allowedOrigins" | "requiredScopes" | "resourceMetadataUrl" | "authInfo" | "protectedResourceMetadata" | "manifestMaxAgeMs" | "onManifestChange" | "exposeWebMcp" | "modelContext" | "registerTool" | "consequentialHint" | "requestedSchema" | "isSensitiveAccept" | "toFormSchema" | "readOnlyHint" | "untrustedContentHint" | "domainActions" | "actionFor" | "idleReason" | "maxPageSize" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "requestApproval" | "approvalState" | "getHandoff" | "approveHandoff" | "cancelHandoff" | "approvedBy" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "validateJsonSchema" | "lintAction" | "isBacktrackingPattern" | "clientFor" | "idleTimeoutMs" | "maxSessions" | "sessionCount" | "sessionIdGenerator" | "allowedOrigins" | "requiredScopes" | "resourceMetadataUrl" | "authInfo" | "protectedResourceMetadata" | "manifestMaxAgeMs" | "onManifestChange" | "exposeWebMcp" | "modelContext" | "registerTool" | "consequentialHint" | "requestedSchema" | "isSensitiveAccept" | "toFormSchema" | "readOnlyHint" | "untrustedContentHint" | "domainActions" | "actionFor" | "idleReason" | "maxPageSize" | "connectRelay" | "getToken" | "onStatus" | "requireApproval" | "createRelay" | "authenticateTab" | "agentAuth" | "devPairing" | "syncTimeoutMs" | "reconnectGraceMs" | "tabRetentionMs" | "mintRelayToken" | "verifyRelayToken" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 /** Union of every `schema` name. */
 export type WireSchema = "additionalProperties" | "patternProperties" | "propertyNames" | "minProperties" | "maxProperties" | "dependentRequired" | "dependentSchemas" | "prefixItems" | "minItems" | "maxItems" | "uniqueItems" | "minContains" | "maxContains" | "minLength" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf" | "allOf" | "anyOf" | "oneOf" | "writeOnly" | "unevaluatedProperties" | "unevaluatedItems" | "additionalItems";
 
@@ -1483,6 +1511,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "cli", key: "audit", name: "axe audit" },
   { category: "cli", key: "mcp", name: "axe mcp" },
   { category: "cli", key: "generate", name: "axe generate" },
+  { category: "cli", key: "relay", name: "axe relay" },
   { category: "field", key: "protocol", name: "protocol" },
   { category: "field", key: "name", name: "name" },
   { category: "field", key: "description", name: "description" },
@@ -1877,6 +1906,19 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "actionFor", name: "actionFor" },
   { category: "api", key: "idleReason", name: "idleReason" },
   { category: "api", key: "maxPageSize", name: "maxPageSize" },
+  { category: "api", key: "connectRelay", name: "connectRelay" },
+  { category: "api", key: "getToken", name: "getToken" },
+  { category: "api", key: "onStatus", name: "onStatus" },
+  { category: "api", key: "requireApproval", name: "requireApproval" },
+  { category: "api", key: "createRelay", name: "createRelay" },
+  { category: "api", key: "authenticateTab", name: "authenticateTab" },
+  { category: "api", key: "agentAuth", name: "agentAuth" },
+  { category: "api", key: "devPairing", name: "devPairing" },
+  { category: "api", key: "syncTimeoutMs", name: "syncTimeoutMs" },
+  { category: "api", key: "reconnectGraceMs", name: "reconnectGraceMs" },
+  { category: "api", key: "tabRetentionMs", name: "tabRetentionMs" },
+  { category: "api", key: "mintRelayToken", name: "mintRelayToken" },
+  { category: "api", key: "verifyRelayToken", name: "verifyRelayToken" },
   { category: "api", key: "fromOpenAPI", name: "fromOpenAPI" },
   { category: "api", key: "fromFunctions", name: "fromFunctions" },
   { category: "api", key: "fromTRPCRouter", name: "fromTRPCRouter" },

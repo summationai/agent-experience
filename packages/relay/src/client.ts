@@ -12,13 +12,7 @@
  *
  * Browser-native only: no framework, no Zod, no Node built-ins. See docs/relay.md.
  */
-import type {
-  ActRequest,
-  ActResult,
-  LedgerEntry,
-  ObservedEntry,
-  Surface,
-} from "@axe/surface";
+import type { ActRequest, ActResult, LedgerEntry, ObservedEntry, Surface } from "@axe/surface";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
 import { CLOSE, ID_PATTERN, RELAY_PROTOCOL } from "./protocol";
 import type { RelayMessage, TabMessage } from "./protocol";
@@ -34,13 +28,7 @@ export { RELAY_PROTOCOL };
  * the client does not retry.
  */
 export type RelayState =
-  | "connecting"
-  | "pairing"
-  | "connected"
-  | "acting"
-  | "reconnecting"
-  | "stopped"
-  | "refused";
+  "connecting" | "pairing" | "connected" | "acting" | "reconnecting" | "stopped" | "refused";
 
 /** An act waiting for the person's decision in the page. */
 export interface RelayApproval {
@@ -194,7 +182,9 @@ function errorOf(
  */
 export function connectRelay(surface: Surface, options: ConnectRelayOptions): RelayConnection {
   if (!options.token && !options.getToken)
-    throw new Error("connectRelay: pass token or getToken (a relay token for the signed-in person).");
+    throw new Error(
+      "connectRelay: pass token or getToken (a relay token for the signed-in person).",
+    );
   const endpoint = tabEndpoint(options.url);
   const WS = options.WebSocket ?? (globalThis as { WebSocket?: typeof WebSocket }).WebSocket;
   if (!WS) throw new Error("connectRelay: this environment has no WebSocket.");
@@ -254,11 +244,14 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     options.indicator === false ||
     (typeof document === "undefined" && !(options.indicator && options.indicator !== true))
       ? null
-      : createIndicator(options.indicator === true || options.indicator === undefined ? null : options.indicator, {
-          stop: () => connection.stop(),
-          approve: (id) => connection.approve(id),
-          deny: (id) => connection.deny(id),
-        });
+      : createIndicator(
+          options.indicator === true || options.indicator === undefined ? null : options.indicator,
+          {
+            stop: () => connection.stop(),
+            approve: (id) => connection.approve(id),
+            deny: (id) => connection.deny(id),
+          },
+        );
 
   const publish = (patch: Partial<RelayStatus> = {}): void => {
     Object.assign(status, patch, { tabId });
@@ -317,12 +310,7 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onActive);
   };
 
-  const shutDown = (
-    code: number,
-    reason: string,
-    state: RelayState,
-    why: string | null,
-  ): void => {
+  const shutDown = (code: number, reason: string, state: RelayState, why: string | null): void => {
     stopped = true;
     clearTimeout(retryTimer);
     clearTimeout(renewTimer);
@@ -386,7 +374,13 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
   /** An act from the relay, gated by the person's approval when the entry calls for it. */
   const runAct = async (id: number, since: number, request: ActRequest): Promise<void> => {
     const reply = (result: ActResult | ErrorResult): void =>
-      send({ t: "result", re: id, result, observation: surface.observe(), ledger: ledgerSince(since) });
+      send({
+        t: "result",
+        re: id,
+        result,
+        observation: surface.observe(),
+        ledger: ledgerSince(since),
+      });
     if (stopped) return reply(errorOf("forbidden", "The person stopped agent access in this tab."));
     const view = surface.observe();
     const row =
@@ -455,7 +449,10 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     } catch (e) {
       // The handler threw; the surface recorded it as `internal` [S-LED-4].
       return reply(
-        errorOf("internal", `The page's handler failed: ${e instanceof Error ? e.message : String(e)}`),
+        errorOf(
+          "internal",
+          `The page's handler failed: ${e instanceof Error ? e.message : String(e)}`,
+        ),
       );
     }
     reply(result);
@@ -477,7 +474,8 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         actor = m.actor;
         scheduleRenew(m.expiresAt);
         publish({
-          state: m.pairing && !m.agent ? "pairing" : status.state === "acting" ? "acting" : "connected",
+          state:
+            m.pairing && !m.agent ? "pairing" : status.state === "acting" ? "acting" : "connected",
           principal: m.principal,
           pairingCode: m.pairing && !m.agent ? m.pairing.code : null,
           reason: null,
@@ -488,7 +486,8 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         return;
       case "agent":
         publish({
-          state: m.state === "active" ? "acting" : status.state === "acting" ? "acting" : "connected",
+          state:
+            m.state === "active" ? "acting" : status.state === "acting" ? "acting" : "connected",
           pairingCode: null,
         });
         return;
@@ -508,7 +507,8 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
           try {
             if (stopped) throw new Error("The person stopped agent access in this tab.");
             const e = surface.get(m.entryId);
-            const requires = e?.kind === "action" && e.state && !e.state.available ? e.state.requires : undefined;
+            const requires =
+              e?.kind === "action" && e.state && !e.state.available ? e.state.requires : undefined;
             if (!requires) throw new Error("The control no longer has a requirement to satisfy.");
             await requires.fulfill(m.kind, m.payload, actor);
             send({ t: "fulfilled", re: m.id });
@@ -704,7 +704,9 @@ function createIndicator(
       }
       panel.replaceChildren();
       const row = el("div", "row");
-      row.append(el("span", status.state === "acting" || status.state === "connected" ? "dot" : "dot wait"));
+      row.append(
+        el("span", status.state === "acting" || status.state === "connected" ? "dot" : "dot wait"),
+      );
       const msg = el("div", "msg");
       msg.setAttribute("role", "status");
       msg.setAttribute("aria-live", "polite");

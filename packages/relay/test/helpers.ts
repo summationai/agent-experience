@@ -140,7 +140,11 @@ export async function openPage(
 ): Promise<Page> {
   const dom = new JSDOM(
     "<!doctype html><html><head><title>Plan</title></head><body><main>app</main></body></html>",
-    { url: options.url ?? `${APP_ORIGIN}/plan`, runScripts: "outside-only", pretendToBeVisual: true },
+    {
+      url: options.url ?? `${APP_ORIGIN}/plan`,
+      runScripts: "outside-only",
+      pretendToBeVisual: true,
+    },
   );
   const window = dom.window;
   for (const [k, v] of Object.entries(options.storage ?? {})) window.sessionStorage.setItem(k, v);
@@ -201,7 +205,10 @@ export async function openPage(
 }
 
 /** Poll a condition until it holds (a barrier on state another process moves), bounded. */
-export async function until<T>(fn: () => T | undefined | false | null, timeoutMs = 10_000): Promise<T> {
+export async function until<T>(
+  fn: () => T | undefined | false | null,
+  timeoutMs = 10_000,
+): Promise<T> {
   const start = Date.now();
   for (;;) {
     const v = fn();
@@ -234,7 +241,10 @@ export const verifier: OAuthTokenVerifier = {
 
 export const agentAuth: RelayOptions["agentAuth"] = {
   verifier,
-  identify: (info) => ({ principal: String(info.extra!["sub"]), tenant: String(info.extra!["org"]) }),
+  identify: (info) => ({
+    principal: String(info.extra!["sub"]),
+    tenant: String(info.extra!["org"]),
+  }),
 };
 
 export interface Running {
@@ -252,7 +262,7 @@ export async function startRelay(options: Partial<RelayOptions> = {}): Promise<R
     reconnectGraceMs: 3000,
     onFrame: (direction, _tab, data) => frames.push({ direction, data }),
     ...options,
-  });
+  } as RelayOptions);
   const address = await relay.listen({ host: "127.0.0.1", port: 0 });
   return { relay, address, frames };
 }
@@ -270,13 +280,22 @@ export interface ToolResult {
   result: {
     status: string;
     output?: Record<string, unknown>;
-    error?: { code: string; message: string; retryable: boolean; details?: Record<string, unknown> };
+    error?: {
+      code: string;
+      message: string;
+      retryable: boolean;
+      details?: Record<string, unknown>;
+    };
     rev?: number;
   };
 }
 
 export function toolResult(r: unknown): ToolResult {
-  const x = r as { content?: { type: string; text?: string }[]; isError?: boolean; structuredContent?: unknown };
+  const x = r as {
+    content?: { type: string; text?: string }[];
+    isError?: boolean;
+    structuredContent?: unknown;
+  };
   return {
     text: (x.content ?? []).map((c) => c.text ?? "").join("\n"),
     isError: !!x.isError,

@@ -72,7 +72,12 @@ describe("relay: list, observe, act", () => {
     expect(tools).not.toContain("relay_pair");
 
     const tabs = await a.call("relay_tabs");
-    const listed = tabs.result.output!["tabs"] as { tabId: string; title: string; origin: string; state: string }[];
+    const listed = tabs.result.output!["tabs"] as {
+      tabId: string;
+      title: string;
+      origin: string;
+      state: string;
+    }[];
     expect(listed).toHaveLength(1);
     expect(listed[0]).toMatchObject({ title: "Plan", origin: APP_ORIGIN, state: "connected" });
 
@@ -87,10 +92,17 @@ describe("relay: list, observe, act", () => {
       "plan:rows",
     ]);
 
-    const done = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: view.rev });
+    const done = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: view.rev,
+    });
     expect(done.result.status, done.text).toBe("ok");
     expect(p.calls).toEqual(["submit:alice (agent via relay)"]);
-    expect(done.result.output).toMatchObject({ id: "plan:submit", actor: "alice (agent via relay)", rev: view.rev + 1 });
+    expect(done.result.output).toMatchObject({
+      id: "plan:submit",
+      actor: "alice (agent via relay)",
+      rev: view.rev + 1,
+    });
 
     const set = await a.call("surface_set-field", {
       entryId: "plan:name",
@@ -100,7 +112,10 @@ describe("relay: list, observe, act", () => {
     expect(set.result.status, set.text).toBe("ok");
     expect(p.surface.get("plan:name")).toMatchObject({ value: "Q4 plan" });
 
-    const more = await a.call("surface_load-more", { entryId: "plan:rows", expectedRev: view.rev + 2 });
+    const more = await a.call("surface_load-more", {
+      entryId: "plan:rows",
+      expectedRev: view.rev + 2,
+    });
     expect(more.result.status, more.text).toBe("ok");
 
     // The tab's own ledger has every act with the agent's actor; the relay's ledger tool mirrors it.
@@ -119,7 +134,11 @@ describe("relay: list, observe, act", () => {
   });
 });
 
-async function observe(a: Agent): Promise<{ rev: number; entries: { id: string; name: string }[]; objects: Record<string, unknown> }> {
+async function observe(a: Agent): Promise<{
+  rev: number;
+  entries: { id: string; name: string }[];
+  objects: Record<string, unknown>;
+}> {
   const r = await a.call("surface_observe");
   expect(r.result.status, r.text).toBe("ok");
   return r.result.output as never;
@@ -134,16 +153,25 @@ describe("relay: the page's surface decides", () => {
     const first = await observe(a);
     // The person changes something in the page: the revision moves.
     p.surface.bump();
-    const stale = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: first.rev });
+    const stale = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: first.rev,
+    });
     expect(stale.result.status).toBe("error");
     expect(stale.result.error!.code).toBe("conflict");
     expect(p.calls).toEqual([]);
     const again = await observe(a);
     expect(again.rev).toBeGreaterThan(first.rev);
-    const ok = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: again.rev });
+    const ok = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: again.rev,
+    });
     expect(ok.result.status, ok.text).toBe("ok");
     // Presenting the same revision twice cannot apply twice.
-    const twice = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: again.rev });
+    const twice = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: again.rev,
+    });
     expect(twice.result.error!.code).toBe("conflict");
     expect(p.calls).toEqual(["submit:alice (agent via relay)"]);
   });
@@ -214,10 +242,17 @@ describe("relay: the page's surface decides", () => {
     p.surface.bump();
     p.click('[data-action="approve"]');
     const v4 = await observe(a);
-    const rebound = await a.call("surface_run-control", { entryId: "plan:delete", expectedRev: v4.rev });
+    const rebound = await a.call("surface_run-control", {
+      entryId: "plan:delete",
+      expectedRev: v4.rev,
+    });
     expect(rebound.result.error!.details!["reason"]).toBe("approval_required");
     expect(open.approvals[0]!.id).not.toBe(
-      (await p.status((s) => s.approvals.length === 1 && s.approvals[0]!.id !== open.approvals[0]!.id)).approvals[0]!.id,
+      (
+        await p.status(
+          (s) => s.approvals.length === 1 && s.approvals[0]!.id !== open.approvals[0]!.id,
+        )
+      ).approvals[0]!.id,
     );
     expect(p.calls).toEqual(["delete:alice (agent via relay)"]);
   });
@@ -235,7 +270,10 @@ describe("relay: the page's surface decides", () => {
     await p.status((s) => s.state === "stopped");
     expect(p.indicator()).toBeNull();
     await until(() => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]?.state === "stopped");
-    const refused = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: v.rev });
+    const refused = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: v.rev,
+    });
     expect(refused.result.error!.code).toBe("forbidden");
     expect(refused.text).toContain("stopped agent access");
     expect(p.calls).toEqual([]);
@@ -253,23 +291,34 @@ describe("relay: the page's surface decides", () => {
     const conn = await connected(r, p);
     const a = await agent(r, "agent-alice");
     const start = await observe(a);
-    expect((await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: start.rev })).result.status).toBe("ok");
+    expect(
+      (await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: start.rev }))
+        .result.status,
+    ).toBe("ok");
     const before = await observe(a);
     const tabId = conn.tabId;
     // Reload: the page unloads, and a new page instance with the same sessionStorage starts
     // a new surface at rev 0.
     p.window.dispatchEvent(new p.window.Event("pagehide"));
-    await until(() => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]?.state === "reconnecting");
+    await until(
+      () => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]?.state === "reconnecting",
+    );
     const reloaded = await page({ storage: { "axe-relay:tab-id": tabId } });
     const conn2 = await connected(r, reloaded);
     expect(conn2.tabId).toBe(tabId);
     expect(r.relay.tabs({ principal: "alice", tenant: "acme" })).toHaveLength(1);
-    const old = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: before.rev });
+    const old = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: before.rev,
+    });
     expect(old.result.error!.code).toBe("conflict");
     expect(reloaded.calls).toEqual([]);
     const after = await observe(a);
     expect(after.rev).toBeGreaterThan(before.rev);
-    const ok = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: after.rev });
+    const ok = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: after.rev,
+    });
     expect(ok.result.status, ok.text).toBe("ok");
     expect(reloaded.calls).toEqual(["submit:alice (agent via relay)"]);
     // The ledger the agent reads continues across the reload: the entry from before it, then the
@@ -291,7 +340,9 @@ describe("relay: the page's surface decides", () => {
     const a = await agent(r, "agent-alice");
     await observe(a);
     p.window.dispatchEvent(new p.window.Event("pagehide"));
-    await until(() => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]?.state === "reconnecting");
+    await until(
+      () => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]?.state === "reconnecting",
+    );
     // The agent's list says the tab is reconnecting; its next read waits for the new page.
     const reading = observe(a);
     const reloaded = await page({ storage: { "axe-relay:tab-id": conn.tabId } });
@@ -318,15 +369,24 @@ describe("relay: who reaches which tab", () => {
     const connB = await connected(r, pb, "bob");
     const alice = await agent(r, "agent-alice");
     const bob = await agent(r, "agent-bob");
-    const aliceTabs = (await alice.call("relay_tabs")).result.output!["tabs"] as { tabId: string; path: string }[];
+    const aliceTabs = (await alice.call("relay_tabs")).result.output!["tabs"] as {
+      tabId: string;
+      path: string;
+    }[];
     expect(aliceTabs.map((t) => t.path)).toEqual(["/plan"]);
-    const bobTabs = (await bob.call("relay_tabs")).result.output!["tabs"] as { tabId: string; path: string }[];
+    const bobTabs = (await bob.call("relay_tabs")).result.output!["tabs"] as {
+      tabId: string;
+      path: string;
+    }[];
     expect(bobTabs.map((t) => t.tabId)).toEqual([connB.tabId]);
     const pick = await alice.call("relay_select-tab", { tabId: connB.tabId });
     expect(pick.result.error!.code).toBe("not_found");
     const v = await observe(alice);
     expect(v.entries.map((e) => e.id)).not.toContain("bob:only");
-    const act = await alice.call("surface_run-control", { entryId: "bob:only", expectedRev: v.rev });
+    const act = await alice.call("surface_run-control", {
+      entryId: "bob:only",
+      expectedRev: v.rev,
+    });
     expect(act.result.error!.code).toBe("not_found");
     expect(pb.calls).toEqual([]);
   });
@@ -347,7 +407,10 @@ describe("relay: who reaches which tab", () => {
     const v = await observe(other);
     expect(v.entries).toEqual([]);
     expect(JSON.stringify(v.objects)).toContain("No browser tab is connected");
-    const act = await other.call("surface_run-control", { entryId: "plan:submit", expectedRev: v.rev });
+    const act = await other.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: v.rev,
+    });
     expect(act.result.status).toBe("error");
     expect(p.calls).toEqual([]);
   });
@@ -358,8 +421,14 @@ describe("relay: who reaches which tab", () => {
       { principal: "alice", tenant: "acme", ttl: 60, now: Date.now() - 3_600_000 },
       SECRET,
     );
-    const forged = await mintRelayToken({ principal: "alice", tenant: "acme" }, "another-secret-0123456789abcdef-0123456");
-    const audience = await mintRelayToken({ principal: "alice", tenant: "acme", audience: "billing" }, SECRET);
+    const forged = await mintRelayToken(
+      { principal: "alice", tenant: "acme" },
+      "another-secret-0123456789abcdef-0123456",
+    );
+    const audience = await mintRelayToken(
+      { principal: "alice", tenant: "acme", audience: "billing" },
+      SECRET,
+    );
     for (const token of [expired, forged, audience]) {
       const p = await page();
       p.connect({ url: r.address.tabUrl, token });
@@ -397,7 +466,10 @@ describe("relay: who reaches which tab", () => {
     // The second tab is the most recently active.
     const a = await agent(r, "agent-alice");
     const v2 = await observe(a);
-    const listed = (await a.call("relay_tabs")).result.output!["tabs"] as { tabId: string; selected: boolean }[];
+    const listed = (await a.call("relay_tabs")).result.output!["tabs"] as {
+      tabId: string;
+      selected: boolean;
+    }[];
     expect(listed.find((t) => t.selected)?.tabId).toBe(c2.tabId);
     // Activity in the first tab does not move an agent that already acted on the second.
     first.window.dispatchEvent(new first.window.Event("focus"));
@@ -408,7 +480,10 @@ describe("relay: who reaches which tab", () => {
     const v1 = await observe(a);
     expect(v1.rev).not.toBe(v2.rev);
     // A revision read from the second tab never passes the first tab's check.
-    const cross = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: v2.rev });
+    const cross = await a.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: v2.rev,
+    });
     expect(cross.result.error!.code).toBe("conflict");
     const ok = await a.call("surface_run-control", { entryId: "plan:submit", expectedRev: v1.rev });
     expect(ok.result.status, ok.text).toBe("ok");
@@ -434,7 +509,10 @@ describe("relay: who reaches which tab", () => {
     expect(lost.entries).toEqual([]);
     const v = await observe(globex);
     expect(v.entries.map((e) => e.id)).toContain("plan:submit");
-    const ok = await globex.call("surface_run-control", { entryId: "plan:submit", expectedRev: v.rev });
+    const ok = await globex.call("surface_run-control", {
+      entryId: "plan:submit",
+      expectedRev: v.rev,
+    });
     expect(ok.result.status, ok.text).toBe("ok");
   });
 });
@@ -449,9 +527,9 @@ describe("relay: what crosses the wire", () => {
     const v = await a.call("surface_observe");
     texts.push(v.text, JSON.stringify(v.result));
     const rev = (v.result.output as { rev: number }).rev;
-    const row = (v.result.output as { entries: { id: string; sensitive?: boolean; value?: unknown }[] }).entries.find(
-      (e) => e.id === "account:token",
-    );
+    const row = (
+      v.result.output as { entries: { id: string; sensitive?: boolean; value?: unknown }[] }
+    ).entries.find((e) => e.id === "account:token");
     expect(row).toMatchObject({ sensitive: true });
     expect(row).not.toHaveProperty("value");
     for (const call of [
@@ -482,7 +560,10 @@ describe("relay: what crosses the wire", () => {
       },
     });
     await p.status((s) => s.state === "connected");
-    await until(() => r.frames.some((f) => f.direction === "out" && f.data.includes('"t":"renewed"')), 8000);
+    await until(
+      () => r.frames.some((f) => f.direction === "out" && f.data.includes('"t":"renewed"')),
+      8000,
+    );
     expect(minted).toBeGreaterThanOrEqual(2);
     expect(p.statuses.filter((s) => s.state === "reconnecting")).toEqual([]);
   });
@@ -490,7 +571,10 @@ describe("relay: what crosses the wire", () => {
   it("a token that is not renewed ends the connection when it expires", async () => {
     const r = await relay();
     const p = await page();
-    p.connect({ url: r.address.tabUrl, token: await mintRelayToken({ principal: "alice", tenant: "acme", ttl: 2 }, SECRET) });
+    p.connect({
+      url: r.address.tabUrl,
+      token: await mintRelayToken({ principal: "alice", tenant: "acme", ttl: 2 }, SECRET),
+    });
     await p.status((s) => s.state === "connected");
     const s = await p.status((x) => x.state === "refused", 8000);
     expect(s.reason).toContain("expired");

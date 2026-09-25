@@ -237,6 +237,7 @@ The DOM mirror ([S-DOM-1] in `spec/SURFACE.md`): attributes a rendered control c
 | cli      | audit       | `axe audit`       | CLI   | Produce the AXE Score and fix list.                         |
 | cli      | mcp         | `axe mcp`         | CLI   | Serve any AXE site as an MCP server over stdio.             |
 | cli      | generate    | `axe generate`    | CLI   | Derive actions from an OpenAPI document; files for review.  |
+| cli      | relay       | `axe relay`       | CLI   | Run the relay that lets an agent drive a signed-in tab.     |
 
 ## Fields
 
@@ -680,6 +681,26 @@ Names of the parameterized bridge mode and of the filtered, paged `<ns>.observe`
 | api      | actionFor     | `actionFor`     | `@axe/surface/axe`                 | The domain action that acts on an entry id now, or undefined.                                              |
 | api      | idleReason    | `idleReason`    | `@axe/surface/axe`                 | A domain action's `availability` reason when no entry it covers can be acted on.                           |
 | api      | maxPageSize   | `maxPageSize`   | `@axe/surface/axe`                 | The largest `limit` `<ns>.observe` accepts; published as `pagination.pageSize.max`.                        |
+
+## Relay
+
+Public identifiers of `@axe/relay`, the broker between a signed-in person's live tab and an agent outside the browser (`spec/SURFACE.md` §9.1, [S-RELAY-1] to [S-RELAY-10]; `docs/relay.md`).
+
+| Category | Key              | Name               | Where               | Meaning                                                                                                           |
+| -------- | ---------------- | ------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| api      | connectRelay     | `connectRelay`     | `@axe/relay/client` | Connect a page's surface to a relay for the signed-in person; shows the indicator, answers observes and acts.     |
+| api      | getToken         | `getToken`         | `@axe/relay/client` | `connectRelay` option: returns a fresh relay token, on every connection and before the current one expires.       |
+| api      | onStatus         | `onStatus`         | `@axe/relay/client` | `connectRelay` option: told after every change of the connection's status, approvals included.                    |
+| api      | requireApproval  | `requireApproval`  | `@axe/relay/client` | `connectRelay` option: which rows wait for the person's approval; default high risk or `confirm`.                 |
+| api      | createRelay      | `createRelay`      | `@axe/relay/server` | Create a relay: tab connections, a mirror per tab served through `domainActions`, MCP over HTTP and stdio.        |
+| api      | authenticateTab  | `authenticateTab`  | `@axe/relay/server` | `createRelay` option: check a tab's token yourself and name its principal and tenant.                             |
+| api      | agentAuth        | `agentAuth`        | `@axe/relay/server` | `createRelay` option: the OAuth `verifier` for agents over HTTP and `identify`, the principal a token speaks for. |
+| api      | devPairing       | `devPairing`       | `@axe/relay/server` | `createRelay` option: local development on loopback, with pairing codes and development tokens.                   |
+| api      | syncTimeoutMs    | `syncTimeoutMs`    | `@axe/relay/server` | `createRelay` option: how long a read waits for a fresh snapshot before serving the last one.                     |
+| api      | reconnectGraceMs | `reconnectGraceMs` | `@axe/relay/server` | `createRelay` option: how long an act waits for a reconnecting (reloading) tab.                                   |
+| api      | tabRetentionMs   | `tabRetentionMs`   | `@axe/relay/server` | `createRelay` option: how long a disconnected or stopped tab stays listed.                                        |
+| api      | mintRelayToken   | `mintRelayToken`   | `@axe/relay/token`  | Mint a relay token (HS256 JWT: `sub`, `org`, `aud`, `exp`) for the signed-in person, in the backend.              |
+| api      | verifyRelayToken | `verifyRelayToken` | `@axe/relay/token`  | Check a relay token's signature, audience, and expiry; returns its principal, tenant, and claims or null.         |
 
 ## Generate API
 

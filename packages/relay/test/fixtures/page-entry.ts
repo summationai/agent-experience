@@ -3,4 +3,8 @@
 import { createSurface } from "@axe/surface";
 import { connectRelay, devToken } from "../../src/client";
 
-(globalThis as unknown as { relayPage: unknown }).relayPage = { createSurface, connectRelay, devToken };
+(globalThis as unknown as { relayPage: unknown }).relayPage = {
+  createSurface,
+  connectRelay,
+  devToken,
+};

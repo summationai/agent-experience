@@ -27,7 +27,13 @@ import type { ActRequest, ActResult, LedgerEntry, Observation, Surface } from "@
 import { domainActions } from "@axe/surface/axe";
 import type { DomainActionSpec, SurfaceContext } from "@axe/surface/axe";
 import { createMcpServer, serveHttp, serveStdio } from "@axe/mcp";
-import type { AuthInfo, AxeLike, DerivedMcpServer, McpHttpHandler, OAuthTokenVerifier } from "@axe/mcp";
+import type {
+  AuthInfo,
+  AxeLike,
+  DerivedMcpServer,
+  McpHttpHandler,
+  OAuthTokenVerifier,
+} from "@axe/mcp";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { TabMirror } from "./mirror";
 import type { TabLink } from "./mirror";
@@ -36,12 +42,19 @@ import type { RelayMessage, RelayPrincipal, TabMessage } from "./protocol";
 import { mintRelayToken, verifyRelayToken } from "./token";
 
 export { mintRelayToken, verifyRelayToken, MAX_RELAY_TOKEN_TTL, RELAY_AUDIENCE } from "./token";
-export type { MintRelayTokenInput, RelayTokenClaims, VerifyRelayTokenOptions } from "./token";
+export type {
+  MintRelayTokenInput,
+  RelayClaimValue,
+  RelayTokenClaims,
+  VerifyRelayTokenOptions,
+} from "./token";
 export type { RelayPrincipal } from "./protocol";
 export { CLOSE as RELAY_CLOSE, RELAY_PROTOCOL } from "./protocol";
 export { TabMirror } from "./mirror";
+export type { TabLink } from "./mirror";
 
-type MaybePromise<T> = T | Promise<T>;
+/** A value, or a promise of one. */
+export type MaybePromise<T> = T | Promise<T>;
 
 /** What `authenticateTab` receives besides the token. */
 export interface TabAuthContext {
@@ -82,7 +95,10 @@ export interface RelayOptions {
    * principal and tenant the token speaks for, or null to refuse. Never accept a session cookie
    * here; the page sends only what your backend minted for this purpose.
    */
-  authenticateTab?: (token: string, context: TabAuthContext) => MaybePromise<(RelayPrincipal & { expiresAt?: number }) | null>;
+  authenticateTab?: (
+    token: string,
+    context: TabAuthContext,
+  ) => MaybePromise<(RelayPrincipal & { expiresAt?: number }) | null>;
   /**
    * The page origins allowed to connect a tab. Each is an exact origin (`https://app.example.com`),
    * a subdomain pattern (`https://*.example.com`, which does not match the apex), or any port
@@ -214,7 +230,11 @@ function pairingCode(): string {
   return `${s.slice(0, 4)}-${s.slice(4)}`;
 }
 function normalizeCode(code: string): string {
-  const s = code.toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/O/g, "0").replace(/[IL]/g, "1");
+  const s = code
+    .toUpperCase()
+    .replace(/[^0-9A-Z]/g, "")
+    .replace(/O/g, "0")
+    .replace(/[IL]/g, "1");
   return s.length === 8 ? `${s.slice(0, 4)}-${s.slice(4)}` : s;
 }
 
@@ -260,7 +280,11 @@ class TabRecord implements TabLink {
   private nextId = 1;
   private readonly pending = new Map<
     number,
-    { resolve: (m: TabMessage) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+    {
+      resolve: (m: TabMessage) => void;
+      reject: (e: Error) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
   private readonly waiters = new Set<() => void>();
   private expiryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -302,10 +326,13 @@ class TabRecord implements TabLink {
   armExpiry(): void {
     clearTimeout(this.expiryTimer);
     const left = this.expiresAt - Date.now();
-    this.expiryTimer = setTimeout(() => {
-      // [S-RELAY-3] A token outlives no connection: renew it in-band, or the tab is closed.
-      this.ws?.close(CLOSE.unauthorized, "the relay token expired");
-    }, Math.max(0, Math.min(left, 2 ** 31 - 1)));
+    this.expiryTimer = setTimeout(
+      () => {
+        // [S-RELAY-3] A token outlives no connection: renew it in-band, or the tab is closed.
+        this.ws?.close(CLOSE.unauthorized, "the relay token expired");
+      },
+      Math.max(0, Math.min(left, 2 ** 31 - 1)),
+    );
     (this.expiryTimer as { unref?: () => void }).unref?.();
   }
 
@@ -339,7 +366,8 @@ class TabRecord implements TabLink {
 
   /** Adopt a snapshot, starting a new instance's revision space on its first one. */
   adopt(observation: Observation, ledger: LedgerEntry[]): void {
-    if (!observation || typeof observation.rev !== "number" || !Array.isArray(observation.entries)) return;
+    if (!observation || typeof observation.rev !== "number" || !Array.isArray(observation.entries))
+      return;
     this.mirror.beginInstance(this.instance, observation.rev);
     this.syncedInstance = this.instance;
     this.mirror.apply(observation, Array.isArray(ledger) ? ledger : []);
@@ -384,7 +412,11 @@ class TabRecord implements TabLink {
     if (!(await this.connected(this.mirror.hasView() ? 0 : this.relay.reconnectGraceMs))) return;
     try {
       const m = await this.request(
-        (id) => ({ t: "sync", id, since: this.syncedInstance === this.instance ? this.mirror.since() : 0 }),
+        (id) => ({
+          t: "sync",
+          id,
+          since: this.syncedInstance === this.instance ? this.mirror.since() : 0,
+        }),
         this.relay.syncTimeoutMs,
       );
       if (m.t === "snapshot") this.adopt(m.observation, m.ledger);
@@ -407,9 +439,11 @@ class TabRecord implements TabLink {
     );
   }
 
-  async act(
-    request: ActRequest,
-  ): Promise<{ result: ActResult | ErrorResult; observation?: Observation; ledger?: LedgerEntry[] }> {
+  async act(request: ActRequest): Promise<{
+    result: ActResult | ErrorResult;
+    observation?: Observation;
+    ledger?: LedgerEntry[];
+  }> {
     if (this.state === "stopped") return { result: this.stoppedResult() };
     if (!(await this.connected(this.relay.reconnectGraceMs)))
       return {
@@ -485,7 +519,12 @@ class TabRecord implements TabLink {
       title: this.title,
       origin: this.origin,
       path: this.path,
-      state: this.state === "connected" ? "connected" : this.state === "stopped" ? "stopped" : "reconnecting",
+      state:
+        this.state === "connected"
+          ? "connected"
+          : this.state === "stopped"
+            ? "stopped"
+            : "reconnecting",
       selected,
       connectedAt: new Date(this.connectedAt).toISOString(),
       lastActiveAt: new Date(this.lastActive).toISOString(),
@@ -518,7 +557,10 @@ export function createRelay(options: RelayOptions = {}): Relay {
     throw new Error("createRelay: pass secret (for mintRelayToken tokens) or authenticateTab.");
   if (options.secret !== undefined && options.secret.length < 32)
     throw new Error("createRelay: secret must be at least 32 characters.");
-  if (!dev && (!options.origins || (Array.isArray(options.origins) && options.origins.length === 0)))
+  if (
+    !dev &&
+    (!options.origins || (Array.isArray(options.origins) && options.origins.length === 0))
+  )
     throw new Error("createRelay: origins must list the page origins allowed to connect a tab.");
   const originRule: ((origin: string) => boolean) | null =
     typeof options.origins === "function"
@@ -527,7 +569,9 @@ export function createRelay(options: RelayOptions = {}): Relay {
         ? originMatcher(options.origins)
         : null;
   const devPrincipal = options.devPrincipal ?? { principal: "dev", tenant: "dev" };
-  const devAgentKey = dev ? (options.devAgentKey ?? `axd_${randomBytes(24).toString("hex")}`) : null;
+  const devAgentKey = dev
+    ? (options.devAgentKey ?? `axd_${randomBytes(24).toString("hex")}`)
+    : null;
   const ns = options.namespace ?? "surface";
   const retention = options.tabRetentionMs ?? 600_000;
   const core: RelayCore = {
@@ -591,15 +635,18 @@ export function createRelay(options: RelayOptions = {}): Relay {
     return chosen;
   };
 
-  const sweep = setInterval(() => {
-    const now = Date.now();
-    for (const [key, t] of tabs)
-      if (t.state !== "connected" && now - t.leftAt > retention) {
-        tabs.delete(key);
-        for (const [agent, k] of selection) if (k === key) selection.delete(agent);
-      }
-    for (const [jti, exp] of revoked) if (exp < now) revoked.delete(jti);
-  }, Math.max(1000, Math.min(retention, 60_000)));
+  const sweep = setInterval(
+    () => {
+      const now = Date.now();
+      for (const [key, t] of tabs)
+        if (t.state !== "connected" && now - t.leftAt > retention) {
+          tabs.delete(key);
+          for (const [agent, k] of selection) if (k === key) selection.delete(agent);
+        }
+      for (const [jti, exp] of revoked) if (exp < now) revoked.delete(jti);
+    },
+    Math.max(1000, Math.min(retention, 60_000)),
+  );
   (sweep as { unref?: () => void }).unref?.();
 
   // ---------------------------------------------------------------------------------------------
@@ -765,7 +812,11 @@ export function createRelay(options: RelayOptions = {}): Relay {
         reversible: true,
         auth: "user",
         input: z.object({ code: z.string().min(4).max(32) }).strict(),
-        output: z.object({ principal: z.string(), tenant: z.string(), tabs: z.array(TabInfoSchema) }),
+        output: z.object({
+          principal: z.string(),
+          tenant: z.string(),
+          tabs: z.array(TabInfoSchema),
+        }),
         examples: [
           { input: { code: "7K2M-Q9XD" }, output: { principal: "dev", tenant: "dev", tabs: [] } },
         ],
@@ -776,19 +827,29 @@ export function createRelay(options: RelayOptions = {}): Relay {
           globalFailures = globalFailures.filter((t) => now - t < 60_000);
           const f = failures.get(caller.agent);
           if ((f && f.until > now) || globalFailures.length >= 30)
-            return fail("rate_limited", "Too many wrong pairing codes; wait a minute and ask the person for the code again.", {
-              retryable: true,
-            });
+            return fail(
+              "rate_limited",
+              "Too many wrong pairing codes; wait a minute and ask the person for the code again.",
+              {
+                retryable: true,
+              },
+            );
           const code = normalizeCode(input.code);
           const tab = [...tabs.values()].find(
             (t) => t.state === "connected" && t.pairing && safeEqual(t.pairing.code, code),
           );
           if (!tab) {
             const count = (f?.count ?? 0) + 1;
-            failures.set(caller.agent, { count: count >= 5 ? 0 : count, until: count >= 5 ? now + 60_000 : 0 });
+            failures.set(caller.agent, {
+              count: count >= 5 ? 0 : count,
+              until: count >= 5 ? now + 60_000 : 0,
+            });
             globalFailures.push(now);
             emit({ type: "pairing.failed", agent: caller.agent });
-            return fail("not_found", "That pairing code does not match an open tab. Ask the person to read it again from the tab.");
+            return fail(
+              "not_found",
+              "That pairing code does not match an open tab. Ask the person to read it again from the tab.",
+            );
           }
           failures.delete(caller.agent);
           const who = { principal: tab.principal, tenant: tab.tenant };
@@ -816,7 +877,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
   const adapterFor = (agent: string, who: RelayPrincipal | null): AdapterContext => {
     const resolved = who ?? (dev ? (paired.get(agent) ?? null) : null);
     if (!resolved)
-      return { identity: { onBehalfOf: "unpaired agent", claims: { relayAgent: agent, relayUnpaired: true } } };
+      return {
+        identity: {
+          onBehalfOf: "unpaired agent",
+          claims: { relayAgent: agent, relayUnpaired: true },
+        },
+      };
     return {
       identity: {
         onBehalfOf: resolved.principal,
@@ -835,7 +901,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
 
   const devVerifier: OAuthTokenVerifier = {
     async verifyAccessToken(token: string): Promise<AuthInfo> {
-      if (!devAgentKey || !safeEqual(token, devAgentKey)) throw new InvalidTokenError("Unknown development key.");
+      if (!devAgentKey || !safeEqual(token, devAgentKey))
+        throw new InvalidTokenError("Unknown development key.");
       return { token, clientId: "dev", scopes: [], extra: { sub: "dev-agent" } };
     },
   };
@@ -854,7 +921,9 @@ export function createRelay(options: RelayOptions = {}): Relay {
               verifier: agentAuth.verifier,
               ...(agentAuth.requiredScopes ? { requiredScopes: agentAuth.requiredScopes } : {}),
               ...(agentAuth.resource ? { resource: agentAuth.resource } : {}),
-              ...(agentAuth.resourceMetadataUrl ? { resourceMetadataUrl: agentAuth.resourceMetadataUrl } : {}),
+              ...(agentAuth.resourceMetadataUrl
+                ? { resourceMetadataUrl: agentAuth.resourceMetadataUrl }
+                : {}),
             }
           : { verifier: devVerifier },
         clientFor: async (authInfo) => {
@@ -885,7 +954,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
     if (options.authenticateTab) {
       const who = await options.authenticateTab(token, { origin });
       if (!who) return null;
-      return { principal: who.principal, tenant: who.tenant, expiresAt: who.expiresAt ?? Date.now() + 600_000, jti: null };
+      return {
+        principal: who.principal,
+        tenant: who.tenant,
+        expiresAt: who.expiresAt ?? Date.now() + 600_000,
+        jti: null,
+      };
     }
     const secrets = [options.secret, dev ? devSecret : undefined].filter((s): s is string => !!s);
     for (const secret of secrets) {
@@ -896,7 +970,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
       );
       if (claims) {
         if (revoked.has(claims.jti)) return null;
-        return { principal: claims.principal, tenant: claims.tenant, expiresAt: claims.exp * 1000, jti: claims.jti };
+        return {
+          principal: claims.principal,
+          tenant: claims.tenant,
+          expiresAt: claims.exp * 1000,
+          jti: claims.jti,
+        };
       }
     }
     return null;
@@ -940,7 +1019,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
         clearTimeout(helloTimer);
         const who = await authenticate(m.token, origin);
         if (!who) return refuse(CLOSE.unauthorized, "the relay token is invalid or expired");
-        if (!tenantAllowed(who.tenant)) return refuse(CLOSE.forbidden, "this relay does not serve that tenant");
+        if (!tenantAllowed(who.tenant))
+          return refuse(CLOSE.forbidden, "this relay does not serve that tenant");
         if (ws.readyState !== ws.OPEN) return;
         const key = JSON.stringify([who.tenant, who.principal, m.tabId]);
         let tab = tabs.get(key);
@@ -958,7 +1038,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
         tab.path = String(m.path ?? "").slice(0, 500);
         tab.attach(ws, m.instance, who.expiresAt, who.jti);
         record = tab;
-        if (dev && !agentPaired(who)) tab.pairing = { code: pairingCode(), expiresAt: who.expiresAt };
+        if (dev && !agentPaired(who))
+          tab.pairing = { code: pairingCode(), expiresAt: who.expiresAt };
         tab.send({
           t: "ready",
           tabId: tab.tabId,
@@ -969,7 +1050,13 @@ export function createRelay(options: RelayOptions = {}): Relay {
           agent: agentPaired(who),
           ...(tab.pairing ? { pairing: tab.pairing } : {}),
         });
-        emit({ type: "tab.connected", tabId: tab.tabId, principal: who.principal, tenant: who.tenant, origin });
+        emit({
+          type: "tab.connected",
+          tabId: tab.tabId,
+          principal: who.principal,
+          tenant: who.tenant,
+          origin,
+        });
         // The first snapshot of this page instance starts its revision space.
         void tab.sync();
         return;
@@ -988,7 +1075,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
           return;
         case "changed":
           tab.lastActive = Date.now();
-          if (tab.syncedInstance === tab.instance && typeof m.rev === "number") tab.mirror.noteRev(m.rev);
+          if (tab.syncedInstance === tab.instance && typeof m.rev === "number")
+            tab.mirror.noteRev(m.rev);
           return;
         case "active":
           tab.lastActive = Date.now();
@@ -1014,7 +1102,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
           for (const [agent, k] of selection) if (k === tab.key) selection.delete(agent);
           const who = { principal: tab.principal, tenant: tab.tenant };
           if (tabsOf(who).length === 0)
-            for (const [agent, p] of paired) if (principalKey(p) === principalKey(who)) paired.delete(agent);
+            for (const [agent, p] of paired)
+              if (principalKey(p) === principalKey(who)) paired.delete(agent);
           record = null;
           ws.close(1000, "left");
           return;
@@ -1023,7 +1112,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
           // [S-RELAY-4] Stop revokes the token and refuses every further act on this tab.
           if (tab.jti) revoked.set(tab.jti, tab.expiresAt);
           tab.stop();
-          emit({ type: "tab.stopped", tabId: tab.tabId, principal: tab.principal, tenant: tab.tenant });
+          emit({
+            type: "tab.stopped",
+            tabId: tab.tabId,
+            principal: tab.principal,
+            tenant: tab.tenant,
+          });
           ws.close(CLOSE.stopped, "stopped by the person");
           return;
         default:
@@ -1036,7 +1130,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
       if (record) {
         record.detach(ws);
         if (record.state !== "stopped")
-          emit({ type: "tab.disconnected", tabId: record.tabId, principal: record.principal, tenant: record.tenant });
+          emit({
+            type: "tab.disconnected",
+            tabId: record.tabId,
+            principal: record.principal,
+            tenant: record.tenant,
+          });
       }
     });
     ws.on("error", () => undefined);
@@ -1047,7 +1146,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
     if (!dev) return null;
     if (!isLoopbackAddress(remote)) return "development pairing serves loopback clients only";
     const name = hostnameOf(host);
-    if (!name || !LOOPBACK_HOSTS.has(name)) return "development pairing needs a loopback Host header";
+    if (!name || !LOOPBACK_HOSTS.has(name))
+      return "development pairing needs a loopback Host header";
     return null;
   };
 
@@ -1055,7 +1155,9 @@ export function createRelay(options: RelayOptions = {}): Relay {
     const url = new URL(req.url ?? "/", "http://relay.invalid");
     const reject = (status: number, why: string) => {
       emit({ type: "tab.refused", reason: why, origin: req.headers.origin ?? null });
-      socket.write(`HTTP/1.1 ${status} ${status === 404 ? "Not Found" : "Forbidden"}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+      socket.write(
+        `HTTP/1.1 ${status} ${status === 404 ? "Not Found" : "Forbidden"}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+      );
       socket.destroy();
     };
     if (url.pathname !== "/tab") return reject(404, "unknown path");
@@ -1076,7 +1178,10 @@ export function createRelay(options: RelayOptions = {}): Relay {
       headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers },
     });
 
-  const handle = async (request: Request, context: { remoteAddress?: string } = {}): Promise<Response> => {
+  const handle = async (
+    request: Request,
+    context: { remoteAddress?: string } = {},
+  ): Promise<Response> => {
     const url = new URL(request.url);
     const devWhy = devRefusal(context.remoteAddress, request.headers.get("host") ?? url.host);
     if (devWhy) return json(403, { error: devWhy });
@@ -1084,17 +1189,24 @@ export function createRelay(options: RelayOptions = {}): Relay {
     if (url.pathname === "/dev/token") {
       if (!dev) return json(404, { error: "not found" });
       const origin = request.headers.get("origin") ?? undefined;
-      if (origin !== undefined && !originAllowed(origin)) return json(403, { error: `origin ${origin} is not allowed` });
-      const cors: Record<string, string> = origin ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : {};
+      if (origin !== undefined && !originAllowed(origin))
+        return json(403, { error: `origin ${origin} is not allowed` });
+      const cors: Record<string, string> = origin
+        ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" }
+        : {};
       if (request.method === "OPTIONS")
-        return new Response(null, { status: 204, headers: { ...cors, "Access-Control-Allow-Methods": "POST" } });
+        return new Response(null, {
+          status: 204,
+          headers: { ...cors, "Access-Control-Allow-Methods": "POST" },
+        });
       if (request.method !== "POST") return json(405, { error: "POST" }, cors);
       const token = await mintRelayToken({ ...devPrincipal, ttl: 600 }, devSecret);
       return json(200, { token }, cors);
     }
     if (url.pathname === "/mcp") {
       const h = await mcpHandler();
-      if (!h) return json(404, { error: "this relay serves no agents over HTTP (configure agentAuth)" });
+      if (!h)
+        return json(404, { error: "this relay serves no agents over HTTP (configure agentAuth)" });
       return h(request);
     }
     return json(404, { error: "not found" });
@@ -1145,12 +1257,18 @@ export function createRelay(options: RelayOptions = {}): Relay {
     },
     async serveStdio(opts = {}) {
       if (!opts.as && !dev)
-        throw new Error("serveStdio: pass `as` (the principal this local agent acts for), or turn on devPairing.");
+        throw new Error(
+          "serveStdio: pass `as` (the principal this local agent acts for), or turn on devPairing.",
+        );
       const as = opts.as ?? null;
-      if (as && !tenantAllowed(as.tenant)) throw new Error("serveStdio: this relay does not serve that tenant.");
-      const derived = await createMcpServer(axeLike(() => adapterFor("stdio", as)), {
-        name: options.name ?? "Surface relay",
-      });
+      if (as && !tenantAllowed(as.tenant))
+        throw new Error("serveStdio: this relay does not serve that tenant.");
+      const derived = await createMcpServer(
+        axeLike(() => adapterFor("stdio", as)),
+        {
+          name: options.name ?? "Surface relay",
+        },
+      );
       await serveStdio(derived);
       stdio = derived;
       return derived;
@@ -1180,12 +1298,20 @@ export function createRelay(options: RelayOptions = {}): Relay {
  */
 export function originMatcher(patterns: string[]): (origin: string) => boolean {
   const rules = patterns.map((p) => {
-    const m = /^(https?):\/\/(\*\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)*|\[[0-9a-f:.]+\])(?::(\d{1,5}|\*))?$/i.exec(p);
+    const m =
+      /^(https?):\/\/(\*\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)*|\[[0-9a-f:.]+\])(?::(\d{1,5}|\*))?$/i.exec(
+        p,
+      );
     if (!m)
       throw new Error(
         `createRelay: origin ${JSON.stringify(p)} must be an origin such as https://app.example.com, https://*.example.com, or http://localhost:*.`,
       );
-    return { scheme: m[1]!.toLowerCase(), wild: !!m[2], host: m[3]!.toLowerCase(), port: m[4] ?? null };
+    return {
+      scheme: m[1]!.toLowerCase(),
+      wild: !!m[2],
+      host: m[3]!.toLowerCase(),
+      port: m[4] ?? null,
+    };
   });
   return (origin) => {
     const o = /^(https?):\/\/([a-z0-9.-]+|\[[0-9a-f:.]+\])(?::(\d{1,5}))?$/i.exec(origin);

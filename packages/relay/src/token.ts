@@ -24,7 +24,8 @@ export const RELAY_AUDIENCE = "axe-relay";
 const MIN_SECRET = 32;
 const RESERVED = new Set(["sub", "org", "aud", "iat", "exp", "jti", "nbf", "iss"]);
 
-type Claim = string | number | boolean | null;
+/** The value of an extra claim a relay token carries. */
+export type RelayClaimValue = string | number | boolean | null;
 
 export interface MintRelayTokenInput extends RelayPrincipal {
   /** Lifetime in seconds. Default 600 (ten minutes); at most one day. The page renews in-band. */
@@ -32,7 +33,7 @@ export interface MintRelayTokenInput extends RelayPrincipal {
   /** The `aud` claim. Default `axe-relay`; the relay's `audience` option must match. */
   audience?: string;
   /** Extra claims to carry, such as a member id (`{ mid: "m_42" }`). Registered claim names are refused. */
-  claims?: Record<string, Claim>;
+  claims?: Record<string, RelayClaimValue>;
   /** Clock in ms, for tests. */
   now?: number;
 }
@@ -78,10 +79,13 @@ function checkSecret(secret: string): void {
 }
 
 async function keyFor(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
-    "sign",
-    "verify",
-  ]);
+  return crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
 }
 
 function randomId(): string {
@@ -106,7 +110,8 @@ export async function mintRelayToken(input: MintRelayTokenInput, secret: string)
   if (!Number.isFinite(ttl) || ttl <= 0 || ttl > MAX_RELAY_TOKEN_TTL)
     throw new Error(`mintRelayToken: ttl must be between 1 and ${MAX_RELAY_TOKEN_TTL} seconds.`);
   for (const k of Object.keys(input.claims ?? {}))
-    if (RESERVED.has(k)) throw new Error(`mintRelayToken: claims must not set the registered claim "${k}".`);
+    if (RESERVED.has(k))
+      throw new Error(`mintRelayToken: claims must not set the registered claim "${k}".`);
   const iat = Math.floor((input.now ?? Date.now()) / 1000);
   const payload = {
     ...(input.claims ?? {}),
@@ -158,7 +163,8 @@ export async function verifyRelayToken(
   const { sub, org, aud, exp, iat, nbf, jti } = payload;
   if (typeof sub !== "string" || !sub || typeof org !== "string" || !org) return null;
   const audience = options.audience ?? RELAY_AUDIENCE;
-  const audOk = typeof aud === "string" ? aud === audience : Array.isArray(aud) && aud.includes(audience);
+  const audOk =
+    typeof aud === "string" ? aud === audience : Array.isArray(aud) && aud.includes(audience);
   if (!audOk) return null;
   const now = Math.floor((options.now ?? Date.now()) / 1000);
   if (typeof exp !== "number" || !Number.isFinite(exp) || exp <= now) return null;

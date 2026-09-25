@@ -31,7 +31,11 @@ export interface TabLink {
    * `toTabRev` once the tab is connected (a reload changes the translation), and resolves with
    * the tab's envelope and fresh snapshot, in the tab's revisions.
    */
-  act(request: ActRequest): Promise<{ result: ActResult | ErrorResult; observation?: Observation; ledger?: LedgerEntry[] }>;
+  act(request: ActRequest): Promise<{
+    result: ActResult | ErrorResult;
+    observation?: Observation;
+    ledger?: LedgerEntry[];
+  }>;
   /** Run a `requires.fulfill` in the page. */
   fulfill(entryId: string, kind: string, payload: JsonValue, actor: string): Promise<void>;
 }
@@ -153,7 +157,8 @@ export class TabMirror {
     if (details) {
       for (const k of ["rev", "expectedRev", "currentRev"])
         if (typeof details[k] === "number") details[k] = (details[k] as number) + this.revOffset;
-      if (typeof details["seq"] === "number") details["seq"] = (details["seq"] as number) + this.seqOffset;
+      if (typeof details["seq"] === "number")
+        details["seq"] = (details["seq"] as number) + this.seqOffset;
     }
     return { ...result, error: { ...result.error, ...(details ? { details } : {}) } };
   }
@@ -301,7 +306,10 @@ export class TabMirror {
         if (query.since !== undefined) out = out.filter((e) => e.seq > query.since!);
         if (query.actor !== undefined) out = out.filter((e) => e.actor === query.actor);
         if (query.limit !== undefined && query.limit >= 0 && out.length > query.limit)
-          out = query.since !== undefined ? out.slice(0, query.limit) : out.slice(out.length - query.limit);
+          out =
+            query.since !== undefined
+              ? out.slice(0, query.limit)
+              : out.slice(out.length - query.limit);
         return out.map((e) => ({ ...e }));
       },
       expose: () => undefined,
@@ -329,7 +337,9 @@ export class TabMirror {
           return row.index !== null
             ? { available: true }
             : { available: false, reason: row.edit?.reason ?? "read only" };
-        return row.index !== null ? { available: true } : { available: false, reason: "cannot load more" };
+        return row.index !== null
+          ? { available: true }
+          : { available: false, reason: "cannot load more" };
       },
       attributesFor: () => undefined,
       reset: () => {

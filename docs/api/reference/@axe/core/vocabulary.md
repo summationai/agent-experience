@@ -213,6 +213,19 @@ type WireApi =
   | "actionFor"
   | "idleReason"
   | "maxPageSize"
+  | "connectRelay"
+  | "getToken"
+  | "onStatus"
+  | "requireApproval"
+  | "createRelay"
+  | "authenticateTab"
+  | "agentAuth"
+  | "devPairing"
+  | "syncTimeoutMs"
+  | "reconnectGraceMs"
+  | "tabRetentionMs"
+  | "mintRelayToken"
+  | "verifyRelayToken"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -255,7 +268,8 @@ type WireCli =
   | "axe conformance"
   | "axe audit"
   | "axe mcp"
-  | "axe generate";
+  | "axe generate"
+  | "axe relay";
 ```
 
 Union of every `cli` name.
@@ -872,6 +886,7 @@ const api: Readonly<{
   actionFor: "actionFor";
   actionNameFor: "actionNameFor";
   addProvider: "addProvider";
+  agentAuth: "agentAuth";
   allowCredentials: "allowCredentials";
   allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
@@ -883,6 +898,7 @@ const api: Readonly<{
   approveHandoff: "approveHandoff";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
+  authenticateTab: "authenticateTab";
   authFor: "authFor";
   authInfo: "authInfo";
   availability: "availability";
@@ -900,6 +916,7 @@ const api: Readonly<{
   completeHandoff: "completeHandoff";
   completion: "completion";
   confirm: "confirm";
+  connectRelay: "connectRelay";
   consequentialHint: "consequentialHint";
   consoleSink: "consoleSink";
   continue: "continue";
@@ -907,6 +924,7 @@ const api: Readonly<{
   createAXE: "createAXE";
   createContext: "createContext";
   createMcpServer: "createMcpServer";
+  createRelay: "createRelay";
   createSurface: "createSurface";
   createTestClient: "createTestClient";
   currentRev: "currentRev";
@@ -916,6 +934,7 @@ const api: Readonly<{
   describeEntry: "describeEntry";
   describeLive: "describeLive";
   destinationPolicy: "destinationPolicy";
+  devPairing: "devPairing";
   discover: "discover";
   domainActions: "domainActions";
   emit: "emit";
@@ -937,6 +956,7 @@ const api: Readonly<{
   fromTRPCRouter: "fromTRPCRouter";
   fulfillers: "fulfillers";
   getHandoff: "getHandoff";
+  getToken: "getToken";
   handler: "handler";
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
@@ -976,6 +996,7 @@ const api: Readonly<{
   maxRisk: "maxRisk";
   maxSessions: "maxSessions";
   maxWaitMs: "maxWaitMs";
+  mintRelayToken: "mintRelayToken";
   modelContext: "modelContext";
   needsInput: "needsInput";
   observe: "observe";
@@ -991,6 +1012,7 @@ const api: Readonly<{
   onRequest: "onRequest";
   onResult: "onResult";
   onResume: "onResume";
+  onStatus: "onStatus";
   operationId: "operationId";
   operationLeaseSeconds: "operationLeaseSeconds";
   originCheck: "originCheck";
@@ -1003,6 +1025,7 @@ const api: Readonly<{
   prune: "prune";
   readOnlyHint: "readOnlyHint";
   reconcile: "reconcile";
+  reconnectGraceMs: "reconnectGraceMs";
   redactEvent: "redactEvent";
   register: "register";
   registerGenerated: "registerGenerated";
@@ -1011,6 +1034,7 @@ const api: Readonly<{
   requestApproval: "requestApproval";
   requestedSchema: "requestedSchema";
   requestPolicy: "requestPolicy";
+  requireApproval: "requireApproval";
   requireCompletion: "requireCompletion";
   requiredScopes: "requiredScopes";
   requireIdempotencyKey: "requireIdempotencyKey";
@@ -1049,6 +1073,8 @@ const api: Readonly<{
   surfaceConflict: "SurfaceConflict";
   surfaceSelector: "surfaceSelector";
   sweepIntervalMs: "sweepIntervalMs";
+  syncTimeoutMs: "syncTimeoutMs";
+  tabRetentionMs: "tabRetentionMs";
   thaw: "thaw";
   timeoutMs: "timeoutMs";
   toFormSchema: "toFormSchema";
@@ -1067,6 +1093,7 @@ const api: Readonly<{
   useSurface: "useSurface";
   useSurfaceProps: "useSurfaceProps";
   validateJsonSchema: "validateJsonSchema";
+  verifyRelayToken: "verifyRelayToken";
   verifySiteKey: "verifySiteKey";
   withMimeTypes: "withMimeTypes";
 }>;
@@ -1105,6 +1132,7 @@ const cli: Readonly<{
   inspect: "axe inspect";
   mcp: "axe mcp";
   preview: "axe preview";
+  relay: "axe relay";
   validate: "axe validate";
 }>;
 ```
@@ -1785,6 +1813,7 @@ const WIRE: Readonly<{
      actionFor: "actionFor";
      actionNameFor: "actionNameFor";
      addProvider: "addProvider";
+     agentAuth: "agentAuth";
      allowCredentials: "allowCredentials";
      allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
@@ -1796,6 +1825,7 @@ const WIRE: Readonly<{
      approveHandoff: "approveHandoff";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
+     authenticateTab: "authenticateTab";
      authFor: "authFor";
      authInfo: "authInfo";
      availability: "availability";
@@ -1813,6 +1843,7 @@ const WIRE: Readonly<{
      completeHandoff: "completeHandoff";
      completion: "completion";
      confirm: "confirm";
+     connectRelay: "connectRelay";
      consequentialHint: "consequentialHint";
      consoleSink: "consoleSink";
      continue: "continue";
@@ -1820,6 +1851,7 @@ const WIRE: Readonly<{
      createAXE: "createAXE";
      createContext: "createContext";
      createMcpServer: "createMcpServer";
+     createRelay: "createRelay";
      createSurface: "createSurface";
      createTestClient: "createTestClient";
      currentRev: "currentRev";
@@ -1829,6 +1861,7 @@ const WIRE: Readonly<{
      describeEntry: "describeEntry";
      describeLive: "describeLive";
      destinationPolicy: "destinationPolicy";
+     devPairing: "devPairing";
      discover: "discover";
      domainActions: "domainActions";
      emit: "emit";
@@ -1850,6 +1883,7 @@ const WIRE: Readonly<{
      fromTRPCRouter: "fromTRPCRouter";
      fulfillers: "fulfillers";
      getHandoff: "getHandoff";
+     getToken: "getToken";
      handler: "handler";
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
@@ -1889,6 +1923,7 @@ const WIRE: Readonly<{
      maxRisk: "maxRisk";
      maxSessions: "maxSessions";
      maxWaitMs: "maxWaitMs";
+     mintRelayToken: "mintRelayToken";
      modelContext: "modelContext";
      needsInput: "needsInput";
      observe: "observe";
@@ -1904,6 +1939,7 @@ const WIRE: Readonly<{
      onRequest: "onRequest";
      onResult: "onResult";
      onResume: "onResume";
+     onStatus: "onStatus";
      operationId: "operationId";
      operationLeaseSeconds: "operationLeaseSeconds";
      originCheck: "originCheck";
@@ -1916,6 +1952,7 @@ const WIRE: Readonly<{
      prune: "prune";
      readOnlyHint: "readOnlyHint";
      reconcile: "reconcile";
+     reconnectGraceMs: "reconnectGraceMs";
      redactEvent: "redactEvent";
      register: "register";
      registerGenerated: "registerGenerated";
@@ -1924,6 +1961,7 @@ const WIRE: Readonly<{
      requestApproval: "requestApproval";
      requestedSchema: "requestedSchema";
      requestPolicy: "requestPolicy";
+     requireApproval: "requireApproval";
      requireCompletion: "requireCompletion";
      requiredScopes: "requiredScopes";
      requireIdempotencyKey: "requireIdempotencyKey";
@@ -1962,6 +2000,8 @@ const WIRE: Readonly<{
      surfaceConflict: "SurfaceConflict";
      surfaceSelector: "surfaceSelector";
      sweepIntervalMs: "sweepIntervalMs";
+     syncTimeoutMs: "syncTimeoutMs";
+     tabRetentionMs: "tabRetentionMs";
      thaw: "thaw";
      timeoutMs: "timeoutMs";
      toFormSchema: "toFormSchema";
@@ -1980,6 +2020,7 @@ const WIRE: Readonly<{
      useSurface: "useSurface";
      useSurfaceProps: "useSurfaceProps";
      validateJsonSchema: "validateJsonSchema";
+     verifyRelayToken: "verifyRelayToken";
      verifySiteKey: "verifySiteKey";
      withMimeTypes: "withMimeTypes";
   }>;
@@ -1996,6 +2037,7 @@ const WIRE: Readonly<{
      inspect: "axe inspect";
      mcp: "axe mcp";
      preview: "axe preview";
+     relay: "axe relay";
      validate: "axe validate";
   }>;
   compare: Readonly<{

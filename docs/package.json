@@ -17,6 +17,7 @@
     "@axe/generate": "workspace:*",
     "@axe/mcp": "workspace:*",
     "@axe/next": "workspace:*",
+    "@axe/relay": "workspace:*",
     "@axe/surface": "workspace:*",
     "@axe/testing": "workspace:*"
   },

@@ -3,12 +3,7 @@
  * WebSocket the page opens. Types only, plus the constants both sides agree on; nothing here
  * imports a runtime dependency, so the browser client stays small.
  */
-import type {
-  ActRequest,
-  ActResult,
-  LedgerEntry,
-  Observation,
-} from "@axe/surface";
+import type { ActRequest, ActResult, LedgerEntry, Observation } from "@axe/surface";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
 
 /** The WebSocket subprotocol and message version. */
