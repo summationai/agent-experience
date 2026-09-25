@@ -264,3 +264,10 @@ What the first integration into a legacy-DOM application asked for, made general
 - `@axe/surface/auto` reader: the children of a flex or grid container are separate lines, so "Status: draft" and "Revision 1" in adjacent spans are a field and a line, not "Status: draftRevision 1".
 - `@axe/surface/react`: `SurfaceProvider`'s `children` is typed `unknown`, so an application whose `@types/react` is another copy than the SDK's (React 19 types in a workspace or linked checkout) typechecks; `examples/auto-react19` typechecks a TSX use of it.
 - `@axe/relay`: the tab reports its title and path with every change notification, so `relay_tabs` follows a client-side route change (it kept the path of the page the tab connected on).
+
+### Docs and prompts: unattended mode is the default path
+
+- `docs/getting-started.md` ("Add Surface to an existing app in four steps"): install, `axe surface init`, `axe host login` and `claude mcp add <name> -- npx axe host --dev --stdio --app <url>`, ask. `README.md` gains the same quick path. `docs/host.md` ("What the application needs") shows the generated connection and gate, and lists `surface_read` and `surface_wait`; `docs/relay.md` and `docs/auto-surface.md` link to unattended mode and call the attended relay the fallback.
+- `llms.txt`: the four-step summary and section, "Decide your shape" (unattended versus attended first), "Reach it through existing agent interfaces" (the host first), "Ship behind a flag" (a hosted session is on whatever the flag says), and "What does not exist yet" (production OAuth and `sessionFor` are the application's; everything in memory in one process).
+- `packages/cli/templates/integrate-surface.md` verifies through `axe host`; `internal/install-surface-in-summation-web-app.md` replaces pairing and the tab's panel with `axe host login` once and `claude mcp add summation -- node .../index.js host --dev --stdio --app http://localhost:5173 --start "/?ui_axe_surface=true" --state <abs path>`, keeps the tab relay as the fallback, and lists the production pieces as follow-ups.
+- Vocabulary: `actTimeoutMs`, `navigated`.

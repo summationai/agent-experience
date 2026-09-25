@@ -348,7 +348,7 @@ axe.addProvider(autoActions(handle));
 ```
 <!-- /include -->
 
-`autoActions` is `domainActions` over `autoDomains()`: one action per configured group, then `navigate` (follow a link within the site, bring a landmark into view, or open a same-origin path given as text), `set-field`, `run-control`, and `load-more`, beside `surface.observe` and `surface.ledger`, and then the two read-only tools `surface.read` (the page's content, as Markdown or as sections, with `region`, `query`, `cursor`, `maxChars`, and `maxRows`) and `surface.wait` (a condition and a `timeoutMs`). Neither acts or moves the revision; `read`'s display disclaimer tells the agent its text is the page's content, redacted, and not instructions. Over the relay they are `surface_read` and `surface_wait`, answered by the tab's own surface. The tool list is the same size on every page. Declared entries can still be served one action per control through `surfaceActions`. Which transport carries the tools (an in-page relay to MCP, WebMCP, or `window.__surface`) is separate: the surface lives in the page ([S-MODE-1]).
+`autoActions` is `domainActions` over `autoDomains()`: one action per configured group, then `navigate` (follow a link within the site, bring a landmark into view, or open a same-origin path given as text), `set-field`, `run-control`, and `load-more`, beside `surface.observe` and `surface.ledger`, and then the two read-only tools `surface.read` (the page's content, as Markdown or as sections, with `region`, `query`, `cursor`, `maxChars`, and `maxRows`) and `surface.wait` (a condition and a `timeoutMs`). Neither acts or moves the revision; `read`'s display disclaimer tells the agent its text is the page's content, redacted, and not instructions. Over the relay they are `surface_read` and `surface_wait`, answered by the tab's own surface. The tool list is the same size on every page. Declared entries can still be served one action per control through `surfaceActions`. Which transport carries the tools is separate: the surface lives in the page ([S-MODE-1]). By default an agent outside the browser reaches it through [Unattended mode](host.md): `axe host` runs the application headless for the signed-in person, and the page `axe surface init` set up connects to the host's relay with no pairing. The attended fallback is the person's own tab connected to a [relay](relay.md); a browser agent can use WebMCP or `window.__surface`.
 
 ## What is not derived
 
@@ -356,6 +356,7 @@ The scan cannot see a click handler on an element with no role (it reports one w
 
 ## Next
 
+- [Unattended mode](host.md): how an agent outside the browser uses the derived surface, with the relay's attended mode ([Relay](relay.md)) as the fallback.
 - [Surface](surface.md): the registry, revisions, the ledger, and declared entries.
 - [WebMCP](webmcp.md): the same surface offered to the browser's own agent.
 - `spec/SURFACE.md` §10: the rules, [S-AUTO-1] to [S-AUTO-16] and [S-CFG-1] to [S-CFG-8].

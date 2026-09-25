@@ -14,36 +14,44 @@ flowchart LR
 
 ## What the application needs
 
-Nothing beyond easy mode. The provider that `axe surface init --relay-dev` (or `--relay <url>`) writes connects with `relayOptions`, which prefers the connection a host injected (`window.__AXE_RELAY__`) and uses the app's own relay otherwise:
+Nothing beyond easy mode. The provider that `axe surface init` writes (with no options) connects with the connection a host injected (`window.__AXE_RELAY__`), and nothing connects in a person's own browser:
 
 <!-- include: examples/host/page.ts#page -->
 ```ts
 const handle = autoSurface({ root: document.body });
-// In the host's hidden browser, `window.__AXE_RELAY__` is set before this script runs;
-// relayOptions returns it (unattended: no indicator, approvals through the agent). In a
-// person's own browser it returns the options given (attended).
-connectRelay(
-  handle.surface,
-  relayOptions({
-    url: "wss://relay.yogastudio.example/tab",
-    getToken: () =>
-      fetch("/api/relay-token", { method: "POST" }).then(
-        async (r) => ((await r.json()) as { token: string }).token,
-      ),
-  }),
-);
+// In the host's hidden browser, `window.__AXE_RELAY__` is set before this script runs, and
+// injectedRelay() returns it (unattended: no indicator, approvals through the agent). In a
+// person's own browser it returns null, and nothing connects.
+const options = injectedRelay();
+if (options) connectRelay(handle.surface, options);
 ```
 <!-- /include -->
 
-Two things to check in an existing integration:
-
-- The surface must be on in the hosted page. A feature flag that is off for the person, or a URL override you normally add by hand, keeps the provider from mounting; pass the override in `startPath` (for example `/dashboards?ui_axe_surface=true`) or turn the flag on for the people who use the agent.
-- A gate that connects the relay only in development must still let a hosted session connect:
+It is also always on inside a hosted session, whatever the application's own flag says there: the generated gate is `enabled = <your flag or the development gate> || injectedRelay() !== null`. `injectedRelay()` reads the global when called and is null on the server, so a server render is unaffected.
 
 <!-- include: examples/host/page.ts#gate -->
 ```ts
-// A development-only gate must still let a hosted session connect.
-export const relayWanted = (dev: boolean): boolean => dev || injectedRelay() !== null;
+// A feature flag that is off for the person must still let a hosted session turn the surface on.
+export const surfaceOn = (flag: boolean): boolean => flag || injectedRelay() !== null;
+```
+<!-- /include -->
+
+An integration written before this (or by hand) needs the same two things: connect when `injectedRelay()` returns a connection, and do not let a flag that is off for the person keep the provider from mounting in a hosted session. `--start <path>` opens the page the agent starts on (for example `/dashboards`). The attended fallback, where the person's own tab connects to a relay (`axe surface init --relay-dev`, or `--relay <url>`), keeps the injected connection first:
+
+<!-- include: examples/host/page.ts#fallback -->
+```ts
+// The attended fallback: the person's own tab connects to your relay when no host injected one.
+export const relayConnection = (dev: boolean) =>
+  injectedRelay() ??
+  (dev
+    ? {
+        url: "wss://relay.yogastudio.example/tab",
+        getToken: () =>
+          fetch("/api/relay-token", { method: "POST" }).then(
+            async (r) => ((await r.json()) as { token: string }).token,
+          ),
+      }
+    : null);
 ```
 <!-- /include -->
 
@@ -96,7 +104,7 @@ The host needs a Chromium that Playwright can start. The repository's Playwright
 
    Claude Desktop starts its servers with its own working directory, so use the printed configuration with absolute paths rather than `npx`.
 
-4. Ask the agent to do something in the app ("open the Q3 dashboard and add a filter for EMEA"). Its first tool call starts the hidden session; `relay_tabs` shows it, `surface_observe` lists the page's controls, and `host_screenshot` shows the page. Open the watch URL to follow along; Stop there closes the session.
+4. Ask the agent to do something in the app ("open the Q3 dashboard and add a filter for EMEA"). Its first tool call starts the hidden session; `relay_tabs` shows it, `surface_read` returns what the page shows, `surface_observe` lists the page's controls, `surface_wait` waits for slow work, and `host_screenshot` shows the page. A consequential act asks you in Claude first. Open the watch URL to follow along; Stop there closes the session.
 
 `--start <path>` opens a page other than the app's root, `--port` changes the HTTP port (default 4718), and `--headed` shows the browser window for debugging.
 
@@ -128,6 +136,8 @@ What development mode allows: the host listens on loopback only (`0.0.0.0` is re
 | `surface_observe`                                                           | The page's controls under one revision: what can be done now, why not the rest, values.                  |
 | `surface_set-field`, `surface_run-control`, `surface_load-more`             | Act through the page's own setters, handlers, and lists.                                                  |
 | `surface_ledger`                                                            | Every act and refusal in the tab, with who asked.                                                         |
+| `surface_read`                                                              | What the page shows the person (headings, text, fields, tables), redacted and bounded: status, results, reports. |
+| `surface_wait`                                                              | Wait until something shows on the page (a status, a finished report), at most two minutes.                 |
 | `relay_stop`                                                                | End the session (the agent's next call may start a new one).                                              |
 | `host_screenshot`                                                           | A PNG of the page as it is now (MCP image content), to show the person a result.                          |
 

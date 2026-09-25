@@ -9,11 +9,15 @@ flowchart LR
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-Two modes. **Unattended** (the default for agents): the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI. **Attended**: the person has the tab open, sees the indicator, and approves in the page.
+Most applications do not need this page: `axe surface init` connects the page to the relay a host runs, and [Unattended mode](host.md) is how an agent outside the browser reaches the application by default. This page is the relay underneath it, and the attended fallback: the agent in the person's own open tab, with pairing in development.
 
-The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-13] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
+Two modes. **Unattended** (the default for agents, [Unattended mode](host.md)): the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI. **Attended**: the person has the tab open, sees the indicator, and approves in the page.
 
-## Four steps
+The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-14] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
+
+## Attended mode in four steps
+
+For the person's own tab (the fallback; unattended needs none of this, see [Unattended mode](host.md)):
 
 1. Add the packages: `pnpm add @axe/surface @axe/relay`.
 2. In the page, register the controls on a surface (or let `@axe/surface/auto` do it) and connect it:

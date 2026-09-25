@@ -43,7 +43,18 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 
 Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
-- **[Getting started](docs/getting-started.md)** — from `npm install` to a passing conformance check in 15 minutes.
+The quick path for an existing web app, where the agent uses the app's own UI for you:
+
+```sh
+npm install @axe/surface @axe/relay
+npx axe surface init --yes                                   # mounts the easy-mode surface
+npx axe host login http://localhost:5173                     # sign in once, for the agent
+claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
+```
+
+Then ask Claude to do something in the app. The host runs it in headless Chromium as you, the agent reads, acts, and waits through the page's own controls, and consequential acts ask you in Claude first ([Unattended mode](docs/host.md)). The agent in your own open tab, with pairing, is the fallback ([Relay](docs/relay.md)).
+
+- **[Getting started](docs/getting-started.md)** — Surface in an existing app in four steps, and from `npm install` to a passing AXE conformance check in 15 minutes.
 - **[Concepts](docs/concepts.md)** — manifest, actions, display and affordances, the result envelope, the escalation ladder.
 - **[Protocol spec](spec/AXE-PROTOCOL.md)** — normative, with [well-known kinds](spec/KINDS.md), [events](spec/EVENTS.md), and the [vocabulary](spec/VOCABULARY.md).
 - **[All docs](docs/README.md)** — designing actions, presenting results, requirements and kinds, human handoff, auth, integrations, MCP, agent builders, testing, security, audit, analytics, platforms, deploying, API reference, FAQ.
