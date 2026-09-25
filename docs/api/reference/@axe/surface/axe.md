@@ -4,6 +4,64 @@
 
 ## Interfaces
 
+<a id="contentactionspec"></a>
+
+### ContentActionSpec
+
+A read-only action over the page's content rather than an entry ([S-AUTO-16]): `read` returns
+what the page shows the person, `wait` resolves when a condition on the page holds. It needs a
+surface that carries a page-content reader (`autoSurface` attaches one; a relay mirror forwards
+to the page's); on any other surface it is unavailable. It never acts and never moves the
+revision.
+
+#### Properties
+
+<a id="auth"></a>
+
+##### auth?
+
+```ts
+optional auth?: WireAuthMode;
+```
+
+Auth mode; default the bridge's read mode.
+
+<a id="content"></a>
+
+##### content
+
+```ts
+content: "read" | "wait";
+```
+
+<a id="description"></a>
+
+##### description
+
+```ts
+description: string;
+```
+
+<a id="name"></a>
+
+##### name
+
+```ts
+name: string;
+```
+
+The name under the namespace: `read` is served as `<ns>.read`.
+
+<a id="title"></a>
+
+##### title
+
+```ts
+title: string;
+```
+
+***
+
 <a id="domainactionsoptions"></a>
 
 ### DomainActionsOptions
@@ -40,7 +98,7 @@ Actor recorded for acts that arrive through AXE. Default: the authenticated `onB
 
 [`SurfaceActionsOptions`](#surfaceactionsoptions).[`actor`](#actor-1)
 
-<a id="auth"></a>
+<a id="auth-1"></a>
 
 ##### auth?
 
@@ -55,14 +113,25 @@ makes the surface public over HTTP: pass it only for data you would publish on t
 
 ###### Inherited from
 
-[`SurfaceActionsOptions`](#surfaceactionsoptions).[`auth`](#auth-2)
+[`SurfaceActionsOptions`](#surfaceactionsoptions).[`auth`](#auth-3)
+
+<a id="content-1"></a>
+
+##### content?
+
+```ts
+optional content?: boolean;
+```
+
+Also publish the page-content actions `read` and `wait` (`contentDomains()`), when `domains`
+does not already name them. Default false; `autoDomains()` includes them itself.
 
 <a id="domains"></a>
 
 ##### domains?
 
 ```ts
-optional domains?: DomainActionSpec[];
+optional domains?: DomainSpec[];
 ```
 
 The parameterized actions, in the order they are published. Fixed for the life of the
@@ -259,7 +328,7 @@ them. The action takes `{ entryId, text?, confirm? }` and runs the entry's own o
 
 #### Properties
 
-<a id="auth-1"></a>
+<a id="auth-2"></a>
 
 ##### auth?
 
@@ -291,7 +360,7 @@ than one spec covers belongs to the first. Select by `kind`, by `object` or id p
 
 `boolean`
 
-<a id="description"></a>
+<a id="description-1"></a>
 
 ##### description
 
@@ -341,7 +410,7 @@ The `availability` reason when no entry the action covers can be acted on now (a
 surface is not frozen, when the freeze's reason is reported instead). Default: "nothing on
 the page can be changed this way right now".
 
-<a id="name"></a>
+<a id="name-1"></a>
 
 ##### name
 
@@ -373,7 +442,7 @@ The highest risk of any entry the action acts on. An entry whose own risk is hig
 covered: it is reported through `onError` and keeps its row in `<ns>.observe` without an
 affordance, so the published risk is never lower than a control's own ([P-HON-7]).
 
-<a id="title"></a>
+<a id="title-1"></a>
 
 ##### title
 
@@ -877,7 +946,7 @@ Actor recorded for acts that arrive through AXE. Default: the authenticated `onB
 
 `string`
 
-<a id="auth-2"></a>
+<a id="auth-3"></a>
 
 ##### auth?
 
@@ -1273,6 +1342,20 @@ tenant: TenantInfo | null;
 ```
 
 ## Type Aliases
+
+<a id="domainspec"></a>
+
+### DomainSpec
+
+```ts
+type DomainSpec = 
+  | DomainActionSpec
+  | ContentActionSpec;
+```
+
+One action of `domainActions`: over entries (`DomainActionSpec`) or over the page's content.
+
+***
 
 <a id="surfaceresolver"></a>
 
