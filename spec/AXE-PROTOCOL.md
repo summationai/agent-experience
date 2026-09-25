@@ -398,6 +398,28 @@ Every status MAY additionally carry `rev`, the site's revision after the call, w
 
 **[P-HAND-7]** The SDK's built-in `login_required` handoff (§16.1) binds the resume token to the identity established at `url`; the resumed action runs as that user.
 
+### 9.3 Approvals
+
+An approval request is a handoff that asks a person to approve one consequential call before it runs. It exists because nothing an agent sends proves a person's consent: an input flag such as `confirm: true`, a payload, or a resume is the agent's own assertion. Consent is established where the person already is, on the site, with their own session, and it is bound to the exact call it approves.
+
+**[P-APPR-1]** An approval request is a `needs_human` result returned by the handler of the call it would approve, with a complete Handoff ([P-HAND-1]) whose `url` is the site's own approval page and whose `reason` is `approval_required` or a site-specific code. When it mints the resume token, the server MUST record, beside the token's binding ([P-TOK-2]: action, input fingerprint, principal, tenant), the call's input exactly as sent and the relevant state at that moment: a value the site computes (for example the record's id and revision) whose change should void the approval. The recorded input and state are not sent to the agent.
+
+**[P-APPR-2]** The approval page MUST be able to show the person exactly what will run: the action, the recorded input, the principal the agent acts for, the tenant, the state the request is bound to next to the current state, the expiry, and any self-identification the agent sent (marked as unverified). A server MUST NOT show a request to, or accept a decision from, a request of another tenant, and MUST answer an unknown, expired, and foreign request alike.
+
+**[P-APPR-3]** An approval MUST be recorded only by the site, from a request authenticated as a person by the site's own session and protected against cross-site request forgery (§6.4 or the site's equivalent), after the site has decided that this person may approve this operation. Nothing that reaches the AXE endpoints (an action's input, a continuation payload, a resume body, a `confirm` flag) records or implies approval. The server MUST record an approval only when the request is still open (not approved already, cancelled, invalidated, used, or expired) and the relevant state still equals the recorded state; when the state differs, the request is invalidated ([P-APPR-6]).
+
+**[P-APPR-4]** A resume of an approval request MUST run the operation only when all of these hold at the time it runs: the request was approved, and not cancelled or invalidated since; the resume token is authorized for the request's principal and tenant ([P-TOK-6]) and has not expired; and the relevant state still equals the recorded state. It runs the recorded input, never anything the resume carries. A resume before approval MUST return `error` with `code: "conflict"`, `retryable: true`, and `details.handoffStatus: "open"`, and run nothing.
+
+**[P-APPR-5]** A person MAY cancel a handoff that has not been used, an approval request open or approved alike; the site records it the same way as an approval ([P-APPR-3]). A resume of a cancelled handoff MUST return `error` with `code: "conflict"`, `retryable: false`, and `details.handoffStatus: "cancelled"`, and run nothing. A handoff whose resume has run, or is running, cannot be cancelled: that work is committed, and undoing it is an action of the site's own, which the site offers only if it implements one.
+
+**[P-APPR-6]** When the relevant state differs from the recorded state, at approval or at resume, the request is invalidated for good, whatever the state does afterwards. A resume of an invalidated request MUST return `error` with `code: "conflict"`, `retryable: false`, and `details.handoffStatus: "invalidated"`, run nothing, and say that the agent must start the action again to ask for a new approval. The server's state check is the first gate; the operation's own conditional write at the recorded state is the second, since the state can move between the check and the write.
+
+**[P-APPR-7]** An approval request is single use ([P-HAND-6]): once a resume has run it and returned any status other than `error`, a repeat of the same resume by the same principal returns the stored envelope, even though the state has since moved (usually because of that very operation), and runs nothing. A repeat of the original call with its `idempotencyKey` returns the same handoff ([P-IDEM-2]).
+
+**[P-APPR-8]** An approval request SHOULD expire sooner than a plain handoff ([P-TOK-5]); the SDK's default is one hour. After expiry the resume is answered as an unknown token ([P-TOK-3]), whose message says that nothing was applied and that the agent must start the action again, and the site can neither approve nor cancel it.
+
+**[P-APPR-9]** The `ok` result of an approved operation SHOULD be a receipt: the approved operation, the resulting changes, the principal the agent acted for, who approved and when, and the state before and after (for a revisioned site, the revision before and after). Receipts and the server's approval events (`EVENTS.md`, "Approval events") MUST NOT carry sensitive input; the events carry identifiers and actors, never the recorded input or state.
+
 ## 10. Long-running work: `pending`
 
 **[P-PEND-1]** A `pending` result MUST include `pollUrl` (absolute) and `retryAfter` (integer seconds, at least 1). The HTTP response SHOULD also carry `Retry-After`.
@@ -665,6 +687,7 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 - **Over-permissioned actions.** Nothing in AXE grants an agent more than the site's existing authorization allows. Sites MUST authorize every action with the same checks their UI applies, using the identity from §16, never from the request body.
 - **HTML in results.** Renderers MUST escape everything ([P-DISP-5]). Sites MUST NOT rely on markup reaching a user.
 - **Bridges to other agent protocols.** A bridge such as an MCP server serves many callers from one process. Each call reaches the site as its own caller, never as a shared identity, and the bridge's session is not an authentication ([P-MCP-2]).
+- **Consent.** An agent can claim anything in its input, including that the person agreed. A consequential call is approved by the person on the site, bound to the call, the principal, the tenant, and the state, and runs once ([P-APPR-1] to [P-APPR-9]).
 - **Cross-site request forgery.** A site that authenticates with cookies is reachable from every page its users visit. CORS response headers do not prevent the write; [P-TRANS-1] to [P-TRANS-4] do. A site that also sets `SameSite=Lax` or `Strict` on its session cookie has a second, independent layer.
 
 ## 20. Worked example: search → present → select → transact

@@ -106,6 +106,20 @@ A request event says that an action was called and how it went. It cannot say wh
 
 `spec/SURFACE.md` [S-AXE-4] is the first use: the Surface bridge emits one `surface.act` event per act, run or refused, with the actor and the ledger `seq`.
 
+### Approval events
+
+The server itself emits the lifecycle of an approval request (`AXE-PROTOCOL.md` §9.3) as action events, so a site's history can show who asked, who decided, and what ran, beside the site's own records. `action` is the action the request would run; `details.handoffId` is the request's id (the one on the approval page).
+
+| `event`                | `status`      | `actor`                                | Emitted when                                                                                   | Other `details`             |
+| ---------------------- | ------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------- |
+| `approval.requested`   | `needs_human` | the user the agent acts for, or `null` | a handler returned an approval request and its token was minted                                |                             |
+| `approval.approved`    | `ok`          | the approver the site named            | the site recorded an approval                                                                  |                             |
+| `approval.cancelled`   | `ok`          | who cancelled, as the site named them  | the site recorded a cancellation                                                               |                             |
+| `approval.invalidated` | `error`       | `null`                                 | the bound state was found changed, at approval (`at: "approve"`) or at resume (`at: "resume"`) | `at`                        |
+| `approval.executed`    | the result's  | the user the agent acts for, or `null` | a resume ran the approved operation; `status` and `errorCode` are the operation's result       | `approvedBy`, `operationId` |
+
+**[E-8]** The approval events carry the request id, the actors, and the fields listed above. Under [E-6] they MUST NOT carry the recorded input, the bound state, the preview, or a cancellation reason. They are emitted once per transition; a replayed resume ([P-APPR-7]) emits nothing.
+
 ## Sinks
 
 `@axe/core` ships three sinks that accept `AXEEvent` objects: `consoleSink()` (one JSON line per event on stdout) and `otelSink({ meter, tracer? })` in `@axe/core/events`, and `jsonlFileSink(path)` (append-only JSON lines, Node only) in `@axe/core/node`. `otelSink` records an `axe.requests` counter with `action`, `status`, `ladder`, `vendor`, and `tenant` attributes, an `axe.latency` histogram in milliseconds, and an optional span per event. Any function `(event: AXEEvent) => void | Promise<void>` is a sink. `consoleSink()` and `jsonlFileSink(path)` also accept action events, so they can be passed to `onActionEvent`; `otelSink` is for request events only.

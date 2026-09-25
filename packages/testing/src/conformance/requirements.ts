@@ -97,6 +97,61 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
       test: "@axe/core login handoff: returns login_required, then runs the action as the signed-in user",
     },
   ],
+  "P-APPR-1": [
+    {
+      test: "@axe/core an approval request returns needs_human and records the exact call for the site's page [P-APPR-1] [P-APPR-2]",
+    },
+    {
+      test: "@axe/core requestApproval outside the handler, or without approvalState, is internal and reported [P-APPR-1]",
+    },
+  ],
+  "P-APPR-2": [
+    {
+      test: "@axe/core an approval request returns needs_human and records the exact call for the site's page [P-APPR-1] [P-APPR-2]",
+    },
+    {
+      test: "@axe/core the approval is bound to the principal and tenant: another user or tenant cannot read, approve, or resume it [P-APPR-2]",
+    },
+  ],
+  "P-APPR-3": [
+    {
+      test: "@axe/core a resume before approval is a retryable conflict and runs nothing; nothing the agent sends approves [P-APPR-3]",
+    },
+    { test: "plan-review an agent's confirm or approve flag is not consent" },
+  ],
+  "P-APPR-4": [
+    {
+      test: "@axe/core approved: the resume runs onResume once with the approved input and approver; a repeat replays the receipt [P-APPR-4] [P-APPR-7]",
+    },
+  ],
+  "P-APPR-5": [
+    {
+      test: "@axe/core a cancelled request, open or approved, is refused with handoffStatus cancelled and nothing runs [P-APPR-5]",
+    },
+  ],
+  "P-APPR-6": [
+    {
+      test: "@axe/core a state change after the request invalidates the approval, at approval and at resume, for good [P-APPR-6]",
+    },
+  ],
+  "P-APPR-7": [
+    {
+      test: "@axe/core approved: the resume runs onResume once with the approved input and approver; a repeat replays the receipt [P-APPR-4] [P-APPR-7]",
+    },
+  ],
+  "P-APPR-8": [
+    {
+      test: "@axe/core an expired approval request is not_found and tells the agent to start again; it cannot be approved [P-APPR-8]",
+    },
+  ],
+  "P-APPR-9": [
+    {
+      test: "@axe/core approval lifecycle events name the actors and the handoff, never the input or the state [P-APPR-9]",
+    },
+    {
+      test: "plan-review the agent's request becomes a page a person approves; the resume locks the plan and returns a receipt; the history tells one story",
+    },
+  ],
   "P-PEND-1": [{ test: "@axe/core pending and poll" }],
   "P-PEND-2": [{ test: "@axe/core pending and poll" }],
   "P-PEND-3": [{ test: "@axe/client poll honors maxWaitMs" }],

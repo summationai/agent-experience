@@ -56,6 +56,28 @@ export interface TokenRecord {
   requireCompletion?: boolean;
   /** Resume only: recorded by `completeHandoff`. */
   completion?: { at: string; onBehalfOf?: string; data?: JsonValue };
+  /** Resume only: the person cancelled the handoff on the site (`cancelHandoff`); a resume is refused ([P-APPR-5]). */
+  cancelled?: { at: string; by?: string; reason?: string };
+  /** Resume only: the handoff is an approval request (spec §9.3). */
+  approval?: ApprovalRecord;
+}
+
+/** What the server keeps about an approval request, beside the resume token's own binding. */
+export interface ApprovalRecord {
+  /** The call's input exactly as sent; its fingerprint is the token's input hash. */
+  input: JsonValue;
+  /** What `approvalState` returned at the request, and its canonical hash. */
+  state: JsonValue;
+  stateHash: string;
+  /** The site's preview for the approval page. */
+  preview?: JsonValue;
+  /** The agent's self-identification from `User-Agent`, when it sent one. Not authenticated. */
+  agent: { name: string; version: string } | null;
+  requestedAt: string;
+  /** Set by `approveHandoff`. */
+  approved?: { at: string; by: string };
+  /** Set when the bound state was found changed, at approval or at resume; permanent ([P-APPR-6]). */
+  invalidated?: { at: string };
 }
 
 /**

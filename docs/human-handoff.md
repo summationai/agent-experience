@@ -335,6 +335,10 @@ The page itself should say the same thing in its own words, confirm which task t
 
 The second and third weak examples break [P-HON-1] and [P-HON-2], not just style. Because your handler builds these strings at runtime, the SDK cannot lint them at registration the way it lints descriptions. It does apply the hard rule when the result is built: an instruction aimed at the agent turns the whole result into an `internal` error and an `onError` report, so it never reaches an agent. Persuasion is not blocked at runtime; review these strings the way you would review copy, and run `axe audit` against a staging server that returns them.
 
+## Approvals and cancellation
+
+A handoff can also ask a person to approve the call itself, rather than to take a step the agent cannot: `requestApproval` returns a handoff whose resume runs only after a person approves on your page with `approveHandoff`, and only while the state it was asked about still holds. Any handoff that has not been used can be cancelled with `cancelHandoff`. Both are on their own page: [Human oversight](human-oversight.md).
+
 ## Failure modes
 
 | What happens                                    | What the agent gets                                                                                 | What to do                                                                                                                                                                                                      |
@@ -342,13 +346,15 @@ The second and third weak examples break [P-HON-1] and [P-HON-2], not just style
 | The token expires before the human finishes     | `not_found` on resume                                                                                | The agent calls the action again and gets a fresh handoff. If the human already did the step, your handler should notice (the lease is signed) and return `ok` directly. Choose a lifetime that fits the step. |
 | The human never finishes                        | Gated: `conflict`, retryable, handoff open. Ungated: `needs_human` again from your `onResume`.       | Nothing on your side. The agent tells its user the step is still open. The token expires on its own; the store drops it.                                                                                       |
 | The human finishes but the agent never resumes  | Nothing; the token is consumed by expiry                                                             | The real-world effect stands. Design `onResume` so it is safe never to run: the lease is signed whether or not the agent confirms it.                                                                            |
-| The agent resumes twice                         | Second call is `conflict`                                                                            | Nothing. Single-use tokens are the point. An agent that lost the first response should call the action again; idempotency returns the same result.                                                             |
+| The agent resumes twice                         | The second call returns the first call's envelope; nothing runs again                                | Nothing. Single-use tokens are the point, and the replay is how an agent recovers a lost response ([P-HAND-6]).                                                                                                 |
+| The person cancels on your page                 | `conflict`, not retryable, `details.handoffStatus: "cancelled"`                                     | Call `cancelHandoff` from your own page. The agent tells its user; nothing runs. A handoff whose resume already ran cannot be cancelled.                                                                        |
 | The wrong user resumes                          | `not_found`                                                                                          | The token was bound to the user who started the action. Nothing to do; the response deliberately does not reveal that a token exists.                                                                          |
 | The page calls `completeHandoff` with an unknown id | It returns false                                                                                  | Log it and proceed with the human step. The id was mistyped or the token expired.                                                                                                                      |
 | `onResume` is missing                           | `internal`                                                                                           | Define `onResume` on every action that can return `handoff`. Registration cannot detect the omission, so exercise the resume path against staging with `axe conformance`.                                        |
 
 ## Next steps
 
+- [Human oversight](human-oversight.md): approval requests, cancellation, receipts.
 - [Requirements and kinds](requirements-and-kinds.md): the rung above this one, and the `fallback` that combines the two.
 - [Auth](auth.md): pass-through tokens, API keys, and the login handoff in the context of the three auth modes.
 - [For agent builders](for-agent-builders.md): how an agent phrases a handoff and when it retries a resume.

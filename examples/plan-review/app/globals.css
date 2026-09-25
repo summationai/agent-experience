@@ -1,0 +1,134 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fbfbfa;
+  --fg: #1c1c1a;
+  --muted: #6b6b66;
+  --line: #d9d9d4;
+  --accent: #2d5bd7;
+  --warn: #9a4a00;
+  --dirty: #fff4d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615;
+    --fg: #ececea;
+    --muted: #a0a09a;
+    --line: #3a3a37;
+    --accent: #8aa8ff;
+    --warn: #ffb36b;
+    --dirty: #3d3418;
+  }
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    15px/1.5 system-ui,
+    sans-serif;
+}
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+main.narrow {
+  max-width: 680px;
+}
+.muted {
+  color: var(--muted);
+}
+.warn {
+  color: var(--warn);
+  font-weight: 600;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+.stack {
+  display: grid;
+  gap: 8px;
+}
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.status span {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+button {
+  font: inherit;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+a {
+  color: var(--accent);
+}
+.grid-wrap {
+  overflow-x: auto;
+}
+.grid {
+  border-collapse: collapse;
+  min-width: 640px;
+}
+.grid th,
+.grid td {
+  border: 1px solid var(--line);
+  padding: 4px 6px;
+  text-align: right;
+}
+.grid th[scope="row"] {
+  text-align: left;
+}
+.grid input {
+  width: 7ch;
+  font: inherit;
+  text-align: right;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.grid td.dirty {
+  background: var(--dirty);
+}
+.dialog {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+.history {
+  padding-left: 20px;
+}
+.facts dt {
+  font-weight: 600;
+  margin-top: 8px;
+}
+.facts dd {
+  margin: 0;
+}
+pre,
+code {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+pre {
+  white-space: pre-wrap;
+}

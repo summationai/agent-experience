@@ -48,6 +48,8 @@ describe("requirement coverage", () => {
       "packages/core/test/sqlite-store.test.ts",
       "packages/core/test/limits.test.ts",
       "packages/core/test/schema-boundaries.test.ts",
+      "packages/core/test/approvals.test.ts",
+      "examples/plan-review/test/server.test.ts",
       "packages/client/test/client.test.ts",
       "packages/client/test/narrowing.test.ts",
       "packages/client/test/trust.test.ts",
@@ -66,7 +68,7 @@ describe("requirement coverage", () => {
     for (const list of Object.values(REQUIREMENTS))
       for (const c of list) if ("test" in c) names.add(c.test);
     const missing = [...names].filter((n) => {
-      const title = n.replace(/^@axe\/(core|client|mcp) /, "");
+      const title = n.replace(/^(@axe\/(core|client|mcp)|plan-review) /, "");
       const words = title.split(/[:;,]/)[0]!.trim();
       return !testFiles.includes(words);
     });
