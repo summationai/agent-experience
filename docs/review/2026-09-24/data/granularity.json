@@ -1,0 +1,908 @@
+{
+  "title": "Surface bridge granularity: scripted measurements",
+  "note": "Deterministic scripted measurements of payloads the SDK produces, not model performance. Token figures are an estimate (bytes / 4). The application is public (auth none) so an anonymous manifest carries live availability; MCP payloads are JSON-RPC messages over an in-memory transport, elicitation and the Apps view off.",
+  "sizes": [
+    5,
+    50,
+    300,
+    1000
+  ],
+  "static": {
+    "5": {
+      "control": {
+        "controls": 5,
+        "manifestBytes": 12387,
+        "manifestActions": 7,
+        "toolsListBytes": 12813,
+        "tools": 12,
+        "firstPageBytes": 2150,
+        "firstPageRows": 5,
+        "fullBytes": 2150,
+        "fullPages": 1,
+        "rows": 5
+      },
+      "domain": {
+        "controls": 5,
+        "manifestBytes": 11420,
+        "manifestActions": 5,
+        "toolsListBytes": 11189,
+        "tools": 10,
+        "firstPageBytes": 2255,
+        "firstPageRows": 5,
+        "fullBytes": 2255,
+        "fullPages": 1,
+        "rows": 5
+      }
+    },
+    "50": {
+      "control": {
+        "controls": 50,
+        "manifestBytes": 58938,
+        "manifestActions": 51,
+        "toolsListBytes": 73761,
+        "tools": 56,
+        "firstPageBytes": 18733,
+        "firstPageRows": 50,
+        "fullBytes": 18733,
+        "fullPages": 1,
+        "rows": 50
+      },
+      "domain": {
+        "controls": 50,
+        "manifestBytes": 11307,
+        "manifestActions": 5,
+        "toolsListBytes": 11014,
+        "tools": 10,
+        "firstPageBytes": 19528,
+        "firstPageRows": 50,
+        "fullBytes": 19528,
+        "fullPages": 1,
+        "rows": 50
+      }
+    },
+    "300": {
+      "control": {
+        "controls": 300,
+        "manifestBytes": 315882,
+        "manifestActions": 292,
+        "toolsListBytes": 410347,
+        "tools": 297,
+        "firstPageBytes": 111162,
+        "firstPageRows": 300,
+        "fullBytes": 111162,
+        "fullPages": 1,
+        "rows": 300
+      },
+      "domain": {
+        "controls": 300,
+        "manifestBytes": 11307,
+        "manifestActions": 5,
+        "toolsListBytes": 11014,
+        "tools": 10,
+        "firstPageBytes": 19589,
+        "firstPageRows": 50,
+        "fullBytes": 115974,
+        "fullPages": 2,
+        "rows": 300
+      }
+    },
+    "1000": {
+      "control": {
+        "controls": 1000,
+        "manifestBytes": 1037980,
+        "manifestActions": 969,
+        "toolsListBytes": 1356573,
+        "tools": 974,
+        "firstPageBytes": 370007,
+        "firstPageRows": 1000,
+        "fullBytes": 370007,
+        "fullPages": 1,
+        "rows": 1000
+      },
+      "domain": {
+        "controls": 1000,
+        "manifestBytes": 11307,
+        "manifestActions": 5,
+        "toolsListBytes": 11014,
+        "tools": 10,
+        "firstPageBytes": 19591,
+        "firstPageRows": 50,
+        "fullBytes": 386020,
+        "fullPages": 5,
+        "rows": 1000
+      }
+    }
+  },
+  "churn": {
+    "5": {
+      "control": {
+        "rowRegisters": {
+          "added": 10,
+          "removed": 0,
+          "changed": 0,
+          "total": 10,
+          "notifications": 1
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 10,
+          "changed": 0,
+          "total": 10,
+          "notifications": 1
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 5,
+          "total": 5,
+          "notifications": 1
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 21,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 4,
+            "freeze": 4
+          },
+          "listChangedNotifications": 46,
+          "notificationsWithNoToolChange": 28,
+          "toolsChanged": 129,
+          "relistBytesOnNotification": 2025540,
+          "maxToolsChangedInOneStep": 10
+        }
+      },
+      "domain": {
+        "rowRegisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 2,
+          "total": 2,
+          "notifications": 0
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 2,
+          "total": 2,
+          "notifications": 0
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 1,
+          "total": 1,
+          "notifications": 0
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 21,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 4,
+            "freeze": 4
+          },
+          "listChangedNotifications": 0,
+          "notificationsWithNoToolChange": 0,
+          "toolsChanged": 19,
+          "relistBytesOnNotification": 0,
+          "maxToolsChangedInOneStep": 3
+        }
+      }
+    },
+    "50": {
+      "control": {
+        "rowRegisters": {
+          "added": 9,
+          "removed": 0,
+          "changed": 0,
+          "total": 9,
+          "notifications": 1
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 9,
+          "changed": 0,
+          "total": 9,
+          "notifications": 1
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 7,
+          "total": 7,
+          "notifications": 1
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 20,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 5,
+            "freeze": 4
+          },
+          "listChangedNotifications": 46,
+          "notificationsWithNoToolChange": 26,
+          "toolsChanged": 155,
+          "relistBytesOnNotification": 7325532,
+          "maxToolsChangedInOneStep": 10
+        }
+      },
+      "domain": {
+        "rowRegisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 20,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 5,
+            "freeze": 4
+          },
+          "listChangedNotifications": 0,
+          "notificationsWithNoToolChange": 0,
+          "toolsChanged": 0,
+          "relistBytesOnNotification": 0,
+          "maxToolsChangedInOneStep": 0
+        }
+      }
+    },
+    "300": {
+      "control": {
+        "rowRegisters": {
+          "added": 10,
+          "removed": 0,
+          "changed": 0,
+          "total": 10,
+          "notifications": 1
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 10,
+          "changed": 0,
+          "total": 10,
+          "notifications": 1
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 7,
+          "total": 7,
+          "notifications": 1
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 20,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 5,
+            "freeze": 4
+          },
+          "listChangedNotifications": 46,
+          "notificationsWithNoToolChange": 25,
+          "toolsChanged": 156,
+          "relistBytesOnNotification": 38170701,
+          "maxToolsChangedInOneStep": 10
+        }
+      },
+      "domain": {
+        "rowRegisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 20,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 5,
+            "freeze": 4
+          },
+          "listChangedNotifications": 0,
+          "notificationsWithNoToolChange": 0,
+          "toolsChanged": 0,
+          "relistBytesOnNotification": 0,
+          "maxToolsChangedInOneStep": 0
+        }
+      }
+    },
+    "1000": {
+      "control": {
+        "rowRegisters": {
+          "added": 10,
+          "removed": 0,
+          "changed": 0,
+          "total": 10,
+          "notifications": 1
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 10,
+          "changed": 0,
+          "total": 10,
+          "notifications": 1
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 7,
+          "total": 7,
+          "notifications": 1
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 20,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 5,
+            "freeze": 4
+          },
+          "listChangedNotifications": 46,
+          "notificationsWithNoToolChange": 27,
+          "toolsChanged": 151,
+          "relistBytesOnNotification": 125421626,
+          "maxToolsChangedInOneStep": 10
+        }
+      },
+      "domain": {
+        "rowRegisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "rowUnregisters": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "availabilityFlip": {
+          "added": 0,
+          "removed": 0,
+          "changed": 0,
+          "total": 0,
+          "notifications": 0
+        },
+        "sequence": {
+          "changes": 50,
+          "kinds": {
+            "edit": 20,
+            "lock": 9,
+            "approve": 8,
+            "add": 4,
+            "remove": 5,
+            "freeze": 4
+          },
+          "listChangedNotifications": 0,
+          "notificationsWithNoToolChange": 0,
+          "toolsChanged": 0,
+          "relistBytesOnNotification": 0,
+          "maxToolsChangedInOneStep": 0
+        }
+      }
+    }
+  },
+  "discovery": {
+    "5": {
+      "control": {
+        "calls": 3,
+        "bytesRead": 15677,
+        "bytesSent": 301,
+        "verified": true
+      },
+      "domain": {
+        "calls": 3,
+        "bytesRead": 14094,
+        "bytesSent": 323,
+        "verified": true
+      },
+      "control-full-observe": {
+        "calls": 3,
+        "bytesRead": 20997,
+        "bytesSent": 267,
+        "verified": true
+      }
+    },
+    "50": {
+      "control": {
+        "calls": 3,
+        "bytesRead": 76625,
+        "bytesSent": 301,
+        "verified": true
+      },
+      "domain": {
+        "calls": 3,
+        "bytesRead": 13919,
+        "bytesSent": 323,
+        "verified": true
+      },
+      "control-full-observe": {
+        "calls": 3,
+        "bytesRead": 127517,
+        "bytesSent": 267,
+        "verified": true
+      }
+    },
+    "300": {
+      "control": {
+        "calls": 3,
+        "bytesRead": 413213,
+        "bytesSent": 301,
+        "verified": true
+      },
+      "domain": {
+        "calls": 3,
+        "bytesRead": 13921,
+        "bytesSent": 323,
+        "verified": true
+      },
+      "control-full-observe": {
+        "calls": 3,
+        "bytesRead": 588498,
+        "bytesSent": 267,
+        "verified": true
+      }
+    },
+    "1000": {
+      "control": {
+        "calls": 3,
+        "bytesRead": 1359441,
+        "bytesSent": 301,
+        "verified": true
+      },
+      "domain": {
+        "calls": 3,
+        "bytesRead": 13923,
+        "bytesSent": 323,
+        "verified": true
+      },
+      "control-full-observe": {
+        "calls": 3,
+        "bytesRead": 1883376,
+        "bytesSent": 267,
+        "verified": true
+      }
+    }
+  },
+  "tasks": {
+    "50": {
+      "control": {
+        "toolsListRead": 73761,
+        "tools": 56,
+        "calls": 12,
+        "bytesRead": 94375,
+        "bytesSent": 1781,
+        "succeeded": 5,
+        "results": [
+          {
+            "task": "set a demand field",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2867,
+            "bytesSent": 256
+          },
+          {
+            "task": "lock a row",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2754,
+            "bytesSent": 225
+          },
+          {
+            "task": "load more history",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2568,
+            "bytesSent": 241
+          },
+          {
+            "task": "publish without sign-off (needs_human, nothing applied)",
+            "status": "needs_human",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 3849,
+            "bytesSent": 231
+          },
+          {
+            "task": "approve with consent (needs_input, continue)",
+            "status": "needs_input>ok",
+            "verified": true,
+            "calls": 3,
+            "bytesRead": 8576,
+            "bytesSent": 782
+          }
+        ]
+      },
+      "domain": {
+        "toolsListRead": 11014,
+        "tools": 10,
+        "calls": 12,
+        "bytesRead": 31647,
+        "bytesSent": 1900,
+        "succeeded": 5,
+        "results": [
+          {
+            "task": "set a demand field",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2908,
+            "bytesSent": 278
+          },
+          {
+            "task": "lock a row",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2801,
+            "bytesSent": 249
+          },
+          {
+            "task": "load more history",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2609,
+            "bytesSent": 263
+          },
+          {
+            "task": "publish without sign-off (needs_human, nothing applied)",
+            "status": "needs_human",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 3855,
+            "bytesSent": 255
+          },
+          {
+            "task": "approve with consent (needs_input, continue)",
+            "status": "needs_input>ok",
+            "verified": true,
+            "calls": 3,
+            "bytesRead": 8460,
+            "bytesSent": 809
+          }
+        ]
+      }
+    },
+    "300": {
+      "control": {
+        "toolsListRead": 410347,
+        "tools": 297,
+        "calls": 12,
+        "bytesRead": 452645,
+        "bytesSent": 1781,
+        "succeeded": 5,
+        "results": [
+          {
+            "task": "set a demand field",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2869,
+            "bytesSent": 256
+          },
+          {
+            "task": "lock a row",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 15211,
+            "bytesSent": 225
+          },
+          {
+            "task": "load more history",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 11789,
+            "bytesSent": 241
+          },
+          {
+            "task": "publish without sign-off (needs_human, nothing applied)",
+            "status": "needs_human",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 3851,
+            "bytesSent": 231
+          },
+          {
+            "task": "approve with consent (needs_input, continue)",
+            "status": "needs_input>ok",
+            "verified": true,
+            "calls": 3,
+            "bytesRead": 8578,
+            "bytesSent": 782
+          }
+        ]
+      },
+      "domain": {
+        "toolsListRead": 11014,
+        "tools": 10,
+        "calls": 12,
+        "bytesRead": 55125,
+        "bytesSent": 1900,
+        "succeeded": 5,
+        "results": [
+          {
+            "task": "set a demand field",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2910,
+            "bytesSent": 278
+          },
+          {
+            "task": "lock a row",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 16338,
+            "bytesSent": 249
+          },
+          {
+            "task": "load more history",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 12544,
+            "bytesSent": 263
+          },
+          {
+            "task": "publish without sign-off (needs_human, nothing applied)",
+            "status": "needs_human",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 3857,
+            "bytesSent": 255
+          },
+          {
+            "task": "approve with consent (needs_input, continue)",
+            "status": "needs_input>ok",
+            "verified": true,
+            "calls": 3,
+            "bytesRead": 8462,
+            "bytesSent": 809
+          }
+        ]
+      }
+    },
+    "1000": {
+      "control": {
+        "toolsListRead": 1356573,
+        "tools": 974,
+        "calls": 12,
+        "bytesRead": 1426721,
+        "bytesSent": 1781,
+        "succeeded": 5,
+        "results": [
+          {
+            "task": "set a demand field",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2871,
+            "bytesSent": 256
+          },
+          {
+            "task": "lock a row",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 15213,
+            "bytesSent": 225
+          },
+          {
+            "task": "load more history",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 11791,
+            "bytesSent": 241
+          },
+          {
+            "task": "publish without sign-off (needs_human, nothing applied)",
+            "status": "needs_human",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 17189,
+            "bytesSent": 231
+          },
+          {
+            "task": "approve with consent (needs_input, continue)",
+            "status": "needs_input>ok",
+            "verified": true,
+            "calls": 3,
+            "bytesRead": 23084,
+            "bytesSent": 782
+          }
+        ]
+      },
+      "domain": {
+        "toolsListRead": 11014,
+        "tools": 10,
+        "calls": 12,
+        "bytesRead": 83839,
+        "bytesSent": 1900,
+        "succeeded": 5,
+        "results": [
+          {
+            "task": "set a demand field",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 2912,
+            "bytesSent": 278
+          },
+          {
+            "task": "lock a row",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 16340,
+            "bytesSent": 249
+          },
+          {
+            "task": "load more history",
+            "status": "ok",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 12546,
+            "bytesSent": 263
+          },
+          {
+            "task": "publish without sign-off (needs_human, nothing applied)",
+            "status": "needs_human",
+            "verified": true,
+            "calls": 2,
+            "bytesRead": 18059,
+            "bytesSent": 255
+          },
+          {
+            "task": "approve with consent (needs_input, continue)",
+            "status": "needs_input>ok",
+            "verified": true,
+            "calls": 3,
+            "bytesRead": 22968,
+            "bytesSent": 809
+          }
+        ]
+      }
+    }
+  },
+  "twoActors": [
+    {
+      "mode": "control",
+      "meanEdits": 0.25,
+      "acts": 400,
+      "ok": 311,
+      "conflict": 89,
+      "related": 14,
+      "unrelated": 75,
+      "other": 0,
+      "conflictRate": 0.223,
+      "unrelatedShareOfConflicts": 0.843,
+      "unrelatedRate": 0.188
+    },
+    {
+      "mode": "domain",
+      "meanEdits": 0.25,
+      "acts": 400,
+      "ok": 311,
+      "conflict": 89,
+      "related": 14,
+      "unrelated": 75,
+      "other": 0,
+      "conflictRate": 0.223,
+      "unrelatedShareOfConflicts": 0.843,
+      "unrelatedRate": 0.188
+    },
+    {
+      "mode": "control",
+      "meanEdits": 1,
+      "acts": 400,
+      "ok": 134,
+      "conflict": 266,
+      "related": 63,
+      "unrelated": 203,
+      "other": 0,
+      "conflictRate": 0.665,
+      "unrelatedShareOfConflicts": 0.763,
+      "unrelatedRate": 0.507
+    },
+    {
+      "mode": "domain",
+      "meanEdits": 1,
+      "acts": 400,
+      "ok": 134,
+      "conflict": 266,
+      "related": 63,
+      "unrelated": 203,
+      "other": 0,
+      "conflictRate": 0.665,
+      "unrelatedShareOfConflicts": 0.763,
+      "unrelatedRate": 0.507
+    },
+    {
+      "mode": "control",
+      "meanEdits": 3,
+      "acts": 400,
+      "ok": 18,
+      "conflict": 382,
+      "related": 140,
+      "unrelated": 242,
+      "other": 0,
+      "conflictRate": 0.955,
+      "unrelatedShareOfConflicts": 0.634,
+      "unrelatedRate": 0.605
+    },
+    {
+      "mode": "domain",
+      "meanEdits": 3,
+      "acts": 400,
+      "ok": 18,
+      "conflict": 382,
+      "related": 140,
+      "unrelated": 242,
+      "other": 0,
+      "conflictRate": 0.955,
+      "unrelatedShareOfConflicts": 0.634,
+      "unrelatedRate": 0.605
+    }
+  ]
+}
