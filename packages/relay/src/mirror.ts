@@ -24,6 +24,17 @@ import type {
   Surface,
 } from "@axe/surface";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
+import type {
+  PageContent,
+  PageRead,
+  ReadOptions,
+  WaitCondition,
+  WaitResult,
+} from "@axe/surface/auto";
+import type { WireWaitCondition } from "./protocol";
+
+/** Where a surface keeps its page-content reader (`CONTENT` in `@axe/surface/auto`). */
+const CONTENT = Symbol.for("axe.surface.content");
 
 /** How the mirror reaches its tab. Implemented by the relay's tab record. */
 export interface TabLink {
@@ -44,6 +55,13 @@ export interface TabLink {
    * the tab's terms. The page records it under its relay actor; the entry returns in the reply.
    */
   record(change: RecordRequest): Promise<void>;
+  /** Read the page's content in the tab ([S-AUTO-14]); revisions in the tab's terms. */
+  read?(options: ReadOptions): Promise<PageRead>;
+  /** Wait on the page in the tab ([S-AUTO-15]); revisions in the tab's terms. */
+  wait?(
+    condition: WireWaitCondition,
+    options: { timeoutMs?: number; pollMs?: number },
+  ): Promise<WaitResult>;
 }
 
 const READ_ONLY = "a relay mirror is read-only: the page registers its own entries.";
@@ -385,6 +403,40 @@ export class TabMirror {
         throw new Error(READ_ONLY);
       },
     };
+    // The page's content and waits are the tab's: forwarded, with revisions translated both ways.
+    const link = this.link;
+    if (link.read && link.wait) {
+      const read = link.read.bind(link);
+      const wait = link.wait.bind(link);
+      const toWire = (c: WaitCondition): WireWaitCondition => {
+        const out: WireWaitCondition = {};
+        const text = (v: string | RegExp) => (v instanceof RegExp ? `/${v.source}/${v.flags}` : v);
+        if (c.text !== undefined) out.text = text(c.text);
+        if (c.gone !== undefined) out.gone = text(c.gone);
+        if (c.entry !== undefined) out.entry = c.entry;
+        if (c.available !== undefined) out.available = c.available;
+        if (c.revMoved !== undefined) out.revMoved = this.toTabRev(c.revMoved);
+        if (c.idle !== undefined) out.idle = c.idle;
+        if (c.route !== undefined) out.route = c.route;
+        if (c.any) out.any = c.any.map(toWire);
+        if (c.all) out.all = c.all.map(toWire);
+        return out;
+      };
+      const content: PageContent = {
+        read: async (options = {}) => {
+          const r = await read(options);
+          return { ...r, rev: r.rev + this.revOffset };
+        },
+        wait: async (condition, options = {}) => {
+          const o: { timeoutMs?: number; pollMs?: number } = {};
+          if (options.timeoutMs !== undefined) o.timeoutMs = options.timeoutMs;
+          if (options.pollMs !== undefined) o.pollMs = options.pollMs;
+          const r = await wait(toWire(condition), o);
+          return { ...r, rev: r.rev + this.revOffset, fromRev: r.fromRev + this.revOffset };
+        },
+      };
+      (surface as unknown as Record<symbol, unknown>)[CONTENT] = content;
+    }
     return surface;
   }
 }

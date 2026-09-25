@@ -144,8 +144,10 @@ The injected connection replaces the fallback's `url`, token, `mode`, `approvals
 | `surface_run-control` | Run a button or switch through the page's own handler.                                                     |
 | `surface_load-more`   | Ask a list to load more.                                                                                   |
 | `surface_ledger`      | Every act and refusal on the tab, with who asked and the revisions it spanned.                             |
+| `surface_read`        | What the page shows the person (headings, text, fields, tables), redacted and bounded, with a cursor.     |
+| `surface_wait`        | Wait until a condition on the page holds (text appears, the page goes quiet), at most two minutes.        |
 
-These are `domainActions`' default set: a fixed tool list whatever the page holds. Pass `domains` to `createRelay` for the application's own parameterized actions (for example the set `@axe/surface/auto` builds). The usual `axe_state`, `axe_continue`, and `axe_resume` tools are there too, so a control that declares `requires` or a handoff climbs the ladder exactly as it does on a server.
+These are `domainActions`' default set: a fixed tool list whatever the page holds. `surface_read` and `surface_wait` are answered by the tab's auto surface ([Reading the page](auto-surface.md#reading-the-page)); a tab without one answers them with the reason, and `content: false` on `createRelay` leaves them out. Pass `domains` to `createRelay` for the application's own parameterized actions (for example the set `@axe/surface/auto` builds). The usual `axe_state`, `axe_continue`, and `axe_resume` tools are there too, so a control that declares `requires` or a handoff climbs the ladder exactly as it does on a server.
 
 The first surface tool call pins a tab: by default the most recently active one, and it stays the agent's tab until the agent chooses another with `relay_select-tab`. A tab another tab became active in front of does not change under the agent.
 

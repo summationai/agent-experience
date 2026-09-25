@@ -1477,6 +1477,8 @@ export class ActWatch {
   private consider(host: Element | null, node: Node): void {
     if (!host || (this.ignore && (this.ignore.contains(host) || host.contains(this.ignore))))
       return;
+    // The application's own agent UI and the relay's indicator never speak to the agent.
+    if (host.closest("[data-surface-ignore], [data-axe-relay-indicator]")) return;
     const region = host.closest(
       '[role="alert"], [role="status"], [role="log"], [aria-live]:not([aria-live="off"]), [data-sonner-toast], [class*="toast" i], [class*="snackbar" i], [class*="notification" i], [class*="notistack" i]',
     );
@@ -1488,6 +1490,11 @@ export class ActWatch {
     // heuristic is not: only text that was not on the page before the act counts.
     if (!region && this.before.includes(text)) return;
     this.texts.push(text);
+  }
+  /** The notices seen so far, without stopping. */
+  peek(): string[] {
+    if (this.mo) this.take(this.mo.takeRecords());
+    return [...this.texts];
   }
   /** Stop watching; the notices seen, at most five. */
   stop(): string[] {

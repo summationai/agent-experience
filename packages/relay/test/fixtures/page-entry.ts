@@ -6,9 +6,9 @@ import { connectRelay, devToken, injectedRelay, relayOptions } from "../../src/c
 
 (globalThis as unknown as { relayPage: unknown }).relayPage = {
   createSurface,
+  autoSurface,
   connectRelay,
   devToken,
   injectedRelay,
   relayOptions,
-  autoSurface,
 };

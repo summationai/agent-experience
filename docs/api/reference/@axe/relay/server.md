@@ -690,6 +690,18 @@ optional baseUrl?: string;
 
 The relay's public URL, as the AXE manifest names it. Default `http://localhost`.
 
+<a id="content"></a>
+
+##### content?
+
+```ts
+optional content?: boolean;
+```
+
+Serve `surface_read` and `surface_wait` (the page's content, and waiting for slow work) when
+`domains` does not name them. They answer from a tab running an auto surface and are
+unavailable, with the reason, in any other. Default true.
+
 <a id="description"></a>
 
 ##### description?
@@ -735,7 +747,7 @@ The principal development tokens name. Default `{ principal: "dev", tenant: "dev
 ##### domains?
 
 ```ts
-optional domains?: DomainActionSpec[];
+optional domains?: DomainSpec[];
 ```
 
 The parameterized actions for every tab. Default: `domainActions`' own set (`set-field`,
@@ -1094,6 +1106,26 @@ Run a `requires.fulfill` in the page.
 
 `Promise`\<`void`\>
 
+<a id="read"></a>
+
+##### read()?
+
+```ts
+optional read(options): Promise<PageRead>;
+```
+
+Read the page's content in the tab ([S-AUTO-14]); revisions in the tab's terms.
+
+###### Parameters
+
+###### options
+
+`ReadOptions`
+
+###### Returns
+
+`Promise`\<`PageRead`\>
+
 <a id="record"></a>
 
 ##### record()
@@ -1114,6 +1146,36 @@ the tab's terms. The page records it under its relay actor; the entry returns in
 ###### Returns
 
 `Promise`\<`void`\>
+
+<a id="wait"></a>
+
+##### wait()?
+
+```ts
+optional wait(condition, options): Promise<WaitResult>;
+```
+
+Wait on the page in the tab ([S-AUTO-15]); revisions in the tab's terms.
+
+###### Parameters
+
+###### condition
+
+`WireWaitCondition`
+
+###### options
+
+###### pollMs?
+
+`number`
+
+###### timeoutMs?
+
+`number`
+
+###### Returns
+
+`Promise`\<`WaitResult`\>
 
 ## Type Aliases
 

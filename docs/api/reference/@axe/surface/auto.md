@@ -10,6 +10,16 @@
 
 #### Properties
 
+<a id="content"></a>
+
+##### content?
+
+```ts
+optional content?: boolean;
+```
+
+Publish `read` and `wait` (the page's content, and waiting for slow work). Default true.
+
 <a id="fieldrisk"></a>
 
 ##### fieldRisk?
@@ -388,6 +398,29 @@ What the scan recorded about an entry.
 
 [`AutoEntryMeta`](#autoentrymeta) \| `undefined`
 
+<a id="read"></a>
+
+##### read()
+
+```ts
+read(options?): PageRead;
+```
+
+The content the page shows the person ([S-AUTO-14]): sections by heading with their text,
+key-value fields, tables, and lists; charts and canvases reported by title only; private
+values withheld; bounded by `maxChars` and `maxRows`, with a cursor for the rest. Never moves
+the revision. `formatRead` renders it as Markdown.
+
+###### Parameters
+
+###### options?
+
+[`ReadOptions`](#readoptions)
+
+###### Returns
+
+[`PageRead`](#pageread)
+
 <a id="refresh"></a>
 
 ##### refresh()
@@ -435,6 +468,33 @@ Stop observing, unregister every derived and configured entry, and restore the s
 ###### Returns
 
 `void`
+
+<a id="wait"></a>
+
+##### wait()
+
+```ts
+wait(condition, options?): Promise<WaitResult>;
+```
+
+Wait until a condition on the page holds or `timeoutMs` (default 30 s, at most 120 s) runs
+out ([S-AUTO-15]): text appears or goes, an entry is (un)available, the revision moves, the
+page goes quiet, the route matches. Resolves with `met`, what changed while it waited, and
+the notices that appeared. Never moves the revision; `stop()` ends it with `met: false`.
+
+###### Parameters
+
+###### condition
+
+[`WaitCondition`](#waitcondition)
+
+###### options?
+
+[`WaitOptions`](#waitoptions)
+
+###### Returns
+
+`Promise`\<[`WaitResult`](#waitresult)\>
 
 ***
 
@@ -783,6 +843,16 @@ suggestions: SurfaceRule[];
 
 Every gap's suggestion, in order: the starting point of a configuration.
 
+<a id="unreadable"></a>
+
+##### unreadable
+
+```ts
+unreadable: UnreadableRegion[];
+```
+
+Content an agent cannot read: `read` reports these by title only ([S-AUTO-14]).
+
 ***
 
 <a id="coverageentry"></a>
@@ -1008,6 +1078,480 @@ optional entries?: number | boolean;
 ```
 
 Include the table of entries: `true` (all), a number (at most that many rows), or false. Default 200.
+
+***
+
+<a id="pagecontent"></a>
+
+### PageContent
+
+What a surface carries under `CONTENT`. In the page both are local; a relay mirror forwards them.
+
+#### Methods
+
+<a id="read-1"></a>
+
+##### read()
+
+```ts
+read(options?): PageRead | Promise<PageRead>;
+```
+
+###### Parameters
+
+###### options?
+
+[`ReadOptions`](#readoptions)
+
+###### Returns
+
+[`PageRead`](#pageread) \| `Promise`\<[`PageRead`](#pageread)\>
+
+<a id="wait-1"></a>
+
+##### wait()
+
+```ts
+wait(condition, options?): Promise<WaitResult>;
+```
+
+###### Parameters
+
+###### condition
+
+[`WaitCondition`](#waitcondition)
+
+###### options?
+
+[`WaitOptions`](#waitoptions)
+
+###### Returns
+
+`Promise`\<[`WaitResult`](#waitresult)\>
+
+***
+
+<a id="pageread"></a>
+
+### PageRead
+
+The page's content as `read` returns it.
+
+#### Properties
+
+<a id="nextcursor"></a>
+
+##### nextCursor?
+
+```ts
+optional nextCursor?: string;
+```
+
+<a id="notices"></a>
+
+##### notices
+
+```ts
+notices: string[];
+```
+
+Alerts and toasts on the page now (they are not repeated in `sections`).
+
+<a id="path"></a>
+
+##### path
+
+```ts
+path: string;
+```
+
+The location's path.
+
+<a id="reason"></a>
+
+##### reason?
+
+```ts
+optional reason?: string;
+```
+
+Why nothing was read (an unknown region, a stale cursor), when that happened.
+
+<a id="redacted"></a>
+
+##### redacted
+
+```ts
+redacted: number;
+```
+
+How many private fields or regions were withheld.
+
+<a id="region"></a>
+
+##### region?
+
+```ts
+optional region?: string;
+```
+
+The region read, when one was asked for and found.
+
+<a id="regions"></a>
+
+##### regions?
+
+```ts
+optional regions?: string[];
+```
+
+With an unknown region: the regions this page has, to choose from.
+
+<a id="rev-1"></a>
+
+##### rev
+
+```ts
+rev: number;
+```
+
+The surface's revision when the page was read. Reading never moves it.
+
+<a id="route-3"></a>
+
+##### route
+
+```ts
+route: string;
+```
+
+The route keys are built from (`/projects/:id`).
+
+<a id="sections"></a>
+
+##### sections
+
+```ts
+sections: ReadSection[];
+```
+
+<a id="title"></a>
+
+##### title
+
+```ts
+title: string;
+```
+
+<a id="truncated"></a>
+
+##### truncated
+
+```ts
+truncated: boolean;
+```
+
+More content than this page of the result holds: follow `nextCursor`, or narrow with `region` or `query`.
+
+***
+
+<a id="readfield"></a>
+
+### ReadField
+
+A label and the value the page shows beside it. A sensitive field carries its label only.
+
+#### Properties
+
+<a id="label"></a>
+
+##### label
+
+```ts
+label: string;
+```
+
+<a id="sensitive-2"></a>
+
+##### sensitive?
+
+```ts
+optional sensitive?: true;
+```
+
+A private value (a password, a card number, a field the configuration marks): withheld.
+
+<a id="value"></a>
+
+##### value
+
+```ts
+value: string;
+```
+
+***
+
+<a id="readlist"></a>
+
+### ReadList
+
+#### Properties
+
+<a id="items"></a>
+
+##### items
+
+```ts
+items: string[];
+```
+
+<a id="total"></a>
+
+##### total?
+
+```ts
+optional total?: number;
+```
+
+<a id="truncated-1"></a>
+
+##### truncated
+
+```ts
+truncated: boolean;
+```
+
+***
+
+<a id="readopaque"></a>
+
+### ReadOpaque
+
+A region whose content cannot be read from the page: a chart or canvas drawn as graphics, a
+closed shadow root, a cross-origin frame. Reported with its title so an agent can say it
+exists; its values are never guessed.
+
+#### Properties
+
+<a id="kind-2"></a>
+
+##### kind
+
+```ts
+kind: "canvas" | "frame" | "chart" | "closed-shadow";
+```
+
+<a id="library"></a>
+
+##### library?
+
+```ts
+optional library?: string;
+```
+
+The library that drew it, when it can tell ("a Highcharts chart").
+
+<a id="title-1"></a>
+
+##### title
+
+```ts
+title: string;
+```
+
+***
+
+<a id="readoptions"></a>
+
+### ReadOptions
+
+What `read` accepts. Every member is optional.
+
+#### Properties
+
+<a id="cursor"></a>
+
+##### cursor?
+
+```ts
+optional cursor?: string;
+```
+
+`nextCursor` from the previous read, with the same region and query.
+
+<a id="maxchars"></a>
+
+##### maxChars?
+
+```ts
+optional maxChars?: number;
+```
+
+At most this many characters of Markdown per page of the result. Default 12000, at most 50000.
+
+<a id="maxrows"></a>
+
+##### maxRows?
+
+```ts
+optional maxRows?: number;
+```
+
+At most this many rows per table and items per list. Default 50, at most 500.
+
+<a id="query"></a>
+
+##### query?
+
+```ts
+optional query?: string;
+```
+
+Keep only what contains this text (case-insensitive): a section whose heading matches whole, else its matching paragraphs, fields, rows, and items.
+
+<a id="region-1"></a>
+
+##### region?
+
+```ts
+optional region?: string;
+```
+
+The part of the page to read: an entry id (a table's, a landmark's, or a control's container),
+a region named in the configuration's `read.regions`, a landmark or named region or dialog,
+or a heading (its section and the sections under it). Default: the whole page.
+
+***
+
+<a id="readsection"></a>
+
+### ReadSection
+
+#### Properties
+
+<a id="fields"></a>
+
+##### fields
+
+```ts
+fields: ReadField[];
+```
+
+<a id="heading"></a>
+
+##### heading
+
+```ts
+heading: string;
+```
+
+The heading text; empty for content before the first heading.
+
+<a id="level"></a>
+
+##### level
+
+```ts
+level: number;
+```
+
+1 to 6 for a heading, 0 for content before the first one.
+
+<a id="lists"></a>
+
+##### lists
+
+```ts
+lists: ReadList[];
+```
+
+<a id="opaque"></a>
+
+##### opaque?
+
+```ts
+optional opaque?: ReadOpaque[];
+```
+
+<a id="tables"></a>
+
+##### tables
+
+```ts
+tables: ReadTable[];
+```
+
+<a id="text-1"></a>
+
+##### text
+
+```ts
+text: string;
+```
+
+Paragraphs, separated by blank lines.
+
+<a id="truncated-2"></a>
+
+##### truncated?
+
+```ts
+optional truncated?: true;
+```
+
+Part of this section was cut to fit `maxChars`; the cursor continues it.
+
+***
+
+<a id="readtable"></a>
+
+### ReadTable
+
+#### Properties
+
+<a id="caption"></a>
+
+##### caption
+
+```ts
+caption: string;
+```
+
+<a id="columns"></a>
+
+##### columns
+
+```ts
+columns: string[];
+```
+
+<a id="rows"></a>
+
+##### rows
+
+```ts
+rows: string[][];
+```
+
+<a id="total-1"></a>
+
+##### total?
+
+```ts
+optional total?: number;
+```
+
+Rows the table has in all, when the page says (`aria-rowcount`) or more than `rows` were rendered.
+
+<a id="truncated-3"></a>
+
+##### truncated
+
+```ts
+truncated: boolean;
+```
+
+Some rows are not in `rows`: past `maxRows`, not rendered (a virtualized grid), or filtered by `query`.
 
 ***
 
@@ -1257,6 +1801,30 @@ optional policy?: SurfacePolicy;
 
 What an agent may do at each risk level. Default: allow `none`, `low`, `medium`; `approve` for `high`.
 
+<a id="read-2"></a>
+
+##### read?
+
+```ts
+optional read?: object;
+```
+
+What `read` may read ([S-AUTO-14]): `exclude` selectors are never read (beside `exclude` above
+and every `data-surface-ignore` subtree), and `regions` names parts of the page by CSS
+selector, so an agent can read `{ region: "status" }`.
+
+###### exclude?
+
+```ts
+optional exclude?: string[];
+```
+
+###### regions?
+
+```ts
+optional regions?: Record<string, string>;
+```
+
 <a id="routes"></a>
 
 ##### routes?
@@ -1289,7 +1857,7 @@ optional rules?: SurfaceRule[];
 
 Rules, applied in order; a later rule's fields win.
 
-<a id="sensitive-2"></a>
+<a id="sensitive-3"></a>
 
 ##### sensitive?
 
@@ -1343,7 +1911,7 @@ optional risk?: "low" | "medium" | "high";
 
 The highest risk of any control in the group. Default `high`.
 
-<a id="title"></a>
+<a id="title-2"></a>
 
 ##### title
 
@@ -1403,7 +1971,7 @@ optional role?: string;
 
 The derived role (`button`, `link`, `textbox`, `checkbox`, `grid`, …).
 
-<a id="route-3"></a>
+<a id="route-4"></a>
 
 ##### route?
 
@@ -1583,7 +2151,7 @@ optional object?: string;
 
 The object the control belongs to.
 
-<a id="reason"></a>
+<a id="reason-1"></a>
 
 ##### reason?
 
@@ -1603,7 +2171,7 @@ optional role?: string;
 
 Treat a matched element as this role (to bring in a clickable `div`, or correct a role).
 
-<a id="sensitive-3"></a>
+<a id="sensitive-4"></a>
 
 ##### sensitive?
 
@@ -1622,6 +2190,266 @@ optional state?: "unavailable" | "available";
 ```
 
 Force the availability: `unavailable` needs `reason`.
+
+***
+
+<a id="unreadableregion"></a>
+
+### UnreadableRegion
+
+A region whose content `read` cannot return: a chart or canvas drawn as graphics, a closed shadow root, a cross-origin frame.
+
+#### Properties
+
+<a id="kind-3"></a>
+
+##### kind
+
+```ts
+kind: "canvas" | "frame" | "chart" | "closed-shadow";
+```
+
+<a id="library-1"></a>
+
+##### library?
+
+```ts
+optional library?: string;
+```
+
+<a id="message-2"></a>
+
+##### message
+
+```ts
+message: string;
+```
+
+<a id="selector-3"></a>
+
+##### selector
+
+```ts
+selector: string;
+```
+
+<a id="title-3"></a>
+
+##### title
+
+```ts
+title: string;
+```
+
+***
+
+<a id="waitcondition"></a>
+
+### WaitCondition
+
+What `wait` waits for. The members given in one object must all hold; `any` and `all` combine
+nested conditions. A text is matched case-insensitively as a substring after collapsing
+whitespace, or as a regular expression (a `RegExp`, or a string written `/pattern/flags`).
+
+#### Properties
+
+<a id="all"></a>
+
+##### all?
+
+```ts
+optional all?: WaitCondition[];
+```
+
+<a id="any"></a>
+
+##### any?
+
+```ts
+optional any?: WaitCondition[];
+```
+
+<a id="available-1"></a>
+
+##### available?
+
+```ts
+optional available?: boolean;
+```
+
+<a id="entry"></a>
+
+##### entry?
+
+```ts
+optional entry?: string;
+```
+
+The entry with this id is on the surface (and, with `available`, can or cannot be acted on).
+
+<a id="gone"></a>
+
+##### gone?
+
+```ts
+optional gone?: string | RegExp;
+```
+
+This text is no longer shown on the page.
+
+<a id="idle"></a>
+
+##### idle?
+
+```ts
+optional idle?: number;
+```
+
+The page has had no DOM mutation for this many milliseconds (a streamed report finished).
+
+<a id="revmoved"></a>
+
+##### revMoved?
+
+```ts
+optional revMoved?: number;
+```
+
+The surface's revision is no longer this one.
+
+<a id="route-5"></a>
+
+##### route?
+
+```ts
+optional route?: string;
+```
+
+The route or the location's path matches this glob (`/reports/*`).
+
+<a id="text-2"></a>
+
+##### text?
+
+```ts
+optional text?: string | RegExp;
+```
+
+This text is shown on the page, or appeared in a notice (a toast) during the wait.
+
+***
+
+<a id="waitoptions"></a>
+
+### WaitOptions
+
+#### Properties
+
+<a id="pollms"></a>
+
+##### pollMs?
+
+```ts
+optional pollMs?: number;
+```
+
+Check at least this often, beside every DOM change. Default 250, from 20 to 5000.
+
+<a id="signal"></a>
+
+##### signal?
+
+```ts
+optional signal?: AbortSignal;
+```
+
+Cancel the wait; it resolves with `met: false`.
+
+<a id="timeoutms"></a>
+
+##### timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```
+
+Give up after this long. Default 30000, at most 120000.
+
+***
+
+<a id="waitresult"></a>
+
+### WaitResult
+
+How a wait ended, and what changed while it ran.
+
+#### Properties
+
+<a id="changed"></a>
+
+##### changed
+
+```ts
+changed: string[];
+```
+
+Entry ids added, changed, or removed while it waited.
+
+<a id="elapsedms"></a>
+
+##### elapsedMs
+
+```ts
+elapsedMs: number;
+```
+
+<a id="fromrev"></a>
+
+##### fromRev
+
+```ts
+fromRev: number;
+```
+
+The revision when it started.
+
+<a id="met"></a>
+
+##### met
+
+```ts
+met: boolean;
+```
+
+<a id="notices-1"></a>
+
+##### notices
+
+```ts
+notices: string[];
+```
+
+Text that appeared in a notice (a toast, an alert, a status line) while it waited.
+
+<a id="reason-2"></a>
+
+##### reason
+
+```ts
+reason: string;
+```
+
+What held, or why it ended without: a timeout, a cancel, the surface stopping.
+
+<a id="rev-2"></a>
+
+##### rev
+
+```ts
+rev: number;
+```
+
+The revision when it ended; waiting never moves it.
 
 ## Type Aliases
 
@@ -1747,6 +2575,20 @@ The key under which an auto surface marks the entries it registered (a global sy
 
 ***
 
+<a id="content-1"></a>
+
+### CONTENT
+
+```ts
+const CONTENT: typeof CONTENT;
+```
+
+Where a surface keeps its page-content reader (`read` and `wait`): a global symbol, so the
+bridges (`<ns>.read`, `<ns>.wait`) and the relay's mirror find it on any surface, in any
+bundle, without importing the derivation.
+
+***
+
 <a id="default_lexicon"></a>
 
 ### DEFAULT\_LEXICON
@@ -1778,6 +2620,130 @@ const NAVIGATE_ENTRY_ID: "page:navigate" = "page:navigate";
 ```
 
 The id of the entry that opens a same-origin path.
+
+***
+
+<a id="read_limits"></a>
+
+### READ\_LIMITS
+
+```ts
+const READ_LIMITS: object;
+```
+
+The bounds `read` and `wait` apply.
+
+#### Type Declaration
+
+<a id="maxchars-1"></a>
+
+##### maxChars
+
+```ts
+readonly maxChars: object;
+```
+
+###### maxChars.default
+
+```ts
+readonly default: 12000 = 12_000;
+```
+
+###### maxChars.max
+
+```ts
+readonly max: 50000 = 50_000;
+```
+
+###### maxChars.min
+
+```ts
+readonly min: 200 = 200;
+```
+
+<a id="maxrows-1"></a>
+
+##### maxRows
+
+```ts
+readonly maxRows: object;
+```
+
+###### maxRows.default
+
+```ts
+readonly default: 50 = 50;
+```
+
+###### maxRows.max
+
+```ts
+readonly max: 500 = 500;
+```
+
+###### maxRows.min
+
+```ts
+readonly min: 1 = 1;
+```
+
+***
+
+<a id="wait_limits"></a>
+
+### WAIT\_LIMITS
+
+```ts
+const WAIT_LIMITS: object;
+```
+
+#### Type Declaration
+
+<a id="pollms-1"></a>
+
+##### pollMs
+
+```ts
+readonly pollMs: object;
+```
+
+###### pollMs.default
+
+```ts
+readonly default: 250 = 250;
+```
+
+###### pollMs.max
+
+```ts
+readonly max: 5000 = 5_000;
+```
+
+###### pollMs.min
+
+```ts
+readonly min: 20 = 20;
+```
+
+<a id="timeoutms-1"></a>
+
+##### timeoutMs
+
+```ts
+readonly timeoutMs: object;
+```
+
+###### timeoutMs.default
+
+```ts
+readonly default: 30000 = 30_000;
+```
+
+###### timeoutMs.max
+
+```ts
+readonly max: 120000 = 120_000;
+```
 
 ## Functions
 
@@ -1820,13 +2786,13 @@ The accessible name of a control, and where it came from.
 ### autoDomains()
 
 ```ts
-function autoDomains(options?): DomainActionSpec[];
+function autoDomains(options?): DomainSpec[];
 ```
 
 The domain actions for an auto surface, in the order they are tried: one per configured group,
 then `navigate` (links within the site, landmarks, and the `navigate` entry that opens a path),
-`set-field`, `run-control` (every other action, declared `high` so every control fits), and
-`load-more`.
+`set-field`, `run-control` (every other action, declared `high` so every control fits),
+`load-more`, then the read-only `read` and `wait` (unless `content: false`).
 
 #### Parameters
 
@@ -1836,7 +2802,7 @@ then `navigate` (links within the site, landmarks, and the `navigate` entry that
 
 #### Returns
 
-[`DomainActionSpec`](axe.md#domainactionspec)[]
+[`DomainSpec`](axe.md#domainspec)[]
 
 ***
 
@@ -1885,6 +2851,34 @@ change (coalesced), and register, replace, or unregister entries so the table ma
 
 ***
 
+<a id="checkcondition"></a>
+
+### checkCondition()
+
+```ts
+function checkCondition(condition, depth?): string | null;
+```
+
+The problem with a wait condition, as a sentence, or null when it is sound: it must say
+something, `available` needs `entry`, `idle` is a positive number of milliseconds, and nesting
+is bounded.
+
+#### Parameters
+
+##### condition
+
+`unknown`
+
+##### depth?
+
+`number` = `0`
+
+#### Returns
+
+`string` \| `null`
+
+***
+
 <a id="checkconfig"></a>
 
 ### checkConfig()
@@ -1904,6 +2898,47 @@ The validation problems of a configuration, as plain sentences; empty when it is
 #### Returns
 
 `string`[]
+
+***
+
+<a id="contentdomains"></a>
+
+### contentDomains()
+
+```ts
+function contentDomains(): ContentActionSpec[];
+```
+
+The read-only page-content actions ([S-AUTO-16]): `read` (what the page shows the person,
+bounded and redacted) and `wait` (until a condition on the page holds). Neither acts on an
+entry or moves the revision; both need a surface that carries a page-content reader
+(`autoSurface` attaches one, and the relay's mirror forwards to the page's).
+
+#### Returns
+
+[`ContentActionSpec`](axe.md#contentactionspec)[]
+
+***
+
+<a id="contentof"></a>
+
+### contentOf()
+
+```ts
+function contentOf(surface): PageContent | undefined;
+```
+
+The page-content reader a surface carries, or undefined.
+
+#### Parameters
+
+##### surface
+
+`object`
+
+#### Returns
+
+[`PageContent`](#pagecontent) \| `undefined`
 
 ***
 
@@ -1948,6 +2983,28 @@ The coverage report as Markdown, for a terminal, a pull request, or an agent.
 ##### options?
 
 [`FormatCoverageOptions`](#formatcoverageoptions) = `{}`
+
+#### Returns
+
+`string`
+
+***
+
+<a id="formatread"></a>
+
+### formatRead()
+
+```ts
+function formatRead(r): string;
+```
+
+A read as Markdown: what the page shows, for an agent or a terminal.
+
+#### Parameters
+
+##### r
+
+[`PageRead`](#pageread)
 
 #### Returns
 

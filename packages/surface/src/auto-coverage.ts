@@ -69,6 +69,15 @@ export interface StaleRule {
   message: string;
 }
 
+/** A region whose content `read` cannot return: a chart or canvas drawn as graphics, a closed shadow root, a cross-origin frame. */
+export interface UnreadableRegion {
+  kind: "chart" | "canvas" | "closed-shadow" | "frame";
+  title: string;
+  library?: string;
+  selector: string;
+  message: string;
+}
+
 export interface Coverage {
   app: string;
   route: string;
@@ -94,6 +103,8 @@ export interface Coverage {
   frames: { sameOrigin: number; crossOrigin: number };
   /** Problems with the configuration itself. */
   configErrors: string[];
+  /** Content an agent cannot read: `read` reports these by title only ([S-AUTO-14]). */
+  unreadable: UnreadableRegion[];
 }
 
 const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
@@ -161,6 +172,12 @@ export function formatCoverage(c: Coverage, options: FormatCoverageOptions = {})
       }
       if (gaps.length > 25) lines.push(`- … and ${gaps.length - 25} more`);
     }
+  }
+  if (c.unreadable?.length) {
+    lines.push("", `## Content an agent cannot read (${c.unreadable.length})`, "");
+    for (const u of c.unreadable.slice(0, 25))
+      lines.push(`- ${esc(u.message)} ${code(u.selector)}`);
+    if (c.unreadable.length > 25) lines.push(`- … and ${c.unreadable.length - 25} more`);
   }
   if (c.staleConfig.length) {
     lines.push("", `## Configuration that matched nothing (${c.staleConfig.length})`, "");

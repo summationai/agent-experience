@@ -55,11 +55,11 @@ export function pageBundle(): Promise<string> {
 
 export interface PageApi {
   createSurface: () => Surface;
+  autoSurface: typeof autoSurface;
   connectRelay: typeof connectRelay;
   devToken: typeof devToken;
   injectedRelay: typeof injectedRelay;
   relayOptions: typeof relayOptions;
-  autoSurface: typeof autoSurface;
 }
 
 export interface Page {

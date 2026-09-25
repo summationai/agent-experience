@@ -247,6 +247,11 @@ type WireApi =
   | "metaFor"
   | "debounceMs"
   | "quietMs"
+  | "formatRead"
+  | "contentDomains"
+  | "maxChars"
+  | "maxRows"
+  | "pollMs"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -550,7 +555,8 @@ type WireField =
   | "entryId"
   | "nextCursor"
   | "nameFrom"
-  | "staleConfig";
+  | "staleConfig"
+  | "revMoved";
 ```
 
 Union of every `field` name.
@@ -966,6 +972,7 @@ const api: Readonly<{
   connectRelay: "connectRelay";
   consequentialHint: "consequentialHint";
   consoleSink: "consoleSink";
+  contentDomains: "contentDomains";
   continue: "continue";
   cors: "cors";
   createAXE: "createAXE";
@@ -998,6 +1005,7 @@ const api: Readonly<{
   formatConformanceTable: "formatConformanceTable";
   formatCoverage: "formatCoverage";
   formatDriftReport: "formatDriftReport";
+  formatRead: "formatRead";
   formatResult: "formatResult";
   formatWarnings: "formatWarnings";
   freeze: "freeze";
@@ -1040,12 +1048,14 @@ const api: Readonly<{
   manifestCacheSeconds: "manifestCacheSeconds";
   manifestMaxAgeMs: "manifestMaxAgeMs";
   maxBodyBytes: "maxBodyBytes";
+  maxChars: "maxChars";
   maxEntries: "maxEntries";
   maxPageSize: "maxPageSize";
   maxPollAttempts: "maxPollAttempts";
   maxResponseBytes: "maxResponseBytes";
   maxRetryAfterMs: "maxRetryAfterMs";
   maxRisk: "maxRisk";
+  maxRows: "maxRows";
   maxSessions: "maxSessions";
   maxWaitMs: "maxWaitMs";
   metaFor: "metaFor";
@@ -1073,6 +1083,7 @@ const api: Readonly<{
   parseUserAgent: "parseUserAgent";
   poll: "poll";
   pollBudgetMs: "pollBudgetMs";
+  pollMs: "pollMs";
   present: "present";
   protectedResourceMetadata: "protectedResourceMetadata";
   providerResultContext: "ProviderResultContext";
@@ -1434,6 +1445,7 @@ const field: Readonly<{
   revAfter: "revAfter";
   revBefore: "revBefore";
   reversible: "reversible";
+  revMoved: "revMoved";
   risk: "risk";
   role: "role";
   schema: "schema";
@@ -1935,6 +1947,7 @@ const WIRE: Readonly<{
      connectRelay: "connectRelay";
      consequentialHint: "consequentialHint";
      consoleSink: "consoleSink";
+     contentDomains: "contentDomains";
      continue: "continue";
      cors: "cors";
      createAXE: "createAXE";
@@ -1967,6 +1980,7 @@ const WIRE: Readonly<{
      formatConformanceTable: "formatConformanceTable";
      formatCoverage: "formatCoverage";
      formatDriftReport: "formatDriftReport";
+     formatRead: "formatRead";
      formatResult: "formatResult";
      formatWarnings: "formatWarnings";
      freeze: "freeze";
@@ -2009,12 +2023,14 @@ const WIRE: Readonly<{
      manifestCacheSeconds: "manifestCacheSeconds";
      manifestMaxAgeMs: "manifestMaxAgeMs";
      maxBodyBytes: "maxBodyBytes";
+     maxChars: "maxChars";
      maxEntries: "maxEntries";
      maxPageSize: "maxPageSize";
      maxPollAttempts: "maxPollAttempts";
      maxResponseBytes: "maxResponseBytes";
      maxRetryAfterMs: "maxRetryAfterMs";
      maxRisk: "maxRisk";
+     maxRows: "maxRows";
      maxSessions: "maxSessions";
      maxWaitMs: "maxWaitMs";
      metaFor: "metaFor";
@@ -2042,6 +2058,7 @@ const WIRE: Readonly<{
      parseUserAgent: "parseUserAgent";
      poll: "poll";
      pollBudgetMs: "pollBudgetMs";
+     pollMs: "pollMs";
      present: "present";
      protectedResourceMetadata: "protectedResourceMetadata";
      providerResultContext: "ProviderResultContext";
@@ -2315,6 +2332,7 @@ const WIRE: Readonly<{
      revAfter: "revAfter";
      revBefore: "revBefore";
      reversible: "reversible";
+     revMoved: "revMoved";
      risk: "risk";
      role: "role";
      schema: "schema";
