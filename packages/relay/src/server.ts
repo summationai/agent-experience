@@ -133,7 +133,7 @@ export interface RelayOptions {
   namespace?: string;
   /**
    * The parameterized actions for every tab. Default: `domainActions`' own set (`set-field`,
-   * `run-control`, `load-more`). `autoActions` from `@axe/surface/auto` fits here.
+   * `run-control`, `load-more`). `autoDomains()` from `@axe/surface/auto` fits here.
    */
   domains?: DomainActionSpec[];
   /** The relay's public URL, as the AXE manifest names it. Default `http://localhost`. */

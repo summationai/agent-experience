@@ -20,7 +20,13 @@ docs/api/reference/@axe/fetch.html
 docs/api/reference/@axe/generate.html
 docs/api/reference/@axe/mcp.html
 docs/api/reference/@axe/next.html
+docs/api/reference/@axe/relay/README.html
+docs/api/reference/@axe/relay/cli.html
+docs/api/reference/@axe/relay/client.html
+docs/api/reference/@axe/relay/server.html
+docs/api/reference/@axe/relay/token.html
 docs/api/reference/@axe/surface/README.html
+docs/api/reference/@axe/surface/auto.html
 docs/api/reference/@axe/surface/axe.html
 docs/api/reference/@axe/surface/index.html
 docs/api/reference/@axe/surface/react.html
@@ -30,6 +36,7 @@ docs/api/reference/README.html
 docs/api/reference/axe.html
 docs/audit.html
 docs/auth.html
+docs/auto-surface.html
 docs/concepts.html
 docs/deploying.html
 docs/designing-actions.html
@@ -51,6 +58,7 @@ docs/pilot-plan.html
 docs/platforms.html
 docs/presenting-results.html
 docs/reference-app.html
+docs/relay.html
 docs/repo/CHANGELOG.html
 docs/repo/CONTRIBUTING.html
 docs/repo/DECISIONS.html

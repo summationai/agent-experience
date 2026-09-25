@@ -9,7 +9,7 @@ flowchart LR
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-9] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
+The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-10] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
 
 ## Four steps
 
@@ -245,7 +245,7 @@ await relay.listen({ host: "0.0.0.0", port: 8080 });
 
 ## Security model
 
-The relay puts a live, signed-in page within reach of an agent, so it states what it guarantees ([S-RELAY-1] to [S-RELAY-9]) and [Security](security.md) lists the threats:
+The relay puts a live, signed-in page within reach of an agent, so it states what it guarantees ([S-RELAY-1] to [S-RELAY-10]) and [Security](security.md) lists the threats:
 
 - The page is authoritative. An act runs through the page's `surface.act` with the page's act queue, revision check, availability, and handler; the relay decides nothing about the application.
 - A tab authenticates with a relay token your backend minted for the signed-in person, from an allowed origin. The page's session cookie never goes to the relay.
