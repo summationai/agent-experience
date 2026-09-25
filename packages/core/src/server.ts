@@ -38,6 +38,7 @@ import type {
   TenantInfo,
   MaybePromise,
   ResultHelpers,
+  ApprovalGrant,
 } from "./action";
 import { ActionDefinitionError } from "./action";
 import { validateAffordanceBinding } from "./display";
@@ -68,13 +69,14 @@ import {
   needsInput,
   ok,
   pending,
+  requestApproval,
   unavailable,
 } from "./results";
 import { AGENT_DIRECTIVE_PATTERNS } from "./lint";
 import { MemoryTokenStore, TokenSigner, hashJson, loadToken, mintToken, randomId } from "./tokens";
 import { evaluateRequestPolicy, resolveRequestPolicy } from "./request-policy";
 import type { RequestPolicyConfig, ResolvedRequestPolicy } from "./request-policy";
-import type { TokenRecord, TokenStore } from "./tokens";
+import type { ApprovalRecord, TokenRecord, TokenStore } from "./tokens";
 import { isZodSchema, toJsonSchema, zodIssuesToValidationIssues } from "./zod-json-schema";
 import { WIRE } from "./vocabulary";
 
@@ -132,6 +134,60 @@ export interface AdapterContext {
   identity?: Identity | null;
   tenant?: TenantInfo | null;
 }
+
+/**
+ * Where a handoff stands, as `getHandoff` reports it: `open` (waiting for the person), `completed`
+ * (`completeHandoff` recorded it), `approved` (`approveHandoff`), `cancelled` (`cancelHandoff`),
+ * `invalidated` (an approval whose bound state changed), or `used` (a resume ran it, or is running
+ * it now).
+ */
+export type HandoffStatus =
+  "open" | "completed" | "approved" | "cancelled" | "invalidated" | "used";
+
+/** What the site's own page may show about a handoff. Returned by `getHandoff`. */
+export interface HandoffView {
+  id: string;
+  /** The action the handoff resumes. */
+  action: string;
+  reason: string;
+  status: HandoffStatus;
+  /** The user the agent acted for, or null. */
+  onBehalfOf: string | null;
+  /** The site key the call was made with, or null. */
+  siteKey: string | null;
+  tenant: string | null;
+  expiresAt: string;
+  cancelled?: { at: string; by?: string; reason?: string };
+  /** Present for an approval request (spec §9.3). */
+  approval?: {
+    /** The call's input exactly as the agent sent it: what the person is approving. */
+    input: JsonValue;
+    /** The state bound at the request, as `approvalState` returned it. */
+    state: JsonValue;
+    preview?: JsonValue;
+    /** The agent's own `User-Agent` self-identification; not authenticated. */
+    agent: { name: string; version: string } | null;
+    requestedAt: string;
+    approved?: { at: string; by: string };
+    invalidated?: { at: string };
+  };
+}
+
+/**
+ * Why `approveHandoff` or `cancelHandoff` refused. `not_found` covers an unknown id, an expired
+ * handoff, and another tenant's, alike.
+ */
+export type HandoffRefusal =
+  | "not_found"
+  | "not_approval"
+  | "already_approved"
+  | "cancelled"
+  | "invalidated"
+  | "used"
+  | "state_changed";
+
+export type HandoffDecision =
+  { ok: true; view: HandoffView } | { ok: false; reason: HandoffRefusal };
 
 /** Passed to the `revision` provider. */
 export interface RevisionContext {
@@ -237,7 +293,15 @@ const HTTP_STATUS: Record<ErrorCode, number> = {
   unavailable: 503,
 };
 
-const helpers: ResultHelpers = { ok, needsInput, handoff, pending, fail, unavailable };
+const helpers: ResultHelpers = {
+  ok,
+  needsInput,
+  handoff,
+  pending,
+  fail,
+  unavailable,
+  requestApproval,
+};
 
 /** Two revisions are equal when they are the same value; a numeric string equals its number. */
 function sameRevision(a: Revision, b: Revision): boolean {
@@ -784,6 +848,9 @@ export class AXE {
     const record = await this.tokens.get(handoffId);
     if (!record || record.type !== "resume" || record.expiresAt <= Date.now()) return false;
     if ((record.tenant ?? null) !== (completion.tenant ?? null)) return false;
+    // An approval is recorded only by approveHandoff, with its bindings checked ([P-APPR-3]); a
+    // cancelled handoff stays cancelled ([P-APPR-5]).
+    if (record.approval || record.cancelled) return false;
     if (await this.idempotency.get(tokenOperationKey("resume", record.tenant, record.id)))
       return false;
     if (record.login) {
@@ -805,6 +872,190 @@ export class AXE {
       Math.max(1, Math.ceil((record.expiresAt - Date.now()) / 1000)),
     );
     return true;
+  }
+
+  /**
+   * What the site's own handoff or approval page may show: the action, who the agent acted for,
+   * the tenant, where the handoff stands, and for an approval request (spec §9.3) the exact input,
+   * the bound state, the site's preview, and the agent's self-identification. Null for an unknown
+   * or expired id and for another tenant's handoff. Call it from a page the person reaches with
+   * their own session; the page decides who may see it.
+   */
+  async getHandoff(
+    handoffId: string,
+    options: { tenant?: string | null } = {},
+  ): Promise<HandoffView | null> {
+    const record = await this.openHandoff(handoffId, options.tenant ?? null);
+    return record ? this.handoffView(record) : null;
+  }
+
+  /**
+   * Record that a person approved an approval request (spec §9.3, [P-APPR-3]). Call it only from
+   * the site's own approval page, in a request authenticated by the person's session and protected
+   * against cross-site forgery, after the page has decided that `approver` may approve this
+   * operation. The runtime checks the rest: the handoff exists, is an approval request of this
+   * tenant, has not expired, been used, cancelled, or invalidated, and the action's
+   * `approvalState` still equals the state bound at the request; if the state moved, the request
+   * is invalidated for good and the reason is `state_changed`.
+   */
+  async approveHandoff(
+    handoffId: string,
+    decision: { approver: string; tenant?: string | null },
+  ): Promise<HandoffDecision> {
+    if (typeof decision.approver !== "string" || decision.approver === "")
+      throw new TypeError("approveHandoff: `approver` must name the person who approved.");
+    const record = await this.openHandoff(handoffId, decision.tenant ?? null);
+    if (!record) return { ok: false, reason: "not_found" };
+    const approval = record.approval;
+    if (!approval) return { ok: false, reason: "not_approval" };
+    const refusal = await this.handoffRefusal(record);
+    if (refusal) return { ok: false, reason: refusal };
+    if (approval.approved) return { ok: false, reason: "already_approved" };
+    if (!(await this.approvalStateHolds(record, approval))) {
+      approval.invalidated = { at: new Date().toISOString() };
+      await this.saveHandoff(record);
+      this.approvalEvent(record, "approval.invalidated", null, WIRE.status.error, {
+        at: "approve",
+      });
+      return { ok: false, reason: "state_changed" };
+    }
+    approval.approved = { at: new Date().toISOString(), by: decision.approver };
+    await this.saveHandoff(record);
+    this.approvalEvent(record, "approval.approved", decision.approver, WIRE.status.ok, {});
+    return { ok: true, view: await this.handoffView(record) };
+  }
+
+  /**
+   * Record that a person cancelled a handoff (spec §9.3, [P-APPR-5]): an approval request, open or
+   * approved, or any other handoff. A later resume is refused with `conflict` and
+   * `details.handoffStatus: "cancelled"`, and nothing runs. A handoff whose resume already ran, or
+   * is running, cannot be cancelled (`used`): that work is committed, and undoing it is the
+   * site's own action. Call it from the site's own page, like `approveHandoff`.
+   */
+  async cancelHandoff(
+    handoffId: string,
+    decision: { by?: string; tenant?: string | null; reason?: string } = {},
+  ): Promise<HandoffDecision> {
+    const record = await this.openHandoff(handoffId, decision.tenant ?? null);
+    if (!record) return { ok: false, reason: "not_found" };
+    const refusal = await this.handoffRefusal(record);
+    if (refusal) return { ok: false, reason: refusal };
+    record.cancelled = omitUndefined({
+      at: new Date().toISOString(),
+      by: decision.by,
+      reason: decision.reason,
+    });
+    await this.saveHandoff(record);
+    if (record.approval)
+      this.approvalEvent(record, "approval.cancelled", decision.by ?? null, WIRE.status.ok, {});
+    return { ok: true, view: await this.handoffView(record) };
+  }
+
+  /** A resume record for this tenant that has not expired, or undefined. */
+  private async openHandoff(id: string, tenant: string | null): Promise<TokenRecord | undefined> {
+    if (typeof id !== "string" || id === "") return undefined;
+    const record = await this.tokens.get(id);
+    if (!record || record.type !== "resume" || record.expiresAt <= Date.now()) return undefined;
+    if ((record.tenant ?? null) !== tenant) return undefined;
+    return record;
+  }
+
+  /** Why no decision can be recorded on this handoff any more, or undefined. */
+  private async handoffRefusal(record: TokenRecord): Promise<HandoffRefusal | undefined> {
+    if (await this.idempotency.get(tokenOperationKey("resume", record.tenant, record.id)))
+      return "used";
+    if (record.cancelled) return "cancelled";
+    if (record.approval?.invalidated) return "invalidated";
+    return undefined;
+  }
+
+  private async saveHandoff(record: TokenRecord): Promise<void> {
+    await this.tokens.set(
+      record.id,
+      record,
+      Math.max(1, Math.ceil((record.expiresAt - Date.now()) / 1000)),
+    );
+  }
+
+  /** Whether the action's `approvalState` still returns the state bound at the request. */
+  private async approvalStateHolds(
+    record: TokenRecord,
+    approval: ApprovalRecord,
+  ): Promise<boolean> {
+    const a = this.getAction(record.action);
+    if (!a?.spec.approvalState) return false;
+    const now = await a.spec.approvalState({
+      action: record.action,
+      input: approval.input,
+      tenant: record.tenant,
+      onBehalfOf: parsePrincipal(record.principal).user,
+    });
+    return (await hashJson(now)) === approval.stateHash;
+  }
+
+  private async handoffView(record: TokenRecord): Promise<HandoffView> {
+    const principal = parsePrincipal(record.principal);
+    const used = !!(await this.idempotency.get(
+      tokenOperationKey("resume", record.tenant, record.id),
+    ));
+    const a = record.approval;
+    const status: HandoffStatus = used
+      ? "used"
+      : record.cancelled
+        ? "cancelled"
+        : a?.invalidated
+          ? "invalidated"
+          : a?.approved
+            ? "approved"
+            : !a && record.completion
+              ? "completed"
+              : "open";
+    const view: HandoffView = {
+      id: record.id,
+      action: record.action,
+      reason: record.handoff?.reason ?? "",
+      status,
+      onBehalfOf: principal.user,
+      siteKey: principal.site,
+      tenant: record.tenant,
+      expiresAt: new Date(record.expiresAt).toISOString(),
+    };
+    if (record.cancelled) view.cancelled = { ...record.cancelled };
+    if (a) {
+      view.approval = omitUndefined({
+        input: a.input,
+        state: a.state,
+        preview: a.preview,
+        agent: a.agent,
+        requestedAt: a.requestedAt,
+        approved: a.approved,
+        invalidated: a.invalidated,
+      }) as NonNullable<HandoffView["approval"]>;
+    }
+    return view;
+  }
+
+  /** One approval lifecycle event for the `onActionEvent` sinks; details never carry the input or the state. */
+  private approvalEvent(
+    record: TokenRecord,
+    event: string,
+    actor: string | null,
+    status: ResultStatus,
+    details: Record<string, JsonValue>,
+    errorCode: ErrorCode | null = null,
+  ): void {
+    const e: AXEActionEvent = {
+      schemaVersion: 1,
+      ts: new Date().toISOString(),
+      action: record.action,
+      event,
+      status,
+      errorCode,
+      actor,
+      details: { handoffId: record.id, ...details },
+      tenant: record.tenant,
+    };
+    queueMicrotask(() => this.emitAction(e));
   }
 
   // -------------------------------------------------------------------------
@@ -1284,6 +1535,7 @@ export class AXE {
     hookCtx: HookContext,
     binding: { inputHash: string; principal: string | null; tenant: string | null },
     baseUrl: string,
+    call?: { rawInput: JsonValue; onBehalfOf: string | null },
   ): Promise<Result> {
     const directive = this.directiveIn(intent);
     if (directive) {
@@ -1357,15 +1609,53 @@ export class AXE {
           continuationToken: minted.token,
           expiresAt: minted.expiresAt,
         };
+        if (intent.fallback?.approval)
+          return this.approvalMisuse(
+            hookCtx,
+            a,
+            "returned requestApproval as a needs_input fallback; return it from the handler instead",
+          );
         if (intent.fallback)
           result.fallback = await this.mintHandoff(intent.fallback, a.name, binding);
         return result;
       }
-      case "handoff":
+      case "handoff": {
+        let approval: ApprovalRecord | undefined;
+        if (intent.approval) {
+          // An approval binds the call as the agent sent it, so it can only be requested by the
+          // handler of that call ([P-APPR-1]).
+          if (!call)
+            return this.approvalMisuse(
+              hookCtx,
+              a,
+              "returned requestApproval outside its handler (from onContinue, onResume, or onPoll); only the handler of the call can request approval",
+            );
+          if (!a.spec.approvalState)
+            return this.approvalMisuse(
+              hookCtx,
+              a,
+              "returned requestApproval but declares no approvalState",
+            );
+          const state = await a.spec.approvalState({
+            action: a.name,
+            input: call.rawInput,
+            tenant: binding.tenant,
+            onBehalfOf: call.onBehalfOf,
+          });
+          approval = omitUndefined({
+            input: call.rawInput,
+            state,
+            stateHash: await hashJson(state),
+            preview: intent.approval.preview,
+            agent: agentOf(hookCtx.request),
+            requestedAt: new Date().toISOString(),
+          }) as ApprovalRecord;
+        }
         return {
           status: WIRE.status.needsHuman,
-          handoff: await this.mintHandoff(intent, a.name, binding),
+          handoff: await this.mintHandoff(intent, a.name, binding, undefined, approval),
         };
+      }
       case "pending": {
         if (!a.spec.onPoll && !intent.pollUrl) {
           return {
@@ -1419,11 +1709,36 @@ export class AXE {
     return out;
   }
 
+  /** A handler asked for an approval the runtime cannot bind: reported to `onError`, `internal` on the wire. */
+  private async approvalMisuse(
+    hookCtx: HookContext,
+    a: RegisteredAction,
+    what: string,
+  ): Promise<Result> {
+    try {
+      await this.config.onError?.(
+        hookCtx,
+        new Error(`Action "${a.name}" ${what} (spec [P-APPR-1]).`),
+      );
+    } catch (e) {
+      console.error("[axe] onError hook failed", e);
+    }
+    return {
+      status: WIRE.status.error,
+      error: fail(
+        WIRE.error.internal,
+        "The action could not ask for approval. The site has been notified.",
+        { retryable: false },
+      ).error,
+    };
+  }
+
   private async mintHandoff(
     intent: HandoffIntent,
     actionName: string,
     binding: { inputHash: string; principal: string | null; tenant: string | null },
     login?: TokenRecord["login"],
+    approval?: ApprovalRecord,
   ): Promise<Handoff> {
     const ttl = intent.ttlSeconds ?? RESUME_TTL;
     const minted = await mintToken(this.signer, {
@@ -1450,7 +1765,16 @@ export class AXE {
     };
     minted.record.handoff = handoffWire;
     if (intent.requireCompletion) minted.record.requireCompletion = true;
+    if (approval) minted.record.approval = approval;
     await this.tokens.set(minted.record.id, minted.record, ttl);
+    if (approval)
+      this.approvalEvent(
+        minted.record,
+        "approval.requested",
+        parsePrincipal(binding.principal).user,
+        WIRE.status.needsHuman,
+        {},
+      );
     return handoffWire;
   }
 
@@ -1961,7 +2285,10 @@ export class AXE {
     }
     let result: Result;
     try {
-      result = await this.materialize(intent, a, hookCtx, binding, this.tenantBaseUrl(tenant));
+      result = await this.materialize(intent, a, hookCtx, binding, this.tenantBaseUrl(tenant), {
+        rawInput: rawInput as JsonValue,
+        onBehalfOf: identity?.onBehalfOf ?? null,
+      });
     } catch (e) {
       if (claim && storageKey) await this.idempotency.release(storageKey, claim.owner);
       throw e;
@@ -2174,7 +2501,13 @@ export class AXE {
     if (!auth) return finish(unknownToken("resume"));
     const { identity, siteKey } = auth;
     hookCtx.action = record.action;
-    if (record.requireCompletion && !record.completion) {
+    // A cancelled handoff and an approval that is not approved are refused before the claim, so
+    // nothing is stored and the answer stays the same on every retry ([P-APPR-4], [P-APPR-5]).
+    // A handoff whose resume already ran is answered from the stored envelope below, whatever
+    // happened since, because cancel and approve refuse a used handoff.
+    const early = await this.handoffResumeRefusal(record);
+    if (early) return finish(early);
+    if (record.requireCompletion && !record.completion && !record.approval) {
       return finish({
         status: WIRE.status.error,
         error: fail(
@@ -2244,6 +2577,47 @@ export class AXE {
     hookCtx.context = authedContext;
     const stale = await this.staleCheck(expectedRev, request, tenant);
     if (stale) return refuse(stale);
+    // An approval is checked again while this request holds the claim: a cancel that landed after
+    // the first check, and the bound state, which must still hold ([P-APPR-4], [P-APPR-6]).
+    let grant: ApprovalGrant | undefined;
+    if (record.approval) {
+      const fresh = (await this.tokens.get(record.id)) ?? record;
+      const again = await this.handoffResumeRefusal(fresh);
+      if (again) return refuse(again);
+      const approval = fresh.approval!;
+      if (!(await this.approvalStateHolds(fresh, approval))) {
+        approval.invalidated = { at: new Date().toISOString() };
+        await this.saveHandoff(fresh);
+        this.approvalEvent(
+          fresh,
+          "approval.invalidated",
+          null,
+          WIRE.status.error,
+          { at: "resume" },
+          WIRE.error.conflict,
+        );
+        return refuse(invalidatedApproval());
+      }
+      const parsed = a.spec.input.safeParse(approval.input);
+      if (!parsed.success)
+        return refuse({
+          status: WIRE.status.error,
+          error: fail(
+            WIRE.error.conflict,
+            `The approved input no longer matches the input of "${a.name}". Nothing was applied; start the action again.`,
+            { retryable: false, details: { handoffStatus: "invalidated" } },
+          ).error,
+        });
+      grant = {
+        id: fresh.id,
+        input: parsed.data as JsonValue,
+        rawInput: approval.input,
+        state: approval.state,
+        approvedBy: approval.approved!.by,
+        approvedAt: approval.approved!.at,
+        requestedAt: approval.requestedAt,
+      };
+    }
     const intent = await this.runHandler(hookCtx, () =>
       a.spec.onResume!({
         state: record.state as JsonValue,
@@ -2258,6 +2632,7 @@ export class AXE {
         emit: this.emitterFor(a.name, tenant),
         availability: null,
         ...(expectedRev !== undefined ? { expectedRev } : {}),
+        ...(grant ? { approval: grant } : {}),
         ...helpers,
       }),
     );
@@ -2269,7 +2644,45 @@ export class AXE {
       this.tenantBaseUrl(tenant),
     );
     await this.settleOperation(hookCtx, opKey, claim, result);
+    if (grant)
+      this.approvalEvent(
+        record,
+        "approval.executed",
+        parsePrincipal(record.principal).user,
+        result.status,
+        { approvedBy: grant.approvedBy, operationId: claim.operationId },
+        result.status === WIRE.status.error ? result.error.code : null,
+      );
     return finish(result);
+  }
+
+  /** The refusal for a resume of a cancelled handoff or an approval that does not stand, or undefined. */
+  private async handoffResumeRefusal(record: TokenRecord): Promise<Result | undefined> {
+    // A used handoff is answered from its stored envelope by the claim.
+    if (await this.idempotency.get(tokenOperationKey("resume", record.tenant, record.id)))
+      return undefined;
+    if (record.cancelled)
+      return {
+        status: WIRE.status.error,
+        error: fail(
+          WIRE.error.conflict,
+          "The person cancelled this request on the site. Nothing was applied.",
+          { retryable: false, details: { handoffStatus: "cancelled" } },
+        ).error,
+      };
+    const approval = record.approval;
+    if (!approval) return undefined;
+    if (approval.invalidated) return invalidatedApproval();
+    if (!approval.approved)
+      return {
+        status: WIRE.status.error,
+        error: fail(
+          WIRE.error.conflict,
+          "The person has not approved this request yet. Nothing was applied. Retry after they approve it on the site, or show them the link again.",
+          { retryable: true, details: { handoffStatus: "open" } },
+        ).error,
+      };
+    return undefined;
   }
 
   private async pollEndpoint(
@@ -2351,12 +2764,29 @@ export class AXE {
 }
 
 /** The one answer to every token that cannot be used by this caller here ([P-TOK-3], [P-TOK-6]). */
+/** The agent's `User-Agent` self-identification, as an approval page may show it. */
+function agentOf(request: Request): { name: string; version: string } | null {
+  const ua = parseUserAgent(request.headers.get(WIRE.header.userAgent));
+  return ua?.name && ua.version ? { name: ua.name, version: ua.version } : null;
+}
+
+function invalidatedApproval(): Result {
+  return {
+    status: WIRE.status.error,
+    error: fail(
+      WIRE.error.conflict,
+      "What this approval was bound to changed after it was requested, so the approval no longer applies. Nothing was applied; start the action again to ask for a new approval.",
+      { retryable: false, details: { handoffStatus: "invalidated" } },
+    ).error,
+  };
+}
+
 function unknownToken(type: "continuation" | "resume" | "poll"): Result {
   const message =
     type === "continuation"
       ? "Unknown or expired continuation token. Call the action again to get a new one."
       : type === "resume"
-        ? "Unknown or expired resume token."
+        ? "Unknown or expired resume token. Nothing was applied; start the action again to get a new one."
         : "Unknown or expired poll token.";
   return { status: WIRE.status.error, error: fail(WIRE.error.notFound, message).error };
 }

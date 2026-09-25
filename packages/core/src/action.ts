@@ -30,7 +30,16 @@ import type {
 import type { ResultIntent } from "./results";
 import type { Identity } from "./server";
 import type { SiteKeyContext } from "./principal";
-import type { fail, handoff, needsInput, ok, pending, unavailable } from "./results";
+import type {
+  fail,
+  handoff,
+  needsInput,
+  ok,
+  pending,
+  requestApproval,
+  unavailable,
+} from "./results";
+import { APPROVAL_REQUIRED } from "./results";
 import type { AcceptInput } from "./kinds";
 import { toJsonSchema } from "./zod-json-schema";
 import {
@@ -73,6 +82,7 @@ export interface ResultHelpers {
   pending: typeof pending;
   fail: typeof fail;
   unavailable: typeof unavailable;
+  requestApproval: typeof requestApproval;
 }
 
 /**
@@ -152,6 +162,41 @@ export interface ResumeContext<S> extends BaseContext {
   state: S;
   /** What `completeHandoff` recorded, if the site called it. */
   completion: { at: string; onBehalfOf?: string; data?: JsonValue } | undefined;
+  /**
+   * Set when the handoff was an approval request (`requestApproval`) and the resume passed every
+   * check of spec §9.3: approved by a person on the site, not cancelled, not expired, same principal
+   * and tenant, and the action's `approvalState` still equal to the state bound at the request.
+   * Execute `input` (the approved call, parsed by the action's input schema), not anything else.
+   * Absent for every other handoff.
+   */
+  approval?: ApprovalGrant;
+}
+
+/** What `onResume` receives for an approved request: the approved call and who approved it. */
+export interface ApprovalGrant {
+  /** The handoff id (the `axe_handoff` value on the approval page). */
+  id: string;
+  /** The input of the call the person approved, parsed by the action's input schema. */
+  input: JsonValue;
+  /** The input exactly as the agent sent it (the approval is bound to its fingerprint). */
+  rawInput: JsonValue;
+  /** The value `approvalState` returned when the request was made, and still returns now. */
+  state: JsonValue;
+  /** Who approved, as the site passed it to `approveHandoff`. */
+  approvedBy: string;
+  approvedAt: string;
+  requestedAt: string;
+}
+
+/** Passed to `approvalState`: the call an approval is (or would be) bound to. */
+export interface ApprovalStateContext {
+  action: string;
+  /** The call's input exactly as the agent sent it. */
+  input: JsonValue;
+  /** The tenant id, or null on a single-tenant server. */
+  tenant: string | null;
+  /** The user the call was made on behalf of, or null. */
+  onBehalfOf: string | null;
 }
 
 export interface PollContext<S> extends BaseContext {
@@ -191,6 +236,14 @@ export interface ActionSpec<
    * and returns `unavailable(availability)` or climbs the ladder.
    */
   availability?: (ctx: AvailabilityContext) => MaybePromise<AvailabilityInput>;
+  /**
+   * The state an approval of this action is bound to (spec §9.3), for example
+   * `{ planId, rev }`. Required for an action whose handler returns `requestApproval`. The runtime
+   * calls it when the request is made, when a person approves, and when the agent resumes; the
+   * approval stands only while the value is equal (compared as canonical JSON). Keep it small:
+   * the fields whose change should void the approval.
+   */
+  approvalState?: (ctx: ApprovalStateContext) => MaybePromise<JsonValue>;
   handler: (ctx: HandlerContext<z.output<I>>) => MaybePromise<HandlerReturn<z.input<O>>>;
   onContinue?: (ctx: ContinueContext<S>) => MaybePromise<HandlerReturn<z.input<O>>>;
   onResume?: (ctx: ResumeContext<S>) => MaybePromise<HandlerReturn<z.input<O>>>;
@@ -329,7 +382,20 @@ export function action<I extends z.ZodType, O extends z.ZodType, S extends JsonV
   if (spec.affordances) definition.affordances = spec.affordances;
   if (spec.pagination) definition.pagination = spec.pagination;
   if (spec.freshness) definition.freshness = spec.freshness;
+  if (spec.approvalState !== undefined && typeof spec.approvalState !== "function")
+    throw new ActionDefinitionError(name, "approvalState must be a function.");
+  if (spec.approvalState && readOnly)
+    throw new ActionDefinitionError(
+      name,
+      "approvalState is for actions that change state; a readOnly action never needs approval.",
+    );
+  if (spec.approvalState && typeof spec.onResume !== "function")
+    throw new ActionDefinitionError(
+      name,
+      "declares approvalState but no onResume: an approved request runs in onResume.",
+    );
   if (spec.humanHandoff) definition.humanHandoff = spec.humanHandoff;
+  else if (spec.approvalState) definition.humanHandoff = { reasons: [APPROVAL_REQUIRED] };
   if (spec.deprecated) definition.deprecated = spec.deprecated;
 
   let itemSchema: JsonSchema = output;

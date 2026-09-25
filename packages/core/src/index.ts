@@ -21,6 +21,10 @@ export type {
   Endpoint,
   RevisionContext,
   RevisionProvider,
+  HandoffView,
+  HandoffStatus,
+  HandoffRefusal,
+  HandoffDecision,
 } from "./server";
 export {
   evaluateRequestPolicy,
@@ -51,8 +55,22 @@ export type {
   MaybePromise,
   AvailabilityInput,
   AvailabilityContext,
+  ApprovalGrant,
+  ApprovalStateContext,
 } from "./action";
-export { ok, needsInput, handoff, pending, fail, unavailable, AXEError, isIntent } from "./results";
+export {
+  ok,
+  needsInput,
+  handoff,
+  pending,
+  fail,
+  unavailable,
+  requestApproval,
+  APPROVAL_REQUIRED,
+  APPROVAL_TTL_SECONDS,
+  AXEError,
+  isIntent,
+} from "./results";
 export type {
   ResultIntent,
   OkIntent,
@@ -61,9 +79,10 @@ export type {
   PendingIntent,
   ErrorIntent,
   FailOptions,
+  ApprovalRequest,
 } from "./results";
 export { MemoryTokenStore, TokenSigner, hashJson, canonicalJson } from "./tokens";
-export type { TokenStore, TokenRecord, TokenType } from "./tokens";
+export type { TokenStore, TokenRecord, TokenType, ApprovalRecord } from "./tokens";
 export { DEFAULT_MAX_ENTRIES, DEFAULT_SWEEP_INTERVAL_MS } from "./retention";
 export type { RetentionOptions } from "./retention";
 export {

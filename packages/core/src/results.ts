@@ -35,6 +35,22 @@ export interface HandoffIntent {
   appendHandoffId?: boolean;
   /** Refuse `/axe/resume` with `conflict` until `completeHandoff()` is called for this handoff. Default false. */
   requireCompletion?: boolean;
+  /**
+   * Makes this handoff an approval request (spec §9.3): the human approves the exact call on the
+   * site's own page with `approveHandoff`, and the resume runs only while every binding still
+   * holds. Set by `requestApproval`; the action must declare `approvalState`.
+   */
+  approval?: ApprovalRequest;
+}
+
+/** What an approval request carries beyond a handoff. Stored server-side; never sent to the agent. */
+export interface ApprovalRequest {
+  /**
+   * What the approval page shows the person about the operation, in the site's words (for example
+   * the rows that will change). The page SHOULD also render the current state from the site's own
+   * store; the preview is what the agent's call looked like when it was made.
+   */
+  preview?: JsonValue;
 }
 
 export interface NeedsInputIntent {
@@ -104,6 +120,39 @@ export function handoff(spec: Omit<HandoffIntent, typeof INTENT>): HandoffIntent
     }
   }
   return { [INTENT]: "handoff", ...spec };
+}
+
+/** The default lifetime of an approval request: one hour. A shorter window than a plain handoff's 24 hours, since the state it is bound to keeps moving. */
+export const APPROVAL_TTL_SECONDS = 60 * 60;
+
+/** The default `reason` of an approval handoff. */
+export const APPROVAL_REQUIRED = "approval_required";
+
+/**
+ * Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+ * `handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+ * `url`, the site's own approval page; the runtime records the call's input, the acting principal,
+ * the tenant, and the state the action's `approvalState` reports now. The person approves or
+ * cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+ * `/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+ * state still matches. An agent cannot approve its own request: nothing it can send marks the
+ * handoff approved.
+ */
+export function requestApproval(
+  spec: Omit<HandoffIntent, typeof INTENT | "approval" | "requireCompletion" | "reason"> & {
+    reason?: string;
+    preview?: JsonValue;
+  },
+): HandoffIntent {
+  const { preview, reason, ...rest } = spec;
+  const intent = handoff({
+    ...rest,
+    reason: reason ?? APPROVAL_REQUIRED,
+    ttlSeconds: rest.ttlSeconds ?? APPROVAL_TTL_SECONDS,
+  });
+  intent.requireCompletion = true;
+  intent.approval = preview === undefined ? {} : { preview };
+  return intent;
 }
 
 /** Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10. */
