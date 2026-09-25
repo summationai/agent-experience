@@ -495,6 +495,17 @@ changed: string[];
 id: string;
 ```
 
+<a id="navigated"></a>
+
+##### navigated?
+
+```ts
+optional navigated?: boolean;
+```
+
+The act's click navigated the page (a link, a form that reloads it): set by the relay's tab
+when the page began to unload before the act settled ([S-RELAY-14]). Observe the new page.
+
 <a id="notices"></a>
 
 ##### notices?

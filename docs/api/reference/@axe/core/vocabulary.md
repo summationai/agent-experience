@@ -225,6 +225,8 @@ type WireApi =
   | "devPairing"
   | "syncTimeoutMs"
   | "reconnectGraceMs"
+  | "actTimeoutMs"
+  | "navigated"
   | "tabRetentionMs"
   | "mintRelayToken"
   | "verifyRelayToken"
@@ -829,7 +831,8 @@ type WireReason =
   | "cross_origin_refused"
   | "json_required"
   | "payload_too_large"
-  | "approval_required";
+  | "approval_required"
+  | "outcome_unknown";
 ```
 
 Union of every `reason` name.
@@ -949,6 +952,7 @@ const api: Readonly<{
   action: "action";
   actionFor: "actionFor";
   actionNameFor: "actionNameFor";
+  actTimeoutMs: "actTimeoutMs";
   addProvider: "addProvider";
   agentAuth: "agentAuth";
   allowCredentials: "allowCredentials";
@@ -1086,6 +1090,7 @@ const api: Readonly<{
   metaFor: "metaFor";
   mintRelayToken: "mintRelayToken";
   modelContext: "modelContext";
+  navigated: "navigated";
   navigationTimeoutMs: "navigationTimeoutMs";
   needsInput: "needsInput";
   observe: "observe";
@@ -1799,6 +1804,7 @@ const reason: Readonly<{
   identityRequired: "identity_required";
   jsonRequired: "json_required";
   loginRequired: "login_required";
+  outcomeUnknown: "outcome_unknown";
   payloadTooLarge: "payload_too_large";
   paymentRequired: "payment_required";
 }>;
@@ -1942,6 +1948,7 @@ const WIRE: Readonly<{
      action: "action";
      actionFor: "actionFor";
      actionNameFor: "actionNameFor";
+     actTimeoutMs: "actTimeoutMs";
      addProvider: "addProvider";
      agentAuth: "agentAuth";
      allowCredentials: "allowCredentials";
@@ -2079,6 +2086,7 @@ const WIRE: Readonly<{
      metaFor: "metaFor";
      mintRelayToken: "mintRelayToken";
      modelContext: "modelContext";
+     navigated: "navigated";
      navigationTimeoutMs: "navigationTimeoutMs";
      needsInput: "needsInput";
      observe: "observe";
@@ -2561,6 +2569,7 @@ const WIRE: Readonly<{
      identityRequired: "identity_required";
      jsonRequired: "json_required";
      loginRequired: "login_required";
+     outcomeUnknown: "outcome_unknown";
      payloadTooLarge: "payload_too_large";
      paymentRequired: "payment_required";
   }>;

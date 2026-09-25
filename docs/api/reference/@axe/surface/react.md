@@ -87,8 +87,12 @@ optional data-surface-reason?: string;
 ##### children?
 
 ```ts
-optional children?: ReactNode;
+optional children?: unknown;
 ```
+
+The tree to render: any React node. Typed `unknown` so an application whose `@types/react`
+is another copy than the one the SDK was built against (a workspace, a linked checkout, React
+19 types over the SDK's React 18 ones) still typechecks.
 
 <a id="config"></a>
 
