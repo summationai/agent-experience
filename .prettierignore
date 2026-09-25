@@ -17,3 +17,4 @@ site/test/__screenshots__
 examples/*/next-env.d.ts
 examples/*/test-results
 examples/*/playwright-report
+docs/review/*/data/*.json

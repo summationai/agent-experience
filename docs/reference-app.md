@@ -240,9 +240,10 @@ function Cell(props: {
   saved: number;
   draft: string | undefined;
   readOnlyReason: string | null;
+  semantic: boolean;
   onDraft: (text: string) => void;
 }) {
-  const { planId, item, month, saved, draft, readOnlyReason, onDraft } = props;
+  const { planId, item, month, saved, draft, readOnlyReason, semantic, onDraft } = props;
   const value = draft ?? String(saved);
   const surfaceProps = useSurfaceProps(
     {
@@ -267,7 +268,7 @@ function Cell(props: {
   return (
     <td className={draft !== undefined ? "dirty" : undefined}>
       <input
-        {...surfaceProps}
+        {...(semantic ? surfaceProps : {})}
         inputMode="numeric"
         value={value}
         readOnly={!!readOnlyReason}

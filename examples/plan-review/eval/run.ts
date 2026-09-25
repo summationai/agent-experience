@@ -6,7 +6,7 @@
 //   pnpm eval                                  (from the repository root; builds the app first)
 //   node --import tsx eval/run.ts --runs=5     (from examples/plan-review, after `next build`)
 //
-// Options: --runs=N (default 5), --maintenance-runs=N (default 1), --variants=v1,v2,v3,v4,
+// Options: --runs=N (default 5), --maintenance-runs=N (default: --runs), --variants=v1,v2,v3,v4,
 // --scenarios=id,id, --port=3117, --date=YYYY-MM-DD, --out=DIR, --no-write.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -274,7 +274,7 @@ function pkgVersion(name: string): string {
 
 async function main(): Promise<void> {
   const runs = Number(arg("runs", "5"));
-  const maintenanceRuns = Number(arg("maintenance-runs", "1"));
+  const maintenanceRuns = Number(arg("maintenance-runs", String(runs)));
   const variants = arg("variants", "v1,v2,v3,v4").split(",") as VariantId[];
   const scenarioIds = arg("scenarios", SCENARIOS.map((s) => s.id).join(",")).split(",");
   const scenarios = SCENARIOS.filter((s) => scenarioIds.includes(s.id));
