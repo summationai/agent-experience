@@ -15,8 +15,21 @@ import {
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { OAuthProtectedResourceMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import type { CallToolResult, Tool } from "@modelcontextprotocol/sdk/types.js";
+import {
+  CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+  McpError,
+  ErrorCode,
+} from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ElicitRequestFormParams,
+  ElicitRequestURLParams,
+  ElicitResult,
+  Tool,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { AdapterContext } from "@axe/core";
 import type {
   ActionDefinition,
@@ -30,7 +43,28 @@ import { validateJsonSchema } from "@axe/core/schemas";
 import * as WIRE from "@axe/core/vocabulary";
 import { AXEClient, isOk } from "@axe/client";
 import type { ClientOptions } from "@axe/client";
-import { present, stateToMarkdown, toMarkdown } from "@axe/client/present";
+import { present, stateToMarkdown, toHTML, toMarkdown } from "@axe/client/present";
+import { elicitationModes, isOpenableUrl, payloadFrom, planElicitation } from "./elicitation";
+import type { ElicitationModes } from "./elicitation";
+import {
+  APPS_EXTENSION,
+  APPS_MIME_TYPE,
+  PRESENTATION_META_KEY,
+  PRESENTATION_RESOURCE,
+  PRESENTATION_URI,
+  PRESENTATION_VIEW_HTML,
+  appsNegotiated,
+} from "./apps";
+
+export { isSensitiveAccept, toFormSchema } from "./elicitation";
+export type { FormSchema } from "./elicitation";
+export {
+  APPS_EXTENSION,
+  APPS_MIME_TYPE,
+  PRESENTATION_META_KEY,
+  PRESENTATION_URI,
+  PRESENTATION_VIEW_HTML,
+} from "./apps";
 
 export type { AuthInfo, OAuthTokenVerifier };
 
@@ -66,6 +100,21 @@ export interface McpServerOptions {
   client?: ClientOptions;
   /** How long `pending` results are polled inside a tool call before returning. Default 20000 ms. */
   pollBudgetMs?: number;
+  /**
+   * MCP elicitation for the ladder, used only with a client that declared the `elicitation`
+   * capability (and a transport that can carry a server request: stdio, in-memory, or HTTP
+   * sessions, not stateless HTTP). A `needs_input` whose preferred kind is not sensitive and fits
+   * the form subset is asked for in a form and continued; a sensitive kind or a `needs_human`
+   * step is offered as the site's page in URL mode when the client supports it. `false` turns it
+   * off. Default: on, with `timeoutMs` 600000 (ten minutes) for the user to answer.
+   */
+  elicitation?: boolean | { timeoutMs?: number };
+  /**
+   * EXPERIMENTAL. Offer the MCP Apps view (`ui://axe/presentation`) for actions with `display`,
+   * only to a host that declared the `io.modelcontextprotocol/ui` extension. `false` turns it
+   * off. Default on.
+   */
+  apps?: boolean;
 }
 
 export interface DerivedMcpServer {
@@ -294,22 +343,75 @@ interface ServerScope {
 /** One MCP `Server` over the bridge. `dispose` unsubscribes it and closes it. */
 function buildServer(bridge: Bridge, scope: ServerScope): { server: Server; dispose(): void } {
   const manifest = bridge.root.manifest();
+  const appsOn = bridge.options.apps !== false;
+  const elicitOpt = bridge.options.elicitation;
+  const elicitOn = elicitOpt !== false;
+  const elicitTimeout =
+    (typeof elicitOpt === "object" ? elicitOpt.timeoutMs : undefined) ?? 600_000;
   const server = new Server(
     { name: bridge.options.name ?? manifest.name, version: bridge.options.version ?? "0.1.0" },
     {
-      capabilities: { tools: bridge.listChanged ? { listChanged: true } : {} },
+      capabilities: {
+        tools: bridge.listChanged ? { listChanged: true } : {},
+        // The UI resource is listed and linked only for a host that declared the Apps extension;
+        // the capability itself is announced before the client's capabilities are known.
+        ...(appsOn ? { resources: {} } : {}),
+      },
       instructions: instructionsFor(manifest),
     },
   );
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: buildTools(await bridge.manifestNow()),
-  }));
+  const appsNow = () => appsOn && appsNegotiated(server.getClientCapabilities());
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const current = await bridge.manifestNow();
+    const tools = buildTools(current);
+    return { tools: appsNow() ? withPresentationView(tools, current) : tools };
+  });
+  if (appsOn) {
+    server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: appsNow() ? [{ ...PRESENTATION_RESOURCE }] : [],
+    }));
+    server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
+      if (req.params.uri !== PRESENTATION_URI)
+        throw new McpError(ErrorCode.InvalidParams, `Unknown resource ${req.params.uri}`);
+      return {
+        contents: [
+          {
+            uri: PRESENTATION_URI,
+            mimeType: APPS_MIME_TYPE,
+            text: PRESENTATION_VIEW_HTML,
+            _meta: { ui: { prefersBorder: true } },
+          },
+        ],
+      };
+    });
+  }
   server.setRequestHandler(CallToolRequestSchema, async (req, extra) => {
     const name = req.params.name;
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
     try {
       const caller = scope.caller ? await scope.caller(extra.authInfo) : undefined;
-      return await callTool(bridge, bridge.clientFor(caller), name, args, scope.pollUrls);
+      const interaction: Interaction = {
+        modes: elicitOn
+          ? elicitationModes(server.getClientCapabilities())
+          : { form: false, url: false },
+        apps: appsNow(),
+        // Sent as part of this tool call (on its response stream over HTTP), so the question
+        // reaches the client that asked, in the session and as the caller that asked.
+        elicit: (params) =>
+          server.elicitInput(params, {
+            relatedRequestId: extra.requestId,
+            signal: extra.signal,
+            timeout: elicitTimeout,
+          }),
+      };
+      return await callTool(
+        bridge,
+        bridge.clientFor(caller),
+        name,
+        args,
+        scope.pollUrls,
+        interaction,
+      );
     } catch (e) {
       return errorContent(`Tool "${name}" failed: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -550,6 +652,7 @@ async function callTool(
   name: string,
   args: Record<string, unknown>,
   pollUrls: IssuedPollUrls,
+  interaction: Interaction = NO_INTERACTION,
 ): Promise<CallToolResult> {
   const pollBudget = bridge.options.pollBudgetMs ?? 20_000;
   let manifest = await bridge.manifestNow();
@@ -572,7 +675,7 @@ async function callTool(
     const result = await client.continue(token, kind, args[WIRE.field.payload] as JsonValue, {
       ...(expectedRev !== undefined ? { expectedRev } : {}),
     });
-    return formatResult(pollUrls.record(result), undefined, manifest.brand);
+    return finish({ bridge, client, interaction, pollUrls, manifest, expectedRev }, result);
   }
   if (name === WIRE.tool.resume) {
     const token = args[WIRE.field.resumeToken];
@@ -583,7 +686,7 @@ async function callTool(
     const result = await client.resume(token, {
       ...(expectedRev !== undefined ? { expectedRev } : {}),
     });
-    return formatResult(pollUrls.record(result), undefined, manifest.brand);
+    return finish({ bridge, client, interaction, pollUrls, manifest, expectedRev }, result);
   }
   if (name === WIRE.tool.poll) {
     const pollUrl = args[WIRE.field.pollUrl];
@@ -599,7 +702,7 @@ async function callTool(
       { status: WIRE.status.pending, pollUrl, retryAfter: 0 },
       { maxWaitMs: Math.max(pollBudget, 1) },
     );
-    return formatResult(pollUrls.record(result), undefined, manifest.brand);
+    return finish({ bridge, client, interaction, pollUrls, manifest }, result);
   }
   if (name === WIRE.tool.state && manifest.live) {
     const state = await client.state();
@@ -668,7 +771,154 @@ async function callTool(
   if (result.status === WIRE.status.pending) {
     result = await client.poll(result, { maxWaitMs: pollBudget });
   }
-  return formatResult(pollUrls.record(result), action, manifest.brand);
+  return finish({ bridge, client, interaction, pollUrls, manifest, action, expectedRev }, result);
+}
+
+// --- Elicitation and Apps (review item 14, 2026-09-24) ---------------------------------------
+
+/** What one tool call can do with its client beyond returning a result. */
+interface Interaction {
+  /** Elicitation modes the client declared (none when elicitation is off or unknown). */
+  modes: ElicitationModes;
+  /** Whether the host negotiated the MCP Apps view. */
+  apps: boolean;
+  elicit(params: ElicitRequestFormParams | ElicitRequestURLParams): Promise<ElicitResult>;
+}
+
+const NO_INTERACTION: Interaction = {
+  modes: { form: false, url: false },
+  apps: false,
+  elicit: () => Promise.reject(new Error("no elicitation")),
+};
+
+interface FinishContext {
+  bridge: Bridge;
+  client: AXEClient;
+  interaction: Interaction;
+  pollUrls: IssuedPollUrls;
+  manifest: Manifest;
+  action?: ActionDefinition;
+  expectedRev?: Revision | undefined;
+}
+
+/** At most this many forms per tool call: a site that asks again after an answer gets asked again, within reason. */
+const MAX_FORM_ROUNDS = 3;
+
+/**
+ * Turn a result into tool content, first asking the user through the client where the ladder and
+ * the client allow it ([P-MCP-6], [P-MCP-7]). Anything that goes wrong with an elicitation
+ * (the client refuses, times out, or answers outside the schema) leaves the result as it was, and
+ * the model gets the text it always got.
+ */
+async function finish(ctx: FinishContext, first: Result): Promise<CallToolResult> {
+  const { client, interaction, pollUrls, manifest } = ctx;
+  const notes: string[] = [];
+  let result = pollUrls.record(first);
+  const ask = async (
+    params: ElicitRequestFormParams | ElicitRequestURLParams,
+  ): Promise<ElicitResult | undefined> => {
+    try {
+      return await interaction.elicit(params);
+    } catch {
+      return undefined;
+    }
+  };
+  for (let round = 0; round < MAX_FORM_ROUNDS; round++) {
+    if (result.status === WIRE.status.needsInput) {
+      const needs = result;
+      const plan = planElicitation(needs.accepts, interaction.modes, needs.fallback?.url);
+      if (plan.mode === "form") {
+        const a = plan.accept;
+        const message = [needs.message, `${a.title}: ${a.description}`, a.instructions ?? ""]
+          .filter(Boolean)
+          .join("\n\n");
+        const answer = await ask({
+          mode: "form",
+          message,
+          requestedSchema: plan.form.requestedSchema as ElicitRequestFormParams["requestedSchema"],
+        });
+        if (!answer) break;
+        if (answer.action !== "accept") {
+          notes.push(
+            answer.action === "decline"
+              ? `The user declined to provide \`${a.kind}\` in the form the MCP client showed. Do not ask again at once; offer the other options below or stop.`
+              : `The user dismissed the form for \`${a.kind}\` without answering.`,
+          );
+          break;
+        }
+        notes.push(
+          `The user provided \`${a.kind}\` in a form the MCP client showed (elicitation), and it was sent to the site with ${WIRE.tool.continue}.`,
+        );
+        let next = await client.continue(
+          needs.continuationToken,
+          a.kind,
+          payloadFrom(plan.form, answer.content),
+          {
+            ...(ctx.expectedRev !== undefined ? { expectedRev: ctx.expectedRev } : {}),
+          },
+        );
+        if (next.status === WIRE.status.pending)
+          next = await client.poll(next, { maxWaitMs: ctx.bridge.options.pollBudgetMs ?? 20_000 });
+        result = pollUrls.record(next);
+        continue;
+      }
+      if (plan.mode === "url" && needs.fallback) {
+        notes.push(await offerPage(ask, needs.fallback));
+      }
+      break;
+    }
+    if (
+      result.status === WIRE.status.needsHuman &&
+      interaction.modes.url &&
+      // Signing in to the site the bridge speaks for is MCP authorization's job, not URL mode's.
+      result.handoff.reason !== WIRE.reason.loginRequired &&
+      isOpenableUrl(result.handoff.url)
+    ) {
+      notes.push(await offerPage(ask, result.handoff));
+    }
+    break;
+  }
+  const out = formatResult(result, ctx.action, manifest.brand, { presentation: interaction.apps });
+  if (notes.length) {
+    const first = out.content[0] as { type: "text"; text: string };
+    first.text = `${notes.join("\n")}\n\n${first.text}`;
+  }
+  return out;
+}
+
+/** Offer the site's page in URL mode; returns the note for the model. */
+async function offerPage(
+  ask: (params: ElicitRequestURLParams) => Promise<ElicitResult | undefined>,
+  handoff: {
+    url: string;
+    instructions: string;
+    whatAgentShouldSayToUser: string;
+    resumeToken: string;
+  },
+): Promise<string> {
+  const answer = await ask({
+    mode: "url",
+    elicitationId: crypto.randomUUID(),
+    url: handoff.url,
+    message: `${handoff.whatAgentShouldSayToUser} ${handoff.instructions}`,
+  });
+  if (!answer)
+    return "The MCP client could not show the site's page; relay the handoff below yourself.";
+  if (answer.action === "accept")
+    return `The MCP client offered the user the site's page (${handoff.url}) and the user agreed to open it (URL elicitation). That is not completion: when the user says they are done, call \`${WIRE.tool.resume}\` with resumeToken "${handoff.resumeToken}".`;
+  return answer.action === "decline"
+    ? `The user declined to open the site's page from the MCP client.`
+    : `The user dismissed the offer to open the site's page.`;
+}
+
+/** Tools for actions with `display` point at the Apps view ([P-MCP-8]). */
+function withPresentationView(tools: Tool[], manifest: Manifest): Tool[] {
+  const viewed = new Set(manifest.actions.filter((a) => a.display).map((a) => toolNameFor(a.name)));
+  return tools.map((t) =>
+    viewed.has(t.name)
+      ? { ...t, _meta: { ...(t._meta ?? {}), ui: { resourceUri: PRESENTATION_URI } } }
+      : t,
+  );
 }
 
 function errorContent(text: string): CallToolResult {
@@ -683,18 +933,28 @@ function jsonBlock(value: unknown): string {
   return "```json\n" + text + "\n```";
 }
 
+export interface FormatOptions {
+  /** EXPERIMENTAL. Attach the `toHTML` rendering of a `display` result for the MCP Apps view. */
+  presentation?: boolean;
+}
+
 /** Render a result envelope as MCP tool content. Exported for tests and custom bridges. */
 export function formatResult(
   result: Result,
   action: ActionDefinition | undefined,
   brand: Brand | undefined,
+  options: FormatOptions = {},
 ): CallToolResult {
   const structured = result as unknown as Record<string, unknown>;
   switch (result.status) {
     case WIRE.status.ok: {
       const parts: string[] = [];
+      let meta: Record<string, unknown> | undefined;
       if (action?.display && isOk(result)) {
         const presented = present(action, result, brand);
+        // EXPERIMENTAL: for a host with the MCP Apps view, the escaped HTML rendering rides in
+        // `_meta`; the text below is unchanged and is what every other host shows.
+        if (options.presentation) meta = { [PRESENTATION_META_KEY]: { html: toHTML(presented) } };
         parts.push(toMarkdown(presented));
         parts.push(
           "",
@@ -705,7 +965,11 @@ export function formatResult(
       }
       parts.push(jsonBlock(result.output));
       if (result.rev !== undefined) parts.push(revLine(result.rev));
-      return { content: [{ type: "text", text: parts.join("\n") }], structuredContent: structured };
+      return {
+        content: [{ type: "text", text: parts.join("\n") }],
+        structuredContent: structured,
+        ...(meta ? { _meta: meta } : {}),
+      };
     }
     case WIRE.status.needsInput: {
       const lines = [

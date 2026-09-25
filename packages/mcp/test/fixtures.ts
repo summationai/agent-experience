@@ -4,6 +4,12 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  ClientCapabilities,
+  ElicitRequest,
+  ElicitResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
@@ -155,15 +161,31 @@ export interface HttpMcpClient {
   transport: StreamableHTTPClientTransport;
 }
 
-/** The SDK's MCP client over Streamable HTTP, optionally with a bearer token on every request. */
-export async function httpClient(url: string, token?: string): Promise<HttpMcpClient> {
+/**
+ * The SDK's MCP client over Streamable HTTP, optionally with a bearer token on every request, and
+ * optionally declaring capabilities (elicitation, extensions) with an elicitation handler.
+ */
+export async function httpClient(
+  url: string,
+  token?: string,
+  options: { capabilities?: ClientCapabilities; onElicit?: ElicitHandler } = {},
+): Promise<HttpMcpClient> {
   const transport = new StreamableHTTPClientTransport(new URL(url), {
     requestInit: token ? { headers: { Authorization: `Bearer ${token}` } } : {},
   });
-  const client = new Client({ name: "http-test", version: "0" });
+  const client = new Client(
+    { name: "http-test", version: "0" },
+    options.capabilities ? { capabilities: options.capabilities } : {},
+  );
+  if (options.onElicit)
+    client.setRequestHandler(ElicitRequestSchema, (req) => options.onElicit!(req.params));
   await client.connect(transport as unknown as Transport);
   return { client, transport };
 }
+
+export type ElicitHandler = (
+  params: ElicitRequest["params"],
+) => Promise<ElicitResult> | ElicitResult;
 
 export function text(r: unknown): string {
   const content = (r as { content?: { text?: string }[] }).content ?? [];
