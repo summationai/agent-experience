@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createSurface } from "../src/index";
 import type { ActResult, LedgerEntry, LedgerQuery } from "../src/index";
 import { kinds, accept } from "@axe/core/kinds";
@@ -1229,5 +1229,58 @@ describe("revision modes [S-REV-1] [S-FRZ-2] [S-FRZ-3]", () => {
     expect(s.currentRev()).toBe(8);
     thaw();
     expect(s.currentRev()).toBe(8);
+  });
+});
+
+describe("subscribe [S-OBS-4]", () => {
+  const button = (id: string) =>
+    ({
+      id,
+      kind: "action",
+      role: "button",
+      name: id,
+      effect: { mutates: "x" },
+      handler() {},
+    }) as const;
+
+  it("fires after every change a reader could see, registration and app-owned revisions included", () => {
+    const s = createSurface();
+    const calls = vi.fn();
+    const changes = vi.fn();
+    s.onChange(changes);
+    const off = s.subscribe(calls);
+    const count = (fn: () => unknown) => {
+      calls.mockClear();
+      fn();
+      return calls.mock.calls.length;
+    };
+    expect(count(() => s.register(button("a")))).toBe(1);
+    expect(count(() => s.register(button("a")))).toBe(1); // replaced in place
+    expect(count(() => s.register(button("b")))).toBe(1);
+    expect(count(() => s.unregister("b"))).toBe(1);
+    expect(count(() => s.unregister("b"))).toBe(0); // nothing removed
+    s.register(button("row:1"));
+    s.register(button("row:2"));
+    expect(count(() => s.reconcile("row:", new Set(["row:1"])))).toBe(1);
+    expect(count(() => s.reconcile("row:", new Set(["row:1"])))).toBe(0); // nothing removed
+    expect(count(() => s.bump())).toBe(1);
+    expect(count(() => s.setRev(40))).toBe(1); // app mode: no bump happens
+    expect(count(() => s.seedRev(41))).toBe(1);
+    expect(count(() => s.seedRev(3))).toBe(0); // behind: not adopted
+    const thaw = s.freeze("saving"); // app mode: the revision stays, subscribers still hear it
+    expect(s.currentRev()).toBe(41);
+    expect(count(() => thaw())).toBe(1);
+    expect(count(() => s.freeze("again"))).toBe(1);
+    expect(count(() => s.reset())).toBe(1);
+    // onChange keeps its meaning: registration alone never woke it, so the bridge's change
+    // notification (and the MCP tool-list notification behind it) is not sent once per row.
+    expect(changes.mock.calls.map(([e]) => Object.keys(e).sort())).toEqual([
+      ["rev"],
+      ["frozen", "rev"],
+      ["rev", "thawed"],
+      ["frozen", "rev"],
+    ]);
+    off();
+    expect(count(() => s.register(button("c")))).toBe(0);
   });
 });

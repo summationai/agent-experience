@@ -47,6 +47,8 @@ describe("browser bundle", () => {
     );
     expect(out.imports).toEqual(["react"]);
     expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
+    // jsdom is the mounted React tests' environment, a devDependency; it never enters the bundle.
+    expect(out.inputs.filter((f) => /jsdom/.test(f))).toEqual([]);
     expect(out.inputs.some((f) => f.includes("vocabulary"))).toBe(true);
     console.log(`@axe/surface + @axe/surface/react: ${out.bytes} bytes minified for the browser`);
     expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);

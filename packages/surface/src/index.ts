@@ -412,6 +412,14 @@ export interface Surface {
   /** Advance the revision after a change and notify listeners. Marks the revision `surface`-owned unless pinned. */
   bump(meta?: Record<string, JsonValue>): number;
   onChange(fn: (event: { rev: number } & Record<string, JsonValue>) => void): () => void;
+  /**
+   * Call `fn` after every change to what `observe()`, `availability()`, or `attributesFor()` can
+   * report: `register`, `unregister` and `reconcile` that changed the table, `bump`, `setRev`,
+   * `seedRev` that adopted a revision, `freeze`, `thaw`, and `reset` ([S-OBS-4]). Returns the
+   * unsubscribe function. The shape `useSyncExternalStore` takes; `useSurfaceProps` uses it.
+   * `onChange` keeps its narrower meaning and does not fire on registration.
+   */
+  subscribe(fn: () => void): () => void;
   setObjects(fn: () => Record<string, JsonValue>): void;
   observe(): Observation;
   act(
@@ -531,6 +539,11 @@ function errorResult(
 export function createSurface(options: SurfaceOptions = {}): Surface {
   const entries = new Map<string, Entry>();
   const listeners = new Set<(event: { rev: number } & Record<string, JsonValue>) => void>();
+  // [S-OBS-4] Store subscribers: told after every change a reader could see, registration included.
+  const subscribers = new Set<() => void>();
+  const changed = (): void => {
+    for (const fn of [...subscribers]) fn();
+  };
   let rev = 0;
   let app = options.app ?? "app";
   let objectsFn: () => Record<string, JsonValue> = () => ({});
@@ -612,6 +625,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   };
   const notify = (meta: Record<string, JsonValue>): void => {
     for (const fn of listeners) fn({ ...meta, rev });
+    changed();
   };
 
   /** One entry's availability, honoring a freeze; shared by `observe()` and `availability()`. */
@@ -680,16 +694,21 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       }
       entries.set(entry.id, entry);
       registryVersion += 1;
+      changed();
     },
     unregister(id) {
-      if (entries.delete(id)) registryVersion += 1;
+      if (!entries.delete(id)) return;
+      registryVersion += 1;
+      changed();
     },
     reconcile(prefix, keep) {
+      const before = registryVersion;
       for (const id of [...entries.keys()])
         if (id.startsWith(prefix) && !keep.has(id)) {
           entries.delete(id);
           registryVersion += 1;
         }
+      if (registryVersion !== before) changed();
     },
     freeze(reason) {
       const hold: Frozen = { reason: String(reason || "busy") };
@@ -711,12 +730,15 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       return thaw;
     },
     seedRev(n) {
-      if (Number.isFinite(n) && n > rev) rev = n;
+      if (!Number.isFinite(n) || n <= rev) return;
+      rev = n;
+      changed();
     },
     setRev(n) {
       if (!Number.isFinite(n)) return;
       rev = n;
       if (!pinnedMode) mode = "app";
+      changed();
     },
     currentRev: () => rev,
     revisionMode: () => mode,
@@ -729,6 +751,10 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
     onChange(fn) {
       listeners.add(fn);
       return () => listeners.delete(fn);
+    },
+    subscribe(fn) {
+      subscribers.add(fn);
+      return () => void subscribers.delete(fn);
     },
     setObjects(fn) {
       objectsFn = typeof fn === "function" ? fn : () => ({});
@@ -1166,6 +1192,8 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       convert = options.toJsonSchema;
       app = options.app ?? "app";
       objectsFn = () => ({});
+      // Store subscribers are mounted components; they stay and read the empty table.
+      changed();
     },
   };
   return surface;
