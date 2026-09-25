@@ -33,25 +33,26 @@ Start at the top and read down. Each page ends with next steps.
 3. [Concepts](concepts.md) — manifest, actions, display and affordances, the result envelope, the escalation ladder, requirements and kinds, handoff and resume, idempotency, auth, flows, risk.
 4. [Surface](surface.md) — live state for agents: an application's registry of its own controls, with reasons and one revision, served as AXE actions.
 5. [Designing actions](designing-actions.md) — the most important guide: decomposing a human flow, writing descriptions for a model, choosing risk, designing requirements, designing read actions, anti-patterns, a worked example.
-6. [Generating actions](generating.md) — derive actions from what you already have: an OpenAPI document, a zod-typed function table, a tRPC router; overrides, policy, what the generator refuses to invent, `axe generate`.
-7. [Presenting results](presenting-results.md) — the search → present → select arc: `display`, pointers, attributes, disclaimer and url, brand, affordances, pagination and freshness, the reference renderers.
-8. [Requirements and kinds](requirements-and-kinds.md) — the `needs_input` contract, the well-known kind registry, custom kinds, validation, chaining, security of sensitive payloads.
-9. [Human handoff](human-handoff.md) — when it is necessary, the lifecycle, the resume landing page, token security, what to show the human.
-10. [Live state and revisions](live-state.md) — what can be done right now and why not the rest, the state the agent saw, `expectedRev` and `rev`, `/axe/state`, how it composes with idempotency and Surface.
-11. [Auth](auth.md) — the three modes, passing your session in, API keys, the v1 OAuth path.
-12. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
-13. [MCP](mcp.md) — the derived MCP server, the mapping table, connecting clients, limits.
-14. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
-15. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
-16. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
-17. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
-18. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
-19. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
-20. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
-21. [API reference](api/README.md) — generated from the source for every package.
-22. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
-23. [Glossary](glossary.md).
-24. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
+6. [Schemas: the supported subset](schemas.md) — the JSON Schema keywords the validator, the Zod converter, and `@axe/generate` support, how unsupported constructs fail, patterns and backtracking, refinements, and input as sent versus input as parsed.
+7. [Generating actions](generating.md) — derive actions from what you already have: an OpenAPI document, a zod-typed function table, a tRPC router; overrides, policy, what the generator refuses to invent, `axe generate`.
+8. [Presenting results](presenting-results.md) — the search → present → select arc: `display`, pointers, attributes, disclaimer and url, brand, affordances, pagination and freshness, the reference renderers.
+9. [Requirements and kinds](requirements-and-kinds.md) — the `needs_input` contract, the well-known kind registry, custom kinds, validation, chaining, security of sensitive payloads.
+10. [Human handoff](human-handoff.md) — when it is necessary, the lifecycle, the resume landing page, token security, what to show the human.
+11. [Live state and revisions](live-state.md) — what can be done right now and why not the rest, the state the agent saw, `expectedRev` and `rev`, `/axe/state`, how it composes with idempotency and Surface.
+12. [Auth](auth.md) — the three modes, passing your session in, API keys, the v1 OAuth path.
+13. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
+14. [MCP](mcp.md) — the derived MCP server, the mapping table, connecting clients, limits.
+15. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+16. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
+17. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
+18. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
+19. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
+20. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
+21. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
+22. [API reference](api/README.md) — generated from the source for every package.
+23. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
+24. [Glossary](glossary.md).
+25. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 

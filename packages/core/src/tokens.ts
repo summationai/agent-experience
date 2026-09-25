@@ -9,6 +9,8 @@
  * claim (spec §12.2), not here.
  */
 import type { Accept, Handoff, JsonValue, RequestContext, Revision } from "./types";
+import { ExpiringMap } from "./retention";
+import type { RetentionOptions } from "./retention";
 
 export type TokenType = "continuation" | "resume" | "poll";
 
@@ -68,29 +70,42 @@ export interface TokenStore {
   delete(id: string): Promise<void>;
 }
 
-/** In-memory `TokenStore` with expiry. Suitable for a single process. */
+/**
+ * In-memory `TokenStore` with expiry. Suitable for a single process. Retention is bounded
+ * ([P-LIM-4]): expired records are swept on writes at most once per `sweepIntervalMs`, and at
+ * `maxEntries` the oldest records are evicted (an evicted token answers `not_found`). No timer
+ * runs, so nothing keeps a process alive.
+ */
 export class MemoryTokenStore implements TokenStore {
-  private readonly map = new Map<string, { record: TokenRecord; expires: number }>();
+  private readonly map: ExpiringMap<{ record: TokenRecord; expiresAt: number }>;
+
+  constructor(options: RetentionOptions = {}) {
+    this.map = new ExpiringMap("MemoryTokenStore", options);
+  }
 
   async get(id: string): Promise<TokenRecord | undefined> {
-    const entry = this.map.get(id);
-    if (!entry) return undefined;
-    if (entry.expires <= Date.now()) {
-      this.map.delete(id);
-      return undefined;
-    }
-    return entry.record;
+    return this.map.get(id)?.record;
   }
 
   async set(id: string, record: TokenRecord, ttlSeconds: number): Promise<void> {
-    this.map.set(id, { record, expires: Date.now() + ttlSeconds * 1000 });
+    this.map.set(id, { record, expiresAt: this.map.now() + ttlSeconds * 1000 });
   }
 
   async delete(id: string): Promise<void> {
     this.map.delete(id);
   }
 
-  /** Number of live records, for tests. */
+  /** Drop every expired record now; returns how many. Writes do this on their own; see `sweepIntervalMs`. */
+  sweep(): number {
+    return this.map.sweep();
+  }
+
+  /** Drop every record. Later calls throw. There is no timer to stop. */
+  close(): void {
+    this.map.close();
+  }
+
+  /** Number of records held (expired ones not yet swept included), for tests. */
   get size(): number {
     return this.map.size;
   }

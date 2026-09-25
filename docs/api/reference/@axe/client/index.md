@@ -423,7 +423,11 @@ the caller `auth` identifies. Throws `AXEClientError` when the site publishes no
 ##### discover()
 
 ```ts
-static discover(url, options?): Promise<AXEClient>;
+static discover(
+   url, 
+   options?, 
+   call?
+): Promise<AXEClient>;
 ```
 
 Discover and construct in one step. Throws `AXETrustError` when the manifest's `baseUrl` is on
@@ -439,6 +443,12 @@ an origin `trust` does not authorize: a manifest cannot redirect your credential
 
 [`ClientOptions`](#clientoptions) = `{}`
 
+###### call?
+
+###### signal?
+
+`AbortSignal`
+
 ###### Returns
 
 `Promise`\<[`AXEClient`](#axeclient)\>
@@ -449,7 +459,9 @@ an origin `trust` does not authorize: a manifest cannot redirect your credential
 
 ### AXEClientError
 
-Thrown for transport-level failures (network, non-JSON body). Protocol errors are returned as `error` results.
+Thrown for transport-level failures: the network, a timeout or an abort, a response larger than
+`maxResponseBytes`, and a body that is not JSON or not a well-formed AXE document. Protocol
+errors are returned as `error` results.
 
 #### Extends
 
@@ -1229,6 +1241,18 @@ Longest time, in ms, a fetched manifest is used before `ensureFresh()` revalidat
 effective bound is the smaller of this and the manifest response's `Cache-Control` max-age
 (`no-cache` and `no-store` mean 0). Default 300000. See "Manifest freshness".
 
+<a id="maxresponsebytes"></a>
+
+##### maxResponseBytes?
+
+```ts
+optional maxResponseBytes?: number;
+```
+
+Largest response body the client reads, in bytes. A larger `Content-Length` is refused
+before reading; a body without one is read up to the limit, then cancelled. Default 4194304
+(4 MiB).
+
 <a id="maxretryafterms"></a>
 
 ##### maxRetryAfterMs?
@@ -1256,6 +1280,17 @@ Retries after `rate_limited`/`unavailable`. Default 1.
 ```ts
 optional sessionId?: string;
 ```
+
+<a id="timeoutms"></a>
+
+##### timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```
+
+Abort one request after this many milliseconds, redirects and reading the body included.
+Default 30000. Each retry and each poll is a new request with its own timeout.
 
 <a id="timezone"></a>
 
@@ -1426,6 +1461,36 @@ optional headers?: Record<string, string>;
 ```
 
 Sent only to the discovery origin and `trust.origins`, like `ClientOptions.headers`.
+
+<a id="maxresponsebytes-1"></a>
+
+##### maxResponseBytes?
+
+```ts
+optional maxResponseBytes?: number;
+```
+
+Like `ClientOptions.maxResponseBytes`. Default 4194304.
+
+<a id="signal"></a>
+
+##### signal?
+
+```ts
+optional signal?: AbortSignal;
+```
+
+Abort discovery: every request it makes.
+
+<a id="timeoutms-1"></a>
+
+##### timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```
+
+Per request, like `ClientOptions.timeoutMs`. Default 30000.
 
 <a id="trust-1"></a>
 
@@ -1658,7 +1723,7 @@ The revision you observed (from `state()`, `manifest().live.rev`, or a previous 
 optional idempotencyKey?: string;
 ```
 
-<a id="signal"></a>
+<a id="signal-1"></a>
 
 ##### signal?
 
@@ -2102,6 +2167,16 @@ status: "pending";
 
 #### Properties
 
+<a id="maxpollattempts"></a>
+
+##### maxPollAttempts?
+
+```ts
+optional maxPollAttempts?: number;
+```
+
+Stop after this many poll requests and return the last `pending`. Default 60; shared in `run()` like `maxWaitMs`.
+
 <a id="maxwaitms"></a>
 
 ##### maxWaitMs?
@@ -2110,7 +2185,8 @@ status: "pending";
 optional maxWaitMs?: number;
 ```
 
-Give up after this long. Default 60000.
+Stop polling after this long and return the last `pending`. Default 60000. In `run()` the
+budget is shared by every poll of the run, starting at its first poll.
 
 <a id="onpending"></a>
 
@@ -2130,7 +2206,7 @@ optional onPending?: (result) => void;
 
 `void`
 
-<a id="signal-1"></a>
+<a id="signal-2"></a>
 
 ##### signal?
 
@@ -2189,6 +2265,20 @@ optional idempotencyKey?: string;
 
 [`InvokeOptions`](#invokeoptions).[`idempotencyKey`](#idempotencykey)
 
+<a id="maxpollattempts-1"></a>
+
+##### maxPollAttempts?
+
+```ts
+optional maxPollAttempts?: number;
+```
+
+Stop after this many poll requests and return the last `pending`. Default 60; shared in `run()` like `maxWaitMs`.
+
+###### Inherited from
+
+[`PollOptions`](#polloptions).[`maxPollAttempts`](#maxpollattempts)
+
 <a id="maxsteps"></a>
 
 ##### maxSteps?
@@ -2207,7 +2297,8 @@ Safety valve for requirement chains. Default 8.
 optional maxWaitMs?: number;
 ```
 
-Give up after this long. Default 60000.
+Stop polling after this long and return the last `pending`. Default 60000. In `run()` the
+budget is shared by every poll of the run, starting at its first poll.
 
 ###### Inherited from
 
@@ -2245,7 +2336,7 @@ optional pollPending?: boolean;
 
 Follow `pending` results by polling. Default true.
 
-<a id="signal-2"></a>
+<a id="signal-3"></a>
 
 ##### signal?
 
@@ -2255,7 +2346,7 @@ optional signal?: AbortSignal;
 
 ###### Inherited from
 
-[`InvokeOptions`](#invokeoptions).[`signal`](#signal)
+[`InvokeOptions`](#invokeoptions).[`signal`](#signal-1)
 
 ***
 

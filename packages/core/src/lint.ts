@@ -4,6 +4,8 @@
  * (where directive-to-agent text is rejected outright).
  */
 import type { ActionDefinition, Display, JsonSchema, Manifest } from "./types";
+import { schemaProblems } from "./json-schema";
+import { WIRE } from "./vocabulary";
 
 export type LintSeverity = "error" | "warning";
 
@@ -35,7 +37,10 @@ export type LintRule =
   | "missing-disclaimer"
   | "readonly-contradiction"
   | "risk-none-on-mutation"
-  | "unavailable-without-reason";
+  | "unavailable-without-reason"
+  | "unsupported-schema"
+  | "backtracking-pattern"
+  | "refined-schema";
 
 const DOCS = "docs/audit.md#honesty-rules";
 
@@ -267,9 +272,60 @@ function outputHasList(action: ActionDefinition): boolean {
   );
 }
 
+/** JSON Pointers of every node in a schema that carries `x-axe-refined: true`. */
+function refinedNodes(schema: unknown, path = "", out: string[] = [], depth = 0): string[] {
+  if (depth > 128 || !schema || typeof schema !== "object") return out;
+  if (Array.isArray(schema)) {
+    schema.forEach((s, i) => refinedNodes(s, `${path}/${i}`, out, depth + 1));
+    return out;
+  }
+  const node = schema as Record<string, unknown>;
+  if (node[WIRE.field.axeRefined] === true) out.push(path || "/");
+  for (const [k, v] of Object.entries(node))
+    if (k !== "enum" && k !== "const" && k !== "default" && k !== "examples")
+      refinedNodes(v, `${path}/${k.replace(/~/g, "~0").replace(/\//g, "~1")}`, out, depth + 1);
+  return out;
+}
+
+/**
+ * Schema-boundary rules ([P-SCHEMA-2], [P-SCHEMA-4], [P-SCHEMA-5]): constructs the SDK's JSON
+ * Schema validator refuses to apply, patterns shaped for catastrophic backtracking, and nodes the
+ * server checks more strictly than the published schema says.
+ */
+export function lintSchema(schema: JsonSchema, location: string): LintIssue[] {
+  const issues: LintIssue[] = [];
+  for (const p of schemaProblems(schema)) {
+    const backtracking = p.severity === "warning";
+    issues.push({
+      rule: backtracking ? "backtracking-pattern" : "unsupported-schema",
+      severity: p.severity,
+      location: `${location}${p.path ? `#${p.path}` : ""}`,
+      message: p.message,
+      docs: backtracking ? "docs/schemas.md#patterns" : "docs/schemas.md#the-supported-subset",
+    });
+  }
+  for (const path of refinedNodes(schema)) {
+    issues.push({
+      rule: "refined-schema",
+      severity: "warning",
+      location: `${location}#${path}`,
+      message:
+        "The server checks this value more strictly than its JSON Schema says (a refine, a custom type, or a preprocess), so a value an agent builds from the schema may be refused with invalid_input. The manifest marks it x-axe-refined; say what the check is in the field's description, or express it as a schema constraint (spec [P-SCHEMA-5]).",
+      docs: "docs/schemas.md#refinements-and-transforms",
+    });
+  }
+  return issues;
+}
+
 /** Apply every lint rule to one action. */
 export function lintAction(action: ActionDefinition): LintIssue[] {
   const issues: LintIssue[] = [];
+  issues.push(...lintSchema(action.input, `${action.name}.input`));
+  issues.push(
+    ...lintSchema(action.output, `${action.name}.output`).filter(
+      (i) => i.rule !== "refined-schema",
+    ),
+  );
   for (const t of agentReadText(action)) {
     issues.push(...lintAgentText(t.text, { location: t.location, checkLength: t.isDescription }));
   }

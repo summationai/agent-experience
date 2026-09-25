@@ -116,7 +116,10 @@ type LintRule =
   | "missing-disclaimer"
   | "readonly-contradiction"
   | "risk-none-on-mutation"
-  | "unavailable-without-reason";
+  | "unavailable-without-reason"
+  | "unsupported-schema"
+  | "backtracking-pattern"
+  | "refined-schema";
 ```
 
 ***
@@ -286,6 +289,34 @@ Apply every lint rule to a manifest.
 ##### manifest
 
 [`Manifest`](types.md#manifest)
+
+#### Returns
+
+[`LintIssue`](#lintissue)[]
+
+***
+
+<a id="lintschema"></a>
+
+### lintSchema()
+
+```ts
+function lintSchema(schema, location): LintIssue[];
+```
+
+Schema-boundary rules ([P-SCHEMA-2], [P-SCHEMA-4], [P-SCHEMA-5]): constructs the SDK's JSON
+Schema validator refuses to apply, patterns shaped for catastrophic backtracking, and nodes the
+server checks more strictly than the published schema says.
+
+#### Parameters
+
+##### schema
+
+[`JsonSchema`](types.md#jsonschema)
+
+##### location
+
+`string`
 
 #### Returns
 

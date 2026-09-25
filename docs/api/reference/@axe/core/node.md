@@ -154,10 +154,21 @@ The completed record under `key`, or undefined when there is none, it expired, o
 ##### prune()
 
 ```ts
-prune(): number;
+prune(before?): number;
 ```
 
-Delete expired rows. Call it from a periodic job; correctness never depends on it.
+Delete rows that expired at or before `before` (epoch milliseconds, default now) and return how
+many. Expired rows are already ignored by every read, so correctness never depends on this; it
+bounds the table ([P-LIM-4]). Call it from a periodic job, for example every few minutes. The
+same statement, for a job outside Node: `DELETE FROM axe_operations_v1 WHERE expires <= ?`
+with the current epoch milliseconds (the `expires` column is indexed). A `before` later than
+now is refused: it would delete claims and records that are still live.
+
+###### Parameters
+
+###### before?
+
+`number` = `...`
 
 ###### Returns
 

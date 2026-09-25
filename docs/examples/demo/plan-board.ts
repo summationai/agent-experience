@@ -127,8 +127,10 @@ const axe = createAXE({
 axe.addProvider(surfaceActions(surface, { namespace: "plan", auth: "user" }));
 
 const app = express();
-app.use(express.json());
+// AXE first, so it reads and bounds its own request bodies (an oversized body gets an AXE
+// envelope, not the body parser's HTML 413); the parser only serves the routes below.
 app.use(axeExpress(axe));
+app.use(express.json());
 
 // The approval only a person can give. The page calls this with the browser session; the agent's
 // session is refused, so an agent cannot approve its own lock.

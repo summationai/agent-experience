@@ -110,6 +110,7 @@ const DOCS = {
   cors: "docs/deploying.md#cors",
   security: "docs/security.md",
   live: "docs/live-state.md",
+  limits: "docs/deploying.md#limits-and-retention",
 };
 
 class Runner {
@@ -853,6 +854,88 @@ async function runtime(r: Runner): Promise<void> {
       ["P-INV-1"],
       `HTTP ${res.status}, code ${code ?? "(none)"} on ${first.name}`,
       DOCS.errors,
+    );
+  }
+
+  // An oversized body is refused before it is read in full ([P-LIM-1]). The body streams up to
+  // 32 MiB and is never valid JSON, so no handler can run whatever the server does with it.
+  {
+    const cap = 32 * 1024 * 1024;
+    const enc = new TextEncoder();
+    const chunk = enc.encode("x".repeat(64 * 1024));
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent === 0) {
+          const head = enc.encode('{"input":{"axeConformancePad":"');
+          sent += head.byteLength;
+          controller.enqueue(head);
+        } else if (sent >= cap) {
+          controller.close();
+        } else {
+          sent += chunk.byteLength;
+          controller.enqueue(chunk);
+        }
+      },
+    });
+    let res: Response | undefined;
+    let json: unknown = null;
+    try {
+      res = await r.request(`${WIRE.path.actions}/${first.name}`, {
+        method: "POST",
+        body,
+        duplex: "half",
+      } as RequestInit);
+      json = JSON.parse(await res.text());
+    } catch {
+      // Reported below.
+    }
+    const result = isResult(json) ? json : null;
+    const reason =
+      result?.status === WIRE.status.error ? result.error.details?.["reason"] : undefined;
+    const envelope =
+      res?.status === 413 &&
+      errorCode(result) === WIRE.error.invalidInput &&
+      reason === WIRE.reason.payloadTooLarge;
+    // A 413 without an envelope was refused in front of the AXE server (a proxy, or a body
+    // parser mounted before it): the limit holds, but the agent gets no result envelope.
+    r.add(
+      "runtime.body-limit",
+      "A body over the server's limit → 413 invalid_input, payload_too_large, before it is read in full",
+      envelope ? "pass" : res?.status === 413 && !result ? "warn" : "fail",
+      ["P-LIM-1"],
+      res
+        ? `HTTP ${res.status}, code ${errorCode(result) ?? "(none)"}, reason ${String(reason ?? "(none)")}, after sending ${sent} bytes${res.status === 413 && !result ? "; refused in front of the AXE server without a result envelope (mount the AXE middleware before body parsers)" : ""}`
+        : `No response after sending ${sent} bytes`,
+      DOCS.limits,
+    );
+  }
+
+  // Deep nesting is refused as input, not a server failure ([P-LIM-2]).
+  {
+    const depth = 20_000;
+    const res = await r
+      .request(`${WIRE.path.actions}/${first.name}`, {
+        method: "POST",
+        body: `{"input":{"axeConformanceDeep":${"[".repeat(depth)}${"]".repeat(depth)}},"idempotencyKey":"${crypto.randomUUID()}"}`,
+      })
+      .catch(() => undefined);
+    let json: unknown = null;
+    try {
+      json = res ? JSON.parse(await res.text()) : null;
+    } catch {
+      json = null;
+    }
+    const code = errorCode(isResult(json) ? json : null);
+    r.add(
+      "runtime.nesting-limit",
+      `A body nested ${depth} levels deep → 4xx invalid_input, not a server error`,
+      res && res.status >= 400 && res.status < 500 && code === WIRE.error.invalidInput
+        ? "pass"
+        : "fail",
+      ["P-LIM-2"],
+      res ? `HTTP ${res.status}, code ${code ?? "(none)"}` : "No response",
+      DOCS.limits,
     );
   }
 

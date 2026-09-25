@@ -168,6 +168,32 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 | `medium` | The effect commits the user to something reversible at low cost: a booking with free cancellation, a tour request. | Tell the user what was done.                                                            |
 | `high`   | Money moves, a legal commitment is made, identity is asserted, or the effect is hard to reverse.                   | Confirm with the user before calling, and again before sending any `sensitive` payload. |
 
+### 5.4 Schemas: the supported subset
+
+Every schema a site publishes (`input`, `output`, `accepts[].schema`) is read by agents that build values from it and by validators that check values against it. The two must agree, so the protocol fixes a subset of JSON Schema draft 2020-12 and says what a validator does with anything outside it. `docs/schemas.md` has the full keyword table for the SDK's validator, its Zod converter, and `@axe/generate`.
+
+| Group       | Keywords                                                                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Types       | `type`, `enum`, `const`                                                                                                                                           |
+| Objects     | `properties`, `required`, `additionalProperties`, `patternProperties`, `propertyNames`, `minProperties`, `maxProperties`, `dependentRequired`, `dependentSchemas` |
+| Arrays      | `items` (a schema), `prefixItems`, `minItems`, `maxItems`, `uniqueItems`, `contains`, `minContains`, `maxContains`                                                |
+| Strings     | `minLength`, `maxLength` (code points), `pattern` (ECMAScript), `format`: `date`, `date-time`, `time`, `duration`, `email`, `uri`, `uuid`, `ipv4`, `jwt`          |
+| Numbers     | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`                                                                                        |
+| Composition | `allOf`, `anyOf`, `oneOf`, `not`, `if`, `then`, `else`, `$ref` to `#` or `#/...` within the same document, `$defs`                                                |
+| Ignored     | Annotations (`title`, `description`, `default`, `examples`, `deprecated`, `readOnly`, `writeOnly`, `$comment`, `$id`, `$anchor`, `content*`) and any `x-` keyword |
+
+**[P-SCHEMA-1]** A validator MUST treat an instance's members as its own members only. `__proto__` and `constructor` are ordinary member names: they are subject to `additionalProperties`, and `required` is not satisfied by anything inherited.
+
+**[P-SCHEMA-2]** A validator MUST refuse the value, never ignore the construct, when a schema uses a keyword outside the subset (for example `unevaluatedProperties`, `$dynamicRef`, the draft 7 `dependencies`, or an array-valued `items`), a `format` it cannot check that no `pattern` in the same schema (directly or in an `allOf` member) carries, a `pattern` that does not compile, a `$ref` that is not local or does not resolve, or a `$ref` loop that consumes no part of the instance. Treating any of these as absent would accept values the author meant to refuse. Sites SHOULD NOT publish them; the SDK's lint reports each one.
+
+**[P-SCHEMA-3]** `multipleOf` MUST be evaluated on the decimal values of the instance and the divisor: `0.3` is a multiple of `0.1`, `0.30000000000000004` is not. A validator MUST NOT accept a value only because a floating-point division rounds to an integer.
+
+**[P-SCHEMA-4]** `pattern` and `patternProperties` keys are ECMAScript regular expressions, evaluated with the `u` flag where they compile with it. Sites MUST NOT publish a pattern that backtracks catastrophically on long input, such as a repeated group whose body is itself repeated (`(a+)+`, `(\w+\s?)*`). The SDK's lint warns on that shape; the request body limit ([P-LIM-1]) bounds the input any pattern sees.
+
+**[P-SCHEMA-5]** The published schema MUST NOT be looser than what the server enforces unless it says so. A schema node the server checks more strictly than JSON Schema can express (a Zod `.refine` or `.superRefine`, a custom type, a type JSON cannot carry, a preprocess) MUST carry `"x-axe-refined": true`. Agents SHOULD expect `invalid_input` for a value that matches a node so marked. A server whose parsing is more permissive than its schema (coercion) publishes the stricter schema, which agents follow.
+
+**[P-SCHEMA-6]** The fingerprint of an action call, used for idempotency ([P-IDEM-2], [P-IDEM-3]) and token binding ([P-TOK-2]), is the canonical JSON of `input` as sent, before defaults, coercion, or transforms. Two requests whose `input` differs in any member, including one the schema would default or strip, are different operations; the handler still receives the parsed value.
+
 ## 6. Invocation
 
 ### 6.1 Request
@@ -205,7 +231,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 ### 6.2 HTTP status codes
 
-**[P-INV-6]** Every AXE response body is a result envelope (§7). Non-error results MUST use HTTP `200`. Error results MUST use the mapped HTTP status:
+**[P-INV-6]** Every AXE response body is a result envelope (§7). Non-error results MUST use HTTP `200`. Error results MUST use the mapped HTTP status, except that a body refused for its size uses `413` ([P-LIM-1]):
 
 | `error.code`    | HTTP |
 | --------------- | ---- |
@@ -243,6 +269,18 @@ The refusal is `forbidden`. It MUST be returned before the server looks up the a
 **[P-TRANS-3]** A request with neither `Origin` nor `Sec-Fetch-Site` was not made by a browser on a page's behalf; [P-TRANS-2] MUST NOT refuse it. Server-to-server callers presenting `Authorization: Bearer` are therefore unaffected. `GET`, `HEAD`, and `OPTIONS` requests are outside §6.4; a site MUST NOT change state in response to them beyond what the protocol defines (`GET` on a `pollUrl` returns the result of work the agent already started).
 
 **[P-TRANS-4]** For [P-TRANS-2] the site's own origin MUST come from its configuration (`baseUrl`), never from the `Host`, `Forwarded`, or `X-Forwarded-*` request headers, which a client or an intermediary can set. Trusted origins are exact origins (scheme, host, and port); a wildcard MUST NOT be accepted as one. An origin the site allows to make credentialed CORS requests is already trusted to send any request with its cookies and read the result, so a server MAY treat it as trusted.
+
+### 6.5 Limits
+
+A manifest invites traffic from software that does not get tired. Every buffer a request can fill and every record it can leave behind needs a bound that does not depend on the caller behaving.
+
+**[P-LIM-1]** A server MUST bound the size of the request bodies it reads and MUST refuse a larger body before parsing it, with `error` `code: "invalid_input"`, `retryable: false`, `details.reason: "payload_too_large"`, `details.maxBodyBytes` (the limit in bytes), and HTTP `413`. A body whose `Content-Length` exceeds the limit MUST be refused without reading it; a body without one MUST NOT be read past the limit. The SDK's default is 1 MiB (`maxBodyBytes`). A proxy or body parser in front of the server that refuses first is also conforming. Agents MUST NOT repeat a refused request unchanged; a large document goes by `document.url` (KINDS.md).
+
+**[P-LIM-2]** A server MUST answer a request body nested arbitrarily deep with a result envelope, not a server error or a dropped connection. The SDK refuses a body whose arrays and objects nest more than 64 levels deep with `invalid_input`.
+
+**[P-LIM-3]** An agent MUST bound what it spends on a site: a timeout on every request (the body read included), a limit on the size of each response it reads, and a budget for polling, in attempts and in total time. It MUST honor `retryAfter` within that budget and MUST wait at least one second between polls whatever `retryAfter` says. It MUST check a manifest, a result, or a live-state document for the members it uses before acting on it, and treat one that fails as a transport error. The SDK client's defaults are a 30-second timeout, 4 MiB per response, and 60 polls or 60 seconds per `poll()` or `run()`.
+
+**[P-LIM-4]** A server MUST NOT keep per-request state without bound. Token records and operation claims (§12) expire, and an expired entry MUST eventually be removed whether or not its key is presented again. An in-memory store MUST cap the number of entries it holds. When it evicts before expiry, it MUST NOT evict an operation claim whose lease is running, since that would let the operation run twice; evicting a completed operation record shortens that key's idempotency window, so a retry runs the handler again. A durable store needs a periodic cleanup job; correctness never depends on it.
 
 ## 7. Result envelope
 
@@ -622,6 +660,8 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 - **Duplicate execution.** Operations are claimed atomically ([P-OP-1]); side effects are the site's to make idempotent ([P-OP-4]).
 - **Sensitive payloads.** [P-REQ-3] and [P-REQ-10]. The SDK never logs payloads and never includes them in events.
 - **Agents as load.** A manifest invites agents; it does not promise unlimited capacity. Sites SHOULD declare `policies.rateLimit`, enforce it at their edge, and use `pending` for slow work rather than holding connections.
+- **Resource exhaustion.** Request bodies, nesting, and stored records are bounded ([P-LIM-1], [P-LIM-2], [P-LIM-4]); an agent bounds its requests, responses, and polling ([P-LIM-3]). A schema `pattern` runs a site-authored regular expression against agent-supplied text; [P-SCHEMA-4] keeps it linear in practice.
+- **Schema gaps.** A validator that ignored a keyword it did not understand would accept what the author meant to refuse; [P-SCHEMA-2] makes it refuse instead, and [P-SCHEMA-5] marks what a schema cannot say.
 - **Over-permissioned actions.** Nothing in AXE grants an agent more than the site's existing authorization allows. Sites MUST authorize every action with the same checks their UI applies, using the identity from §16, never from the request body.
 - **HTML in results.** Renderers MUST escape everything ([P-DISP-5]). Sites MUST NOT rely on markup reaching a user.
 - **Bridges to other agent protocols.** A bridge such as an MCP server serves many callers from one process. Each call reaches the site as its own caller, never as a shared identity, and the bridge's session is not an authentication ([P-MCP-2]).

@@ -4340,6 +4340,29 @@ v0.9.4
 IncomingMessage.wrap
 ```
 
+***
+
+<a id="towebrequestoptions"></a>
+
+### ToWebRequestOptions
+
+Options for `toWebRequest`.
+
+#### Properties
+
+<a id="maxbodybytes"></a>
+
+##### maxBodyBytes?
+
+```ts
+optional maxBodyBytes?: number;
+```
+
+Read at most this many bytes of an unread body stream (pass `axe.maxBodyBytes`). A larger
+body is not buffered: the Request carries the first `maxBodyBytes + 1` bytes, or none when
+`Content-Length` already says it is too large, and the core refuses it with 413 ([P-LIM-1]).
+Unbounded when omitted.
+
 ## Functions
 
 <a id="axeexpress"></a>
@@ -4399,7 +4422,11 @@ Write a Web `Response` to a Node response. Exported for other Node adapters.
 ### toWebRequest()
 
 ```ts
-function toWebRequest(req, origin?): Promise<Request>;
+function toWebRequest(
+   req, 
+   origin?, 
+   options?
+): Promise<Request>;
 ```
 
 Build a Web `Request` from a Node request. Exported for other Node adapters.
@@ -4413,6 +4440,10 @@ Build a Web `Request` from a Node request. Exported for other Node adapters.
 ##### origin?
 
 `string`
+
+##### options?
+
+[`ToWebRequestOptions`](#towebrequestoptions) = `{}`
 
 #### Returns
 

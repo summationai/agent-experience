@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import express from "express";
+import { request as httpRequest } from "node:http";
 import type { Server } from "node:http";
 import { createAXE, action, z } from "@axe/core";
+import type { AXEConfig } from "@axe/core";
 import { axeExpress } from "../src/index";
 
-function server() {
+function server(overrides: Partial<AXEConfig> = {}) {
   const axe = createAXE({
     name: "Sunrise Yoga Studio",
     description:
@@ -12,6 +14,7 @@ function server() {
     baseUrl: "http://localhost:0",
     auth: { modes: ["none", "user"], userLoginUrl: "http://localhost:0/login" },
     secret: "0123456789abcdef0123456789abcdef",
+    ...overrides,
   });
   axe.register(
     action("classes.search", {
@@ -106,6 +109,17 @@ describe("axeExpress", () => {
       body: JSON.stringify({ input: { classId: "c1" }, idempotencyKey: "k" }),
     });
     expect(((await anon.json()) as { status: string }).status).toBe("needs_human");
+  });
+
+  it("a deeply nested body parsed by express.json() is invalid_input, not a 500 [P-LIM-2]", async () => {
+    const n = 20_000;
+    const r = await fetch(`${base}/axe/actions/classes.search`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: `{"input":{"from":${"[".repeat(n)}${"]".repeat(n)}}}`,
+    });
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { error: { code: string } }).error.code).toBe("invalid_input");
   });
 
   it("works without express.json() by reading the raw stream", async () => {
@@ -323,4 +337,76 @@ describe("axeExpress request policy [P-TRANS-1] [P-TRANS-2]", () => {
     });
     expect(r.status).toBe(200);
   });
+});
+
+/**
+ * Send headers and the first bytes of a body, never the rest, and resolve with the response. A
+ * server that buffers the whole body before answering never answers; the test times out.
+ */
+function partialPost(
+  port: number,
+  path: string,
+  headers: Record<string, string>,
+  first: Buffer,
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve) => {
+    const req = httpRequest({ host: "127.0.0.1", port, path, method: "POST", headers }, (res) => {
+      let body = "";
+      res.on("data", (c: Buffer) => (body += c.toString()));
+      res.on("end", () => {
+        resolve({ status: res.statusCode ?? 0, body });
+        req.destroy();
+      });
+    });
+    req.on("error", () => undefined);
+    req.write(first);
+  });
+}
+
+describe("axeExpress body limit [P-LIM-1]", () => {
+  async function listen(maxBodyBytes: number) {
+    const runs: string[] = [];
+    const axe = server({ maxBodyBytes, onRequest: (ctx) => void runs.push(ctx.action) });
+    const app = express();
+    app.use(axeExpress(axe));
+    const srv = await new Promise<Server>((resolve) => {
+      const s = app.listen(0, () => resolve(s));
+    });
+    return { srv, port: (srv.address() as { port: number }).port, runs };
+  }
+
+  it(
+    "a raw body whose Content-Length exceeds the limit is refused with 413 before it is read",
+    { timeout: 5000 },
+    async () => {
+      const { srv, port, runs } = await listen(1024);
+      const r = await partialPost(
+        port,
+        "/axe/actions/classes.search",
+        { "content-type": "application/json", "content-length": String(10 * 1024 * 1024) },
+        Buffer.alloc(64 * 1024, 0x20),
+      );
+      expect(r.status).toBe(413);
+      expect(JSON.parse(r.body).error.details.reason).toBe("payload_too_large");
+      expect(runs).toEqual([]);
+      await new Promise<void>((res) => srv.close(() => res()));
+    },
+  );
+
+  it(
+    "a chunked raw body is read only past the limit, then refused with 413 without waiting for the rest",
+    { timeout: 5000 },
+    async () => {
+      const { srv, port, runs } = await listen(100 * 1024);
+      const r = await partialPost(
+        port,
+        "/axe/actions/classes.search",
+        { "content-type": "application/json" },
+        Buffer.alloc(200 * 1024, 0x20),
+      );
+      expect(r.status).toBe(413);
+      expect(runs).toEqual([]);
+      await new Promise<void>((res) => srv.close(() => res()));
+    },
+  );
 });

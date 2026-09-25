@@ -1219,6 +1219,24 @@ effective bound is the smaller of this and the manifest response's `Cache-Contro
 ClientOptions.manifestMaxAgeMs
 ```
 
+<a id="maxresponsebytes"></a>
+
+##### maxResponseBytes?
+
+```ts
+optional maxResponseBytes?: number;
+```
+
+Largest response body the client reads, in bytes. A larger `Content-Length` is refused
+before reading; a body without one is read up to the limit, then cancelled. Default 4194304
+(4 MiB).
+
+###### Inherited from
+
+```ts
+ClientOptions.maxResponseBytes
+```
+
 <a id="maxretryafterms"></a>
 
 ##### maxRetryAfterMs?
@@ -1263,6 +1281,23 @@ optional sessionId?: string;
 
 ```ts
 ClientOptions.sessionId
+```
+
+<a id="timeoutms-2"></a>
+
+##### timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```
+
+Abort one request after this many milliseconds, redirects and reading the body included.
+Default 30000. Each retry and each poll is a new request with its own timeout.
+
+###### Inherited from
+
+```ts
+ClientOptions.timeoutMs
 ```
 
 <a id="timezone"></a>

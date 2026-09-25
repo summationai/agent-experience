@@ -125,7 +125,7 @@ A document the site fetches from a URL the agent controls or the user has shared
 
 ### `document.base64`
 
-Inline upload. Sites SHOULD state the maximum size; the SDK enforces a 10 MiB default on the decoded size.
+Inline upload. Sites SHOULD state the maximum size; the SDK enforces a 10 MiB default on the decoded size. The request body limit applies first ([P-LIM-1]): with the SDK's default `maxBodyBytes` of 1 MiB, an inline document can be about 750 KiB, and a site that accepts larger ones raises `maxBodyBytes` (base64 is four bytes for every three).
 
 | Member          | Type   | Required | Meaning                              |
 | --------------- | ------ | -------- | ------------------------------------ |

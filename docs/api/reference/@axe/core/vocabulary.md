@@ -171,6 +171,17 @@ type WireApi =
   | "SqliteIdempotencyStore"
   | "operationLeaseSeconds"
   | "operationId"
+  | "maxBodyBytes"
+  | "maxEntries"
+  | "sweepIntervalMs"
+  | "prune"
+  | "schemaProblems"
+  | "timeoutMs"
+  | "maxResponseBytes"
+  | "maxPollAttempts"
+  | "validateJsonSchema"
+  | "lintAction"
+  | "isBacktrackingPattern"
   | "clientFor"
   | "idleTimeoutMs"
   | "maxSessions"
@@ -459,6 +470,8 @@ type WireField =
   | "issues"
   | "handoffStatus"
   | "operationStatus"
+  | "maxBodyBytes"
+  | "x-axe-refined"
   | "expected"
   | "schemaVersion"
   | "ts"
@@ -714,7 +727,8 @@ type WireReason =
   | "identity_required"
   | "document_required"
   | "cross_origin_refused"
-  | "json_required";
+  | "json_required"
+  | "payload_too_large";
 ```
 
 Union of every `reason` name.
@@ -742,6 +756,42 @@ type WireRobots = "AXE-Manifest" | "AXE-Index";
 ```
 
 Union of every `robots` name.
+
+***
+
+<a id="wireschema"></a>
+
+### WireSchema
+
+```ts
+type WireSchema = 
+  | "additionalProperties"
+  | "patternProperties"
+  | "propertyNames"
+  | "minProperties"
+  | "maxProperties"
+  | "dependentRequired"
+  | "dependentSchemas"
+  | "prefixItems"
+  | "minItems"
+  | "maxItems"
+  | "uniqueItems"
+  | "minContains"
+  | "maxContains"
+  | "minLength"
+  | "exclusiveMinimum"
+  | "exclusiveMaximum"
+  | "multipleOf"
+  | "allOf"
+  | "anyOf"
+  | "oneOf"
+  | "writeOnly"
+  | "unevaluatedProperties"
+  | "unevaluatedItems"
+  | "additionalItems";
+```
+
+Union of every `schema` name.
 
 ***
 
@@ -866,6 +916,7 @@ const api: Readonly<{
   invoke: "invoke";
   invokeAction: "invokeAction";
   isAxePath: "isAxePath";
+  isBacktrackingPattern: "isBacktrackingPattern";
   isError: "isError";
   isNeedsHuman: "isNeedsHuman";
   isNeedsInput: "isNeedsInput";
@@ -876,11 +927,16 @@ const api: Readonly<{
   keyFor: "keyFor";
   kinds: "kinds";
   ledger: "ledger";
+  lintAction: "lintAction";
   lintAgentText: "lintAgentText";
   lintManifest: "lintManifest";
   manifest: "manifest";
   manifestCacheSeconds: "manifestCacheSeconds";
   manifestMaxAgeMs: "manifestMaxAgeMs";
+  maxBodyBytes: "maxBodyBytes";
+  maxEntries: "maxEntries";
+  maxPollAttempts: "maxPollAttempts";
+  maxResponseBytes: "maxResponseBytes";
   maxRetryAfterMs: "maxRetryAfterMs";
   maxRisk: "maxRisk";
   maxSessions: "maxSessions";
@@ -908,6 +964,7 @@ const api: Readonly<{
   pollBudgetMs: "pollBudgetMs";
   present: "present";
   protectedResourceMetadata: "protectedResourceMetadata";
+  prune: "prune";
   reconcile: "reconcile";
   redactEvent: "redactEvent";
   register: "register";
@@ -929,6 +986,7 @@ const api: Readonly<{
   runAudit: "runAudit";
   runConformance: "runConformance";
   samplePayload: "samplePayload";
+  schemaProblems: "schemaProblems";
   scopedSurfaces: "scopedSurfaces";
   secret: "secret";
   seedRev: "seedRev";
@@ -950,7 +1008,9 @@ const api: Readonly<{
   surfaceAttributes: "surfaceAttributes";
   surfaceConflict: "SurfaceConflict";
   surfaceSelector: "surfaceSelector";
+  sweepIntervalMs: "sweepIntervalMs";
   thaw: "thaw";
+  timeoutMs: "timeoutMs";
   toHTML: "toHTML";
   toJsonSchema: "toJsonSchema";
   tokenStore: "tokenStore";
@@ -964,6 +1024,7 @@ const api: Readonly<{
   unregister: "unregister";
   useSurface: "useSurface";
   useSurfaceProps: "useSurfaceProps";
+  validateJsonSchema: "validateJsonSchema";
   verifySiteKey: "verifySiteKey";
   withMimeTypes: "withMimeTypes";
 }>;
@@ -1124,6 +1185,7 @@ const field: Readonly<{
   auth: "auth";
   availability: "availability";
   available: "available";
+  axeRefined: "x-axe-refined";
   axeReserved: "_axe";
   badges: "badges";
   baseUrl: "baseUrl";
@@ -1196,6 +1258,7 @@ const field: Readonly<{
   logoUrl: "logoUrl";
   manifestUrl: "manifestUrl";
   max: "max";
+  maxBodyBytes: "maxBodyBytes";
   maxLength: "maxLength";
   message: "message";
   modes: "modes";
@@ -1532,6 +1595,7 @@ const reason: Readonly<{
   identityRequired: "identity_required";
   jsonRequired: "json_required";
   loginRequired: "login_required";
+  payloadTooLarge: "payload_too_large";
   paymentRequired: "payment_required";
 }>;
 ```
@@ -1569,6 +1633,43 @@ const robots: Readonly<{
 ```
 
 `robots` names.
+
+***
+
+<a id="schema"></a>
+
+### schema
+
+```ts
+const schema: Readonly<{
+  additionalItems: "additionalItems";
+  additionalProperties: "additionalProperties";
+  allOf: "allOf";
+  anyOf: "anyOf";
+  dependentRequired: "dependentRequired";
+  dependentSchemas: "dependentSchemas";
+  exclusiveMaximum: "exclusiveMaximum";
+  exclusiveMinimum: "exclusiveMinimum";
+  maxContains: "maxContains";
+  maxItems: "maxItems";
+  maxProperties: "maxProperties";
+  minContains: "minContains";
+  minItems: "minItems";
+  minLength: "minLength";
+  minProperties: "minProperties";
+  multipleOf: "multipleOf";
+  oneOf: "oneOf";
+  patternProperties: "patternProperties";
+  prefixItems: "prefixItems";
+  propertyNames: "propertyNames";
+  unevaluatedItems: "unevaluatedItems";
+  unevaluatedProperties: "unevaluatedProperties";
+  uniqueItems: "uniqueItems";
+  writeOnly: "writeOnly";
+}>;
+```
+
+`schema` names.
 
 ***
 
@@ -1705,6 +1806,7 @@ const WIRE: Readonly<{
      invoke: "invoke";
      invokeAction: "invokeAction";
      isAxePath: "isAxePath";
+     isBacktrackingPattern: "isBacktrackingPattern";
      isError: "isError";
      isNeedsHuman: "isNeedsHuman";
      isNeedsInput: "isNeedsInput";
@@ -1715,11 +1817,16 @@ const WIRE: Readonly<{
      keyFor: "keyFor";
      kinds: "kinds";
      ledger: "ledger";
+     lintAction: "lintAction";
      lintAgentText: "lintAgentText";
      lintManifest: "lintManifest";
      manifest: "manifest";
      manifestCacheSeconds: "manifestCacheSeconds";
      manifestMaxAgeMs: "manifestMaxAgeMs";
+     maxBodyBytes: "maxBodyBytes";
+     maxEntries: "maxEntries";
+     maxPollAttempts: "maxPollAttempts";
+     maxResponseBytes: "maxResponseBytes";
      maxRetryAfterMs: "maxRetryAfterMs";
      maxRisk: "maxRisk";
      maxSessions: "maxSessions";
@@ -1747,6 +1854,7 @@ const WIRE: Readonly<{
      pollBudgetMs: "pollBudgetMs";
      present: "present";
      protectedResourceMetadata: "protectedResourceMetadata";
+     prune: "prune";
      reconcile: "reconcile";
      redactEvent: "redactEvent";
      register: "register";
@@ -1768,6 +1876,7 @@ const WIRE: Readonly<{
      runAudit: "runAudit";
      runConformance: "runConformance";
      samplePayload: "samplePayload";
+     schemaProblems: "schemaProblems";
      scopedSurfaces: "scopedSurfaces";
      secret: "secret";
      seedRev: "seedRev";
@@ -1789,7 +1898,9 @@ const WIRE: Readonly<{
      surfaceAttributes: "surfaceAttributes";
      surfaceConflict: "SurfaceConflict";
      surfaceSelector: "surfaceSelector";
+     sweepIntervalMs: "sweepIntervalMs";
      thaw: "thaw";
+     timeoutMs: "timeoutMs";
      toHTML: "toHTML";
      toJsonSchema: "toJsonSchema";
      tokenStore: "tokenStore";
@@ -1803,6 +1914,7 @@ const WIRE: Readonly<{
      unregister: "unregister";
      useSurface: "useSurface";
      useSurfaceProps: "useSurfaceProps";
+     validateJsonSchema: "validateJsonSchema";
      verifySiteKey: "verifySiteKey";
      withMimeTypes: "withMimeTypes";
   }>;
@@ -1875,6 +1987,7 @@ const WIRE: Readonly<{
      auth: "auth";
      availability: "availability";
      available: "available";
+     axeRefined: "x-axe-refined";
      axeReserved: "_axe";
      badges: "badges";
      baseUrl: "baseUrl";
@@ -1947,6 +2060,7 @@ const WIRE: Readonly<{
      logoUrl: "logoUrl";
      manifestUrl: "manifestUrl";
      max: "max";
+     maxBodyBytes: "maxBodyBytes";
      maxLength: "maxLength";
      message: "message";
      modes: "modes";
@@ -2151,6 +2265,7 @@ const WIRE: Readonly<{
      identityRequired: "identity_required";
      jsonRequired: "json_required";
      loginRequired: "login_required";
+     payloadTooLarge: "payload_too_large";
      paymentRequired: "payment_required";
   }>;
   risk: Readonly<{
@@ -2162,6 +2277,32 @@ const WIRE: Readonly<{
   robots: Readonly<{
      index: "AXE-Index";
      manifest: "AXE-Manifest";
+  }>;
+  schema: Readonly<{
+     additionalItems: "additionalItems";
+     additionalProperties: "additionalProperties";
+     allOf: "allOf";
+     anyOf: "anyOf";
+     dependentRequired: "dependentRequired";
+     dependentSchemas: "dependentSchemas";
+     exclusiveMaximum: "exclusiveMaximum";
+     exclusiveMinimum: "exclusiveMinimum";
+     maxContains: "maxContains";
+     maxItems: "maxItems";
+     maxProperties: "maxProperties";
+     minContains: "minContains";
+     minItems: "minItems";
+     minLength: "minLength";
+     minProperties: "minProperties";
+     multipleOf: "multipleOf";
+     oneOf: "oneOf";
+     patternProperties: "patternProperties";
+     prefixItems: "prefixItems";
+     propertyNames: "propertyNames";
+     unevaluatedItems: "unevaluatedItems";
+     unevaluatedProperties: "unevaluatedProperties";
+     uniqueItems: "uniqueItems";
+     writeOnly: "writeOnly";
   }>;
   status: Readonly<{
      error: "error";

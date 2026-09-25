@@ -185,7 +185,8 @@ export function checkVocabularyDrift(options: DriftOptions): DriftReport {
     if (existsSync(full))
       siteFiles.push(...walk(full, (f) => f.endsWith(".html") || f.endsWith(".js")));
   }
-  const unknown: Record<string, string[]> = {};
+  // No prototype: a doc may mention `constructor` or `__proto__` in a code span.
+  const unknown: Record<string, string[]> = Object.create(null) as Record<string, string[]>;
   const mentioned = new Set<string>();
   for (const file of [...docFiles, ...siteFiles]) {
     const rel = relative(root, file);

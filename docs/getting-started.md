@@ -144,10 +144,12 @@ import { axeExpress } from "@axe/express";
 import { axe } from "./axe";
 
 const app = express();
-app.use(express.json());
 
 // Serves /.well-known/axe.json and every /axe/* endpoint. Everything else falls through.
+// Mounted before any body parser, it reads its own request bodies within maxBodyBytes and
+// answers an oversized one with an AXE envelope.
 app.use(axeExpress(axe));
+app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.send("Sunrise Yoga Studio");

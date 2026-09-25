@@ -129,6 +129,17 @@ export interface ClientOptions {
    * (`no-cache` and `no-store` mean 0). Default 300000. See "Manifest freshness".
    */
   manifestMaxAgeMs?: number;
+  /**
+   * Abort one request after this many milliseconds, redirects and reading the body included.
+   * Default 30000. Each retry and each poll is a new request with its own timeout.
+   */
+  timeoutMs?: number;
+  /**
+   * Largest response body the client reads, in bytes. A larger `Content-Length` is refused
+   * before reading; a body without one is read up to the limit, then cancelled. Default 4194304
+   * (4 MiB).
+   */
+  maxResponseBytes?: number;
 }
 
 export interface InvokeOptions {
@@ -143,8 +154,13 @@ export interface InvokeOptions {
 }
 
 export interface PollOptions {
-  /** Give up after this long. Default 60000. */
+  /**
+   * Stop polling after this long and return the last `pending`. Default 60000. In `run()` the
+   * budget is shared by every poll of the run, starting at its first poll.
+   */
   maxWaitMs?: number;
+  /** Stop after this many poll requests and return the last `pending`. Default 60; shared in `run()` like `maxWaitMs`. */
+  maxPollAttempts?: number;
   signal?: AbortSignal;
   onPending?: (result: PendingResult) => void;
 }
@@ -169,7 +185,11 @@ export type RunOutcome<O = JsonValue> =
   | { status: "pending"; result: PendingResult; action: ActionDefinition }
   | { status: "error"; result: ErrorResult; action: ActionDefinition | undefined };
 
-/** Thrown for transport-level failures (network, non-JSON body). Protocol errors are returned as `error` results. */
+/**
+ * Thrown for transport-level failures: the network, a timeout or an abort, a response larger than
+ * `maxResponseBytes`, and a body that is not JSON or not a well-formed AXE document. Protocol
+ * errors are returned as `error` results.
+ */
 export class AXEClientError extends Error {
   override readonly cause: unknown;
   constructor(message: string, cause?: unknown) {
@@ -331,7 +351,13 @@ async function send(
   p: Policy,
   kind: DestinationKind,
   url: string,
-  init: { method: string; body?: string; signal?: AbortSignal | undefined },
+  init: {
+    method: string;
+    body?: string;
+    signal?: AbortSignal | undefined;
+    timeoutMs?: number | undefined;
+    maxBytes?: number | undefined;
+  },
   base: Record<string, string>,
   credentials: () => Promise<Record<string, string>>,
 ): Promise<Response> {
@@ -344,51 +370,150 @@ async function send(
   const first = current.origin;
   let { method, body } = init;
   let from: string | undefined;
-  for (let hop = 0; hop <= 5; hop++) {
-    const refuse = (why: string) =>
-      new AXETrustError(
-        `Refused ${kind} request to ${current.href}${from ? ` (redirected from ${from})` : ""}: ${why}.`,
-        current.href,
-        kind,
-      );
-    const d = decide(p, current);
-    if (!d.allowed) throw refuse(d.reason!);
-    const credentialed = d.credentialed && current.origin === first;
-    if (p.hook) {
-      const req: DestinationRequest = { url: current.href, kind, credentialed };
-      if (from) req.redirectedFrom = from;
-      if (!(await p.hook(req))) throw refuse("trust.destinationPolicy returned false");
+  // One controller per call: the caller's signal and the timeout both abort it, across every
+  // redirect hop and while the body is read ([P-PEND-3], docs/for-agent-builders.md).
+  const caller = init.signal;
+  const timeoutMs = init.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const maxBytes = init.maxBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
+  if (caller?.aborted) throw new AXEClientError(`Request to ${url} was aborted.`, caller.reason);
+  const ctl = new AbortController();
+  let timedOut = false;
+  const onAbort = () => ctl.abort(caller?.reason);
+  caller?.addEventListener("abort", onAbort, { once: true });
+  const timer =
+    timeoutMs > 0 && Number.isFinite(timeoutMs)
+      ? setTimeout(() => {
+          timedOut = true;
+          ctl.abort();
+        }, timeoutMs)
+      : undefined;
+  (timer as { unref?: () => void } | undefined)?.unref?.();
+  const done = () => {
+    clearTimeout(timer);
+    caller?.removeEventListener("abort", onAbort);
+  };
+  const failure = (at: string, e: unknown) =>
+    e instanceof AXEClientError
+      ? e
+      : timedOut
+        ? new AXEClientError(`Request to ${at} timed out after ${timeoutMs} ms.`, e)
+        : caller?.aborted
+          ? new AXEClientError(`Request to ${at} was aborted.`, caller.reason)
+          : new AXEClientError(`Request to ${at} failed.`, e);
+  try {
+    for (let hop = 0; hop <= 5; hop++) {
+      const refuse = (why: string) =>
+        new AXETrustError(
+          `Refused ${kind} request to ${current.href}${from ? ` (redirected from ${from})` : ""}: ${why}.`,
+          current.href,
+          kind,
+        );
+      const d = decide(p, current);
+      if (!d.allowed) throw refuse(d.reason!);
+      const credentialed = d.credentialed && current.origin === first;
+      if (p.hook) {
+        const req: DestinationRequest = { url: current.href, kind, credentialed };
+        if (from) req.redirectedFrom = from;
+        if (!(await p.hook(req))) throw refuse("trust.destinationPolicy returned false");
+      }
+      const ri: RequestInit = {
+        method,
+        headers: credentialed ? { ...base, ...(await credentials()) } : base,
+        redirect: "manual",
+        signal: ctl.signal,
+      };
+      if (body !== undefined) ri.body = body;
+      let res: Response;
+      try {
+        res = await f(current.href, ri);
+      } catch (e) {
+        throw failure(current.href, e);
+      }
+      if (res.type === "opaqueredirect")
+        throw refuse("it redirected and the runtime hides the target, so it cannot be checked");
+      if (res.redirected && res.url && new URL(res.url).origin !== current.origin)
+        throw refuse(`the fetch implementation followed a redirect to ${res.url} itself`);
+      const location = REDIRECT_STATUSES.includes(res.status) ? res.headers.get("location") : null;
+      if (!location) return bounded(res, current.href, maxBytes, done, failure);
+      void res.body?.cancel().catch(() => undefined);
+      const next = new URL(location, current);
+      if (current.protocol === "https:" && next.protocol !== "https:")
+        throw refuse(`it redirected to ${next.href}, a downgrade from https`);
+      if (res.status === 303 || (method === "POST" && res.status < 307)) {
+        method = "GET";
+        body = undefined;
+      }
+      from = current.href;
+      current = next;
     }
-    const ri: RequestInit = {
-      method,
-      headers: credentialed ? { ...base, ...(await credentials()) } : base,
-      redirect: "manual",
-    };
-    if (body !== undefined) ri.body = body;
-    if (init.signal) ri.signal = init.signal;
-    let res: Response;
-    try {
-      res = await f(current.href, ri);
-    } catch (e) {
-      throw new AXEClientError(`Request to ${current.href} failed.`, e);
-    }
-    if (res.type === "opaqueredirect")
-      throw refuse("it redirected and the runtime hides the target, so it cannot be checked");
-    if (res.redirected && res.url && new URL(res.url).origin !== current.origin)
-      throw refuse(`the fetch implementation followed a redirect to ${res.url} itself`);
-    const location = REDIRECT_STATUSES.includes(res.status) ? res.headers.get("location") : null;
-    if (!location) return res;
-    const next = new URL(location, current);
-    if (current.protocol === "https:" && next.protocol !== "https:")
-      throw refuse(`it redirected to ${next.href}, a downgrade from https`);
-    if (res.status === 303 || (method === "POST" && res.status < 307)) {
-      method = "GET";
-      body = undefined;
-    }
-    from = current.href;
-    current = next;
+    throw new AXEClientError(`Too many redirects from ${url}.`);
+  } catch (e) {
+    done();
+    throw e;
   }
-  throw new AXEClientError(`Too many redirects from ${url}.`);
+}
+
+const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+
+/**
+ * The response with its body limited to `max` bytes: a larger `Content-Length` is refused at
+ * once, and a body without one errors (and is cancelled) as soon as it passes the limit. `done`
+ * runs when the body ends, fails, or is cancelled, which stops the timeout.
+ */
+function bounded(
+  res: Response,
+  url: string,
+  max: number,
+  done: () => void,
+  failure: (at: string, e: unknown) => AXEClientError,
+): Response {
+  const tooLarge = () =>
+    new AXEClientError(`Response from ${url} is larger than maxResponseBytes (${max} bytes).`);
+  const declared = Number(res.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > max) {
+    done();
+    void res.body?.cancel().catch(() => undefined);
+    throw tooLarge();
+  }
+  if (!res.body || [204, 205, 304].includes(res.status)) {
+    done();
+    return res;
+  }
+  const reader = res.body.getReader();
+  let total = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const chunk = await reader.read();
+        if (chunk.done) {
+          done();
+          controller.close();
+          return;
+        }
+        total += chunk.value.byteLength;
+        if (total > max) {
+          done();
+          void reader.cancel().catch(() => undefined);
+          controller.error(tooLarge());
+          return;
+        }
+        controller.enqueue(chunk.value);
+      } catch (e) {
+        done();
+        controller.error(failure(url, e));
+      }
+    },
+    cancel(reason) {
+      done();
+      return reader.cancel(reason);
+    },
+  });
+  return new Response(stream, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: res.headers,
+  });
 }
 
 /** The origin each manifest returned by `discover()` was discovered from. */
@@ -404,6 +529,12 @@ export interface DiscoverOptions {
   headers?: Record<string, string>;
   /** Which origins discovery may follow a header or link hint to. See `TrustOptions`. */
   trust?: TrustOptions;
+  /** Abort discovery: every request it makes. */
+  signal?: AbortSignal;
+  /** Per request, like `ClientOptions.timeoutMs`. Default 30000. */
+  timeoutMs?: number;
+  /** Like `ClientOptions.maxResponseBytes`. Default 4194304. */
+  maxResponseBytes?: number;
 }
 
 /**
@@ -434,8 +565,22 @@ export async function discover(
     throw new AXETrustError(`Refused discovery at ${url}: ${start.reason}.`, url, "discovery");
   const creds = async () => ({ ...(options.headers ?? {}) });
   const refused: string[] = [];
+  const unusable: string[] = [];
   const get = (u: string, accept: string) =>
-    send(f, policy, "discovery", u, { method: "GET" }, { Accept: accept }, creds);
+    send(
+      f,
+      policy,
+      "discovery",
+      u,
+      {
+        method: "GET",
+        signal: options.signal,
+        timeoutMs: options.timeoutMs,
+        maxBytes: options.maxResponseBytes,
+      },
+      { Accept: accept },
+      creds,
+    );
   const found = (
     manifest: Manifest,
     manifestUrl: string,
@@ -447,12 +592,23 @@ export async function discover(
   const tryJson = async (u: string): Promise<Manifest | undefined> => {
     try {
       const res = await get(u, "application/json");
-      if (!res.ok) return undefined;
+      if (!res.ok) {
+        void res.body?.cancel().catch(() => undefined);
+        return undefined;
+      }
       const body = (await res.json()) as unknown;
-      if (looksLikeManifest(body)) fetchedManifests.set(body, fetchRecord(u, res));
-      return looksLikeManifest(body) ? body : undefined;
+      const problem = manifestProblem(body);
+      if (problem) {
+        unusable.push(`${u} is not a well-formed manifest: ${problem}.`);
+        return undefined;
+      }
+      fetchedManifests.set(body as Manifest, fetchRecord(u, res));
+      return body as Manifest;
     } catch (e) {
+      // The caller's abort ends discovery; anything else rules out this candidate only.
+      if (options.signal?.aborted) throw e;
       if (e instanceof AXETrustError) refused.push(e.message);
+      else if (e instanceof AXEClientError) unusable.push(e.message);
       return undefined;
     }
   };
@@ -466,7 +622,7 @@ export async function discover(
   try {
     page = await get(url, "text/html,application/json");
   } catch (e) {
-    if (e instanceof AXETrustError) throw e;
+    if (e instanceof AXETrustError || options.signal?.aborted) throw e;
     throw new AXEClientError(`Could not reach ${url} while discovering an AXE manifest.`, e);
   }
   const header = page.headers.get(WIRE.header.manifest);
@@ -477,7 +633,12 @@ export async function discover(
   }
   const ct = page.headers.get("content-type") ?? "";
   if (ct.includes("text/html")) {
-    const html = await page.text();
+    let html: string;
+    try {
+      html = await page.text();
+    } catch (e) {
+      throw e instanceof AXEClientError ? e : new AXEClientError(`Could not read ${url}.`, e);
+    }
     const href = findLinkHref(html);
     if (href) {
       const lu = new URL(href, url).toString();
@@ -486,18 +647,138 @@ export async function discover(
     }
   }
   throw new AXEClientError(
-    `No AXE manifest found for ${url}. Tried ${WIRE.path.manifest}, ${WIRE.path.manifestAlias}, the ${WIRE.header.manifest} header, and a <link rel="${WIRE.link.manifestRel}"> tag.${refused.length ? ` Refused by the destination policy: ${refused.join(" ")}` : ""}`,
+    `No AXE manifest found for ${url}. Tried ${WIRE.path.manifest}, ${WIRE.path.manifestAlias}, the ${WIRE.header.manifest} header, and a <link rel="${WIRE.link.manifestRel}"> tag.${refused.length ? ` Refused by the destination policy: ${refused.join(" ")}` : ""}${unusable.length ? ` Not usable: ${unusable.join(" ")}` : ""}`,
   );
 }
 
-function looksLikeManifest(v: unknown): v is Manifest {
-  return (
-    !!v &&
-    typeof v === "object" &&
-    typeof (v as Manifest).protocol === "string" &&
-    Array.isArray((v as Manifest).actions) &&
-    typeof (v as Manifest).baseUrl === "string"
-  );
+// ---------------------------------------------------------------------------
+// Checking what a site sent. A manifest, a result, and a live-state document are untrusted input:
+// each is checked for the members the client and `present` use before it is returned, so a
+// malformed document is an `AXEClientError`, never a crash later on.
+// ---------------------------------------------------------------------------
+
+type Check = (v: unknown) => string | undefined;
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+const str: Check = (v) => (typeof v === "string" ? undefined : "a string");
+const bool: Check = (v) => (typeof v === "boolean" ? undefined : "a boolean");
+const obj: Check = (v) => (isObj(v) ? undefined : "an object");
+const num: Check = (v) => (typeof v === "number" && Number.isFinite(v) ? undefined : "a number");
+const rev: Check = (v) => (typeof v === "string" ? undefined : num(v));
+const strs: Check = (v) =>
+  Array.isArray(v) && v.every((x) => typeof x === "string") ? undefined : "an array of strings";
+const opt =
+  (c: Check): Check =>
+  (v) =>
+    v === undefined ? undefined : c(v);
+
+/** Check own members of `v` against `shape`; the first problem, as `member must be ...`. */
+function members(v: unknown, shape: Record<string, Check>, at = ""): string | undefined {
+  if (!isObj(v)) return `${at || "the document"} must be an object`;
+  for (const [k, c] of Object.entries(shape)) {
+    const why = c(Object.prototype.hasOwnProperty.call(v, k) ? v[k] : undefined);
+    if (why) return `${at}${at ? "." : ""}${k} must be ${why}`;
+  }
+  return undefined;
+}
+
+const nested =
+  (shape: Record<string, Check>): Check =>
+  (v) => {
+    const why = members(v, shape);
+    return why && isObj(v) ? `valid (${why})` : why && "an object";
+  };
+const list =
+  (c: Check, min = 0): Check =>
+  (v) => {
+    if (!Array.isArray(v) || v.length < min) return min ? `a non-empty array` : "an array";
+    for (let i = 0; i < v.length; i++) {
+      const why = c(v[i]);
+      if (why) return `valid at [${i}] (${why})`;
+    }
+    return undefined;
+  };
+
+const HANDOFF = {
+  reason: str,
+  instructions: str,
+  url: str,
+  resumeToken: str,
+  expiresAt: str,
+  whatAgentShouldSayToUser: str,
+};
+const RESULT_SHAPES: Record<string, Record<string, Check>> = {
+  [WIRE.status.ok]: {},
+  [WIRE.status.needsInput]: {
+    reason: str,
+    message: str,
+    continuationToken: str,
+    expiresAt: str,
+    accepts: list(
+      nested({
+        kind: str,
+        title: str,
+        description: str,
+        schema: obj,
+        sensitive: bool,
+        instructions: opt(str),
+      }),
+      1,
+    ),
+    fallback: opt(nested(HANDOFF)),
+  },
+  [WIRE.status.needsHuman]: { handoff: nested(HANDOFF) },
+  [WIRE.status.pending]: { pollUrl: str, retryAfter: num, expiresAt: opt(str) },
+  [WIRE.status.error]: {
+    error: nested({ code: str, message: str, retryable: bool, details: opt(obj) }),
+  },
+};
+
+/** Why `v` is not a result envelope the client can act on, or undefined. */
+function resultProblem(v: unknown): string | undefined {
+  if (!isObj(v)) return "the body must be an object";
+  const status = Object.prototype.hasOwnProperty.call(v, "status") ? v["status"] : undefined;
+  const shape = typeof status === "string" ? RESULT_SHAPES[status] : undefined;
+  if (!shape || !Object.prototype.hasOwnProperty.call(RESULT_SHAPES, status as string))
+    return `status must be one of ${Object.keys(RESULT_SHAPES).join(", ")}`;
+  if (status === WIRE.status.ok && !Object.prototype.hasOwnProperty.call(v, "output"))
+    return "output is missing";
+  return members(v, { ...shape, rev: opt(rev) });
+}
+
+/** Why `v` is not a manifest the client can use, or undefined. */
+function manifestProblem(v: unknown): string | undefined {
+  return members(v, {
+    protocol: str,
+    name: str,
+    description: str,
+    baseUrl: str,
+    actions: list(
+      nested({
+        name: str,
+        title: str,
+        description: str,
+        input: obj,
+        output: obj,
+        readOnly: bool,
+        display: opt(obj),
+        affordances: opt(list(obj)),
+      }),
+    ),
+    live: opt(nested({ url: opt(str), rev: opt(rev) })),
+    policies: opt(nested({ agents: opt(nested({ allow: opt(strs), deny: opt(strs) })) })),
+  });
+}
+
+/** Why `v` is not a live-state document, or undefined. */
+function liveStateProblem(v: unknown): string | undefined {
+  const why = members(v, { actions: obj, rev: opt(rev) });
+  if (why) return why;
+  for (const [name, a] of Object.entries((v as { actions: Record<string, unknown> }).actions)) {
+    const bad = members(a, { available: bool, reason: opt(str) }, `actions.${name}`);
+    if (bad) return bad;
+  }
+  return undefined;
 }
 
 /** Extract the href of `<link rel="axe-manifest">` from HTML without a parser. */
@@ -561,11 +842,19 @@ export class AXEClient {
    * Discover and construct in one step. Throws `AXETrustError` when the manifest's `baseUrl` is on
    * an origin `trust` does not authorize: a manifest cannot redirect your credentials elsewhere.
    */
-  static async discover(url: string, options: ClientOptions = {}): Promise<AXEClient> {
+  static async discover(
+    url: string,
+    options: ClientOptions = {},
+    call: { signal?: AbortSignal } = {},
+  ): Promise<AXEClient> {
     const discoverOpts: DiscoverOptions = {};
     if (options.fetch) discoverOpts.fetch = options.fetch;
     if (options.headers) discoverOpts.headers = options.headers;
     if (options.trust) discoverOpts.trust = options.trust;
+    if (options.timeoutMs !== undefined) discoverOpts.timeoutMs = options.timeoutMs;
+    if (options.maxResponseBytes !== undefined)
+      discoverOpts.maxResponseBytes = options.maxResponseBytes;
+    if (call.signal) discoverOpts.signal = call.signal;
     const { manifest, manifestUrl } = await discover(url, discoverOpts);
     const client = new AXEClient(manifest, options);
     const d = client.checkDestination(manifest.baseUrl);
@@ -618,6 +907,7 @@ export class AXEClient {
     try {
       body = await res.json();
     } catch (e) {
+      if (e instanceof AXEClientError) throw e;
       throw new AXEClientError(`Response from ${url} (HTTP ${res.status}) was not JSON.`, e);
     }
     if (isResult(body) && isError(body)) {
@@ -625,8 +915,9 @@ export class AXEClient {
         `${this.manifestDoc.name} does not serve live state at ${url}: ${body.error.code}: ${body.error.message}`,
       );
     }
-    if (!body || typeof body !== "object" || typeof (body as LiveState).actions !== "object") {
-      throw new AXEClientError(`Response from ${url} is not a live-state document.`);
+    const problem = liveStateProblem(body);
+    if (problem) {
+      throw new AXEClientError(`Response from ${url} is not a live-state document: ${problem}.`);
     }
     return body as LiveState;
   }
@@ -702,13 +993,27 @@ export class AXEClient {
     pendingResult: PendingResult,
     options: PollOptions = {},
   ): Promise<Result<O>> {
-    const deadline = Date.now() + (options.maxWaitMs ?? 60_000);
+    return this.pollWithin<O>(pendingResult, options, pollBudget(options));
+  }
+
+  /**
+   * Poll until settled or the budget runs out: `maxPollAttempts` requests and `maxWaitMs` in all.
+   * Each wait honors `retryAfter`, clamped to at least one second (a site that says 0 does not
+   * get a request loop) and at most what is left of the budget.
+   */
+  private async pollWithin<O>(
+    pendingResult: PendingResult,
+    options: PollOptions,
+    budget: { deadline: number; attempts: number },
+  ): Promise<Result<O>> {
     let current: Result<O> = pendingResult as Result<O>;
     while (isPending(current)) {
       options.onPending?.(current);
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) return current;
-      await sleep(Math.min(current.retryAfter * 1000, remaining), options.signal);
+      const remaining = budget.deadline - Date.now();
+      if (remaining <= 0 || budget.attempts <= 0) return current;
+      budget.attempts--;
+      const asked = Number.isFinite(current.retryAfter) ? current.retryAfter * 1000 : 0;
+      await sleep(Math.min(Math.max(1000, asked), remaining), options.signal);
       current = await this.request<O>("poll", current.pollUrl, undefined, options.signal);
     }
     return current;
@@ -745,9 +1050,10 @@ export class AXEClient {
     }
     let result = await this.invoke<O>(name, input, options);
     const tried: string[] = [];
+    let budget: { deadline: number; attempts: number } | undefined;
     for (let step = 0; step < (options.maxSteps ?? 8); step++) {
       if (isPending(result) && options.pollPending !== false)
-        result = await this.poll<O>(result, options);
+        result = await this.pollWithin<O>(result, options, (budget ??= pollBudget(options)));
       if (isOk(result)) return { status: "ok", result, action: def };
       if (isError(result)) return { status: "error", result, action: def };
       if (isNeedsHuman(result))
@@ -863,9 +1169,13 @@ export class AXEClient {
     body: string | undefined,
     signal: AbortSignal | undefined,
   ): Promise<Response> {
-    const init: { method: string; body?: string; signal?: AbortSignal } = { method };
+    const init: Parameters<typeof send>[4] = {
+      method,
+      signal,
+      timeoutMs: this.options.timeoutMs,
+      maxBytes: this.options.maxResponseBytes,
+    };
     if (body !== undefined) init.body = body;
-    if (signal) init.signal = signal;
     return send(this.f, this.policy, kind, url, init, this.baseHeaders(), () => this.credentials());
   }
 
@@ -883,11 +1193,12 @@ export class AXEClient {
     try {
       parsed = await res.json();
     } catch (e) {
+      if (e instanceof AXEClientError) throw e;
       throw new AXEClientError(`Response from ${url} (HTTP ${res.status}) was not JSON.`, e);
     }
     if (!isResult(parsed)) {
       throw new AXEClientError(
-        `Response from ${url} (HTTP ${res.status}) is not an AXE result envelope.`,
+        `Response from ${url} (HTTP ${res.status}) is not an AXE result envelope: ${resultProblem(parsed)}.`,
       );
     }
     const retryable =
@@ -962,8 +1273,12 @@ export class AXEClient {
     const headers: Record<string, string> = this.fetched.etag
       ? { ...base, "If-None-Match": this.fetched.etag }
       : base;
-    const init: { method: string; signal?: AbortSignal } = { method: "GET" };
-    if (signal) init.signal = signal;
+    const init = {
+      method: "GET",
+      signal,
+      timeoutMs: this.options.timeoutMs,
+      maxBytes: this.options.maxResponseBytes,
+    };
     const res = await send(this.f, this.policy, "discovery", url, init, headers, async () => ({
       ...(this.options.headers ?? {}),
     }));
@@ -988,23 +1303,25 @@ export class AXEClient {
     } catch (e) {
       throw new AXEClientError(`The manifest at ${url} was not JSON.`, e);
     }
-    if (!looksLikeManifest(body))
-      throw new AXEClientError(`The document at ${url} is not an AXE manifest.`);
-    const d = this.checkDestination(body.baseUrl);
+    const problem = manifestProblem(body);
+    if (problem)
+      throw new AXEClientError(`The document at ${url} is not a well-formed manifest: ${problem}.`);
+    const next = body as Manifest;
+    const d = this.checkDestination(next.baseUrl);
     if (!d.allowed) {
       throw new AXETrustError(
-        `The refreshed manifest at ${url} names baseUrl ${body.baseUrl}, which this client may not contact: ${d.reason}.`,
-        body.baseUrl,
+        `The refreshed manifest at ${url} names baseUrl ${next.baseUrl}, which this client may not contact: ${d.reason}.`,
+        next.baseUrl,
         "action",
       );
     }
-    const change = diffManifests(this.manifestDoc, body);
+    const change = diffManifests(this.manifestDoc, next);
     this.fetched = fetchRecord(url, res);
     const anchor = discoveredFrom.get(this.manifestDoc);
-    if (anchor) discoveredFrom.set(body, anchor);
-    fetchedManifests.set(body, this.fetched);
-    this.manifestDoc = body;
-    this.base = body.baseUrl.replace(/\/$/, "");
+    if (anchor) discoveredFrom.set(next, anchor);
+    fetchedManifests.set(next, this.fetched);
+    this.manifestDoc = next;
+    this.base = next.baseUrl.replace(/\/$/, "");
     if (!change.changed) return unchanged;
     for (const listener of this.changeListeners) {
       try {
@@ -1071,12 +1388,14 @@ function diffManifests(before: Manifest, after: Manifest): ManifestChange {
 }
 
 function isResult(v: unknown): v is Result {
-  return (
-    !!v &&
-    typeof v === "object" &&
-    typeof (v as Result).status === "string" &&
-    (Object.values(WIRE.status) as string[]).includes((v as Result).status)
-  );
+  return resultProblem(v) === undefined;
+}
+
+function pollBudget(options: PollOptions): { deadline: number; attempts: number } {
+  return {
+    deadline: Date.now() + (options.maxWaitMs ?? 60_000),
+    attempts: options.maxPollAttempts ?? 60,
+  };
 }
 
 function randomKey(): string {

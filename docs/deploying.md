@@ -151,7 +151,7 @@ The same configuration can disable the `idempotencyKey` requirement. Do not: [id
 
 Every operation goes through one lifecycle (spec §12.2):
 
-1. **Claim.** Before the handler, `onContinue`, `onResume`, or `onPoll` runs, the runtime claims the operation with a fingerprint of what makes a retry the same operation: the canonical `input` for a call, the kind and payload for a continuation. If the operation already completed with that fingerprint, the stored envelope is returned and nothing runs. If it completed or is running with another fingerprint, the answer is `conflict`.
+1. **Claim.** Before the handler, `onContinue`, `onResume`, or `onPoll` runs, the runtime claims the operation with a fingerprint of what makes a retry the same operation: the canonical `input` as the agent sent it for a call (before defaults or transforms; see [Schemas](schemas.md#input-as-sent-input-as-parsed)), the kind and payload for a continuation. If the operation already completed with that fingerprint, the stored envelope is returned and nothing runs. If it completed or is running with another fingerprint, the answer is `conflict`.
 2. **In progress.** A request for an operation another request is still running gets `error` with `code: "conflict"`, `retryable: true`, `details.operationStatus: "in_progress"`, and `details.retryAfter`, with the same number in `Retry-After`. The agent retries with the same key or token after the delay and receives the stored envelope once it exists. A poll answers `pending` instead.
 3. **Settle.** A non-error result completes the operation and is stored for the idempotency window. An `error` result, including a handler that throws, releases the claim and stores nothing, so the same key or token may be retried and the handler runs again. A poll's terminal result is stored whatever its status.
 4. **Lease.** A claim holds for the operation lease (60 seconds by default). If the process holding it dies before settling, a retry of the same operation takes the claim over once the lease has passed, and runs the handler again. A request for a different operation never takes a claim over. Set the lease above your slowest handler: a handler still running when its lease passes may be joined by a second run, and the first one's result is then not stored (the runtime reports it to `onError`).
@@ -166,6 +166,44 @@ Nothing in the SDK promises that a side effect happens exactly once. It promises
 ### Migrating a store
 
 The `IdempotencyStore` interface changed from `get` and `set` to `get`, `claim`, `complete`, and `release`, and its record's input hash field is now `fingerprint`. There is no shim: a get/set store cannot claim atomically, and wrapping one would keep the race the change removes. Replace a custom store with `SqliteIdempotencyStore`, the Redis scripts above, or an implementation over your database's conditional insert. `TokenRecord.onBehalfOf` is now `principal` (the encoded principal, `user:<id>`, `site:<id>`, or both), and the consumed-at and terminal-result fields are gone, because single use and poll results live in the idempotency store; a `TokenStore` that stores records as opaque JSON needs no change. Outstanding tokens minted before the upgrade do not verify against the new record shape and return `not_found`; deploy in a quiet period, as for a secret rotation.
+
+## Limits and retention
+
+The runtime bounds what one request can make it hold, and what abandoned requests leave behind ([spec §6.5](../spec/AXE-PROTOCOL.md#65-limits)).
+
+### Request bodies
+
+`maxBodyBytes` is the largest request body the runtime reads: 1 MiB by default. A request whose `Content-Length` is larger is refused before any of it is read; a body without one (chunked) is read only until it passes the limit, then the stream is cancelled. The refusal is `invalid_input` with `details.reason: "payload_too_large"` and `details.maxBodyBytes`, HTTP 413, before any JSON is parsed or any handler runs. A body nested more than 64 levels deep is `invalid_input` too, instead of exhausting the stack.
+
+<!-- include: examples/deploying/limits.ts#body -->
+<!-- /include -->
+
+Raise it only for what needs it. A `document.base64` payload may be 10 MiB decoded, about 14 MiB of base64, so a site that accepts large inline documents raises `maxBodyBytes` to match; every other site is better served by `document.url` for anything large.
+
+Adapters and body parsers:
+
+| Where the body is read                                                         | Limit that applies                                                                                          |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `axeFetch`, `axeNext` (App Router), or `fetchHandler()` directly               | `maxBodyBytes`, while the runtime reads the `Request` stream                                                |
+| `axeExpress` with no body parser in front, or `axeNextPages` with the body parser turned off (`bodyParser: false`) | `maxBodyBytes`: the adapter reads at most `maxBodyBytes + 1` bytes, then the connection is closed      |
+| `express.json()` in front of `axeExpress`                                      | The parser's own `limit` (100 kB by default) first; a larger body never reaches AXE. Then `maxBodyBytes` on the re-serialized value |
+| Next's Pages API body parser (the default)                                     | its size limit (`sizeLimit: "1mb"` by default) first, then `maxBodyBytes`                                         |
+| A proxy or CDN in front                                                        | Its own limit first. Set it at least as high as `maxBodyBytes` if you raise the latter                      |
+
+### What the stores keep
+
+Every continuation, handoff, and poll mints a token record; every mutating call, continuation, resume, and poll leaves an operation record. Most are never presented again: an agent that abandons a flow leaves its token behind, and idempotency keys are unique by design. A store that only drops an expired record when that key is read again grows without bound.
+
+- `MemoryTokenStore` and `MemoryIdempotencyStore` sweep expired entries on writes, at most once per `sweepIntervalMs` (60 seconds by default), and hold at most `maxEntries` (10000 by default). At the limit the oldest entries are evicted first. An operation claim whose lease is still running is never evicted: that would let the operation run twice, so when every entry is one, the claim fails with an error instead. An evicted completed record shortens that key's idempotency window, and a retry after it runs the handler again; an evicted token answers `not_found`. Neither store runs a timer, so neither keeps a process alive. `sweep()` runs a sweep now; `close()` drops everything and makes later calls fail.
+- `SqliteIdempotencyStore` keeps expired rows until something deletes them. Every read already ignores them, so correctness never depends on cleanup; the table size does. Call `prune()` from a periodic job. It deletes rows that expired before now (or before the time you pass, which may not be in the future). Outside Node, the same statement is `DELETE FROM axe_operations_v1 WHERE expires <= ?` with the current time in epoch milliseconds; the `expires` column is indexed.
+- A Redis store sets a TTL on every key it writes (`PX` in the scripts above), so Redis expires them itself. Give the instance a `maxmemory` with a `volatile-*` eviction policy, and treat eviction under memory pressure like the in-memory store's: it shortens the window.
+- A token store you write yourself: honor `ttlSeconds` on `set` with the backend's own expiry (a TTL, or an `expires` column and a cleanup job).
+
+<!-- include: examples/deploying/limits.ts#memory -->
+<!-- /include -->
+
+<!-- include: examples/deploying/limits.ts#prune -->
+<!-- /include -->
 
 ## Discovery
 
@@ -497,6 +535,8 @@ Before the manifest is reachable from the public internet:
 
 - [ ] `secret` is at least 16 characters and comes from a secret manager; no per-process-secret warning appears in the logs.
 - [ ] `TokenStore` and `IdempotencyStore` are shared across instances, with TTLs honored, and the idempotency store's `claim` is atomic (`SqliteIdempotencyStore`, the Redis scripts, or a conditional insert).
+- [ ] Expired records are cleaned up: `SqliteIdempotencyStore.prune()` runs on a schedule, your Redis keys carry TTLs, or the in-memory stores' `maxEntries` fits the process.
+- [ ] `maxBodyBytes` is the default unless an inline document kind needs more, and any proxy or body parser in front allows at least that much.
 - [ ] `operationLeaseSeconds` is above the slowest handler, and handlers with external effects pass `operationId` downstream or write it in the same transaction.
 - [ ] `baseUrl` is the public HTTPS origin agents will use, and `/.well-known/axe.json` answers there.
 - [ ] `robots.txt` carries an `AXE-Manifest` line; `axe conformance` reports no hint warning.
