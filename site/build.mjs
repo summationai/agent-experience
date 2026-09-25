@@ -47,6 +47,7 @@ export const HUB_GROUPS = [
     title: "Design",
     pages: [
       "docs/surface.md",
+      "docs/auto-surface.md",
       "docs/designing-actions.md",
       "docs/schemas.md",
       "docs/generating.md",

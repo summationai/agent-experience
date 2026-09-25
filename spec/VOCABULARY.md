@@ -681,6 +681,26 @@ Names of the parameterized bridge mode and of the filtered, paged `<ns>.observe`
 | api      | idleReason    | `idleReason`    | `@axe/surface/axe`                 | A domain action's `availability` reason when no entry it covers can be acted on.                           |
 | api      | maxPageSize   | `maxPageSize`   | `@axe/surface/axe`                 | The largest `limit` `<ns>.observe` accepts; published as `pagination.pageSize.max`.                        |
 
+## Derived surfaces
+
+Public identifiers of `@axe/surface/auto`, which derives a surface from the rendered page and refines it with configuration (`spec/SURFACE.md` §10, `docs/auto-surface.md`), and of the pieces that serve it.
+
+| Category | Key                  | Name                   | Where                                 | Meaning                                                                                                                  |
+| -------- | -------------------- | ---------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| api      | autoSurface          | `autoSurface`          | `@axe/surface/auto`                   | Derive entries from the rendered page and keep them current; returns a handle with `coverage()` and `stop()`.            |
+| api      | formatCoverage       | `formatCoverage`       | `@axe/surface/auto`                   | The coverage report of an auto surface as Markdown.                                                                      |
+| api      | checkConfig          | `checkConfig`          | `@axe/surface/auto`                   | The problems of a `SurfaceConfig` as plain sentences; empty when it is sound.                                            |
+| api      | autoDomains          | `autoDomains`          | `@axe/surface/auto`                   | The generic domain actions of a derived surface: configured groups, `navigate`, `set-field`, `run-control`, `load-more`. |
+| api      | autoActions          | `autoActions`          | `@axe/surface/axe`                    | The recommended AXE bridge for an auto surface: `domainActions` over `autoDomains`.                                      |
+| api      | useAutoSurface       | `useAutoSurface`       | `@axe/surface/react`                  | React hook: start `autoSurface` on mount, re-scan on route changes, stop on unmount.                                     |
+| api      | useAutoSurfaceHandle | `useAutoSurfaceHandle` | `@axe/surface/react`                  | The handle of the nearest `SurfaceProvider`, or null before it has started.                                              |
+| api      | elementFor           | `elementFor`           | `@axe/surface/auto`                   | The element an auto entry was derived from, when it is on the page.                                                      |
+| api      | metaFor              | `metaFor`              | `@axe/surface/auto`                   | What the scan recorded about an entry: its key, source, name source and confidence, risk, and policy.                    |
+| field    | nameFrom             | `nameFrom`             | coverage `entries[].nameFrom`         | Where a derived name came from: `aria-label`, `label`, `text`, `placeholder`, `icon`, `href`, and so on.                 |
+| field    | staleConfig          | `staleConfig`          | coverage `staleConfig`                | Configuration rules that matched no control: `stale` on their route, or `unmatched` anywhere yet.                        |
+| api      | debounceMs           | `debounceMs`           | `autoSurface` option `observe`        | How long DOM changes are coalesced before a re-scan.                                                                     |
+| api      | quietMs              | `quietMs`              | `autoSurface` option `observe.settle` | How long the page must go without a DOM change before an act reports.                                                    |
+
 ## Generate API
 
 Public identifiers of `@axe/generate`, which derives actions from definitions an application already has (`docs/generating.md`). Kept in their own table so the SDK API table above stays stable.

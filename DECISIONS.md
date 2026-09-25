@@ -397,3 +397,21 @@ The numbers are identical in both granularities, because granularity does not to
 **Outcomes are checked against the application's state, never the agent's report.** A test-only snapshot endpoint (only with `PLAN_REVIEW_TEST_RESET=1`) returns the plan and its whole history; success, incorrect mutations, and lost updates are computed from it. The one thing taken from the agent is the reason it relayed for an unavailable control, compared with the application's own sentence, because relaying the reason is the task.
 
 **Tokens are "n/a", not estimated.** Bytes are measured and reported as bytes. Converting them to tokens would present an estimate in the same table as measurements, and the bytes a browser agent reads (an accessibility snapshot) and the bytes a tool-calling agent reads (JSON-RPC messages) are not the same input to a model anyway.
+
+## Easy mode: derived surfaces (Surface contract v0.9)
+
+**Derived is the base layer, not a separate product.** A derived entry is an ordinary entry with a `source` marker on an ordinary surface, so the act queue, the revision guard, the ledger, freezes, the bridges, WebMCP, and `expose` apply unchanged, and declared entries stand beside derived ones in one table. The alternative, a parallel "page agent" API, would have forked every guarantee the contract already states.
+
+**Tiers are stated, because derived acts are weaker and must say so.** A click cannot carry `expectedRev` into a server write. The surface re-reads the page before every act and refuses a stale one, which is real protection within the tab, but not a conditional write. Calling that out as the derived tier, and making a rule's `handler` the path to the declared tier without editing components, keeps the claim honest and the upgrade small.
+
+**Risk errs high, and unknown means high.** The cost of a false high is a question to the person; the cost of a false low is an agent deleting something. So a control the heuristics do not recognize is high risk and needs approval by default, and coverage lists every one with a rule to paste. Running the scan over the reference application found the one mistake the opposite choice invites: "Freeze (pause agents, cancel their requests)" read as a low-risk "cancel". View and commit words now count only in the verb position; destructive words count anywhere.
+
+**Approval in the page is the person's call, not a token.** An approval-gated entry reports a handoff with no `url` (there is no approval page to return from inside a tab); `handle.approve(id)` opens it for one act. The SDK cannot tell who calls `approve`, so the contract says it must only be wired to the person's own interaction. Server-side approval requests ([P-APPR-1]) remain the path for anything that must be bound to a principal and a tenant.
+
+**Keys come from what the person sees.** Route, named containers, role, and accessible name survive re-renders and restructuring, and they are readable in a configuration file. The known failure modes (dynamic text, translation, duplicates) are documented with the fix (a `data-surface-id` or a rule's `id`), rather than hidden behind positional paths that break on every layout change.
+
+**The scan flushes before `observe` and `act` by wrapping them on the surface object.** Coalescing DOM changes is necessary for performance, but an agent must never act on a revision the page has already moved past. Wrapping the two methods (and restoring them on `stop`) was the smallest change that guarantees it without adding a hook to the core surface.
+
+**Hidden controls are left out by default.** The brief listed hidden as unavailable. On real pages hidden subtrees are closed tab panels, mobile duplicates of navigation, and unmounted menus; listing them doubled tables and produced duplicate names. They are skipped by default (`hidden: "unavailable"` restores the listing), while controls behind a modal, which the agent can reach by closing it, are listed as unavailable with the dialog named.
+
+**The auto code is a separate subpath, shared like the main entry.** It adds about 55 kB minified (about 20 kB gzipped) to a page, over the surface core's 30 kB (12 kB gzipped), so it is not in `@axe/surface`; `SurfaceProvider` and `autoActions` import it at runtime (`./auto.js`) rather than inlining copies, as the hooks do with the main entry.
