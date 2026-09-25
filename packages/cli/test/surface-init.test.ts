@@ -298,9 +298,12 @@ describe("axe surface init: flags and the relay", () => {
   it("connects the relay only when asked", async () => {
     expect(surfaceOf(planInit({ dir: copy("react-router") }))).not.toContain("connectRelay");
     const dev = surfaceOf(planInit({ dir: copy("react-router"), relay: DEV_RELAY_URL }));
-    expect(dev).toContain('import { connectRelay, devToken } from "@axe/relay/client";');
+    expect(dev).toContain(
+      'import { connectRelay, devToken, relayOptions } from "@axe/relay/client";',
+    );
     expect(dev).toContain(`url: import.meta.env.VITE_SURFACE_RELAY_URL ?? "${DEV_RELAY_URL}",`);
-    expect(dev).toContain("const connection = connectRelay(handle.surface, relay);");
+    // A host running the app for an agent (unattended mode) injects its connection; it wins.
+    expect(dev).toContain("const connection = connectRelay(handle.surface, relayOptions(relay));");
     const r = await cli([
       "surface",
       "init",

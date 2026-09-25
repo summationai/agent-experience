@@ -67,6 +67,7 @@ declare module "@axe/relay/client" {
     },
   ): { stop(): void; rekey(token?: string): void };
   export function devToken(relayUrl: string): () => Promise<string>;
+  export function relayOptions<T>(fallback: T): T;
 }
 
 declare module "react-router" {
