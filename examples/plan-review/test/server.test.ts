@@ -2,6 +2,9 @@
 // (lib/ui-api.ts) and the AXE runtime (lib/axe.ts) called in process with Web Requests.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { AXEClient } from "@axe/client";
 import { createMcpServer } from "@axe/mcp";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -554,6 +557,20 @@ describe("reconnect", () => {
 });
 
 describe("execution modes", () => {
+  it("the built @axe/surface/react uses @axe/surface's registry instead of carrying a second one", () => {
+    // Before the fix, dist/react.js inlined index.ts: the hooks' default target was a second
+    // module-level surface that `surface.expose(window)` never showed.
+    const dist = dirname(createRequire(import.meta.url).resolve("@axe/surface/react"));
+    for (const [file, index] of [
+      ["react.js", "./index.js"],
+      ["react.cjs", "./index.cjs"],
+    ] as const) {
+      const code = readFileSync(join(dist, file), "utf8");
+      expect(code, file).toContain(index);
+      expect(code, file).not.toMatch(/function createSurface\(/);
+    }
+  });
+
   it("browser-local capabilities are never served over HTTP: the page's registry and the server's actions are separate", async () => {
     // A page instance registers a browser-local control. In a browser this runs in the tab.
     pageSurface.register({
