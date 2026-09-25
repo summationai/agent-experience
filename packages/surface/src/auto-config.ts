@@ -123,6 +123,12 @@ export interface SurfaceConfig {
   exclude?: string[];
   /** Entries registered as they are, beside the derived ones: the declared tier. */
   declare?: Entry[];
+  /**
+   * What `read` may read ([S-AUTO-14]): `exclude` selectors are never read (beside `exclude` above
+   * and every `data-surface-ignore` subtree), and `regions` names parts of the page by CSS
+   * selector, so an agent can read `{ region: "status" }`.
+   */
+  read?: { exclude?: string[]; regions?: Record<string, string> };
   /** Register the page's landmarks as targets of `navigate`. Default true. */
   landmarks?: boolean;
   /**
@@ -254,6 +260,21 @@ export function checkConfig(config: SurfaceConfig): string[] {
       }
     }
   });
+  const selectors: [string, string][] = [
+    ...(config.read?.exclude ?? []).map((sel, i): [string, string] => [`read.exclude[${i}]`, sel]),
+    ...Object.entries(config.read?.regions ?? {}).map(([k, sel]): [string, string] => [
+      `read.regions.${k}`,
+      sel,
+    ]),
+  ];
+  for (const [where, sel] of selectors) {
+    try {
+      if (typeof sel !== "string" || !sel.trim()) throw new Error("empty");
+      (globalThis.document ?? null)?.createDocumentFragment().querySelector(sel);
+    } catch {
+      out.push(`${where}: selector ${JSON.stringify(sel)} is not valid CSS.`);
+    }
+  }
   for (const name of Object.keys(config.groups ?? {}))
     if (!/^[a-z][a-z0-9-]*$/.test(name))
       out.push(`groups.${name}: use lowercase letters, digits, and hyphens.`);

@@ -75,6 +75,25 @@ import { formatCoverage } from "./auto-coverage";
 import type { Coverage, CoverageEntry, CoverageGap, StaleRule } from "./auto-coverage";
 import { AUTO_META } from "./auto-domains";
 import type { AutoEntryMark } from "./auto-domains";
+import { CONTENT, READ_LIMITS } from "./auto-content";
+import type {
+  PageContent,
+  PageRead,
+  ReadOptions,
+  WaitCondition,
+  WaitOptions,
+  WaitResult,
+} from "./auto-content";
+import {
+  boundRows,
+  collectContent,
+  filterSections,
+  formatRead,
+  paginate,
+  pageText,
+  sectionsUnder,
+} from "./auto-read";
+import { createWaiter } from "./auto-wait";
 
 export type {
   AutoHandler,
@@ -98,10 +117,26 @@ export type {
   FormatCoverageOptions,
   GapKind,
   StaleRule,
+  UnreadableRegion,
 } from "./auto-coverage";
 export { formatCoverage } from "./auto-coverage";
 export type { AutoDomainsOptions, AutoEntryMark } from "./auto-domains";
-export { AUTO_META, autoDomains, autoMarkOf } from "./auto-domains";
+export { AUTO_META, autoDomains, autoMarkOf, contentDomains } from "./auto-domains";
+export type {
+  PageContent,
+  PageRead,
+  ReadField,
+  ReadList,
+  ReadOpaque,
+  ReadOptions,
+  ReadSection,
+  ReadTable,
+  WaitCondition,
+  WaitOptions,
+  WaitResult,
+} from "./auto-content";
+export { CONTENT, READ_LIMITS, WAIT_LIMITS, checkCondition, contentOf } from "./auto-content";
+export { formatRead } from "./auto-read";
 
 /** The id of the entry that opens a same-origin path. */
 export const NAVIGATE_ENTRY_ID = "page:navigate";
@@ -179,6 +214,20 @@ export interface AutoSurfaceHandle {
   metaFor(id: string): AutoEntryMeta | undefined;
   /** The route the keys are built from now. */
   route(): string;
+  /**
+   * The content the page shows the person ([S-AUTO-14]): sections by heading with their text,
+   * key-value fields, tables, and lists; charts and canvases reported by title only; private
+   * values withheld; bounded by `maxChars` and `maxRows`, with a cursor for the rest. Never moves
+   * the revision. `formatRead` renders it as Markdown.
+   */
+  read(options?: ReadOptions): PageRead;
+  /**
+   * Wait until a condition on the page holds or `timeoutMs` (default 30 s, at most 120 s) runs
+   * out ([S-AUTO-15]): text appears or goes, an entry is (un)available, the revision moves, the
+   * page goes quiet, the route matches. Resolves with `met`, what changed while it waited, and
+   * the notices that appeared. Never moves the revision; `stop()` ends it with `met: false`.
+   */
+  wait(condition: WaitCondition, options?: WaitOptions): Promise<WaitResult>;
   /** Publish `window.__surface` (observe, act, ledger, rev, coverage, formatCoverage) on `host`. */
   expose(host?: object | null): void;
   /** Stop observing, unregister every derived and configured entry, and restore the surface. */
@@ -1416,6 +1465,16 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     });
     const suggestions = gaps.flatMap((g) => (g.suggestion ? [g.suggestion] : []));
     counts.gaps = gaps.length;
+    const unreadable = collectContent({
+      root: rootEl!,
+      layout,
+      skip: skipper(),
+      sensitive: sensitivity(),
+      navigation: true,
+    }).opaque.map((o) => ({
+      ...o,
+      message: `${o.kind === "frame" ? "A frame from another site" : o.kind === "closed-shadow" ? "A component with a closed shadow root" : o.library ? o.library.charAt(0).toUpperCase() + o.library.slice(1) : o.kind === "canvas" ? "A canvas" : "An SVG chart"}${o.title ? ` (“${o.title}”)` : ""}: read reports it by title only; its content is not on the page as text.`,
+    }));
     return {
       app: view.app,
       route: currentRoute,
@@ -1429,8 +1488,185 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       suggestions,
       frames: { ...frames },
       configErrors: [...configErrors],
+      unreadable,
     };
   }
+
+  // --- reading and waiting ([S-AUTO-14], [S-AUTO-15]) ---------------------------------------------
+  const matchesAny = (el: Element, selector: string): boolean => {
+    if (!selector) return false;
+    try {
+      return el.matches(selector);
+    } catch {
+      return false;
+    }
+  };
+  /** Never read: an ignored subtree, the relay's indicator, excluded selectors. */
+  function skipper(): (el: Element) => boolean {
+    const excluded = [...(config.exclude ?? []), ...(config.read?.exclude ?? [])].join(",");
+    return (el) =>
+      el.hasAttribute(IGNORE_ATTRIBUTE) ||
+      el.hasAttribute(RELAY_INDICATOR_ATTRIBUTE) ||
+      matchesAny(el, excluded);
+  }
+  /** Private: passwords, card fields, one-time codes, configured selectors, fields a rule marks. */
+  function sensitivity(): (el: Element) => boolean {
+    const marked = new Set<Element>();
+    for (const b of registered.values()) if (b.meta.sensitive && b.element) marked.add(b.element);
+    const selector = (config.sensitive ?? []).join(",");
+    return (el) => isSensitiveField(el) || marked.has(el) || matchesAny(el, selector);
+  }
+
+  const REGION_CONTAINERS =
+    "main, nav, aside, header, footer, section, form, dialog, article, [role], [aria-label], [aria-labelledby]";
+  function namedContainers(ctx: ScanContext): { el: Element; name: string }[] {
+    const out: { el: Element; name: string }[] = [];
+    for (const el of Array.from(rootEl!.querySelectorAll(REGION_CONTAINERS))) {
+      if (skipper()(el) || isHidden(el, ctx)) continue;
+      const role = roleOf(el);
+      const container =
+        LANDMARK_ROLES.has(role) ||
+        ["dialog", "alertdialog", "article", "region", "group"].includes(role) ||
+        el.hasAttribute("aria-label") ||
+        el.hasAttribute("aria-labelledby");
+      if (!container || ACTION_ROLES.has(role) || FIELD_ROLES.has(role)) continue;
+      const name = nameOfContainer(el, ctx) || LANDMARK_NAMES[role] || "";
+      if (name) out.push({ el, name });
+    }
+    return out;
+  }
+
+  /** Where a region name points: a configured selector, an entry, a named container, or a heading. */
+  function resolveRegion(
+    name: string,
+  ): { root: Element; label: string } | { heading: string } | null {
+    const regions = config.read?.regions ?? {};
+    if (Object.prototype.hasOwnProperty.call(regions, name)) {
+      let el: Element | null = null;
+      try {
+        el = rootEl!.querySelector(regions[name]!) ?? doc!.querySelector(regions[name]!);
+      } catch {
+        el = null;
+      }
+      return el ? { root: el, label: name } : null;
+    }
+    const entryEl = elements.get(name);
+    if (entryEl && entryEl.isConnected) {
+      const own =
+        roleOf(entryEl) &&
+        (COLLECTION_ROLES.has(roleOf(entryEl)) || LANDMARK_ROLES.has(roleOf(entryEl)));
+      const root = own
+        ? entryEl
+        : (entryEl.closest(
+            'table, [role="grid"], [role="table"], [role="treegrid"], section, article, form, dialog, [role="dialog"], [role="region"], main, aside, nav, ul, ol, dl',
+          ) ??
+          entryEl.parentElement ??
+          entryEl);
+      return { root, label: name };
+    }
+    const wanted = norm(name).toLowerCase();
+    const ctx = new ScanContext(rootEl!, layout);
+    const hit = namedContainers(ctx).find((c) => c.name.toLowerCase() === wanted);
+    if (hit) return { root: hit.el, label: hit.name };
+    return { heading: name };
+  }
+
+  function regionNames(headings: string[]): string[] {
+    const ctx = new ScanContext(rootEl!, layout);
+    const names = [
+      ...Object.keys(config.read?.regions ?? {}),
+      ...namedContainers(ctx).map((c) => c.name),
+      ...headings,
+    ];
+    return [...new Set(names.filter(Boolean))].slice(0, 40);
+  }
+
+  function read(options: ReadOptions = {}): PageRead {
+    flush();
+    const bound = (v: number | undefined, l: { default: number; min: number; max: number }) =>
+      typeof v === "number" && Number.isFinite(v)
+        ? Math.min(l.max, Math.max(l.min, Math.floor(v)))
+        : l.default;
+    const maxChars = bound(options.maxChars, READ_LIMITS.maxChars);
+    const maxRows = bound(options.maxRows, READ_LIMITS.maxRows);
+    const base = {
+      route: currentRoute,
+      path: win.location?.pathname ?? "",
+      title: norm(doc!.title),
+      rev: surface.currentRev(),
+    };
+    const nothing = (reason: string, headings: string[]): PageRead => ({
+      ...base,
+      sections: [],
+      notices: [],
+      truncated: false,
+      redacted: 0,
+      reason,
+      regions: regionNames(headings),
+    });
+    let root: Element = rootEl!;
+    let region: string | undefined;
+    let heading: string | null = null;
+    const want = norm(options.region);
+    if (want) {
+      const found = resolveRegion(want);
+      if (!found) return nothing(`no region named “${want}” is on this page now`, []);
+      if ("heading" in found) heading = found.heading;
+      else {
+        root = found.root;
+        region = found.label;
+      }
+    }
+    const collected = collectContent({
+      root,
+      layout,
+      skip: skipper(),
+      sensitive: sensitivity(),
+      navigation: root !== rootEl,
+    });
+    let sections = collected.sections;
+    if (heading !== null) {
+      sections = sectionsUnder(sections, heading);
+      if (!sections.length)
+        return nothing(
+          `no region or heading named “${heading}” is on this page now`,
+          collected.sections.filter((s) => s.level > 0 && s.level <= 3).map((s) => s.heading),
+        );
+      region = sections[0]!.heading;
+    }
+    const query = norm(options.query);
+    if (query) sections = filterSections(sections, query);
+    sections = boundRows(sections, maxRows);
+    const page = paginate(sections, maxChars, options.cursor);
+    const out: PageRead = {
+      ...base,
+      sections: page.sections,
+      notices: collected.notices,
+      truncated: page.truncated || collected.capped,
+      redacted: collected.redacted,
+    };
+    if (region) out.region = region;
+    if (page.nextCursor) out.nextCursor = page.nextCursor;
+    if (page.reason) out.reason = page.reason;
+    else if (query && !sections.length) out.reason = `nothing on the page mentions “${query}”`;
+    return out;
+  }
+
+  const waiter = createWaiter({
+    win,
+    doc: doc!,
+    surface,
+    flush: () => flush(),
+    route: () => currentRoute,
+    collectors,
+    text: (visible) =>
+      pageText(rootEl!, skipper(), visible ? new ScanContext(rootEl!, layout) : null),
+  });
+  const content: PageContent = {
+    read: (o) => read(o),
+    wait: (c, o) => waiter.wait(c, o),
+  };
+  (surface as unknown as Record<symbol, unknown>)[CONTENT] = content;
 
   const handle: AutoSurfaceHandle = {
     surface,
@@ -1453,6 +1689,8 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     },
     metaFor: (id) => registered.get(id)?.meta,
     route: () => currentRoute,
+    read,
+    wait: (condition, options) => waiter.wait(condition, options),
     expose(host = win) {
       if (!host) return;
       surface.expose(host);
@@ -1461,6 +1699,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
         pub.coverage = () => coverage();
         pub.formatCoverage = (c?: Coverage) => formatCoverage(c ?? coverage());
         pub.refresh = () => handle.refresh();
+        pub.read = (o?: ReadOptions) => read(o);
+        pub.wait = (c: WaitCondition, o?: WaitOptions) => waiter.wait(c, o);
+        pub.formatRead = (r?: PageRead) => formatRead(r ?? read());
       }
     },
     stop() {
@@ -1480,7 +1721,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
       if (surface.act === patchedAct) surface.act = originalAct;
       const slot = surface as unknown as Record<symbol, unknown>;
       if (slot[APPROVER] === approver) delete slot[APPROVER];
+      if (slot[CONTENT] === content) delete slot[CONTENT];
       stopped = true;
+      waiter.cancelAll("the surface stopped");
     },
   };
   if (options.expose) handle.expose(options.expose === true ? win : options.expose);

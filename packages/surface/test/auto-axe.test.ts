@@ -71,6 +71,8 @@ describe("autoActions [S-AUTO-11]", () => {
       "surface.set-field",
       "surface.run-control",
       "surface.load-more",
+      "surface.read",
+      "surface.wait",
     ]);
   });
 
