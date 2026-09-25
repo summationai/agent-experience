@@ -1060,6 +1060,30 @@ export const api = /* @__PURE__ */ Object.freeze({
   operationLeaseSeconds: "operationLeaseSeconds",
   /** Handler context member: a stable id for the operation, the same on every retry, for downstream idempotency. */
   operationId: "operationId",
+  /** `serveHttp` option: each verified caller's AXE identity (`CallerContext`), asked on every tool call. */
+  clientFor: "clientFor",
+  /** `serveHttp` session option: close a session with no request for this long (default 30 minutes). */
+  idleTimeoutMs: "idleTimeoutMs",
+  /** `serveHttp` session option: open sessions at most; past it a new `initialize` gets 503 (default 1000). */
+  maxSessions: "maxSessions",
+  /** The number of open sessions on a `serveHttp` handler. */
+  sessionCount: "sessionCount",
+  /** Deprecated `serveHttp` option: a session id generator; setting it turns sessions on. */
+  sessionIdGenerator: "sessionIdGenerator",
+  /** `serveHttp` option: browser origins allowed besides the endpoint's own; others get 403. */
+  allowedOrigins: "allowedOrigins",
+  /** `serveHttp` auth option: scopes every access token needs; otherwise 403 `insufficient_scope`. */
+  requiredScopes: "requiredScopes",
+  /** `serveHttp` auth option: the protected-resource metadata URL sent in `WWW-Authenticate`. */
+  resourceMetadataUrl: "resourceMetadataUrl",
+  /** The verified access token (the MCP SDK's `AuthInfo`) of one HTTP request; passed to `clientFor`. */
+  authInfo: "authInfo",
+  /** RFC 9728 metadata for an MCP endpoint: the document, its path and URL, and a handler. */
+  protectedResourceMetadata: "protectedResourceMetadata",
+  /** Client option: longest a manifest is used before revalidation; a shorter site max-age wins (default 300000). */
+  manifestMaxAgeMs: "manifestMaxAgeMs",
+  /** Subscribe to manifest refreshes that changed the actions; returns an unsubscribe function. */
+  onManifestChange: "onManifestChange",
   /** Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. */
   fromOpenAPI: "fromOpenAPI",
   /** Action source: a table of zod-typed functions keyed by action name. */
@@ -1170,7 +1194,7 @@ export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "clientFor" | "idleTimeoutMs" | "maxSessions" | "sessionCount" | "sessionIdGenerator" | "allowedOrigins" | "requiredScopes" | "resourceMetadataUrl" | "authInfo" | "protectedResourceMetadata" | "manifestMaxAgeMs" | "onManifestChange" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -1651,6 +1675,18 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "sqliteIdempotencyStore", name: "SqliteIdempotencyStore" },
   { category: "api", key: "operationLeaseSeconds", name: "operationLeaseSeconds" },
   { category: "api", key: "operationId", name: "operationId" },
+  { category: "api", key: "clientFor", name: "clientFor" },
+  { category: "api", key: "idleTimeoutMs", name: "idleTimeoutMs" },
+  { category: "api", key: "maxSessions", name: "maxSessions" },
+  { category: "api", key: "sessionCount", name: "sessionCount" },
+  { category: "api", key: "sessionIdGenerator", name: "sessionIdGenerator" },
+  { category: "api", key: "allowedOrigins", name: "allowedOrigins" },
+  { category: "api", key: "requiredScopes", name: "requiredScopes" },
+  { category: "api", key: "resourceMetadataUrl", name: "resourceMetadataUrl" },
+  { category: "api", key: "authInfo", name: "authInfo" },
+  { category: "api", key: "protectedResourceMetadata", name: "protectedResourceMetadata" },
+  { category: "api", key: "manifestMaxAgeMs", name: "manifestMaxAgeMs" },
+  { category: "api", key: "onManifestChange", name: "onManifestChange" },
   { category: "api", key: "fromOpenAPI", name: "fromOpenAPI" },
   { category: "api", key: "fromFunctions", name: "fromFunctions" },
   { category: "api", key: "fromTRPCRouter", name: "fromTRPCRouter" },

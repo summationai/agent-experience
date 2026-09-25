@@ -14,6 +14,11 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-DISC-1": [{ check: "discovery.well-known" }],
   "P-DISC-2": [{ check: "discovery.alias" }],
   "P-DISC-3": [{ check: "discovery.headers" }],
+  "P-DISC-13": [
+    { test: "@axe/core carries an ETag and answers a matching If-None-Match with 304 [P-DISC-13]" },
+    { test: "@axe/client refresh() revalidates with If-None-Match and reports added, removed" },
+    { test: "@axe/client run() refetches the manifest once for an action it does not know" },
+  ],
   "P-DISC-4": [
     { test: "@axe/client discover: falls back to the AXE-Manifest header, then the link tag" },
   ],
@@ -239,6 +244,44 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
     { test: "@axe/client destinationPolicy sees every outbound URL, redirects included" },
   ],
   "P-AGENT-9": [{ test: "@axe/mcp axe_poll polls only a pollUrl this server returned" }],
+  "P-MCP-1": [
+    { test: "@axe/mcp stateless: a real HTTP client initializes, lists tools, and calls tools" },
+    { test: "@axe/mcp sessions: separate clients get separate sessions" },
+    { test: "@axe/mcp sessions: an idle session expires with 404, and the client re-initializes" },
+  ],
+  "P-MCP-2": [
+    {
+      test: "@axe/mcp two authenticated users are isolated: each call reaches AXE as its own principal",
+    },
+    {
+      test: "@axe/mcp a URL source: every call reaches the AXE site with the caller's own credential",
+    },
+    { test: "@axe/mcp acts as an OAuth resource server: 401 with resource metadata" },
+    { test: "@axe/mcp refuses to share one identity among HTTP callers unless told to" },
+  ],
+  "P-MCP-3": [
+    {
+      test: "@axe/mcp two authenticated users are isolated: each call reaches AXE as its own principal",
+    },
+    { test: "@axe/mcp sessions: separate clients get separate sessions" },
+  ],
+  "P-MCP-4": [
+    {
+      test: "@axe/mcp a newly registered action becomes discoverable and callable; the session is told",
+    },
+    {
+      test: "@axe/mcp within the refresh bound, tools/list shows an added action and drops a removed one",
+    },
+    {
+      test: "@axe/mcp a call to a tool added since the last fetch refreshes once and runs; a removed tool",
+    },
+  ],
+  "P-MCP-5": [
+    {
+      test: "@axe/mcp an uncertain call retried with the same idempotencyKey runs the handler once; a second",
+    },
+    { test: "@axe/mcp axe_continue and axe_resume take expectedRev; a stale one applies nothing" },
+  ],
   "P-HON-1": [{ check: "manifest.honesty" }],
   "P-HON-2": [{ check: "manifest.honesty" }],
   "P-HON-3": [{ check: "audit.parity" }],

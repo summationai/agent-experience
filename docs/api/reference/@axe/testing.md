@@ -1201,6 +1201,24 @@ optional locale?: string;
 ClientOptions.locale
 ```
 
+<a id="manifestmaxagems"></a>
+
+##### manifestMaxAgeMs?
+
+```ts
+optional manifestMaxAgeMs?: number;
+```
+
+Longest time, in ms, a fetched manifest is used before `ensureFresh()` revalidates it. The
+effective bound is the smaller of this and the manifest response's `Cache-Control` max-age
+(`no-cache` and `no-store` mean 0). Default 300000. See "Manifest freshness".
+
+###### Inherited from
+
+```ts
+ClientOptions.manifestMaxAgeMs
+```
+
 <a id="maxretryafterms"></a>
 
 ##### maxRetryAfterMs?

@@ -171,6 +171,18 @@ type WireApi =
   | "SqliteIdempotencyStore"
   | "operationLeaseSeconds"
   | "operationId"
+  | "clientFor"
+  | "idleTimeoutMs"
+  | "maxSessions"
+  | "sessionCount"
+  | "sessionIdGenerator"
+  | "allowedOrigins"
+  | "requiredScopes"
+  | "resourceMetadataUrl"
+  | "authInfo"
+  | "protectedResourceMetadata"
+  | "manifestMaxAgeMs"
+  | "onManifestChange"
   | "fromOpenAPI"
   | "fromFunctions"
   | "fromTRPCRouter"
@@ -789,11 +801,13 @@ const api: Readonly<{
   allowCredentials: "allowCredentials";
   allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
+  allowedOrigins: "allowedOrigins";
   allowHttp: "allowHttp";
   appendHandoffId: "appendHandoffId";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
   authFor: "authFor";
+  authInfo: "authInfo";
   availability: "availability";
   axeExpress: "axeExpress";
   axeFetch: "axeFetch";
@@ -803,6 +817,7 @@ const api: Readonly<{
   checkDestination: "checkDestination";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
+  clientFor: "clientFor";
   combineSinks: "combineSinks";
   completeHandoff: "completeHandoff";
   completion: "completion";
@@ -845,6 +860,7 @@ const api: Readonly<{
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
   identity: "identity";
   idleMs: "idleMs";
+  idleTimeoutMs: "idleTimeoutMs";
   includeDeprecated: "includeDeprecated";
   index: "index";
   invoke: "invoke";
@@ -864,8 +880,10 @@ const api: Readonly<{
   lintManifest: "lintManifest";
   manifest: "manifest";
   manifestCacheSeconds: "manifestCacheSeconds";
+  manifestMaxAgeMs: "manifestMaxAgeMs";
   maxRetryAfterMs: "maxRetryAfterMs";
   maxRisk: "maxRisk";
+  maxSessions: "maxSessions";
   maxWaitMs: "maxWaitMs";
   needsInput: "needsInput";
   observe: "observe";
@@ -876,6 +894,7 @@ const api: Readonly<{
   onError: "onError";
   onEvent: "onEvent";
   onEvict: "onEvict";
+  onManifestChange: "onManifestChange";
   onPoll: "onPoll";
   onRequest: "onRequest";
   onResult: "onResult";
@@ -888,6 +907,7 @@ const api: Readonly<{
   poll: "poll";
   pollBudgetMs: "pollBudgetMs";
   present: "present";
+  protectedResourceMetadata: "protectedResourceMetadata";
   reconcile: "reconcile";
   redactEvent: "redactEvent";
   register: "register";
@@ -895,10 +915,12 @@ const api: Readonly<{
   registryVersion: "registryVersion";
   requestPolicy: "requestPolicy";
   requireCompletion: "requireCompletion";
+  requiredScopes: "requiredScopes";
   requireIdempotencyKey: "requireIdempotencyKey";
   requireInputDescriptions: "requireInputDescriptions";
   requireJsonContentType: "requireJsonContentType";
   resolveDisplay: "resolveDisplay";
+  resourceMetadataUrl: "resourceMetadataUrl";
   resume: "resume";
   retries: "retries";
   revision: "revision";
@@ -913,6 +935,8 @@ const api: Readonly<{
   sendWebResponse: "sendWebResponse";
   serveHttp: "serveHttp";
   serveStdio: "serveStdio";
+  sessionCount: "sessionCount";
+  sessionIdGenerator: "sessionIdGenerator";
   setObjects: "setObjects";
   setRev: "setRev";
   siteKey: "siteKey";
@@ -1616,11 +1640,13 @@ const WIRE: Readonly<{
      allowCredentials: "allowCredentials";
      allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
+     allowedOrigins: "allowedOrigins";
      allowHttp: "allowHttp";
      appendHandoffId: "appendHandoffId";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
      authFor: "authFor";
+     authInfo: "authInfo";
      availability: "availability";
      axeExpress: "axeExpress";
      axeFetch: "axeFetch";
@@ -1630,6 +1656,7 @@ const WIRE: Readonly<{
      checkDestination: "checkDestination";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
+     clientFor: "clientFor";
      combineSinks: "combineSinks";
      completeHandoff: "completeHandoff";
      completion: "completion";
@@ -1672,6 +1699,7 @@ const WIRE: Readonly<{
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
      identity: "identity";
      idleMs: "idleMs";
+     idleTimeoutMs: "idleTimeoutMs";
      includeDeprecated: "includeDeprecated";
      index: "index";
      invoke: "invoke";
@@ -1691,8 +1719,10 @@ const WIRE: Readonly<{
      lintManifest: "lintManifest";
      manifest: "manifest";
      manifestCacheSeconds: "manifestCacheSeconds";
+     manifestMaxAgeMs: "manifestMaxAgeMs";
      maxRetryAfterMs: "maxRetryAfterMs";
      maxRisk: "maxRisk";
+     maxSessions: "maxSessions";
      maxWaitMs: "maxWaitMs";
      needsInput: "needsInput";
      observe: "observe";
@@ -1703,6 +1733,7 @@ const WIRE: Readonly<{
      onError: "onError";
      onEvent: "onEvent";
      onEvict: "onEvict";
+     onManifestChange: "onManifestChange";
      onPoll: "onPoll";
      onRequest: "onRequest";
      onResult: "onResult";
@@ -1715,6 +1746,7 @@ const WIRE: Readonly<{
      poll: "poll";
      pollBudgetMs: "pollBudgetMs";
      present: "present";
+     protectedResourceMetadata: "protectedResourceMetadata";
      reconcile: "reconcile";
      redactEvent: "redactEvent";
      register: "register";
@@ -1722,10 +1754,12 @@ const WIRE: Readonly<{
      registryVersion: "registryVersion";
      requestPolicy: "requestPolicy";
      requireCompletion: "requireCompletion";
+     requiredScopes: "requiredScopes";
      requireIdempotencyKey: "requireIdempotencyKey";
      requireInputDescriptions: "requireInputDescriptions";
      requireJsonContentType: "requireJsonContentType";
      resolveDisplay: "resolveDisplay";
+     resourceMetadataUrl: "resourceMetadataUrl";
      resume: "resume";
      retries: "retries";
      revision: "revision";
@@ -1740,6 +1774,8 @@ const WIRE: Readonly<{
      sendWebResponse: "sendWebResponse";
      serveHttp: "serveHttp";
      serveStdio: "serveStdio";
+     sessionCount: "sessionCount";
+     sessionIdGenerator: "sessionIdGenerator";
      setObjects: "setObjects";
      setRev: "setRev";
      siteKey: "siteKey";

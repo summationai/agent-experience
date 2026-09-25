@@ -822,9 +822,23 @@ export class AXE {
     if (refused) return this.respond(request, tenant, refused, undefined);
 
     if (method === "GET" && (path === WIRE.path.manifest || path === WIRE.path.manifestAlias)) {
-      return this.json(request, await this.describeLive(tenant, request), 200, {
+      const manifest = await this.describeLive(tenant, request);
+      // A strong validator over the rendered document, so agents can revalidate cheaply ([P-DISC-13]).
+      const etag = `"${(await hashJson(manifest)).slice(0, 32)}"`;
+      const caching = {
         "Cache-Control": `public, max-age=${this.config.manifestCacheSeconds ?? 300}`,
-      });
+        ETag: etag,
+      };
+      const ifNoneMatch = request.headers.get("If-None-Match");
+      if (
+        ifNoneMatch &&
+        ifNoneMatch.split(",").some((t) => t.trim().replace(/^W\//, "") === etag)
+      ) {
+        const h = this.headers(request, caching);
+        h.delete(WIRE.header.contentType);
+        return new Response(null, { status: 304, headers: h });
+      }
+      return this.json(request, manifest, 200, caching);
     }
     if (path === WIRE.path.state && this.hasLive()) {
       if (method !== "GET") return this.methodNotAllowed(request, "GET, OPTIONS");
