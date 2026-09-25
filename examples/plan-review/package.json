@@ -10,7 +10,9 @@
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "test:app": "next build && playwright test"
+    "test:app": "next build && playwright test",
+    "eval": "next build && node --import tsx eval/run.ts",
+    "eval:model": "node --import tsx eval/model/run.ts"
   },
   "dependencies": {
     "@axe/core": "workspace:*",

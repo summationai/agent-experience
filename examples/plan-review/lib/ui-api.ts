@@ -13,6 +13,7 @@ import { lock, reopen, setFrozen, setValues, submit, whyNot } from "./domain";
 import type { CellChange } from "./domain";
 import { TENANTS, agentTokenFor, memberOf, store } from "./store";
 import type { Session, WriteOutcome } from "./store";
+import { pageView } from "./variant";
 
 const ACCEPTED_ORIGINS = new Set(
   [BASE_URL, ...TRUSTED_ORIGINS].map((o) => normalizeOrigin(o)).filter((o): o is string => !!o),
@@ -102,6 +103,7 @@ export async function pageState(session: Session) {
     approvals: await pendingApprovals(session.tenant),
     history: store.audit(session.tenant).slice(-30).reverse(),
     agent: { token: agentTokenFor(session.user, session.tenant), baseUrl: BASE_URL },
+    view: pageView(),
   };
 }
 
@@ -137,6 +139,15 @@ export async function handleUi(request: Request): Promise<Response> {
   ) {
     store.reset();
     return json({ ok: true });
+  }
+  // The evaluation harness checks outcomes against this, never against what an agent reports.
+  if (
+    path === "/test/snapshot" &&
+    method === "GET" &&
+    process.env["PLAN_REVIEW_TEST_RESET"] === "1"
+  ) {
+    const tenant = new URL(request.url).searchParams.get("tenant") ?? "acme";
+    return json({ plan: store.plan(tenant) ?? null, history: store.audit(tenant) });
   }
 
   const session = sessionOf(request);
