@@ -4,7 +4,7 @@ The short version is in [the README](../README.md). This page is the long versio
 
 ## The problem
 
-Agents already try to act in applications for people, and alongside them. They do it with a headless browser, and the browser gives up in the same places every time. Four stories, one from each of the organizations these docs use.
+Agents already try to act in applications for people, and alongside them. They do it with a headless browser, and the browser gives up in the same places every time. Five stories: one from the [reference app](reference-app.md)'s domain and one from each of the organizations these docs use.
 
 **A planning team.** A demand planner asks an agent to raise next quarter's forecast for one product line and send the plan for sign-off. The agent drives the planning grid in the browser. A colleague saves an edit to the same plan while the agent is typing, and the agent's save overwrites it without either of them noticing. The Submit button is disabled; the agent cannot tell whether that is because the plan is locked, because it lacks permission, or because a required cell is empty. It stops: "I changed the numbers, but I couldn't submit the plan."
 
