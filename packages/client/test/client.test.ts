@@ -198,6 +198,30 @@ describe("AXEClient", () => {
     expect(n).toBe(2);
   });
 
+  it("does not retry an unavailable error the site marked retryable: false", async () => {
+    const { axe } = apartmentsAXE({ onRequest: () => undefined });
+    let n = 0;
+    const base = fetchFor(axe).fetch;
+    const client = await AXEClient.discover("https://oakridge-rentals.example", {
+      fetch: async (u, init) => {
+        if (String(u).includes("/axe/actions/")) {
+          n++;
+          return new Response(
+            JSON.stringify({
+              status: "error",
+              error: { code: "unavailable", message: "March is locked", retryable: false },
+            }),
+            { status: 503, headers: { "content-type": "application/json" } },
+          );
+        }
+        return base(u, init);
+      },
+    });
+    const r = await client.invoke("units.search", { location: "x" });
+    expect(r.status).toBe("error");
+    expect(n).toBe(1);
+  });
+
   it("refuses to call a site whose policies deny the vendor [P-DISC-12]", async () => {
     const { axe } = apartmentsAXE({ policies: { agents: { deny: ["Acme"] } } });
     const client = await AXEClient.discover("https://oakridge-rentals.example", {

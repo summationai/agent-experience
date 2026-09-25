@@ -240,9 +240,10 @@ function Cell(props: {
   saved: number;
   draft: string | undefined;
   readOnlyReason: string | null;
+  semantic: boolean;
   onDraft: (text: string) => void;
 }) {
-  const { planId, item, month, saved, draft, readOnlyReason, onDraft } = props;
+  const { planId, item, month, saved, draft, readOnlyReason, semantic, onDraft } = props;
   const value = draft ?? String(saved);
   const surfaceProps = useSurfaceProps(
     {
@@ -267,7 +268,7 @@ function Cell(props: {
   return (
     <td className={draft !== undefined ? "dirty" : undefined}>
       <input
-        {...surfaceProps}
+        {...(semantic ? surfaceProps : {})}
         inputMode="numeric"
         value={value}
         readOnly={!!readOnlyReason}
@@ -316,6 +317,8 @@ The browser suite uses the Chromium that `@playwright/test` 1.63 installs (`pnpm
 - takeover: Freeze on the page cancels the agent's request and pauses it
 - a cross-site request with the person's cookie is refused on the app's endpoints and on AXE
 
+A third suite is not a test: `pnpm eval` builds the app and runs the evaluation harness in `eval/`, which compares four agent interfaces to this app (generic markup, accessible names, basic tools, AXE) with scripted agents. It needs Chromium like the browser suite and writes a report under `docs/review/2026-09-24/data/`. See [Evaluation](evaluation.md).
+
 ## Supported behavior and deliberate limits
 
 - **No browser-session broker.** The SDK does not carry a page's controls, session, or state to a server, another tab, or another device, and this app does not build one. An agent outside the browser uses the server actions; an agent inside the page uses `window.__surface`. The in-page Save works because it runs in the page with the person's cookie, exactly like the button.
@@ -332,3 +335,4 @@ The browser suite uses the Chromium that `@playwright/test` 1.63 installs (`pnpm
 - [Human oversight](human-oversight.md): the approval primitive this app uses.
 - [Surface](surface.md): the page surface, `useSurfaceProps`, and serving a surface from a server.
 - [Next.js](integrations/next.md): `axeNext` for the App Router.
+- [Evaluation](evaluation.md): this app under four agent interfaces, with scripted agents and outcome checks.

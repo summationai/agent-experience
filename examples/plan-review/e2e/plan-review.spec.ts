@@ -130,6 +130,29 @@ test("two people in two tabs edit the same cell: one save succeeds, the other is
   await expect(alice.getByLabel("Gaskets, March 2027")).toHaveValue("900");
 });
 
+test("a save that never gets an answer leaves the buttons usable and the draft kept; the retry saves", async ({
+  browser,
+}) => {
+  const alice = await signIn(browser, "alice", "acme");
+  await alice.getByLabel("Gaskets, March 2027").fill("1200");
+  let aborted = 0;
+  await alice.route("**/api/**", (route) => {
+    if (route.request().method() === "POST" && aborted === 0) {
+      aborted++;
+      return route.abort("failed");
+    }
+    return route.continue();
+  });
+  await alice.getByRole("button", { name: "Save 1 unsaved change" }).click();
+  await expect(alice.getByTestId("message")).toContainText("did not reach the server");
+  await expect(alice.getByLabel("Gaskets, March 2027")).toHaveValue("1200");
+  const save = alice.getByRole("button", { name: "Save 1 unsaved change" });
+  await expect(save).toBeEnabled();
+  await save.click();
+  await expect(alice.getByTestId("message")).toHaveText("Saved 1 change.");
+  expect(aborted).toBe(1);
+});
+
 test("a person changes the plan between the agent's observe and act: the agent is refused, re-reads, and continues", async ({
   browser,
   request,

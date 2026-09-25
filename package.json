@@ -31,7 +31,9 @@
     "example:dev": "pnpm --filter plan-review-example dev",
     "example:test": "pnpm --filter plan-review-example test",
     "example:test:app": "pnpm --filter plan-review-example test:app",
-    "measure:granularity": "node scripts/measure-granularity.mjs"
+    "measure:granularity": "node scripts/measure-granularity.mjs",
+    "example:eval": "pnpm --filter plan-review-example eval",
+    "eval": "pnpm --filter plan-review-example eval"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",

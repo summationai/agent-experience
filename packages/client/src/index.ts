@@ -1201,8 +1201,11 @@ export class AXEClient {
         `Response from ${url} (HTTP ${res.status}) is not an AXE result envelope: ${resultProblem(parsed)}.`,
       );
     }
+    // Only what the site says may be retried: an `unavailable` with `retryable: false` (a disabled
+    // control, a closed period) will not change in a second, so retrying it only adds a request.
     const retryable =
       isError(parsed) &&
+      parsed.error.retryable !== false &&
       (parsed.error.code === WIRE.error.rateLimited ||
         parsed.error.code === WIRE.error.unavailable);
     if (retryable && attempt < (this.options.retries ?? 1)) {

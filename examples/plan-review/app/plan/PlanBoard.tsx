@@ -4,6 +4,10 @@
 // page surface (lib/browser-surface.ts): the unsaved draft of each cell, "Save", "Scroll to
 // <month>", and "Open the approval requests". Those exist while this component is mounted and
 // only in this tab; they are not AXE actions.
+//
+// `view` (lib/variant.ts) is for the evaluation harness: with generic markup the Surface
+// attributes are not spread on the controls (variant v1), and the UI change renames the Save
+// button's visible label and moves the item column to the end. The registrations are the same.
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSurfaceProps } from "@axe/surface/react";
@@ -32,7 +36,8 @@ export function PlanBoard({ initial }: { initial: PageState }) {
   const [message, setMessage] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const { plan, session, can } = state;
+  const { plan, session, can, view } = state;
+  const semantic = view.markup === "semantic";
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/state", { cache: "no-store" });
@@ -55,11 +60,19 @@ export function PlanBoard({ initial }: { initial: PageState }) {
   const act = useCallback(
     async (path: string, body: Record<string, unknown>, done: string, rev = plan.rev) => {
       setBusy(true);
-      const r = await post(path, { expectedRev: rev, ...body });
-      setBusy(false);
-      setMessage(r.status === 200 ? done : (r.body.error ?? "That did not work."));
-      await refresh();
-      return r;
+      try {
+        const r = await post(path, { expectedRev: rev, ...body });
+        setMessage(r.status === 200 ? done : (r.body.error ?? "That did not work."));
+        await refresh();
+        return r;
+      } catch {
+        // The request never got an answer (network down, server restarting). Nothing is known to
+        // have changed; the drafts stay, and the buttons must not stay disabled.
+        setMessage("The request did not reach the server. Your drafts are kept; try again.");
+        return { status: 0, body: { error: "no response" } } as Awaited<ReturnType<typeof post>>;
+      } finally {
+        setBusy(false);
+      }
     },
     [plan.rev, refresh],
   );
@@ -165,19 +178,21 @@ export function PlanBoard({ initial }: { initial: PageState }) {
         <table className="grid">
           <thead>
             <tr>
-              <th>Item</th>
+              {view.uiChange ? null : <th>Item</th>}
               {plan.months.map((m) => (
-                <MonthHeader key={m} month={m} />
+                <MonthHeader key={m} month={m} semantic={semantic} />
               ))}
+              {view.uiChange ? <th>Item</th> : null}
             </tr>
           </thead>
           <tbody>
             {plan.items.map((item) => (
               <tr key={item}>
-                <th scope="row">{item}</th>
+                {view.uiChange ? null : <th scope="row">{item}</th>}
                 {plan.months.map((month) => (
                   <Cell
                     key={month}
+                    semantic={semantic}
                     planId={plan.id}
                     item={item}
                     month={month}
@@ -196,6 +211,7 @@ export function PlanBoard({ initial }: { initial: PageState }) {
                     }}
                   />
                 ))}
+                {view.uiChange ? <th scope="row">{item}</th> : null}
               </tr>
             ))}
           </tbody>
@@ -203,8 +219,12 @@ export function PlanBoard({ initial }: { initial: PageState }) {
       </div>
 
       <section className="row">
-        <button {...saveProps} disabled={busy || dirty === 0 || !!can.edit} onClick={save}>
-          Save {dirty > 0 ? `(${dirty})` : ""}
+        <button
+          {...(semantic ? saveProps : {})}
+          disabled={busy || dirty === 0 || !!can.edit}
+          onClick={save}
+        >
+          {view.uiChange ? "Apply changes" : "Save"} {dirty > 0 ? `(${dirty})` : ""}
         </button>
         {dirty > 0 ? <button onClick={discard}>Discard drafts</button> : null}
         {conflict && dirty > 0 ? (
@@ -244,7 +264,7 @@ export function PlanBoard({ initial }: { initial: PageState }) {
             ? "Unfreeze (let agents act again)"
             : "Freeze (pause agents, cancel their requests)"}
         </button>
-        <button {...dialogProps} onClick={() => setDialogOpen(true)}>
+        <button {...(semantic ? dialogProps : {})} onClick={() => setDialogOpen(true)}>
           Approval requests ({state.approvals.length})
         </button>
       </section>
@@ -294,7 +314,7 @@ export function PlanBoard({ initial }: { initial: PageState }) {
   );
 }
 
-function MonthHeader({ month }: { month: string }) {
+function MonthHeader({ month, semantic }: { month: string; semantic: boolean }) {
   const ref = useRef<HTMLTableCellElement>(null);
   const label = monthLabel(month);
   const props = useSurfaceProps(
@@ -313,7 +333,7 @@ function MonthHeader({ month }: { month: string }) {
   );
   // The header cell is the control an agent's "scroll" names; scrolling is all it does.
   return (
-    <th ref={ref} {...props} tabIndex={-1} id={`month-${month}`}>
+    <th ref={ref} {...(semantic ? props : {})} tabIndex={-1} id={`month-${month}`}>
       {label}
     </th>
   );
@@ -327,9 +347,10 @@ function Cell(props: {
   saved: number;
   draft: string | undefined;
   readOnlyReason: string | null;
+  semantic: boolean;
   onDraft: (text: string) => void;
 }) {
-  const { planId, item, month, saved, draft, readOnlyReason, onDraft } = props;
+  const { planId, item, month, saved, draft, readOnlyReason, semantic, onDraft } = props;
   const value = draft ?? String(saved);
   const surfaceProps = useSurfaceProps(
     {
@@ -354,7 +375,7 @@ function Cell(props: {
   return (
     <td className={draft !== undefined ? "dirty" : undefined}>
       <input
-        {...surfaceProps}
+        {...(semantic ? surfaceProps : {})}
         inputMode="numeric"
         value={value}
         readOnly={!!readOnlyReason}
