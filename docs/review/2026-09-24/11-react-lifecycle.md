@@ -64,3 +64,8 @@ No browser integration was added. jsdom settled every hypothesis. Tearing under 
 ## Status
 
 Done on `review/react`. Verified with `pnpm gen:vocabulary -- --check`, `pnpm -r build`, `pnpm check:snippets`, `pnpm lint`, `pnpm -r typecheck`, `pnpm -r test`, and `pnpm docs:api`.
+
+
+## Follow-up at merge
+
+The limitation above about the bridge is resolved: `surfaceActions(...).onChange` listens on `subscribe` and coalesces to one notification per microtask when `registryVersion` moved. Tests: `packages/surface/test/axe.test.ts` "under an app-owned revision, a row that registers or leaves announces a changed action set with no bump" (fails without the change) and "onChange fires once when the registry changed, coalescing a render's registrations, and not on a bump alone".

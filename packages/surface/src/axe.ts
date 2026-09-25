@@ -762,12 +762,22 @@ export function surfaceActions(
       return byName.get(name);
     },
     onChange(listener) {
+      // `subscribe` fires on registration and `setRev` as well as `bump`/`freeze`/`thaw`
+      // ([S-OBS-4]), so an app-owned revision still announces a changed action set. One render
+      // can register many rows, so notifications are coalesced to one per microtask, and only
+      // when `registryVersion` moved (the set changed shape), never for a revision move alone.
       let last = surface.registryVersion();
-      return surface.onChange(() => {
-        const version = surface.registryVersion();
-        if (version === last) return;
-        last = version;
-        listener();
+      let scheduled = false;
+      return surface.subscribe(() => {
+        if (scheduled) return;
+        scheduled = true;
+        queueMicrotask(() => {
+          scheduled = false;
+          const version = surface.registryVersion();
+          if (version === last) return;
+          last = version;
+          listener();
+        });
       });
     },
   };

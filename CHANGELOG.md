@@ -86,6 +86,7 @@ What the first integration into a legacy-DOM application asked for, made general
 - Tests: `packages/surface/test/react-mounted.test.ts` mounts the hooks with `react-dom/client` under jsdom (`jsdom` is a devDependency of `@axe/surface` only; the bundle test checks it never enters the browser bundle). The browser bundle of `@axe/surface` and `/react` went from 25,290 to 26,308 bytes minified.
 - Migration: none required. Code that listed handler inputs in `deps` only to keep the closure fresh can drop them. Code that relied on an id change keeping the old row (no known consumer) must register the old id itself. A non-React mirror that re-applies `attributesFor` on `onChange` should use `subscribe` under an application-owned revision.
 - Vocabulary: `subscribe`.
+- Bridge change notifications (follow-up): the provider's `onChange` now listens on `subscribe`, so a row that registers or leaves under an app-owned revision announces a changed action set (MCP `tools/list_changed`) with no `bump`; notifications are coalesced to one per microtask and still fire only when `registryVersion` moved.
 
 ### Generate
 

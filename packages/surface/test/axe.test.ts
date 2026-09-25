@@ -836,17 +836,47 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     );
   });
 
-  it("onChange fires when the registry changed since the last revision move, not on a bump alone", () => {
+  it("onChange fires once when the registry changed, coalescing a render's registrations, and not on a bump alone", async () => {
+    const tick = () => Promise.resolve();
     const b = board();
     const bridge = surfaceActions(b.surface);
     const changes = vi.fn();
     bridge.onChange(changes);
     b.surface.bump();
+    await tick();
     expect(changes).not.toHaveBeenCalled();
-    b.human("Gibbs"); // unregisters the row, then bumps
+    b.human("Gibbs"); // re-registers the rows, unregisters one, then bumps: one notification
+    await tick();
     expect(changes).toHaveBeenCalledTimes(1);
     b.surface.bump();
+    await tick();
     expect(changes).toHaveBeenCalledTimes(1);
+  });
+
+  it("under an app-owned revision, a row that registers or leaves announces a changed action set with no bump [S-OBS-4]", async () => {
+    const tick = () => Promise.resolve();
+    const s = createSurface({ revision: "app" });
+    s.setRev(10);
+    const bridge = surfaceActions(s, { auth: "none" });
+    const changes = vi.fn();
+    bridge.onChange(changes);
+    s.register({
+      id: "lock:2026-03",
+      kind: "action",
+      role: "button",
+      name: "Lock March",
+      effect: { mutates: "locks" },
+      handler: () => undefined,
+    });
+    await tick();
+    expect(changes).toHaveBeenCalledTimes(1);
+    expect(bridge.actions().map((a) => a.name)).toContain("surface.lock-2026-03");
+    s.setRev(11); // the revision moved, the set did not
+    await tick();
+    expect(changes).toHaveBeenCalledTimes(1);
+    s.unregister("lock:2026-03");
+    await tick();
+    expect(changes).toHaveBeenCalledTimes(2);
   });
 
   it("an entry whose text fails the honesty lint is reported and left out of the actions, and keeps its row in observe", async () => {
