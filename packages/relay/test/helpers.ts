@@ -10,6 +10,7 @@ import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { Surface } from "@axe/surface";
+import type { autoSurface } from "@axe/surface/auto";
 import type { connectRelay, devToken, RelayConnection, RelayStatus } from "../src/client";
 import { createRelay } from "../src/server";
 import type { Relay, RelayAddress, RelayOptions } from "../src/server";
@@ -45,6 +46,7 @@ export function pageBundle(): Promise<string> {
 
 export interface PageApi {
   createSurface: () => Surface;
+  autoSurface: typeof autoSurface;
   connectRelay: typeof connectRelay;
   devToken: typeof devToken;
 }

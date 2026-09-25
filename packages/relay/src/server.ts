@@ -32,7 +32,8 @@ import type {
   Surface,
 } from "@axe/surface";
 import { domainActions } from "@axe/surface/axe";
-import type { DomainActionSpec, SurfaceContext } from "@axe/surface/axe";
+import type { DomainSpec, SurfaceContext } from "@axe/surface/axe";
+import type { PageRead, ReadOptions, WaitResult } from "@axe/surface/auto";
 import { createMcpServer, serveHttp, serveStdio } from "@axe/mcp";
 import type {
   AuthInfo,
@@ -45,7 +46,7 @@ import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.
 import { TabMirror } from "./mirror";
 import type { TabLink } from "./mirror";
 import { CLOSE, ID_PATTERN, RELAY_PROTOCOL } from "./protocol";
-import type { RelayMessage, RelayPrincipal, TabMessage } from "./protocol";
+import type { RelayMessage, RelayPrincipal, TabMessage, WireWaitCondition } from "./protocol";
 import { mintRelayToken, verifyRelayToken } from "./token";
 
 export { mintRelayToken, verifyRelayToken, MAX_RELAY_TOKEN_TTL, RELAY_AUDIENCE } from "./token";
@@ -135,7 +136,13 @@ export interface RelayOptions {
    * The parameterized actions for every tab. Default: `domainActions`' own set (`set-field`,
    * `run-control`, `load-more`). `autoDomains()` from `@axe/surface/auto` fits here.
    */
-  domains?: DomainActionSpec[];
+  domains?: DomainSpec[];
+  /**
+   * Serve `surface_read` and `surface_wait` (the page's content, and waiting for slow work) when
+   * `domains` does not name them. They answer from a tab running an auto surface and are
+   * unavailable, with the reason, in any other. Default true.
+   */
+  content?: boolean;
   /** The relay's public URL, as the AXE manifest names it. Default `http://localhost`. */
   baseUrl?: string;
   /** Name and description of the MCP server. */
@@ -523,6 +530,52 @@ class TabRecord implements TabLink {
     if (m.error) throw new Error(m.error);
   }
 
+  /** Ask the tab's page-content reader for `read` or `wait`, and return its answer or throw its error. */
+  private async content(
+    message: (id: number) => RelayMessage,
+    timeoutMs: number,
+  ): Promise<JsonValue> {
+    if (this.state === "stopped") throw new Error("the person stopped agent access in this tab");
+    if (!(await this.connected(this.relay.reconnectGraceMs)))
+      throw new Error("the tab is not connected (it may be reloading or closed); call relay_tabs");
+    this.markActive();
+    // A reloaded page is a new instance: its first snapshot fixes the translation of revisions.
+    if (this.syncedInstance !== this.instance) await this.sync();
+    let m: TabMessage;
+    try {
+      m = await this.request(message, timeoutMs);
+    } catch (e) {
+      throw new Error(
+        e instanceof Error && e.message === "disconnected"
+          ? "the tab went away before it answered"
+          : "the tab did not answer in time",
+      );
+    }
+    if (m.t !== "content") throw new Error("unexpected reply");
+    if (m.error !== undefined) throw new Error(m.error);
+    this.lastActive = Date.now();
+    return m.result ?? null;
+  }
+
+  async read(options: ReadOptions): Promise<PageRead> {
+    return (await this.content(
+      (id) => ({ t: "read", id, options }),
+      this.relay.actTimeoutMs,
+    )) as unknown as PageRead;
+  }
+
+  async wait(
+    condition: WireWaitCondition,
+    options: { timeoutMs?: number; pollMs?: number },
+  ): Promise<WaitResult> {
+    // The page bounds the wait itself; the relay allows that bound plus an act's time to answer.
+    const bound = Math.min(Math.max(0, options.timeoutMs ?? 30_000), 120_000);
+    return (await this.content(
+      (id) => ({ t: "wait", id, condition, options }),
+      bound + this.relay.actTimeoutMs,
+    )) as unknown as WaitResult;
+  }
+
   async record(change: RecordRequest): Promise<void> {
     if (!(await this.connected(this.relay.reconnectGraceMs))) return;
     const since = this.mirror.since();
@@ -710,7 +763,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
     name: options.name ?? "Surface relay",
     description:
       options.description ??
-      "The person's open browser tab of this application, through its Surface. relay_tabs lists the tabs you can reach and which one you act on. surface_observe returns the tab's controls, with what can be done now and why not the rest, under one rev; pass that rev as expectedRev to surface_set-field, surface_run-control, or surface_load-more. Every act runs in the page as the person's own control would, and is recorded in the tab's ledger. A control that needs approval asks the person in the tab: tell them, and call again after they approve.",
+      "The person's open browser tab of this application, through its Surface. relay_tabs lists the tabs you can reach and which one you act on. surface_observe returns the tab's controls, with what can be done now and why not the rest, under one rev; pass that rev as expectedRev to surface_set-field, surface_run-control, or surface_load-more. surface_read returns what the page shows (headings, text, fields, tables), and surface_wait waits for slow work such as a report being generated. Every act runs in the page as the person's own control would, and is recorded in the tab's ledger. A control that needs approval asks the person in the tab: tell them, and call again after they approve.",
     baseUrl: options.baseUrl ?? "http://localhost",
     // The AXE runtime is reached only in-process, from the MCP bridge, which passes the caller's
     // identity as the adapter context; no request authenticates itself, and the relay serves no
@@ -731,6 +784,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
     template: createSurface(),
     actor: (ctx) => relayActor(ctx.onBehalfOf ?? "agent"),
     ...(options.domains ? { domains: options.domains } : {}),
+    content: options.content !== false,
   });
   axe.addProvider(bridge);
 
@@ -1091,6 +1145,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
         case "result":
         case "fulfilled":
         case "recorded":
+        case "content":
           // The requester adopts the table the reply carries (sync, act, and fulfill each do).
           tab.answer(m.re, m);
           return;

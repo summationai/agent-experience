@@ -5,6 +5,15 @@
  */
 import type { ActRequest, ActResult, LedgerEntry, Observation, RecordRequest } from "@axe/surface";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
+import type { ReadOptions, WaitCondition } from "@axe/surface/auto";
+
+/** A wait condition as it crosses the wire: texts are strings (`/pattern/flags` for an expression). */
+export type WireWaitCondition = Omit<WaitCondition, "text" | "gone" | "any" | "all"> & {
+  text?: string;
+  gone?: string;
+  any?: WireWaitCondition[];
+  all?: WireWaitCondition[];
+};
 
 /** The WebSocket subprotocol and message version. */
 export const RELAY_PROTOCOL = "axe-relay.v1";
@@ -66,6 +75,8 @@ export type TabMessage =
       observation?: Observation;
       ledger?: LedgerEntry[];
     }
+  /** The answer to `read` or `wait`: the page's `PageRead` or `WaitResult`, in the tab's revisions. */
+  | { t: "content"; re: number; result?: JsonValue; error?: string }
   | { t: "changed"; rev: number; ledgerSeq: number }
   | { t: "active" }
   | { t: "stop" }
@@ -105,6 +116,15 @@ export type RelayMessage =
       id: number;
       since: number;
       change: RecordRequest;
+    }
+  /** Read the page's content through its surface's page-content reader ([S-AUTO-14]). */
+  | { t: "read"; id: number; options: ReadOptions }
+  /** Wait on the page until a condition holds or the bound runs out ([S-AUTO-15]). */
+  | {
+      t: "wait";
+      id: number;
+      condition: WireWaitCondition;
+      options: { timeoutMs?: number; pollMs?: number };
     }
   | { t: "agent"; state: "paired" | "active" };
 

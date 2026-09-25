@@ -162,6 +162,13 @@ export function devToken(relayUrl: string): () => Promise<string> {
 /** Default approval rule: high risk, or an effect that asks for confirmation. */
 /** The surface's own approval gate (an auto-derived surface's policy), shared by symbol. */
 const APPROVER = Symbol.for("axe.surface.approver");
+/** The surface's page-content reader (`read`, `wait`; `CONTENT` in `@axe/surface/auto`). */
+const CONTENT = Symbol.for("axe.surface.content");
+
+interface PageContentLike {
+  read(options: unknown): unknown;
+  wait(condition: unknown, options: unknown): Promise<unknown>;
+}
 
 function defaultRequireApproval(row: ObservedEntry): boolean {
   if (row.kind !== "action") return false;
@@ -526,6 +533,30 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         } catch (e) {
           send({ t: "recorded", re: m.id, error: e instanceof Error ? e.message : String(e) });
         }
+        return;
+      }
+      case "read":
+      case "wait": {
+        void (async () => {
+          try {
+            if (stopped) throw new Error("the person stopped agent access in this tab");
+            const content = (surface as unknown as Record<symbol, PageContentLike | undefined>)[
+              CONTENT
+            ];
+            if (!content)
+              throw new Error(
+                "this page does not publish its content: it runs no auto surface (autoSurface from @axe/surface/auto)",
+              );
+            if (status.state === "connected") publish({ state: "acting" });
+            const result =
+              m.t === "read"
+                ? await content.read(m.options ?? {})
+                : await content.wait(m.condition, m.options ?? {});
+            send({ t: "content", re: m.id, result: result as JsonValue });
+          } catch (e) {
+            send({ t: "content", re: m.id, error: e instanceof Error ? e.message : String(e) });
+          }
+        })();
         return;
       }
       case "fulfill": {
