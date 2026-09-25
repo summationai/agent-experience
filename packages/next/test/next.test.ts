@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createServer, type IncomingMessage } from "node:http";
+import { createServer, request as httpRequest, type IncomingMessage } from "node:http";
 import { createAXE, action, z } from "@axe/core";
+import type { AXEConfig } from "@axe/core";
 import { axeNext, axeNextPages } from "../src/index";
 
-function server() {
+function server(overrides: Partial<AXEConfig> = {}) {
   const axe = createAXE({
     name: "Northgate University Admissions",
     description:
@@ -11,6 +12,7 @@ function server() {
     baseUrl: "https://admissions.northgate.example",
     auth: { modes: ["none", "user"], userLoginUrl: "https://admissions.northgate.example/login" },
     secret: "0123456789abcdef0123456789abcdef",
+    ...overrides,
   });
   axe.register(
     action("applications.status", {
@@ -228,4 +230,58 @@ describe("request policy through the Next adapters [P-TRANS-1] [P-TRANS-2]", () 
       await new Promise<void>((r) => http.close(() => r()));
     });
   });
+});
+
+describe("axeNextPages body limit [P-LIM-1]", () => {
+  /** Send headers and the first bytes of a body, never the rest; resolve with the response. */
+  function partialPost(port: number, headers: Record<string, string>, first: Buffer) {
+    return new Promise<{ status: number; body: string }>((resolve) => {
+      const req = httpRequest(
+        {
+          host: "127.0.0.1",
+          port,
+          path: "/axe/actions/applications.status",
+          method: "POST",
+          headers,
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (c: Buffer) => (body += c.toString()));
+          res.on("end", () => {
+            resolve({ status: res.statusCode ?? 0, body });
+            req.destroy();
+          });
+        },
+      );
+      req.on("error", () => undefined);
+      req.write(first);
+    });
+  }
+
+  it(
+    "an unparsed raw body is read only past maxBodyBytes and refused with 413, declared or chunked",
+    { timeout: 5000 },
+    async () => {
+      // bodyParser: false in the route config: Next leaves the stream unread.
+      const pages = axeNextPages(server({ maxBodyBytes: 100 * 1024 }), {
+        origin: "https://admissions.northgate.example",
+      });
+      const http = createServer((req, res) => void pages(req, res));
+      await new Promise<void>((r) => http.listen(0, () => r()));
+      const port = (http.address() as { port: number }).port;
+      const declared = await partialPost(
+        port,
+        { "content-type": "application/json", "content-length": String(10 * 1024 * 1024) },
+        Buffer.alloc(64 * 1024, 0x20),
+      );
+      const chunked = await partialPost(
+        port,
+        { "content-type": "application/json" },
+        Buffer.alloc(200 * 1024, 0x20),
+      );
+      expect([declared.status, chunked.status]).toEqual([413, 413]);
+      expect(JSON.parse(chunked.body).error.details.reason).toBe("payload_too_large");
+      await new Promise<void>((r) => http.close(() => r()));
+    },
+  );
 });
