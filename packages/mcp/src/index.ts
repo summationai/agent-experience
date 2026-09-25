@@ -65,7 +65,7 @@ export {
   PRESENTATION_VIEW_HTML,
 } from "./apps";
 
-export type { AuthInfo, OAuthTokenVerifier };
+export type { AuthInfo, OAuthTokenVerifier, CallToolResult, Tool };
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -135,6 +135,29 @@ export interface McpServerOptions {
    * off. Default on.
    */
   apps?: boolean;
+  /**
+   * Tools served beside the derived ones, answered by your own code with any MCP content (an
+   * image, say) instead of an AXE result. A name that a derived tool also uses is an error. Each
+   * call receives the request's verified `authInfo` (HTTP with `auth`) and the caller `clientFor`
+   * returned for it; over stdio both are absent. Identify the caller from them, never from the
+   * arguments.
+   */
+  extraTools?: ExtraTool[];
+}
+
+/** What an extra tool's `call` receives besides its arguments. */
+export interface ExtraToolContext {
+  /** The request's verified access token, over HTTP with `serveHttp`'s `auth`. */
+  authInfo?: AuthInfo;
+  /** What `clientFor` returned for this caller, over HTTP. */
+  caller?: CallerContext;
+}
+
+/** A tool answered by your own code (`McpServerOptions.extraTools`). */
+export interface ExtraTool {
+  /** The MCP tool definition: name, description, input schema, annotations. */
+  definition: Tool;
+  call(args: Record<string, unknown>, context: ExtraToolContext): Promise<CallToolResult>;
 }
 
 export interface DerivedMcpServer {
@@ -237,6 +260,13 @@ export async function createMcpServer(
   const bridge = await makeBridge(source, options);
   const manifest = bridge.root.manifest();
   const tools = buildTools(manifest);
+  const extraNames = new Set<string>();
+  for (const x of options.extraTools ?? []) {
+    const name = x.definition.name;
+    if (extraNames.has(name) || tools.some((t) => t.name === name))
+      throw new Error(`createMcpServer: extra tool "${name}" is already a tool name.`);
+    extraNames.add(name);
+  }
   const built = buildServer(bridge, { pollUrls: new IssuedPollUrls() });
   const derived: DerivedMcpServer = {
     server: built.server,
@@ -390,10 +420,12 @@ function buildServer(bridge: Bridge, scope: ServerScope): { server: Server; disp
     },
   );
   const appsNow = () => appsOn && appsNegotiated(server.getClientCapabilities());
+  const extras = bridge.options.extraTools ?? [];
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const current = await bridge.manifestNow();
     const tools = buildTools(current);
-    return { tools: appsNow() ? withPresentationView(tools, current) : tools };
+    const derived = appsNow() ? withPresentationView(tools, current) : tools;
+    return { tools: [...derived, ...extras.map((x) => x.definition)] };
   });
   if (appsOn) {
     server.setRequestHandler(ListResourcesRequestSchema, async () => ({
@@ -419,6 +451,12 @@ function buildServer(bridge: Bridge, scope: ServerScope): { server: Server; disp
     const args = (req.params.arguments ?? {}) as Record<string, unknown>;
     try {
       const caller = scope.caller ? await scope.caller(extra.authInfo) : undefined;
+      const own = extras.find((x) => x.definition.name === name);
+      if (own)
+        return await own.call(args, {
+          ...(extra.authInfo ? { authInfo: extra.authInfo } : {}),
+          ...(caller ? { caller } : {}),
+        });
       const interaction: Interaction = {
         modes: elicitOn
           ? elicitationModes(server.getClientCapabilities())

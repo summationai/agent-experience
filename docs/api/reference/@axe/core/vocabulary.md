@@ -236,6 +236,23 @@ type WireApi =
   | "tabId"
   | "ToolCallContext"
   | "completeElicitation"
+  | "createHost"
+  | "sessionFor"
+  | "storageStateSession"
+  | "cookieSession"
+  | "storageState"
+  | "localStorage"
+  | "startPath"
+  | "navigationTimeoutMs"
+  | "tokenTtlSeconds"
+  | "executablePath"
+  | "relayUrl"
+  | "relaySecret"
+  | "closeSession"
+  | "relayEvent"
+  | "extraTools"
+  | "handleAgent"
+  | "relayAgentContext"
   | "autoSurface"
   | "formatCoverage"
   | "checkConfig"
@@ -296,6 +313,7 @@ type WireCli =
   | "axe mcp"
   | "axe generate"
   | "axe relay"
+  | "axe host"
   | "axe surface"
   | "axe surface init"
   | "axe surface coverage";
@@ -964,6 +982,7 @@ const api: Readonly<{
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
   clientFor: "clientFor";
+  closeSession: "closeSession";
   combineSinks: "combineSinks";
   completeElicitation: "completeElicitation";
   completeHandoff: "completeHandoff";
@@ -974,9 +993,11 @@ const api: Readonly<{
   consoleSink: "consoleSink";
   contentDomains: "contentDomains";
   continue: "continue";
+  cookieSession: "cookieSession";
   cors: "cors";
   createAXE: "createAXE";
   createContext: "createContext";
+  createHost: "createHost";
   createMcpServer: "createMcpServer";
   createRelay: "createRelay";
   createSurface: "createSurface";
@@ -997,8 +1018,10 @@ const api: Readonly<{
   entries: "entries";
   entryIdFor: "entryIdFor";
   entrySlug: "entrySlug";
+  executablePath: "executablePath";
   expose: "expose";
   exposeWebMcp: "exposeWebMcp";
+  extraTools: "extraTools";
   fetchHandler: "fetchHandler";
   formatAuditHtml: "formatAuditHtml";
   formatAuditTable: "formatAuditTable";
@@ -1015,6 +1038,7 @@ const api: Readonly<{
   fulfillers: "fulfillers";
   getHandoff: "getHandoff";
   getToken: "getToken";
+  handleAgent: "handleAgent";
   handler: "handler";
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
@@ -1044,6 +1068,7 @@ const api: Readonly<{
   lintAction: "lintAction";
   lintAgentText: "lintAgentText";
   lintManifest: "lintManifest";
+  localStorage: "localStorage";
   manifest: "manifest";
   manifestCacheSeconds: "manifestCacheSeconds";
   manifestMaxAgeMs: "manifestMaxAgeMs";
@@ -1061,6 +1086,7 @@ const api: Readonly<{
   metaFor: "metaFor";
   mintRelayToken: "mintRelayToken";
   modelContext: "modelContext";
+  navigationTimeoutMs: "navigationTimeoutMs";
   needsInput: "needsInput";
   observe: "observe";
   onActionEvent: "onActionEvent";
@@ -1098,7 +1124,11 @@ const api: Readonly<{
   registerGenerated: "registerGenerated";
   registerTool: "registerTool";
   registryVersion: "registryVersion";
+  relayAgentContext: "relayAgentContext";
+  relayEvent: "relayEvent";
   relayOptions: "relayOptions";
+  relaySecret: "relaySecret";
+  relayUrl: "relayUrl";
   requestApproval: "requestApproval";
   requestedSchema: "requestedSchema";
   requestPolicy: "requestPolicy";
@@ -1126,13 +1156,17 @@ const api: Readonly<{
   serveHttp: "serveHttp";
   serveStdio: "serveStdio";
   sessionCount: "sessionCount";
+  sessionFor: "sessionFor";
   sessionIdGenerator: "sessionIdGenerator";
   setObjects: "setObjects";
   setRev: "setRev";
   siteKey: "siteKey";
   sqliteIdempotencyStore: "SqliteIdempotencyStore";
+  startPath: "startPath";
   state: "state";
   stateToMarkdown: "stateToMarkdown";
+  storageState: "storageState";
+  storageStateSession: "storageStateSession";
   subscribe: "subscribe";
   suggestedReason: "suggestedReason";
   surfaceActions: "surfaceActions";
@@ -1150,6 +1184,7 @@ const api: Readonly<{
   toHTML: "toHTML";
   toJsonSchema: "toJsonSchema";
   tokenStore: "tokenStore";
+  tokenTtlSeconds: "tokenTtlSeconds";
   toMarkdown: "toMarkdown";
   toolCallContext: "ToolCallContext";
   toolNameFor: "toolNameFor";
@@ -1200,6 +1235,7 @@ const cli: Readonly<{
   audit: "axe audit";
   conformance: "axe conformance";
   generate: "axe generate";
+  host: "axe host";
   init: "axe init";
   inspect: "axe inspect";
   mcp: "axe mcp";
@@ -1939,6 +1975,7 @@ const WIRE: Readonly<{
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
      clientFor: "clientFor";
+     closeSession: "closeSession";
      combineSinks: "combineSinks";
      completeElicitation: "completeElicitation";
      completeHandoff: "completeHandoff";
@@ -1949,9 +1986,11 @@ const WIRE: Readonly<{
      consoleSink: "consoleSink";
      contentDomains: "contentDomains";
      continue: "continue";
+     cookieSession: "cookieSession";
      cors: "cors";
      createAXE: "createAXE";
      createContext: "createContext";
+     createHost: "createHost";
      createMcpServer: "createMcpServer";
      createRelay: "createRelay";
      createSurface: "createSurface";
@@ -1972,8 +2011,10 @@ const WIRE: Readonly<{
      entries: "entries";
      entryIdFor: "entryIdFor";
      entrySlug: "entrySlug";
+     executablePath: "executablePath";
      expose: "expose";
      exposeWebMcp: "exposeWebMcp";
+     extraTools: "extraTools";
      fetchHandler: "fetchHandler";
      formatAuditHtml: "formatAuditHtml";
      formatAuditTable: "formatAuditTable";
@@ -1990,6 +2031,7 @@ const WIRE: Readonly<{
      fulfillers: "fulfillers";
      getHandoff: "getHandoff";
      getToken: "getToken";
+     handleAgent: "handleAgent";
      handler: "handler";
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
@@ -2019,6 +2061,7 @@ const WIRE: Readonly<{
      lintAction: "lintAction";
      lintAgentText: "lintAgentText";
      lintManifest: "lintManifest";
+     localStorage: "localStorage";
      manifest: "manifest";
      manifestCacheSeconds: "manifestCacheSeconds";
      manifestMaxAgeMs: "manifestMaxAgeMs";
@@ -2036,6 +2079,7 @@ const WIRE: Readonly<{
      metaFor: "metaFor";
      mintRelayToken: "mintRelayToken";
      modelContext: "modelContext";
+     navigationTimeoutMs: "navigationTimeoutMs";
      needsInput: "needsInput";
      observe: "observe";
      onActionEvent: "onActionEvent";
@@ -2073,7 +2117,11 @@ const WIRE: Readonly<{
      registerGenerated: "registerGenerated";
      registerTool: "registerTool";
      registryVersion: "registryVersion";
+     relayAgentContext: "relayAgentContext";
+     relayEvent: "relayEvent";
      relayOptions: "relayOptions";
+     relaySecret: "relaySecret";
+     relayUrl: "relayUrl";
      requestApproval: "requestApproval";
      requestedSchema: "requestedSchema";
      requestPolicy: "requestPolicy";
@@ -2101,13 +2149,17 @@ const WIRE: Readonly<{
      serveHttp: "serveHttp";
      serveStdio: "serveStdio";
      sessionCount: "sessionCount";
+     sessionFor: "sessionFor";
      sessionIdGenerator: "sessionIdGenerator";
      setObjects: "setObjects";
      setRev: "setRev";
      siteKey: "siteKey";
      sqliteIdempotencyStore: "SqliteIdempotencyStore";
+     startPath: "startPath";
      state: "state";
      stateToMarkdown: "stateToMarkdown";
+     storageState: "storageState";
+     storageStateSession: "storageStateSession";
      subscribe: "subscribe";
      suggestedReason: "suggestedReason";
      surfaceActions: "surfaceActions";
@@ -2125,6 +2177,7 @@ const WIRE: Readonly<{
      toHTML: "toHTML";
      toJsonSchema: "toJsonSchema";
      tokenStore: "tokenStore";
+     tokenTtlSeconds: "tokenTtlSeconds";
      toMarkdown: "toMarkdown";
      toolCallContext: "ToolCallContext";
      toolNameFor: "toolNameFor";
@@ -2153,6 +2206,7 @@ const WIRE: Readonly<{
      audit: "axe audit";
      conformance: "axe conformance";
      generate: "axe generate";
+     host: "axe host";
      init: "axe init";
      inspect: "axe inspect";
      mcp: "axe mcp";

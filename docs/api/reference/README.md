@@ -7,6 +7,7 @@
 - [@axe/express](@axe/express.md)
 - [@axe/fetch](@axe/fetch.md)
 - [@axe/generate](@axe/generate.md)
+- [@axe/host](@axe/host/README.md)
 - [@axe/mcp](@axe/mcp.md)
 - [@axe/next](@axe/next.md)
 - [@axe/relay](@axe/relay/README.md)

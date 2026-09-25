@@ -86,6 +86,7 @@ export const HUB_GROUPS = [
       "docs/api/README.md",
       "docs/mcp.md",
       "docs/relay.md",
+      "docs/host.md",
       "docs/webmcp.md",
       "docs/for-agent-builders.md",
       "docs/security.md",

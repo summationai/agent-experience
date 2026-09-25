@@ -694,6 +694,8 @@ export const cli = /* @__PURE__ */ Object.freeze({
   generate: "axe generate",
   /** Run the relay that lets an agent drive a signed-in tab. */
   relay: "axe relay",
+  /** Unattended mode in development: `axe host login`, then `axe host --dev`. */
+  host: "axe host",
   /** Add Surface to an existing app: `init`, `coverage`, `prompt`. */
   surface: "axe surface",
   /** Detect the app, print the smallest diff that mounts Surface behind a flag, apply it. */
@@ -1102,7 +1104,7 @@ export const api = /* @__PURE__ */ Object.freeze({
   authFor: "authFor",
   /** Bridge option: rewrite the details of each `surface.act` event before it is emitted. */
   redactEvent: "redactEvent",
-  /** `scopedSurfaces` option: evict a surface unused for this long (default 30 minutes). */
+  /** `scopedSurfaces` option: evict a surface unused for this long (default 30 minutes). `createHost` option: close a hosted session after this long without a tool call (default 15 minutes). */
   idleMs: "idleMs",
   /** `scopedSurfaces` option: called with each evicted surface. */
   onEvict: "onEvict",
@@ -1140,13 +1142,13 @@ export const api = /* @__PURE__ */ Object.freeze({
   clientFor: "clientFor",
   /** `serveHttp` session option: close a session with no request for this long (default 30 minutes). */
   idleTimeoutMs: "idleTimeoutMs",
-  /** `serveHttp` session option: open sessions at most; past it a new `initialize` gets 503 (default 1000). */
+  /** `serveHttp` session option: open sessions at most; past it a new `initialize` gets 503 (default 1000). `createHost` option: hosted browser sessions at most; one more closes the least recently used (default 20). */
   maxSessions: "maxSessions",
   /** The number of open sessions on a `serveHttp` handler. */
   sessionCount: "sessionCount",
   /** Deprecated `serveHttp` option: a session id generator; setting it turns sessions on. */
   sessionIdGenerator: "sessionIdGenerator",
-  /** `serveHttp` option: browser origins allowed besides the endpoint's own; others get 403. */
+  /** `serveHttp` option: browser origins allowed besides the endpoint's own; others get 403. `createHost` option: origins a hosted page may navigate to besides the application's. */
   allowedOrigins: "allowedOrigins",
   /** `serveHttp` auth option: scopes every access token needs; otherwise 403 `insufficient_scope`. */
   requiredScopes: "requiredScopes",
@@ -1228,6 +1230,40 @@ export const api = /* @__PURE__ */ Object.freeze({
   toolCallContext: "ToolCallContext",
   /** Tell the client a URL-mode elicitation is finished (`notifications/elicitation/complete`). */
   completeElicitation: "completeElicitation",
+  /** Create a session host: one browser context per identity, started on the agent's first tool call, served over MCP. */
+  createHost: "createHost",
+  /** Turn the agent's verified identity into the application session its hosted browser starts with; null refuses. */
+  sessionFor: "sessionFor",
+  /** Development `sessionFor`: every identity gets the storage state `axe host login` saved. */
+  storageStateSession: "storageStateSession",
+  /** A `sessionFor` from a function that returns the cookies for an identity. */
+  cookieSession: "cookieSession",
+  /** A Playwright storage state (a file path or the object): cookies and each origin's `localStorage`. */
+  storageState: "storageState",
+  /** `localStorage` entries by origin that a hosted session starts with. */
+  localStorage: "localStorage",
+  /** The path each hosted session opens first, relative to the application URL. */
+  startPath: "startPath",
+  /** How long a hosted page may take to load and connect its surface to the relay. */
+  navigationTimeoutMs: "navigationTimeoutMs",
+  /** Lifetime of each relay token the host mints for a hosted page; the page renews in-band. */
+  tokenTtlSeconds: "tokenTtlSeconds",
+  /** A Chromium or Chrome executable for the hosted sessions, instead of Playwright's download. */
+  executablePath: "executablePath",
+  /** With a relay you run: the tab endpoint the hosted pages connect to. */
+  relayUrl: "relayUrl",
+  /** With a relay you run: the secret the host mints relay tokens with. */
+  relaySecret: "relaySecret",
+  /** Close an identity's hosted session; the next tool call starts a new one. */
+  closeSession: "closeSession",
+  /** With a relay you run: pass its events to the host, so Stop there closes the hosted session. */
+  relayEvent: "relayEvent",
+  /** Tools answered by the embedding code with any MCP content (an image), beside the derived ones. */
+  extraTools: "extraTools",
+  /** Serve one agent tool call's AXE request as the relay's own MCP front does, tool-call context included. */
+  handleAgent: "handleAgent",
+  /** The adapter context the relay's AXE server expects for an agent acting as a principal and tenant, for a front end such as a host. */
+  relayAgentContext: "relayAgentContext",
   /** Derive entries from the rendered page and keep them current; returns a handle with `coverage()` and `stop()`. */
   autoSurface: "autoSurface",
   /** The coverage report of an auto surface as Markdown. */
@@ -1422,11 +1458,11 @@ export type WireReason = "login_required" | "payment_required" | "consent_requir
 /** Union of every `tool` name. */
 export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
 /** Union of every `cli` name. */
-export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate" | "axe relay" | "axe surface" | "axe surface init" | "axe surface coverage";
+export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate" | "axe relay" | "axe host" | "axe surface" | "axe surface init" | "axe surface coverage";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "requestApproval" | "approvalState" | "getHandoff" | "approveHandoff" | "cancelHandoff" | "approvedBy" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "ProviderResultContext" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "record" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "validateJsonSchema" | "lintAction" | "isBacktrackingPattern" | "clientFor" | "idleTimeoutMs" | "maxSessions" | "sessionCount" | "sessionIdGenerator" | "allowedOrigins" | "requiredScopes" | "resourceMetadataUrl" | "authInfo" | "protectedResourceMetadata" | "manifestMaxAgeMs" | "onManifestChange" | "exposeWebMcp" | "modelContext" | "registerTool" | "consequentialHint" | "requestedSchema" | "isSensitiveAccept" | "toFormSchema" | "readOnlyHint" | "untrustedContentHint" | "domainActions" | "actionFor" | "idleReason" | "maxPageSize" | "connectRelay" | "getToken" | "onStatus" | "requireApproval" | "createRelay" | "authenticateTab" | "agentAuth" | "devPairing" | "syncTimeoutMs" | "reconnectGraceMs" | "tabRetentionMs" | "mintRelayToken" | "verifyRelayToken" | "injectedRelay" | "relayOptions" | "approvals" | "linkTtlMs" | "approvalUrl" | "tabId" | "ToolCallContext" | "completeElicitation" | "autoSurface" | "formatCoverage" | "checkConfig" | "autoDomains" | "autoActions" | "useAutoSurface" | "useAutoSurfaceHandle" | "elementFor" | "metaFor" | "debounceMs" | "quietMs" | "formatRead" | "contentDomains" | "maxChars" | "maxRows" | "pollMs" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "requestApproval" | "approvalState" | "getHandoff" | "approveHandoff" | "cancelHandoff" | "approvedBy" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "ProviderResultContext" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "record" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "validateJsonSchema" | "lintAction" | "isBacktrackingPattern" | "clientFor" | "idleTimeoutMs" | "maxSessions" | "sessionCount" | "sessionIdGenerator" | "allowedOrigins" | "requiredScopes" | "resourceMetadataUrl" | "authInfo" | "protectedResourceMetadata" | "manifestMaxAgeMs" | "onManifestChange" | "exposeWebMcp" | "modelContext" | "registerTool" | "consequentialHint" | "requestedSchema" | "isSensitiveAccept" | "toFormSchema" | "readOnlyHint" | "untrustedContentHint" | "domainActions" | "actionFor" | "idleReason" | "maxPageSize" | "connectRelay" | "getToken" | "onStatus" | "requireApproval" | "createRelay" | "authenticateTab" | "agentAuth" | "devPairing" | "syncTimeoutMs" | "reconnectGraceMs" | "tabRetentionMs" | "mintRelayToken" | "verifyRelayToken" | "injectedRelay" | "relayOptions" | "approvals" | "linkTtlMs" | "approvalUrl" | "tabId" | "ToolCallContext" | "completeElicitation" | "createHost" | "sessionFor" | "storageStateSession" | "cookieSession" | "storageState" | "localStorage" | "startPath" | "navigationTimeoutMs" | "tokenTtlSeconds" | "executablePath" | "relayUrl" | "relaySecret" | "closeSession" | "relayEvent" | "extraTools" | "handleAgent" | "relayAgentContext" | "autoSurface" | "formatCoverage" | "checkConfig" | "autoDomains" | "autoActions" | "useAutoSurface" | "useAutoSurfaceHandle" | "elementFor" | "metaFor" | "debounceMs" | "quietMs" | "formatRead" | "contentDomains" | "maxChars" | "maxRows" | "pollMs" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
 /** Union of every `schema` name. */
 export type WireSchema = "additionalProperties" | "patternProperties" | "propertyNames" | "minProperties" | "maxProperties" | "dependentRequired" | "dependentSchemas" | "prefixItems" | "minItems" | "maxItems" | "uniqueItems" | "minContains" | "maxContains" | "minLength" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf" | "allOf" | "anyOf" | "oneOf" | "writeOnly" | "unevaluatedProperties" | "unevaluatedItems" | "additionalItems";
 
@@ -1592,6 +1628,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "cli", key: "mcp", name: "axe mcp" },
   { category: "cli", key: "generate", name: "axe generate" },
   { category: "cli", key: "relay", name: "axe relay" },
+  { category: "cli", key: "host", name: "axe host" },
   { category: "cli", key: "surface", name: "axe surface" },
   { category: "cli", key: "surfaceInit", name: "axe surface init" },
   { category: "cli", key: "surfaceCoverage", name: "axe surface coverage" },
@@ -2012,6 +2049,23 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "tabId", name: "tabId" },
   { category: "api", key: "toolCallContext", name: "ToolCallContext" },
   { category: "api", key: "completeElicitation", name: "completeElicitation" },
+  { category: "api", key: "createHost", name: "createHost" },
+  { category: "api", key: "sessionFor", name: "sessionFor" },
+  { category: "api", key: "storageStateSession", name: "storageStateSession" },
+  { category: "api", key: "cookieSession", name: "cookieSession" },
+  { category: "api", key: "storageState", name: "storageState" },
+  { category: "api", key: "localStorage", name: "localStorage" },
+  { category: "api", key: "startPath", name: "startPath" },
+  { category: "api", key: "navigationTimeoutMs", name: "navigationTimeoutMs" },
+  { category: "api", key: "tokenTtlSeconds", name: "tokenTtlSeconds" },
+  { category: "api", key: "executablePath", name: "executablePath" },
+  { category: "api", key: "relayUrl", name: "relayUrl" },
+  { category: "api", key: "relaySecret", name: "relaySecret" },
+  { category: "api", key: "closeSession", name: "closeSession" },
+  { category: "api", key: "relayEvent", name: "relayEvent" },
+  { category: "api", key: "extraTools", name: "extraTools" },
+  { category: "api", key: "handleAgent", name: "handleAgent" },
+  { category: "api", key: "relayAgentContext", name: "relayAgentContext" },
   { category: "api", key: "autoSurface", name: "autoSurface" },
   { category: "api", key: "formatCoverage", name: "formatCoverage" },
   { category: "api", key: "checkConfig", name: "checkConfig" },

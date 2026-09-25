@@ -141,11 +141,13 @@ function relayLines(o: TemplateOptions): { imports: string[]; module: string[] }
     : `  getToken: () => fetch("/api/relay-token", { method: "POST" }).then((r) => r.json()).then((b) => b.token), // your endpoint that mints a relay token for the signed-in user`;
   return {
     imports: [
-      `import { ${NAMES.connectRelay}${dev ? ", devToken" : ""} } from "${MODULES.relayClient}";`,
+      `import { ${NAMES.connectRelay}${dev ? ", devToken" : ""}, ${NAMES.relayOptions} } from "${MODULES.relayClient}";`,
     ],
     module: [
       "",
       "// The relay carries this tab's surface to an agent outside the page (an MCP client).",
+      `// ${NAMES.relayOptions} prefers the connection a host injects when it runs this app for an agent`,
+      "// (unattended mode, `axe host`); in a person's own browser it is the one below.",
       ...(env ? [`// Override the URL with ${env.prefix}SURFACE_RELAY_URL.`] : []),
       "const relay = {",
       `  url: ${url},`,
@@ -168,7 +170,7 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     ...(o.relay
       ? [
           `${PROVIDER_PROPS.onReady}={(handle) => {`,
-          `  const connection = ${NAMES.connectRelay}(handle.surface, relay);`,
+          `  const connection = ${NAMES.connectRelay}(handle.surface, ${NAMES.relayOptions}(relay));`,
           "  return () => connection.stop();",
           "}}",
         ]
@@ -236,7 +238,7 @@ export function plainSurfaceFile(o: TemplateOptions): string {
     "if (enabled) {",
     "  // expose publishes window.__surface for `axe surface coverage` and browser-driving agents.",
     `  const handle = ${NAMES.autoSurface}({ ${AUTO_OPTIONS.root}: document.body, ${AUTO_OPTIONS.config}: surfaceConfig, expose: development });`,
-    ...(o.relay ? [`  ${NAMES.connectRelay}(handle.surface, relay);`] : []),
+    ...(o.relay ? [`  ${NAMES.connectRelay}(handle.surface, ${NAMES.relayOptions}(relay));`] : []),
     "}",
     "",
   ];

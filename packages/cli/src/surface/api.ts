@@ -11,7 +11,7 @@ export const MODULES = {
   react: "@axe/surface/react",
   /** `autoSurface`, `SurfaceConfig`, `formatCoverage`. */
   auto: "@axe/surface/auto",
-  /** `connectRelay`. */
+  /** `connectRelay`, `relayOptions`. */
   relayClient: "@axe/relay/client",
 } as const;
 
@@ -22,6 +22,8 @@ export const NAMES = {
   config: "SurfaceConfig",
   formatCoverage: "formatCoverage",
   connectRelay: "connectRelay",
+  /** The injected connection of a host running the app for an agent (`axe host`), else the app's own. */
+  relayOptions: "relayOptions",
 } as const;
 
 /**

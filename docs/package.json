@@ -15,6 +15,7 @@
     "@axe/express": "workspace:*",
     "@axe/fetch": "workspace:*",
     "@axe/generate": "workspace:*",
+    "@axe/host": "workspace:*",
     "@axe/mcp": "workspace:*",
     "@axe/next": "workspace:*",
     "@axe/relay": "workspace:*",
