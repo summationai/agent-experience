@@ -352,6 +352,18 @@ describe("axe surface init: flags and the relay", () => {
     expect(add).toBeGreaterThan(login);
     expect(r.out.indexOf("npx axe surface coverage")).toBeGreaterThan(add);
     expect(r.out).toContain("Fallback, the person's own tab (attended)");
+    // An app that already depends on both packages is not told to install them.
+    const has = copy("vite-react");
+    const pkgPath = join(has, "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    pkg.dependencies["@axe/surface"] = "workspace:*";
+    pkg.dependencies["@axe/relay"] = "workspace:*";
+    writeFileSync(pkgPath, JSON.stringify(pkg));
+    const again = await cli(["surface", "init", "--dir", has, "--dry-run"]);
+    expect(again.out).not.toContain("Install (nothing was added");
+    expect(again.out).toContain("  1. Run the app in development");
     const both = await cli(["surface", "init", "--relay", "x", "--relay-dev"]);
     expect(both.err).toContain("Pass --relay <url> or --relay-dev, not both.");
   });

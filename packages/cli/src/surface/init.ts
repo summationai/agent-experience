@@ -343,6 +343,19 @@ export function installCommand(d: Detection, withRelay: boolean, vendor?: string
 
 const quoteArg = (a: string) => (/^[\w@./:=+-]+$/.test(a) ? a : `'${a}'`);
 
+/** Whether the app's package.json already depends on every one of `names`. */
+function declares(dir: string, names: string[]): boolean {
+  try {
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as Record<
+      string,
+      Record<string, string> | undefined
+    >;
+    return names.every((n) => pkg["dependencies"]?.[n] ?? pkg["devDependencies"]?.[n]);
+  } catch {
+    return false;
+  }
+}
+
 /** A name for the MCP server: the app's package name, as a word. */
 function serverName(d: Detection): string {
   let name = "";
@@ -377,7 +390,7 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
   );
   const name = serverName(d);
   const steps: { text: string; more?: string[] }[] = [];
-  if (!installed)
+  if (!installed && !declares(d.dir, [PACKAGES.surface, PACKAGES.relay]))
     steps.push({
       text: "Install (nothing was added to package.json; --install runs it):",
       more: [
