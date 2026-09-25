@@ -38,21 +38,23 @@ Start at the top and read down. Each page ends with next steps.
 8. [Presenting results](presenting-results.md) — the search → present → select arc: `display`, pointers, attributes, disclaimer and url, brand, affordances, pagination and freshness, the reference renderers.
 9. [Requirements and kinds](requirements-and-kinds.md) — the `needs_input` contract, the well-known kind registry, custom kinds, validation, chaining, security of sensitive payloads.
 10. [Human handoff](human-handoff.md) — when it is necessary, the lifecycle, the resume landing page, token security, what to show the human.
-11. [Live state and revisions](live-state.md) — what can be done right now and why not the rest, the state the agent saw, `expectedRev` and `rev`, `/axe/state`, how it composes with idempotency and Surface.
-12. [Auth](auth.md) — the three modes, passing your session in, API keys, the v1 OAuth path.
-13. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
-14. [MCP](mcp.md) — the derived MCP server, the mapping table, connecting clients, limits.
-15. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
-16. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
-17. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
-18. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
-19. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
-20. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
-21. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
-22. [API reference](api/README.md) — generated from the source for every package.
-23. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
-24. [Glossary](glossary.md).
-25. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
+11. [Human oversight](human-oversight.md) — approval requests: a person approves a consequential call on the site, bound to the call, the principal, the tenant, and the state; cancellation, invalidation, expiry, replay, receipts, and one history.
+12. [Live state and revisions](live-state.md) — what can be done right now and why not the rest, the state the agent saw, `expectedRev` and `rev`, `/axe/state`, how it composes with idempotency and Surface.
+13. [Reference application](reference-app.md) — Plan Review, a runnable Next.js app: server actions over AXE and browser-local controls on the page, two people and two tenants, conflicts, approvals, and browser tests; who owns each capability and what the app deliberately does not do.
+14. [Auth](auth.md) — the three modes, passing your session in, API keys, the v1 OAuth path.
+15. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
+16. [MCP](mcp.md) — the derived MCP server, the mapping table, connecting clients, limits.
+17. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+18. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
+19. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
+20. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
+21. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
+22. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
+23. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
+24. [API reference](api/README.md) — generated from the source for every package.
+25. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
+26. [Glossary](glossary.md).
+27. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 

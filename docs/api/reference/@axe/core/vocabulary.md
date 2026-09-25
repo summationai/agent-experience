@@ -32,6 +32,12 @@ type WireApi =
   | "onPoll"
   | "state"
   | "completeHandoff"
+  | "requestApproval"
+  | "approvalState"
+  | "getHandoff"
+  | "approveHandoff"
+  | "cancelHandoff"
+  | "approvedBy"
   | "resolveDisplay"
   | "kinds"
   | "accept"
@@ -469,6 +475,7 @@ type WireField =
   | "details"
   | "issues"
   | "handoffStatus"
+  | "handoffId"
   | "operationStatus"
   | "maxBodyBytes"
   | "x-axe-refined"
@@ -728,7 +735,8 @@ type WireReason =
   | "document_required"
   | "cross_origin_refused"
   | "json_required"
-  | "payload_too_large";
+  | "payload_too_large"
+  | "approval_required";
 ```
 
 Union of every `reason` name.
@@ -854,6 +862,9 @@ const api: Readonly<{
   allowedOrigins: "allowedOrigins";
   allowHttp: "allowHttp";
   appendHandoffId: "appendHandoffId";
+  approvalState: "approvalState";
+  approvedBy: "approvedBy";
+  approveHandoff: "approveHandoff";
   attributesFor: "attributesFor";
   authenticate: "authenticate";
   authFor: "authFor";
@@ -864,6 +875,7 @@ const api: Readonly<{
   axeNext: "axeNext";
   axeNextPages: "axeNextPages";
   bump: "bump";
+  cancelHandoff: "cancelHandoff";
   checkDestination: "checkDestination";
   checkVocabularyDrift: "checkVocabularyDrift";
   claims: "claims";
@@ -905,6 +917,7 @@ const api: Readonly<{
   fromOpenAPI: "fromOpenAPI";
   fromTRPCRouter: "fromTRPCRouter";
   fulfillers: "fulfillers";
+  getHandoff: "getHandoff";
   handler: "handler";
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
@@ -970,6 +983,7 @@ const api: Readonly<{
   register: "register";
   registerGenerated: "registerGenerated";
   registryVersion: "registryVersion";
+  requestApproval: "requestApproval";
   requestPolicy: "requestPolicy";
   requireCompletion: "requireCompletion";
   requiredScopes: "requiredScopes";
@@ -1231,6 +1245,7 @@ const field: Readonly<{
   frozen: "frozen";
   handlerConflict: "conflict";
   handoff: "handoff";
+  handoffId: "handoffId";
   handoffStatus: "handoffStatus";
   humanFallbackUrl: "humanFallbackUrl";
   humanHandoff: "humanHandoff";
@@ -1589,6 +1604,7 @@ const query: Readonly<{
 
 ```ts
 const reason: Readonly<{
+  approvalRequired: "approval_required";
   consentRequired: "consent_required";
   crossOriginRefused: "cross_origin_refused";
   documentRequired: "document_required";
@@ -1744,6 +1760,9 @@ const WIRE: Readonly<{
      allowedOrigins: "allowedOrigins";
      allowHttp: "allowHttp";
      appendHandoffId: "appendHandoffId";
+     approvalState: "approvalState";
+     approvedBy: "approvedBy";
+     approveHandoff: "approveHandoff";
      attributesFor: "attributesFor";
      authenticate: "authenticate";
      authFor: "authFor";
@@ -1754,6 +1773,7 @@ const WIRE: Readonly<{
      axeNext: "axeNext";
      axeNextPages: "axeNextPages";
      bump: "bump";
+     cancelHandoff: "cancelHandoff";
      checkDestination: "checkDestination";
      checkVocabularyDrift: "checkVocabularyDrift";
      claims: "claims";
@@ -1795,6 +1815,7 @@ const WIRE: Readonly<{
      fromOpenAPI: "fromOpenAPI";
      fromTRPCRouter: "fromTRPCRouter";
      fulfillers: "fulfillers";
+     getHandoff: "getHandoff";
      handler: "handler";
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
@@ -1860,6 +1881,7 @@ const WIRE: Readonly<{
      register: "register";
      registerGenerated: "registerGenerated";
      registryVersion: "registryVersion";
+     requestApproval: "requestApproval";
      requestPolicy: "requestPolicy";
      requireCompletion: "requireCompletion";
      requiredScopes: "requiredScopes";
@@ -2033,6 +2055,7 @@ const WIRE: Readonly<{
      frozen: "frozen";
      handlerConflict: "conflict";
      handoff: "handoff";
+     handoffId: "handoffId";
      handoffStatus: "handoffStatus";
      humanFallbackUrl: "humanFallbackUrl";
      humanHandoff: "humanHandoff";
@@ -2259,6 +2282,7 @@ const WIRE: Readonly<{
      handoff: "axe_handoff";
   }>;
   reason: Readonly<{
+     approvalRequired: "approval_required";
      consentRequired: "consent_required";
      crossOriginRefused: "cross_origin_refused";
      documentRequired: "document_required";

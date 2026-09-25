@@ -284,7 +284,7 @@ export function PlanBoard({ initial }: { initial: PageState }) {
           <code>{state.agent.baseUrl}/.well-known/axe.json</code>. Your agent token for{" "}
           {session.tenantName}: <code data-testid="agent-token">{state.agent.token}</code>
         </p>
-        <pre>{`npx axe mcp ${state.agent.baseUrl} --auth ${state.agent.token}`}</pre>
+        <pre>{`node packages/cli/dist/index.js mcp ${state.agent.baseUrl} --auth ${state.agent.token}`}</pre>
         <p>
           The controls on this page (drafts, Save, scrolling, the approval dialog) are published
           only to agents running in this tab, at window.__surface.
@@ -319,6 +319,7 @@ function MonthHeader({ month }: { month: string }) {
   );
 }
 
+// #region cell
 function Cell(props: {
   planId: string;
   item: string;
@@ -362,3 +363,4 @@ function Cell(props: {
     </td>
   );
 }
+// #endregion cell

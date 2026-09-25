@@ -341,6 +341,80 @@ still be unique across `register()` and every provider (spec [P-ACT-2]); a colli
 
 `this`
 
+<a id="approvehandoff"></a>
+
+##### approveHandoff()
+
+```ts
+approveHandoff(handoffId, decision): Promise<HandoffDecision>;
+```
+
+Record that a person approved an approval request (spec §9.3, [P-APPR-3]). Call it only from
+the site's own approval page, in a request authenticated by the person's session and protected
+against cross-site forgery, after the page has decided that `approver` may approve this
+operation. The runtime checks the rest: the handoff exists, is an approval request of this
+tenant, has not expired, been used, cancelled, or invalidated, and the action's
+`approvalState` still equals the state bound at the request; if the state moved, the request
+is invalidated for good and the reason is `state_changed`.
+
+###### Parameters
+
+###### handoffId
+
+`string`
+
+###### decision
+
+###### approver
+
+`string`
+
+###### tenant?
+
+`string` \| `null`
+
+###### Returns
+
+`Promise`\<[`HandoffDecision`](#handoffdecision)\>
+
+<a id="cancelhandoff"></a>
+
+##### cancelHandoff()
+
+```ts
+cancelHandoff(handoffId, decision?): Promise<HandoffDecision>;
+```
+
+Record that a person cancelled a handoff (spec §9.3, [P-APPR-5]): an approval request, open or
+approved, or any other handoff. A later resume is refused with `conflict` and
+`details.handoffStatus: "cancelled"`, and nothing runs. A handoff whose resume already ran, or
+is running, cannot be cancelled (`used`): that work is committed, and undoing it is the
+site's own action. Call it from the site's own page, like `approveHandoff`.
+
+###### Parameters
+
+###### handoffId
+
+`string`
+
+###### decision?
+
+###### by?
+
+`string`
+
+###### reason?
+
+`string`
+
+###### tenant?
+
+`string` \| `null`
+
+###### Returns
+
+`Promise`\<[`HandoffDecision`](#handoffdecision)\>
+
 <a id="completehandoff"></a>
 
 ##### completeHandoff()
@@ -476,6 +550,36 @@ Look up one action by name, registered or provided.
 
   \| [`RegisteredAction`](#registeredaction)\<`ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>, `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>, [`JsonValue`](types.md#jsonvalue)\>
   \| `undefined`
+
+<a id="gethandoff"></a>
+
+##### getHandoff()
+
+```ts
+getHandoff(handoffId, options?): Promise<HandoffView | null>;
+```
+
+What the site's own handoff or approval page may show: the action, who the agent acted for,
+the tenant, where the handoff stands, and for an approval request (spec §9.3) the exact input,
+the bound state, the site's preview, and the agent's self-identification. Null for an unknown
+or expired id and for another tenant's handoff. Call it from a page the person reaches with
+their own session; the page decides who may see it.
+
+###### Parameters
+
+###### handoffId
+
+`string`
+
+###### options?
+
+###### tenant?
+
+`string` \| `null`
+
+###### Returns
+
+`Promise`\<[`HandoffView`](#handoffview) \| `null`\>
 
 <a id="handle"></a>
 
@@ -1439,6 +1543,30 @@ listeners; the derived MCP server sends `notifications/tools/list_changed`.
 optional affordances?: Affordance[];
 ```
 
+<a id="approvalstate"></a>
+
+##### approvalState?
+
+```ts
+optional approvalState?: (ctx) => MaybePromise<JsonValue>;
+```
+
+The state an approval of this action is bound to (spec §9.3), for example
+`{ planId, rev }`. Required for an action whose handler returns `requestApproval`. The runtime
+calls it when the request is made, when a person approves, and when the agent resumes; the
+approval stands only while the value is equal (compared as canonical JSON). Keep it small:
+the fields whose change should void the approval.
+
+###### Parameters
+
+###### ctx
+
+[`ApprovalStateContext`](#approvalstatecontext)
+
+###### Returns
+
+[`MaybePromise`](#maybepromise)\<[`JsonValue`](types.md#jsonvalue)\>
+
 <a id="auth"></a>
 
 ##### auth?
@@ -1708,6 +1836,261 @@ optional tenant?: TenantInfo | null;
 
 ***
 
+<a id="approvalgrant"></a>
+
+### ApprovalGrant
+
+What `onResume` receives for an approved request: the approved call and who approved it.
+
+#### Properties
+
+<a id="approvedat"></a>
+
+##### approvedAt
+
+```ts
+approvedAt: string;
+```
+
+<a id="approvedby"></a>
+
+##### approvedBy
+
+```ts
+approvedBy: string;
+```
+
+Who approved, as the site passed it to `approveHandoff`.
+
+<a id="id"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+The handoff id (the `axe_handoff` value on the approval page).
+
+<a id="input-1"></a>
+
+##### input
+
+```ts
+input: JsonValue;
+```
+
+The input of the call the person approved, parsed by the action's input schema.
+
+<a id="rawinput"></a>
+
+##### rawInput
+
+```ts
+rawInput: JsonValue;
+```
+
+The input exactly as the agent sent it (the approval is bound to its fingerprint).
+
+<a id="requestedat"></a>
+
+##### requestedAt
+
+```ts
+requestedAt: string;
+```
+
+<a id="state"></a>
+
+##### state
+
+```ts
+state: JsonValue;
+```
+
+The value `approvalState` returned when the request was made, and still returns now.
+
+***
+
+<a id="approvalrecord"></a>
+
+### ApprovalRecord
+
+What the server keeps about an approval request, beside the resume token's own binding.
+
+#### Properties
+
+<a id="agent"></a>
+
+##### agent
+
+```ts
+agent: 
+  | {
+  name: string;
+  version: string;
+}
+  | null;
+```
+
+The agent's self-identification from `User-Agent`, when it sent one. Not authenticated.
+
+<a id="approved"></a>
+
+##### approved?
+
+```ts
+optional approved?: object;
+```
+
+Set by `approveHandoff`.
+
+###### at
+
+```ts
+at: string;
+```
+
+###### by
+
+```ts
+by: string;
+```
+
+<a id="input-2"></a>
+
+##### input
+
+```ts
+input: JsonValue;
+```
+
+The call's input exactly as sent; its fingerprint is the token's input hash.
+
+<a id="invalidated"></a>
+
+##### invalidated?
+
+```ts
+optional invalidated?: object;
+```
+
+Set when the bound state was found changed, at approval or at resume; permanent ([P-APPR-6]).
+
+###### at
+
+```ts
+at: string;
+```
+
+<a id="preview"></a>
+
+##### preview?
+
+```ts
+optional preview?: JsonValue;
+```
+
+The site's preview for the approval page.
+
+<a id="requestedat-1"></a>
+
+##### requestedAt
+
+```ts
+requestedAt: string;
+```
+
+<a id="state-1"></a>
+
+##### state
+
+```ts
+state: JsonValue;
+```
+
+What `approvalState` returned at the request, and its canonical hash.
+
+<a id="statehash"></a>
+
+##### stateHash
+
+```ts
+stateHash: string;
+```
+
+***
+
+<a id="approvalrequest"></a>
+
+### ApprovalRequest
+
+What an approval request carries beyond a handoff. Stored server-side; never sent to the agent.
+
+#### Properties
+
+<a id="preview-1"></a>
+
+##### preview?
+
+```ts
+optional preview?: JsonValue;
+```
+
+What the approval page shows the person about the operation, in the site's words (for example
+the rows that will change). The page SHOULD also render the current state from the site's own
+store; the preview is what the agent's call looked like when it was made.
+
+***
+
+<a id="approvalstatecontext"></a>
+
+### ApprovalStateContext
+
+Passed to `approvalState`: the call an approval is (or would be) bound to.
+
+#### Properties
+
+<a id="action-1"></a>
+
+##### action
+
+```ts
+action: string;
+```
+
+<a id="input-3"></a>
+
+##### input
+
+```ts
+input: JsonValue;
+```
+
+The call's input exactly as the agent sent it.
+
+<a id="onbehalfof"></a>
+
+##### onBehalfOf
+
+```ts
+onBehalfOf: string | null;
+```
+
+The user the call was made on behalf of, or null.
+
+<a id="tenant-1"></a>
+
+##### tenant
+
+```ts
+tenant: string | null;
+```
+
+The tenant id, or null on a single-tenant server.
+
+***
+
 <a id="authconfig"></a>
 
 ### AuthConfig
@@ -1786,7 +2169,7 @@ Passed to an action's `availability` hook. Identity is null for the manifest's a
 
 #### Properties
 
-<a id="action-1"></a>
+<a id="action-2"></a>
 
 ##### action
 
@@ -1823,7 +2206,7 @@ optional siteKey?: SiteKeyContext | null;
 The verified site key when the action is a `site` action and the request carries a key that
 may call it ([P-TOK-7]); null or absent otherwise, and always absent in the manifest's view.
 
-<a id="tenant-1"></a>
+<a id="tenant-2"></a>
 
 ##### tenant
 
@@ -2119,7 +2502,7 @@ optional secret?: string;
 
 HMAC secret for tokens, at least 16 characters. Omit only in development: a random per-process secret is used and tokens do not survive restarts.
 
-<a id="tenant-2"></a>
+<a id="tenant-3"></a>
 
 ##### tenant?
 
@@ -2221,7 +2604,7 @@ How long the key is remembered at all (the idempotency window).
 
 #### Properties
 
-<a id="action-2"></a>
+<a id="action-3"></a>
 
 ##### action
 
@@ -2528,6 +2911,39 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
+<a id="requestapproval"></a>
+
+##### requestApproval
+
+```ts
+requestApproval: (spec) => HandoffIntent;
+```
+
+Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+`handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+`url`, the site's own approval page; the runtime records the call's input, the acting principal,
+the tenant, and the state the action's `approvalState` reports now. The person approves or
+cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+`/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+state still matches. An agent cannot approve its own request: nothing it can send marks the
+handoff approved.
+
+###### Parameters
+
+###### spec
+
+`Omit`\<[`HandoffIntent`](#handoffintent), `"reason"` \| `"requireCompletion"` \| *typeof* `INTENT` \| `"approval"`\> & `object`
+
+###### Returns
+
+[`HandoffIntent`](#handoffintent)
+
+###### Inherited from
+
+```ts
+BaseContext.requestApproval
+```
+
 <a id="sitekey-1"></a>
 
 ##### siteKey
@@ -2546,7 +2962,7 @@ key when it returned none. Null when no site key is part of the call.
 BaseContext.siteKey
 ```
 
-<a id="state"></a>
+<a id="state-2"></a>
 
 ##### state
 
@@ -2556,7 +2972,7 @@ state: S;
 
 The `state` passed to `needsInput`.
 
-<a id="tenant-3"></a>
+<a id="tenant-4"></a>
 
 ##### tenant
 
@@ -2730,7 +3146,7 @@ optional retryable?: boolean;
 
 #### Properties
 
-<a id="action-3"></a>
+<a id="action-4"></a>
 
 ##### action
 
@@ -2897,7 +3313,7 @@ The identity your `authenticate` function or adapter established, with any `clai
 BaseContext.identity
 ```
 
-<a id="input-1"></a>
+<a id="input-4"></a>
 
 ##### input
 
@@ -3025,6 +3441,39 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
+<a id="requestapproval-1"></a>
+
+##### requestApproval
+
+```ts
+requestApproval: (spec) => HandoffIntent;
+```
+
+Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+`handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+`url`, the site's own approval page; the runtime records the call's input, the acting principal,
+the tenant, and the state the action's `approvalState` reports now. The person approves or
+cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+`/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+state still matches. An agent cannot approve its own request: nothing it can send marks the
+handoff approved.
+
+###### Parameters
+
+###### spec
+
+`Omit`\<[`HandoffIntent`](#handoffintent), `"reason"` \| `"requireCompletion"` \| *typeof* `INTENT` \| `"approval"`\> & `object`
+
+###### Returns
+
+[`HandoffIntent`](#handoffintent)
+
+###### Inherited from
+
+```ts
+BaseContext.requestApproval
+```
+
 <a id="sitekey-2"></a>
 
 ##### siteKey
@@ -3043,7 +3492,7 @@ key when it returned none. Null when no site key is part of the call.
 BaseContext.siteKey
 ```
 
-<a id="tenant-4"></a>
+<a id="tenant-5"></a>
 
 ##### tenant
 
@@ -3143,6 +3592,18 @@ optional appendHandoffId?: boolean;
 
 Append `?axe_handoff=<id>` to `url` (default true).
 
+<a id="approval"></a>
+
+##### approval?
+
+```ts
+optional approval?: ApprovalRequest;
+```
+
+Makes this handoff an approval request (spec §9.3): the human approves the exact call on the
+site's own page with `approveHandoff`, and the resume runs only while every binding still
+holds. Set by `requestApproval`; the action must declare `approvalState`.
+
 <a id="instructions"></a>
 
 ##### instructions
@@ -3169,7 +3630,7 @@ optional requireCompletion?: boolean;
 
 Refuse `/axe/resume` with `conflict` until `completeHandoff()` is called for this handoff. Default false.
 
-<a id="state-1"></a>
+<a id="state-3"></a>
 
 ##### state?
 
@@ -3209,6 +3670,193 @@ whatAgentShouldSayToUser: string;
 
 ***
 
+<a id="handoffview"></a>
+
+### HandoffView
+
+What the site's own page may show about a handoff. Returned by `getHandoff`.
+
+#### Properties
+
+<a id="action-5"></a>
+
+##### action
+
+```ts
+action: string;
+```
+
+The action the handoff resumes.
+
+<a id="approval-1"></a>
+
+##### approval?
+
+```ts
+optional approval?: object;
+```
+
+Present for an approval request (spec §9.3).
+
+###### agent
+
+```ts
+agent: 
+  | {
+  name: string;
+  version: string;
+}
+  | null;
+```
+
+The agent's own `User-Agent` self-identification; not authenticated.
+
+###### approved?
+
+```ts
+optional approved?: object;
+```
+
+###### approved.at
+
+```ts
+at: string;
+```
+
+###### approved.by
+
+```ts
+by: string;
+```
+
+###### input
+
+```ts
+input: JsonValue;
+```
+
+The call's input exactly as the agent sent it: what the person is approving.
+
+###### invalidated?
+
+```ts
+optional invalidated?: object;
+```
+
+###### invalidated.at
+
+```ts
+at: string;
+```
+
+###### preview?
+
+```ts
+optional preview?: JsonValue;
+```
+
+###### requestedAt
+
+```ts
+requestedAt: string;
+```
+
+###### state
+
+```ts
+state: JsonValue;
+```
+
+The state bound at the request, as `approvalState` returned it.
+
+<a id="cancelled"></a>
+
+##### cancelled?
+
+```ts
+optional cancelled?: object;
+```
+
+###### at
+
+```ts
+at: string;
+```
+
+###### by?
+
+```ts
+optional by?: string;
+```
+
+###### reason?
+
+```ts
+optional reason?: string;
+```
+
+<a id="expiresat"></a>
+
+##### expiresAt
+
+```ts
+expiresAt: string;
+```
+
+<a id="id-1"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+<a id="onbehalfof-1"></a>
+
+##### onBehalfOf
+
+```ts
+onBehalfOf: string | null;
+```
+
+The user the agent acted for, or null.
+
+<a id="reason-1"></a>
+
+##### reason
+
+```ts
+reason: string;
+```
+
+<a id="sitekey-3"></a>
+
+##### siteKey
+
+```ts
+siteKey: string | null;
+```
+
+The site key the call was made with, or null.
+
+<a id="status"></a>
+
+##### status
+
+```ts
+status: HandoffStatus;
+```
+
+<a id="tenant-6"></a>
+
+##### tenant
+
+```ts
+tenant: string | null;
+```
+
+***
+
 <a id="hookcontext"></a>
 
 ### HookContext
@@ -3217,7 +3865,7 @@ Passed to hooks.
 
 #### Properties
 
-<a id="action-4"></a>
+<a id="action-6"></a>
 
 ##### action
 
@@ -3249,7 +3897,7 @@ endpoint: Endpoint;
 request: Request;
 ```
 
-<a id="tenant-5"></a>
+<a id="tenant-7"></a>
 
 ##### tenant
 
@@ -3438,7 +4086,7 @@ optional claims?: Record<string, JsonValue>;
 
 Anything the site wants handlers to see (roles, email). Not sent on the wire.
 
-<a id="onbehalfof"></a>
+<a id="onbehalfof-2"></a>
 
 ##### onBehalfOf
 
@@ -3542,7 +4190,7 @@ Reached only when the agent can satisfy none of `accepts`.
 message: string;
 ```
 
-<a id="reason-1"></a>
+<a id="reason-2"></a>
 
 ##### reason
 
@@ -3550,7 +4198,7 @@ message: string;
 reason: string;
 ```
 
-<a id="state-2"></a>
+<a id="state-4"></a>
 
 ##### state?
 
@@ -3636,7 +4284,7 @@ optional retryAfter?: number;
 
 Seconds the agent should wait before polling. Default 5.
 
-<a id="state-3"></a>
+<a id="state-5"></a>
 
 ##### state?
 
@@ -3724,7 +4372,7 @@ Absolute URLs whose origins are the site's own: `baseUrl`, and the tenant's `bas
 
 #### Properties
 
-<a id="action-5"></a>
+<a id="action-7"></a>
 
 ##### action
 
@@ -4011,7 +4659,40 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
-<a id="sitekey-3"></a>
+<a id="requestapproval-2"></a>
+
+##### requestApproval
+
+```ts
+requestApproval: (spec) => HandoffIntent;
+```
+
+Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+`handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+`url`, the site's own approval page; the runtime records the call's input, the acting principal,
+the tenant, and the state the action's `approvalState` reports now. The person approves or
+cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+`/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+state still matches. An agent cannot approve its own request: nothing it can send marks the
+handoff approved.
+
+###### Parameters
+
+###### spec
+
+`Omit`\<[`HandoffIntent`](#handoffintent), `"reason"` \| `"requireCompletion"` \| *typeof* `INTENT` \| `"approval"`\> & `object`
+
+###### Returns
+
+[`HandoffIntent`](#handoffintent)
+
+###### Inherited from
+
+```ts
+BaseContext.requestApproval
+```
+
+<a id="sitekey-4"></a>
 
 ##### siteKey
 
@@ -4029,7 +4710,7 @@ key when it returned none. Null when no site key is part of the call.
 BaseContext.siteKey
 ```
 
-<a id="state-4"></a>
+<a id="state-6"></a>
 
 ##### state
 
@@ -4039,7 +4720,7 @@ state: S;
 
 The `state` passed to `pending`.
 
-<a id="tenant-6"></a>
+<a id="tenant-8"></a>
 
 ##### tenant
 
@@ -4388,6 +5069,33 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 
 [`PendingIntent`](#pendingintent)
 
+<a id="requestapproval-3"></a>
+
+##### requestApproval
+
+```ts
+requestApproval: (spec) => HandoffIntent;
+```
+
+Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+`handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+`url`, the site's own approval page; the runtime records the call's input, the acting principal,
+the tenant, and the state the action's `approvalState` reports now. The person approves or
+cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+`/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+state still matches. An agent cannot approve its own request: nothing it can send marks the
+handoff approved.
+
+###### Parameters
+
+###### spec
+
+`Omit`\<[`HandoffIntent`](#handoffintent), `"reason"` \| `"requireCompletion"` \| *typeof* `INTENT` \| `"approval"`\> & `object`
+
+###### Returns
+
+[`HandoffIntent`](#handoffintent)
+
 <a id="unavailable-3"></a>
 
 ##### unavailable
@@ -4458,7 +5166,7 @@ Plain language, in the site's words. Agent-read text.
 
 #### Properties
 
-<a id="action-6"></a>
+<a id="action-8"></a>
 
 ##### action
 
@@ -4473,6 +5181,20 @@ The action name.
 ```ts
 BaseContext.action
 ```
+
+<a id="approval-2"></a>
+
+##### approval?
+
+```ts
+optional approval?: ApprovalGrant;
+```
+
+Set when the handoff was an approval request (`requestApproval`) and the resume passed every
+check of spec §9.3: approved by a person on the site, not cancelled, not expired, same principal
+and tenant, and the action's `approvalState` still equal to the state bound at the request.
+Execute `input` (the approved call, parsed by the action's input schema), not anything else.
+Absent for every other handoff.
 
 <a id="availability-4"></a>
 
@@ -4761,7 +5483,40 @@ The underlying Web request, for headers and the site's own session lookups.
 BaseContext.request
 ```
 
-<a id="sitekey-4"></a>
+<a id="requestapproval-4"></a>
+
+##### requestApproval
+
+```ts
+requestApproval: (spec) => HandoffIntent;
+```
+
+Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+`handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+`url`, the site's own approval page; the runtime records the call's input, the acting principal,
+the tenant, and the state the action's `approvalState` reports now. The person approves or
+cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+`/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+state still matches. An agent cannot approve its own request: nothing it can send marks the
+handoff approved.
+
+###### Parameters
+
+###### spec
+
+`Omit`\<[`HandoffIntent`](#handoffintent), `"reason"` \| `"requireCompletion"` \| *typeof* `INTENT` \| `"approval"`\> & `object`
+
+###### Returns
+
+[`HandoffIntent`](#handoffintent)
+
+###### Inherited from
+
+```ts
+BaseContext.requestApproval
+```
+
+<a id="sitekey-5"></a>
 
 ##### siteKey
 
@@ -4779,7 +5534,7 @@ key when it returned none. Null when no site key is part of the call.
 BaseContext.siteKey
 ```
 
-<a id="state-5"></a>
+<a id="state-7"></a>
 
 ##### state
 
@@ -4789,7 +5544,7 @@ state: S;
 
 The `state` passed to `handoff`.
 
-<a id="tenant-7"></a>
+<a id="tenant-9"></a>
 
 ##### tenant
 
@@ -4939,7 +5694,7 @@ request: Request | null;
 
 The request being served; null when the manifest is described outside a request.
 
-<a id="sitekey-5"></a>
+<a id="sitekey-6"></a>
 
 ##### siteKey?
 
@@ -4949,7 +5704,7 @@ optional siteKey?: SiteKeyContext | null;
 
 The verified site key, when the call is a `site` call or a follow-up of one ([P-TOK-7]).
 
-<a id="tenant-8"></a>
+<a id="tenant-10"></a>
 
 ##### tenant
 
@@ -4987,7 +5742,7 @@ optional derived?: true;
 
 True when `id` is the keyed hash because `verifySiteKey` returned no id.
 
-<a id="id"></a>
+<a id="id-2"></a>
 
 ##### id
 
@@ -5057,7 +5812,7 @@ optional description?: string;
 optional humanFallbackUrl?: string;
 ```
 
-<a id="id-1"></a>
+<a id="id-3"></a>
 
 ##### id
 
@@ -5119,12 +5874,50 @@ optional accepts?: Accept[];
 
 Continuation only: the accepted entries, with JSON Schemas.
 
-<a id="action-7"></a>
+<a id="action-9"></a>
 
 ##### action
 
 ```ts
 action: string;
+```
+
+<a id="approval-3"></a>
+
+##### approval?
+
+```ts
+optional approval?: ApprovalRecord;
+```
+
+Resume only: the handoff is an approval request (spec §9.3).
+
+<a id="cancelled-1"></a>
+
+##### cancelled?
+
+```ts
+optional cancelled?: object;
+```
+
+Resume only: the person cancelled the handoff on the site (`cancelHandoff`); a resume is refused ([P-APPR-5]).
+
+###### at
+
+```ts
+at: string;
+```
+
+###### by?
+
+```ts
+optional by?: string;
+```
+
+###### reason?
+
+```ts
+optional reason?: string;
 ```
 
 <a id="completion-1"></a>
@@ -5155,7 +5948,7 @@ optional data?: JsonValue;
 optional onBehalfOf?: string;
 ```
 
-<a id="expiresat"></a>
+<a id="expiresat-1"></a>
 
 ##### expiresAt
 
@@ -5173,7 +5966,7 @@ optional handoff?: Handoff;
 
 Resume only: the handoff as sent, so it can be re-served while open.
 
-<a id="id-2"></a>
+<a id="id-4"></a>
 
 ##### id
 
@@ -5247,7 +6040,7 @@ optional requireCompletion?: boolean;
 
 Resume only: refuse resume until completion is recorded.
 
-<a id="state-6"></a>
+<a id="state-8"></a>
 
 ##### state
 
@@ -5257,7 +6050,7 @@ state: JsonValue | undefined;
 
 Site-provided state for `onContinue` / `onResume` / `onPoll`.
 
-<a id="tenant-9"></a>
+<a id="tenant-11"></a>
 
 ##### tenant
 
@@ -5429,6 +6222,59 @@ What a handler may return: the output value itself, or an intent from `ok`, `nee
 
 ***
 
+<a id="handoffdecision"></a>
+
+### HandoffDecision
+
+```ts
+type HandoffDecision = 
+  | {
+  ok: true;
+  view: HandoffView;
+}
+  | {
+  ok: false;
+  reason: HandoffRefusal;
+};
+```
+
+***
+
+<a id="handoffrefusal"></a>
+
+### HandoffRefusal
+
+```ts
+type HandoffRefusal = 
+  | "not_found"
+  | "not_approval"
+  | "already_approved"
+  | "cancelled"
+  | "invalidated"
+  | "used"
+  | "state_changed";
+```
+
+Why `approveHandoff` or `cancelHandoff` refused. `not_found` covers an unknown id, an expired
+handoff, and another tenant's, alike.
+
+***
+
+<a id="handoffstatus"></a>
+
+### HandoffStatus
+
+```ts
+type HandoffStatus = "open" | "completed" | "approved" | "cancelled" | "invalidated" | "used";
+```
+
+Where a handoff stands, as `getHandoff` reports it: `open` (waiting for the person), `completed`
+(`completeHandoff` recorded it), `approved` (`approveHandoff`), `cancelled` (`cancelHandoff`),
+`invalidated` (an approval whose bound state changed), or `used` (a resume ran it, or is running
+it now).
+
+***
+
 <a id="maybepromise"></a>
 
 ### MaybePromise
@@ -5540,6 +6386,30 @@ const ACTION_NAME_PATTERN: RegExp;
 
 ***
 
+<a id="approval_required"></a>
+
+### APPROVAL\_REQUIRED
+
+```ts
+const APPROVAL_REQUIRED: "approval_required" = WIRE.reason.approvalRequired;
+```
+
+The default `reason` of an approval handoff.
+
+***
+
+<a id="approval_ttl_seconds"></a>
+
+### APPROVAL\_TTL\_SECONDS
+
+```ts
+const APPROVAL_TTL_SECONDS: number;
+```
+
+The default lifetime of an approval request: one hour. A shorter window than a plain handoff's 24 hours, since the state it is bound to keeps moving.
+
+***
+
 <a id="default_idempotency_ttl_seconds"></a>
 
 ### DEFAULT\_IDEMPOTENCY\_TTL\_SECONDS
@@ -5600,7 +6470,7 @@ Decoded-size limit for `document.base64` payloads (spec/KINDS.md).
 
 ## Functions
 
-<a id="action-8"></a>
+<a id="action-10"></a>
 
 ### action()
 
@@ -6074,6 +6944,35 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 #### Returns
 
 [`PendingIntent`](#pendingintent)
+
+***
+
+<a id="requestapproval-5"></a>
+
+### requestApproval()
+
+```ts
+function requestApproval(spec): HandoffIntent;
+```
+
+Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+`handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+`url`, the site's own approval page; the runtime records the call's input, the acting principal,
+the tenant, and the state the action's `approvalState` reports now. The person approves or
+cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+`/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+state still matches. An agent cannot approve its own request: nothing it can send marks the
+handoff approved.
+
+#### Parameters
+
+##### spec
+
+`Omit`\<[`HandoffIntent`](#handoffintent), `"reason"` \| `"requireCompletion"` \| *typeof* `INTENT` \| `"approval"`\> & `object`
+
+#### Returns
+
+[`HandoffIntent`](#handoffintent)
 
 ***
 

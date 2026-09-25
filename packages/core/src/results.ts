@@ -126,7 +126,7 @@ export function handoff(spec: Omit<HandoffIntent, typeof INTENT>): HandoffIntent
 export const APPROVAL_TTL_SECONDS = 60 * 60;
 
 /** The default `reason` of an approval handoff. */
-export const APPROVAL_REQUIRED = "approval_required";
+export const APPROVAL_REQUIRED = WIRE.reason.approvalRequired;
 
 /**
  * Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's

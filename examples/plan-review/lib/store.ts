@@ -126,6 +126,7 @@ export class Store {
    * `expectedRev` and `mutate` returns. With `operationId`, a second write with the same id
    * returns the first outcome instead of applying again (a retried operation after a crash).
    */
+  // #region write
   write(
     tenant: string,
     expectedRev: number,
@@ -174,6 +175,7 @@ export class Store {
     if (operationId) this.applied.set(operationId, outcome);
     return outcome;
   }
+  // #endregion write
 
   /** Append one line to the tenant's history. */
   record(entry: Omit<AuditEntry, "seq" | "at">): AuditEntry {

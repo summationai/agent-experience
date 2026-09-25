@@ -53,7 +53,9 @@ export const HUB_GROUPS = [
       "docs/presenting-results.md",
       "docs/requirements-and-kinds.md",
       "docs/human-handoff.md",
+      "docs/human-oversight.md",
       "docs/live-state.md",
+      "docs/reference-app.md",
     ],
   },
   {

@@ -188,6 +188,7 @@ export async function handleUi(request: Request): Promise<Response> {
       return writeResponse(reopen(tenant, actor, expectedRev!));
   }
 
+  // #region decide
   const m = /^\/approvals\/([^/]+)$/.exec(path);
   if (m) {
     const id = decodeURIComponent(m[1]!);
@@ -221,6 +222,7 @@ export async function handleUi(request: Request): Promise<Response> {
     }
     return json({ error: "decision must be approve or cancel." }, 400);
   }
+  // #endregion decide
   return json({ error: "Not found." }, 404);
 }
 

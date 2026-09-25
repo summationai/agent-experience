@@ -266,6 +266,7 @@ export function buildAXE(): AXE {
     }),
   );
 
+  // #region approve
   axe.register(
     action("plan.approve", {
       title: "Ask for the plan to be approved and locked",
@@ -330,6 +331,7 @@ export function buildAXE(): AXE {
       },
     }),
   );
+  // #endregion approve
 
   axe.register(
     action("plan.history", {

@@ -1,4 +1,6 @@
 // A runnable demo: one planning board shared by a person in a browser and an agent over MCP.
+// The quick version; the full workflow (sessions, tenants, conditional writes, approvals bound to
+// the call, browser tests) is the reference app in examples/plan-review (docs/reference-app.md).
 //
 //   pnpm install && pnpm -r build
 //   node --import tsx docs/examples/demo/plan-board.ts        # http://localhost:4000
@@ -133,7 +135,11 @@ app.use(axeExpress(axe));
 app.use(express.json());
 
 // The approval only a person can give. The page calls this with the browser session; the agent's
-// session is refused, so an agent cannot approve its own lock.
+// session is refused, so an agent cannot approve its own lock. This is a demo shortcut, not the
+// SDK's approval primitive: it approves a month in general, bound to nothing (not the call, the
+// revision, or an expiry), and cannot be cancelled. For the real thing, requestApproval with
+// approveHandoff and cancelHandoff, see docs/human-oversight.md and the reference app in
+// examples/plan-review (docs/reference-app.md).
 app.post("/demo/approve/:month", (req, res) => {
   const token = req.get("authorization")?.replace(/^Bearer /, "") ?? "";
   if (token !== "dana-browser") {

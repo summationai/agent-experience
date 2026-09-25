@@ -28,7 +28,7 @@ function site() {
     secret: "approval-test-secret-0123456789",
     tenant: (req) => {
       const id = req.headers.get("x-tenant");
-      return id ? { id, name: id } : null;
+      return id ? { id, name: id, baseUrl: "https://docs.example" } : null;
     },
     auth: {
       modes: ["user"],
