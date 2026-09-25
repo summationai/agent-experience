@@ -1,10 +1,12 @@
 /**
  * JSON Schema → Zod, for the subset that OpenAPI documents use in practice: objects, arrays,
- * strings (with `enum`, `const`, `format`, length, `pattern`), numbers and integers (with bounds),
- * booleans, `null`, `nullable`, `required`, `$ref` within the document, a shallow `allOf`
- * merge, `anyOf`/`oneOf` as unions, and `additionalProperties` as a record. Anything else
- * becomes `z.unknown()` with a warning that names the path, so the author sees exactly what an
- * agent will not be told about.
+ * strings (with `enum`, `const`, `format`, length, `pattern`), numbers and integers (with bounds
+ * and `multipleOf`), booleans, `null`, `nullable`, `required`, `$ref` within the document, a
+ * shallow `allOf` merge, `anyOf`/`oneOf` as unions, and `additionalProperties` as a record or a
+ * catchall. A shape it cannot convert becomes `z.unknown()`, and a constraint it cannot convert
+ * (a keyword outside the subset, a `format` it does not know, a `pattern` that does not compile)
+ * is dropped; either way a warning names the path, so the author sees exactly what the generated
+ * action will not enforce (docs/schemas.md).
  */
 import { z } from "@axe/core";
 import type { JsonSchema } from "@axe/core/types";
@@ -50,6 +52,29 @@ export function jsonSchemaToZod(
   return { schema: result, warnings };
 }
 
+/** Keywords outside the converted subset; each is reported where it appears. */
+const UNCONVERTED = [
+  "patternProperties",
+  "propertyNames",
+  "dependentRequired",
+  "dependentSchemas",
+  "if",
+  "then",
+  "else",
+  "not",
+  "unevaluatedProperties",
+  "unevaluatedItems",
+  "contains",
+  "minContains",
+  "maxContains",
+  "uniqueItems",
+  "minProperties",
+  "maxProperties",
+  "prefixItems",
+  "additionalItems",
+  "$dynamicRef",
+] as const;
+
 class Converter {
   constructor(
     private readonly resolve: (ref: string) => JsonSchema | undefined,
@@ -63,6 +88,15 @@ class Converter {
       message: `${why}; the field is declared as unknown, so agents will not be told its shape.`,
     });
     return z.unknown();
+  }
+
+  /** A constraint that is dropped while the field keeps its type: the generated schema is looser. */
+  private dropped(location: string, why: string): void {
+    this.warnings.push({
+      code: "unsupported-schema",
+      field: location,
+      message: `${why}; the generated schema does not enforce it, so it accepts more than the source allows.`,
+    });
   }
 
   convert(schema: JsonSchema | boolean, location: string, seen: Set<string>): z.ZodType {
@@ -82,6 +116,11 @@ class Converter {
       const merged: JsonSchema = { ...target, ...siblings };
       return this.convert(merged, location, next);
     }
+
+    for (const k of UNCONVERTED)
+      if (schema[k] !== undefined) this.dropped(location, `"${k}" is not converted`);
+    if (Array.isArray(schema["items"]))
+      this.dropped(location, 'An array "items" (draft 7 tuple) is not converted');
 
     let out = this.convertCore(schema, location, seen);
 
@@ -137,7 +176,7 @@ class Converter {
     let out: z.ZodType;
     switch (type) {
       case "string":
-        out = this.convertString(schema);
+        out = this.convertString(schema, location);
         break;
       case "number":
       case "integer":
@@ -180,44 +219,50 @@ class Converter {
     return hasNull ? out.nullable() : out;
   }
 
-  private convertString(schema: JsonSchema): z.ZodType {
+  private convertString(schema: JsonSchema, location: string): z.ZodType {
     const format = schema["format"];
-    let out: z.ZodString | z.ZodType;
+    let s: z.ZodString;
     switch (format) {
       case "date-time":
-        out = z.iso.datetime({ offset: true });
+        s = z.iso.datetime({ offset: true }) as unknown as z.ZodString;
         break;
       case "date":
-        out = z.iso.date();
+        s = z.iso.date() as unknown as z.ZodString;
         break;
       case "time":
-        out = z.iso.time();
+        s = z.iso.time() as unknown as z.ZodString;
         break;
       case "email":
-        out = z.email();
+        s = z.email() as unknown as z.ZodString;
         break;
       case "uri":
       case "url":
-        out = z.url();
+        s = z.url() as unknown as z.ZodString;
         break;
       case "uuid":
-        out = z.uuid();
+        s = z.uuid() as unknown as z.ZodString;
         break;
-      default: {
-        let s = z.string();
-        if (typeof schema["minLength"] === "number") s = s.min(schema["minLength"]);
-        if (typeof schema["maxLength"] === "number") s = s.max(schema["maxLength"]);
-        if (typeof schema["pattern"] === "string") {
-          try {
-            s = s.regex(new RegExp(schema["pattern"]));
-          } catch {
-            // An unparseable pattern is not worth failing the whole action; agents still get a string.
-          }
+      default:
+        s = z.string();
+        // Annotation-only formats OpenAPI uses for bytes; anything else would go unchecked.
+        if (typeof format === "string" && !["byte", "binary", "password"].includes(format))
+          this.dropped(location, `format "${format}" is not checked`);
+    }
+    // Length and pattern apply with a format too; dropping them would widen the field.
+    if (typeof schema["minLength"] === "number") s = s.min(schema["minLength"]);
+    if (typeof schema["maxLength"] === "number") s = s.max(schema["maxLength"]);
+    if (typeof schema["pattern"] === "string") {
+      try {
+        s = s.regex(new RegExp(schema["pattern"], "u"));
+      } catch {
+        try {
+          s = s.regex(new RegExp(schema["pattern"]));
+        } catch {
+          this.dropped(location, `pattern ${schema["pattern"]} does not compile`);
         }
-        out = s;
       }
     }
-    return out;
+    return s;
   }
 
   private convertNumber(schema: JsonSchema, integer: boolean): z.ZodType {
@@ -265,7 +310,11 @@ class Converter {
     }
     const obj = z.object(shape);
     if (additional === false) return obj.strict();
-    if (additional === true || (additional && typeof additional === "object")) return obj.loose();
+    if (additional && typeof additional === "object")
+      return obj.catchall(
+        this.convert(additional as JsonSchema, `${location}/additionalProperties`, seen),
+      );
+    if (additional === true) return obj.loose();
     return obj;
   }
 

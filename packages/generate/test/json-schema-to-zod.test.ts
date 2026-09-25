@@ -117,6 +117,8 @@ describe("jsonSchemaToZod", () => {
       { root: {}, location: "orders.create.input" },
     );
     expect(warnings.map((w) => [w.code, w.field])).toEqual([
+      // `not` is reported as dropped, and the node, left without a type, as unknown.
+      ["unsupported-schema", "orders.create.input/weird"],
       ["unsupported-schema", "orders.create.input/weird"],
       ["unsupported-schema", "orders.create.input/typed"],
       ["unsupported-schema", "orders.create.input/missing"],
@@ -143,5 +145,40 @@ describe("jsonSchemaToZod", () => {
     expect(loose.parse({ a: "x", b: 1 })).toEqual({ a: "x", b: 1 });
     expect(jsonSchemaToZod(true).schema.safeParse("anything").success).toBe(true);
     expect(jsonSchemaToZod(false).schema.safeParse("anything").success).toBe(false);
+  });
+
+  it("never drops a constraint silently: length and pattern stay with a format, and what is dropped is named", () => {
+    const { schema, warnings } = jsonSchemaToZod(
+      {
+        type: "object",
+        properties: {
+          email: { type: "string", format: "email", maxLength: 20 },
+          stamp: { type: "string", format: "date-time", pattern: "Z$" },
+          host: { type: "string", format: "hostname" },
+          code: { type: "string", pattern: "(" },
+          tags: { type: "array", items: { type: "string" }, uniqueItems: true },
+          extra: { type: "object", patternProperties: { "^x-": { type: "string" } } },
+          money: {
+            type: "object",
+            properties: { amount: { type: "number" } },
+            additionalProperties: { type: "number" },
+          },
+          blob: { type: "string", format: "binary" },
+        },
+      },
+      { location: "s" },
+    );
+    expect(warnings.map((w) => w.field)).toEqual(["s/host", "s/code", "s/tags", "s/extra"]);
+    expect(warnings.map((w) => w.message).join(" ")).toMatch(/format "hostname" is not checked/);
+    expect(warnings.map((w) => w.message).join(" ")).toMatch(/pattern \( does not compile/);
+    expect(warnings.map((w) => w.message).join(" ")).toMatch(/"uniqueItems" is not converted/);
+    // Before: the format replaced the string, and maxLength and pattern were lost.
+    expect(schema.safeParse({ email: "averyveryverylongname@example.com" }).success).toBe(false);
+    expect(schema.safeParse({ email: "a@b.co" }).success).toBe(true);
+    expect(schema.safeParse({ stamp: "2026-01-01T00:00:00+02:00" }).success).toBe(false);
+    expect(schema.safeParse({ stamp: "2026-01-01T00:00:00Z" }).success).toBe(true);
+    // Before: an additionalProperties schema beside properties accepted anything.
+    expect(schema.safeParse({ money: { amount: 1, tip: "lots" } }).success).toBe(false);
+    expect(schema.safeParse({ money: { amount: 1, tip: 2 } }).success).toBe(true);
   });
 });
