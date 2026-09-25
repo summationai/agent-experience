@@ -30,7 +30,8 @@
     "demo": "node --import tsx docs/examples/demo/plan-board.ts",
     "example:dev": "pnpm --filter plan-review-example dev",
     "example:test": "pnpm --filter plan-review-example test",
-    "example:test:app": "pnpm --filter plan-review-example test:app"
+    "example:test:app": "pnpm --filter plan-review-example test:app",
+    "measure:granularity": "node scripts/measure-granularity.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.7",

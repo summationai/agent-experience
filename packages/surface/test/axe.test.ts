@@ -853,6 +853,29 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
     expect(changes).toHaveBeenCalledTimes(1);
   });
 
+  it("a re-render that registers every row again, unchanged, sends no notification; a changed name does", async () => {
+    const tick = () => Promise.resolve();
+    const s = createSurface({ revision: "app" });
+    const row = (name: string) => ({
+      id: "lock:2026-03",
+      kind: "action" as const,
+      role: "button",
+      name,
+      effect: { mutates: "locks" },
+      handler: () => undefined,
+    });
+    s.register(row("Lock March"));
+    const bridge = surfaceActions(s, { auth: "none" });
+    const changes = vi.fn();
+    bridge.onChange(changes);
+    s.register(row("Lock March")); // a new entry object, same published definition
+    await tick();
+    expect(changes).not.toHaveBeenCalled();
+    s.register(row("Unlock March"));
+    await tick();
+    expect(changes).toHaveBeenCalledTimes(1);
+  });
+
   it("under an app-owned revision, a row that registers or leaves announces a changed action set with no bump [S-OBS-4]", async () => {
     const tick = () => Promise.resolve();
     const s = createSurface({ revision: "app" });

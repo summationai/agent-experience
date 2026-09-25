@@ -668,6 +668,19 @@ Public identifiers of the WebMCP adapter and of the elicitation mapping (review 
 | api      | readOnlyHint         | `readOnlyHint`         | WebMCP                | Tool annotation: the tool changes nothing; set on the observe tool.                                                    |
 | api      | untrustedContentHint | `untrustedContentHint` | WebMCP                | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.               |
 
+## Surface granularity
+
+Names of the parameterized bridge mode and of the filtered, paged `<ns>.observe` (review 2026-09-24, item 16; `spec/SURFACE.md` [S-OBS-5], [S-AXE-10] to [S-AXE-13]).
+
+| Category | Key           | Name            | Where                              | Meaning                                                                                                    |
+| -------- | ------------- | --------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| field    | entryId       | `entryId`       | domain action input `entryId`      | The id of the row a parameterized action acts on, from `<ns>.observe`.                                     |
+| field    | nextCursor    | `nextCursor`    | `<ns>.observe` output `nextCursor` | Present when more rows match the filters; passed back as `cursor` for the next page.                       |
+| api      | domainActions | `domainActions` | `@axe/surface/axe`                 | Derive an action provider from a surface as a fixed set of parameterized actions, plus observe and ledger. |
+| api      | actionFor     | `actionFor`     | `@axe/surface/axe`                 | The domain action that acts on an entry id now, or undefined.                                              |
+| api      | idleReason    | `idleReason`    | `@axe/surface/axe`                 | A domain action's `availability` reason when no entry it covers can be acted on.                           |
+| api      | maxPageSize   | `maxPageSize`   | `@axe/surface/axe`                 | The largest `limit` `<ns>.observe` accepts; published as `pagination.pageSize.max`.                        |
+
 ## Generate API
 
 Public identifiers of `@axe/generate`, which derives actions from definitions an application already has (`docs/generating.md`). Kept in their own table so the SDK API table above stays stable.
