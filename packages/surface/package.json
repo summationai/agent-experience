@@ -38,6 +38,16 @@
         "types": "./dist/axe.d.cts",
         "default": "./dist/axe.cjs"
       }
+    },
+    "./webmcp": {
+      "import": {
+        "types": "./dist/webmcp.d.ts",
+        "default": "./dist/webmcp.js"
+      },
+      "require": {
+        "types": "./dist/webmcp.d.cts",
+        "default": "./dist/webmcp.cjs"
+      }
     }
   },
   "typesVersions": {
@@ -47,6 +57,9 @@
       ],
       "axe": [
         "./dist/axe.d.ts"
+      ],
+      "webmcp": [
+        "./dist/webmcp.d.ts"
       ]
     }
   },

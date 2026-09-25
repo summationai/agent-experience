@@ -27,6 +27,7 @@ async function bundle(contents: string, extraExternal: string[] = []) {
       "@axe/surface": join(src, "index.ts"),
       "@axe/surface/react": join(src, "react.ts"),
       "@axe/surface/axe": join(src, "axe.ts"),
+      "@axe/surface/webmcp": join(src, "webmcp.ts"),
     },
   });
   const inputs = Object.keys(result.metafile.inputs);
@@ -50,6 +51,8 @@ describe("browser bundle", () => {
     // jsdom is the mounted React tests' environment, a devDependency; it never enters the bundle.
     expect(out.inputs.filter((f) => /jsdom/.test(f))).toEqual([]);
     expect(out.inputs.some((f) => f.includes("vocabulary"))).toBe(true);
+    // The WebMCP adapter is an optional subpath: neither entry pulls it in.
+    expect(out.inputs.filter((f) => /webmcp/.test(f))).toEqual([]);
     console.log(`@axe/surface + @axe/surface/react: ${out.bytes} bytes minified for the browser`);
     expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);
   });
@@ -61,5 +64,17 @@ describe("browser bundle", () => {
     );
     expect(out.imports).toEqual([]);
     console.log(`@axe/surface/axe: ${out.bytes} bytes minified for the browser`);
+  });
+
+  it("@axe/surface/webmcp bundles for the browser alone, small, without Zod or React", async () => {
+    const out = await bundle(
+      `import { exposeWebMcp } from "@axe/surface/webmcp";
+       console.log(exposeWebMcp);`,
+    );
+    expect(out.imports).toEqual([]);
+    expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
+    expect(out.inputs.filter((f) => /react/.test(f))).toEqual([]);
+    console.log(`@axe/surface/webmcp: ${out.bytes} bytes minified for the browser`);
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);
   });
 });
