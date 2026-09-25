@@ -823,7 +823,7 @@ export class AXE {
 
     if (method === "GET" && (path === WIRE.path.manifest || path === WIRE.path.manifestAlias)) {
       const manifest = await this.describeLive(tenant, request);
-      // A strong validator over the rendered document, so agents can revalidate cheaply ([P-DISC-10]).
+      // A strong validator over the rendered document, so agents can revalidate cheaply ([P-DISC-13]).
       const etag = `"${(await hashJson(manifest)).slice(0, 32)}"`;
       const caching = {
         "Cache-Control": `public, max-age=${this.config.manifestCacheSeconds ?? 300}`,

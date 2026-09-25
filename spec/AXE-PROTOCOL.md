@@ -54,6 +54,8 @@ Before 1.0 the major version is `0`, and minor versions MAY contain incompatible
 
 **[P-DISC-3]** The manifest response MUST have `Content-Type: application/json` and SHOULD carry a `Cache-Control` header allowing caching for at least 60 seconds. Manifests change rarely; agents fetch them often.
 
+**[P-DISC-13]** The manifest response SHOULD carry an `ETag`. A request whose `If-None-Match` lists that validator SHOULD be answered `304 Not Modified` with no body and the same `ETag` and `Cache-Control`. An agent that caches a manifest MUST NOT use it past the `Cache-Control` max-age without revalidating it (a conditional request is enough), and SHOULD fetch it again when an action it is about to call is missing from its copy.
+
 ### 3.2 Alternate hints
 
 **[P-DISC-4]** An HTML page MAY include `<link rel="axe-manifest" href="<url>">` in its `<head>`. Agents that discover through HTML MUST honor it.
@@ -622,6 +624,7 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 - **Agents as load.** A manifest invites agents; it does not promise unlimited capacity. Sites SHOULD declare `policies.rateLimit`, enforce it at their edge, and use `pending` for slow work rather than holding connections.
 - **Over-permissioned actions.** Nothing in AXE grants an agent more than the site's existing authorization allows. Sites MUST authorize every action with the same checks their UI applies, using the identity from §16, never from the request body.
 - **HTML in results.** Renderers MUST escape everything ([P-DISP-5]). Sites MUST NOT rely on markup reaching a user.
+- **Bridges to other agent protocols.** A bridge such as an MCP server serves many callers from one process. Each call reaches the site as its own caller, never as a shared identity, and the bridge's session is not an authentication ([P-MCP-2]).
 - **Cross-site request forgery.** A site that authenticates with cookies is reachable from every page its users visit. CORS response headers do not prevent the write; [P-TRANS-1] to [P-TRANS-4] do. A site that also sets `SameSite=Lax` or `Strict` on its session cookie has a second, independent layer.
 
 ## 20. Worked example: search → present → select → transact
@@ -856,6 +859,20 @@ Per-resource revisions (ETags) were considered and rejected: an action touches s
 2. It invokes an available action with `expectedRev: 41`. If a person changed the record in the meantime, the site is at `rev: 42` and answers `conflict` with `details: { expectedRev: 41, currentRev: 42 }`, having applied nothing. The agent reads again and decides again.
 3. If nothing moved, the action runs and the `ok` envelope carries `rev: 42`, the revision the change produced; the agent uses it as the next `expectedRev`.
 4. A retry after a lost response repeats the `idempotencyKey` and is answered from the stored envelope ([P-LIVE-4]); a retry with a new key and the old `expectedRev` is refused, so a lost response cannot double-apply.
+
+## 22. MCP mapping
+
+An AXE site can be offered to Model Context Protocol hosts through a bridge that maps each action to an MCP tool (the SDK's is `@axe/mcp`; `docs/mcp.md` has the full mapping table). The rules below apply to any such bridge. "Caller" means the principal an MCP request is authenticated as; over stdio it is the one user who started the process.
+
+**[P-MCP-1]** A bridge served over the MCP Streamable HTTP transport MUST serve any number of clients, each through its own MCP server state: in stateless mode, state that answers one HTTP request; in stateful mode, one session per `Mcp-Session-Id`. A request naming a session that is unknown, closed by `DELETE`, or expired MUST be answered `404`, after which the client starts a new session with a new `initialize`. A bridge that expires idle sessions MUST document the bound.
+
+**[P-MCP-2]** A bridge that authenticates MCP requests MUST authenticate every request, not only the one that opened a session, and MUST NOT treat a session id as a credential. A session belongs to the caller that opened it; a request from another caller naming it MUST be answered as for an unknown session. Each tool call MUST reach the AXE site as the caller of that request: with a credential for that caller (for a remote site) or that caller's identity (for a site in the same process). A bridge MUST NOT use one caller's credential for another caller. A bridge that is an OAuth protected resource MUST NOT forward the access token it received to the AXE site unless that token was also issued for the AXE site; otherwise it obtains a separate credential (for example by token exchange).
+
+**[P-MCP-3]** The poll tool's memory of issued `pollUrl`s ([P-AGENT-9]) MUST be scoped to one session, or, where there are no sessions, to one caller: a `pollUrl` issued to one session or caller is not polled for another.
+
+**[P-MCP-4]** A bridge whose tools come from a remote manifest MUST NOT derive tools from a copy older than its freshness bound: the smaller of the manifest's `Cache-Control` max-age and a bound the bridge documents. It SHOULD fetch the manifest again, once per call, when a tool call names a tool its copy does not have, and when the site answers `not_found` for an action its copy has. When the derived tools change it SHOULD send `notifications/tools/list_changed` to connected clients that can receive it; a tool whose action the site removed MUST NOT be listed after the bridge has seen the change, and calling it returns an error saying so.
+
+**[P-MCP-5]** A tool for an action that is not `readOnly` MUST accept an optional `idempotencyKey` argument (unless the action's own input uses that name) and send it as the request's `idempotencyKey`, so a caller who repeats an uncertain call with the same key and arguments receives the stored envelope ([P-IDEM-2], [P-OP-1]). Without the argument, the bridge MUST send a fresh key per tool call, so two deliberate calls are two operations even when their inputs match. The continuation and resume tools MUST accept an optional `expectedRev` when the manifest carries `live` and forward it ([P-LIVE-1]).
 
 ## Appendix A. Endpoint summary
 

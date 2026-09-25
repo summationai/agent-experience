@@ -29,7 +29,7 @@ describe("manifest", () => {
     }
   });
 
-  it("carries an ETag and answers a matching If-None-Match with 304 [P-DISC-10]", async () => {
+  it("carries an ETag and answers a matching If-None-Match with 304 [P-DISC-13]", async () => {
     const { axe } = apartmentsAXE();
     const first = await call(axe, "GET", WIRE.path.manifest);
     const etag = first.headers.get("ETag");

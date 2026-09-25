@@ -579,6 +579,25 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | operationLeaseSeconds  | `operationLeaseSeconds`  | `@axe/core`                | Config: how long an operation claim holds before a retry of the same operation may take it over (default 60).               |
 | api      | operationId            | `operationId`            | `@axe/core`                | Handler context member: a stable id for the operation, the same on every retry, for downstream idempotency.                 |
 
+## MCP over HTTP and manifest freshness API
+
+Public identifiers for serving `@axe/mcp` over HTTP to many callers and for keeping a remote manifest fresh (review 2026-09-24, items 9 and 10).
+
+| Category | Key                       | Name                        | Where         | Meaning                                                                                                      |
+| -------- | ------------------------- | --------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------ |
+| api      | clientFor                 | `clientFor`                 | `@axe/mcp`    | `serveHttp` option: each verified caller's AXE identity (`CallerContext`), asked on every tool call.         |
+| api      | idleTimeoutMs             | `idleTimeoutMs`             | `@axe/mcp`    | `serveHttp` session option: close a session with no request for this long (default 30 minutes).              |
+| api      | maxSessions               | `maxSessions`               | `@axe/mcp`    | `serveHttp` session option: open sessions at most; past it a new `initialize` gets 503 (default 1000).       |
+| api      | sessionCount              | `sessionCount`              | `@axe/mcp`    | The number of open sessions on a `serveHttp` handler.                                                        |
+| api      | sessionIdGenerator        | `sessionIdGenerator`        | `@axe/mcp`    | Deprecated `serveHttp` option: a session id generator; setting it turns sessions on.                         |
+| api      | allowedOrigins            | `allowedOrigins`            | `@axe/mcp`    | `serveHttp` option: browser origins allowed besides the endpoint's own; others get 403.                      |
+| api      | requiredScopes            | `requiredScopes`            | `@axe/mcp`    | `serveHttp` auth option: scopes every access token needs; otherwise 403 `insufficient_scope`.                |
+| api      | resourceMetadataUrl       | `resourceMetadataUrl`       | `@axe/mcp`    | `serveHttp` auth option: the protected-resource metadata URL sent in `WWW-Authenticate`.                     |
+| api      | authInfo                  | `authInfo`                  | `@axe/mcp`    | The verified access token (the MCP SDK's `AuthInfo`) of one HTTP request; passed to `clientFor`.             |
+| api      | protectedResourceMetadata | `protectedResourceMetadata` | `@axe/mcp`    | RFC 9728 metadata for an MCP endpoint: the document, its path and URL, and a handler.                        |
+| api      | manifestMaxAgeMs          | `manifestMaxAgeMs`          | `@axe/client` | Client option: longest a manifest is used before revalidation; a shorter site max-age wins (default 300000). |
+| api      | onManifestChange          | `onManifestChange`          | `@axe/client` | Subscribe to manifest refreshes that changed the actions; returns an unsubscribe function.                   |
+
 ## Generate API
 
 Public identifiers of `@axe/generate`, which derives actions from definitions an application already has (`docs/generating.md`). Kept in their own table so the SDK API table above stays stable.
