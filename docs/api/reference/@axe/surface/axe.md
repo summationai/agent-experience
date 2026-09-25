@@ -513,6 +513,38 @@ The set never changes shape; the listener is accepted and never called.
 ActionProvider.onChange
 ```
 
+<a id="onresult"></a>
+
+##### onResult()
+
+```ts
+onResult(ctx, result): Promise<void>;
+```
+
+As `SurfaceBridge.onResult` ([S-AXE-14]): records a refusal the runtime made before a domain
+action's handler ran, with the input's `entryId` as the target when it has one (else the
+action name) and the op that entry's own action would use.
+
+###### Parameters
+
+###### ctx
+
+`ProviderResultContext`
+
+###### result
+
+[`Result`](index.md#result)
+
+###### Returns
+
+`Promise`\<`void`\>
+
+###### Overrides
+
+```ts
+ActionProvider.onResult
+```
+
 ***
 
 <a id="observepageoptions"></a>
@@ -1150,6 +1182,43 @@ Fires when entries were registered or unregistered since the last revision move;
 
 ```ts
 ActionProvider.onChange
+```
+
+<a id="onresult-1"></a>
+
+##### onResult()
+
+```ts
+onResult(ctx, result): Promise<void>;
+```
+
+Called by the server for every result of the bridge's actions ([S-AXE-14]); `addProvider`
+wires it, so there is nothing to pass to `createAXE`. A refusal the runtime made before an
+entry action's handler ran (a stale `expectedRev` under [S-AXE-4], an input that fails the
+schema, a missing `idempotencyKey`) is recorded in the caller's ledger with `source: "server"`,
+the entry id and op the act would have had, and the actor of [S-AXE-3], when the runtime
+admitted the caller under the action's `auth` mode. Everything else is left alone: an act the
+surface saw is already in the ledger, and an unidentified caller of a protected action writes
+nothing.
+
+###### Parameters
+
+###### ctx
+
+`ProviderResultContext`
+
+###### result
+
+[`Result`](index.md#result)
+
+###### Returns
+
+`Promise`\<`void`\>
+
+###### Overrides
+
+```ts
+ActionProvider.onResult
 ```
 
 ***

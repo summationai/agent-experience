@@ -229,7 +229,63 @@ export async function save(persist: () => Promise<void>): Promise<void> {
 ```
 <!-- /include -->
 
-The ledger records acts made through the surface. A change a person makes through the application's own controls shows up as a revision move, not as an entry, unless the application routes it through `act`. It is the application's live record, in memory; for a durable trail, sink the action events below.
+## The ledger
+
+The ledger is the application's one history, in memory, oldest first. It holds three things and nothing else:
+
+- **Acts through the surface, run or refused.** Every call to `act` writes exactly one entry: `{ seq, at, op, target, actor, revBefore, revAfter, status, changed }`, with the `text` it carried under the text policy ([Sensitive values and the ledger's text](#sensitive-values-and-the-ledgers-text)). A refusal has an error code as its `status`, an empty `changed`, and `revAfter` equal to `revBefore`. Every act result carries its entry's `seq`.
+- **Changes the application recorded itself**, marked `source: "application"`. A change made outside `act` (a person's own control that is not a registered entry, an approval, a push from the server) moves the revision but writes no entry, so an agent reading the ledger would find a revision it cannot account for. `record` appends one.
+- **Calls the server refused before the surface**, marked `source: "server"`, when the surface is served through the bridge ([Serving a surface](#serving-a-surface-as-an-axe-manifest)): a stale `expectedRev`, refused by the protocol before the handler runs, is recorded as `conflict` with the entry id, the op, the caller as `actor`, and the `expectedRev` the caller presented.
+
+`ledger({ since })` returns what came after a `ledgerSeq` an agent observed; `actor` filters and `limit` caps. Entries `act` writes carry no `source`.
+
+<!-- include: examples/surface/ledger.ts#ledger -->
+```ts
+import { surface } from "./board";
+
+// After observe() returned { rev, ledgerSeq }, an agent asks what happened after that snapshot.
+export function whatHappenedSince(ledgerSeq: number): string[] {
+  return surface
+    .ledger({ since: ledgerSeq })
+    .map((e) =>
+      e.status === "ok"
+        ? `#${e.seq} ${e.actor} ${e.op} ${e.target} (rev ${e.revBefore} -> ${e.revAfter})`
+        : `#${e.seq} ${e.actor} ${e.op} ${e.target}: refused, ${e.status}, nothing applied`,
+    );
+}
+
+// The person's view of the agent's work: newest twenty entries by the agent.
+export function agentActivity() {
+  return surface.ledger({ actor: "agent", limit: 20 });
+}
+```
+<!-- /include -->
+
+`record({ op, target, actor, changed?, text?, revBefore?, status? })` runs no handler and does not move the revision: the application makes its change and moves the revision (`bump`, `setRev`), then records it, passing the revision it read before as `revBefore` so the entry spans the move. `revAfter` is the revision when `record` is called; `op` is the application's own word (`APPROVE`, `UNDO`), not limited to the ops of `act`. The text policy and the sensitive rule apply as they do to an act. A refusal the surface never saw is recorded with an error code as `status` and `changed: []`; both revisions are then the current one.
+
+<!-- include: examples/surface/ledger.ts#record -->
+```ts
+// The commissioner undoes a pick from the page's own admin menu, which is not a registered control,
+// so the change never passes through act. Make the change, move the revision, then record it with
+// the revision read before, so the entry spans the move and the ledger has no gap.
+export function undoPickFromAdminMenu(playerId: string, undo: () => void): void {
+  const revBefore = surface.currentRev();
+  undo();
+  surface.bump({ what: `undo:${playerId}` });
+  surface.record({
+    op: "UNDO",
+    target: `pick:me:${playerId}`,
+    actor: "commissioner",
+    changed: [`pick:me:${playerId}`],
+    revBefore,
+  });
+}
+// The entry: { op: "UNDO", actor: "commissioner", revBefore: 7, revAfter: 8, status: "ok",
+// source: "application", ... }. record runs no handler and does not move the revision itself.
+```
+<!-- /include -->
+
+The ledger holds nothing else. A call the runtime refuses for a caller it did not admit (no credentials on a protected surface, a site key outside its allowlist), or before it knew the caller or the action (a malformed envelope, an oversized body), is only in the server's request events. Retention is bounded (`createSurface({ ledger: { max } })`, default 1000 entries); for a durable trail, sink the action events below, or the application's own store.
 
 ## Saying what would unblock a control
 
@@ -353,7 +409,7 @@ bridge.entryIdFor("board.pick-me-gibbs"); // "pick:me:Gibbs"
 
 Refusals map onto the ladder: an unavailable control with `requires` returns `needs_input` with those kinds (and the declared `handoff` as `fallback` when it has a `url`); one with only a `handoff` that has a `url` returns `needs_human`; a stale revision is `conflict` with `expectedRev` and `currentRev` in `details`; everything else stays an `error` with the application's reason, including a freeze and a handoff without a `url`, which never climb the ladder. On `/axe/continue` the application's `fulfill` runs and the act is retried at the current revision; on `/axe/resume` the act is retried. The `actor` recorded is the authenticated `onBehalfOf`, else `agent`.
 
-The ledger is a complete record of what reached the surface. The bridge validates only the shape of a request at the protocol layer (a string `text`, a boolean `confirm`, no unknown keys) and leaves the surface's own checks (`maxLength`, the field's schema, a required `confirm`) to the surface, so an over-length edit or a missing confirmation is refused by the surface, ledgered as `invalid_input`, and emitted as a `surface.act` event. What the protocol refuses before the surface (a malformed envelope, a stale `expectedRev`) is in the server's request events instead.
+The bridge validates only the shape of a request at the protocol layer (a string `text`, a boolean `confirm`, no unknown keys) and leaves the surface's own checks (`maxLength`, the field's schema, a required `confirm`) to the surface, so an over-length edit or a missing confirmation is refused by the surface, ledgered as `invalid_input`, and emitted as a `surface.act` event. What the runtime refuses before the bridge's handler runs (a stale `expectedRev`, a `text` that is not a string, a missing `idempotencyKey`) the bridge records in the caller's [ledger](#the-ledger) as well, marked `source: "server"`, once, and without a new action event. The server hands the bridge each of its results through the action provider's `onResult`, with a `ProviderResultContext` that says who the runtime authenticated and whether a handler produced the result; `addProvider` wires it, so there is nothing to pass to `createAXE`. Only a caller the runtime admitted under the action's `auth` mode is recorded: an anonymous call to a protected surface writes nothing, and a public surface records an anonymous caller as `agent`, as it records that caller's acts. A refusal the surface made itself is already in the ledger with its `seq` and is not recorded again.
 
 Pass `revision: surface.currentRev` to `createAXE` and the surface's revision becomes the site's ([Live state and revisions](live-state.md)): every envelope carries `rev`, the revision the agent observed travels as the request envelope's `expectedRev` and is checked by the protocol before the handler runs, and `/axe/state` reports it. The entry's action passes the same `expectedRev` to `act`, so the protocol's check is the first gate and the surface's the second: two requests that both pass the server's check at one revision are ordered by the surface, and the later one is checked again when its turn comes. The handler receives the same value for its own write. The entry actions take no `expectedRev` in their input; a request without one is refused by the surface as `invalid_input`, because every act presents the revision the agent saw.
 

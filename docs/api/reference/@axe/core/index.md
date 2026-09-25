@@ -1513,6 +1513,35 @@ listeners; the derived MCP server sends `notifications/tools/list_changed`.
 
 () => `void`
 
+<a id="onresult"></a>
+
+##### onResult()?
+
+```ts
+optional onResult(ctx, result): MaybePromise<void>;
+```
+
+Hear the result of every call to an action this provider supplied, on every endpoint, after
+the site's own `onResult` and before the response is sent ([S-AXE-14] in `spec/SURFACE.md`).
+The context says who the runtime established and whether a handler produced the result, so a
+provider can record what the runtime refused before its handler ran (the Surface bridge
+records such a refusal in the caller's ledger). It cannot change the result; a hook that
+throws is logged and the response goes out unchanged.
+
+###### Parameters
+
+###### ctx
+
+[`ProviderResultContext`](#providerresultcontext)
+
+###### result
+
+[`Result`](types.md#result)
+
+###### Returns
+
+[`MaybePromise`](#maybepromise)\<`void`\>
+
 ***
 
 <a id="actionspec"></a>
@@ -2416,7 +2445,7 @@ optional onRequest?: (ctx) => MaybePromise<void | ResultIntent>;
 
 [`MaybePromise`](#maybepromise)\<`void` \| [`ResultIntent`](#resultintent)\>
 
-<a id="onresult"></a>
+<a id="onresult-1"></a>
 
 ##### onResult?
 
@@ -3863,6 +3892,10 @@ tenant: string | null;
 
 Passed to hooks.
 
+#### Extended by
+
+- [`ProviderResultContext`](#providerresultcontext)
+
 #### Properties
 
 <a id="action-6"></a>
@@ -4796,6 +4829,135 @@ BaseContext.unavailable
 
 ***
 
+<a id="providerresultcontext"></a>
+
+### ProviderResultContext
+
+Passed to an action provider's `onResult` ([S-AXE-14] in `spec/SURFACE.md`): the hook context
+plus what the runtime established for the call. The server calls it for every result of an
+action the provider supplied, on every endpoint, after the site's own `onResult`.
+
+#### Extends
+
+- [`HookContext`](#hookcontext)
+
+#### Properties
+
+<a id="action-8"></a>
+
+##### action
+
+```ts
+action: string;
+```
+
+###### Inherited from
+
+[`HookContext`](#hookcontext).[`action`](#action-6)
+
+<a id="context-4"></a>
+
+##### context
+
+```ts
+context: RequestContext;
+```
+
+###### Inherited from
+
+[`HookContext`](#hookcontext).[`context`](#context-2)
+
+<a id="endpoint-1"></a>
+
+##### endpoint
+
+```ts
+endpoint: Endpoint;
+```
+
+###### Inherited from
+
+[`HookContext`](#hookcontext).[`endpoint`](#endpoint)
+
+<a id="expectedrev-3"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: Revision;
+```
+
+The envelope's `expectedRev`, when the call carried a well-formed one.
+
+<a id="handled"></a>
+
+##### handled
+
+```ts
+handled: boolean;
+```
+
+True when the result came from the action's handler (or `onContinue`, `onResume`, `onPoll`),
+on this request or, for a retried `idempotencyKey`, on the request that first ran it. False
+when the runtime refused the call before any handler: a stale `expectedRev`, an input that
+fails the schema, a missing `idempotencyKey`, a refusal from the site's `onRequest`.
+
+<a id="identity-6"></a>
+
+##### identity
+
+```ts
+identity: Identity | null;
+```
+
+The user the runtime authenticated for this call; null when anonymous or not reached.
+
+<a id="input-5"></a>
+
+##### input?
+
+```ts
+optional input?: JsonValue;
+```
+
+The envelope's `input` as the agent sent it, on the action endpoint; absent elsewhere.
+
+<a id="request-5"></a>
+
+##### request
+
+```ts
+request: Request;
+```
+
+###### Inherited from
+
+[`HookContext`](#hookcontext).[`request`](#request-3)
+
+<a id="sitekey-5"></a>
+
+##### siteKey
+
+```ts
+siteKey: SiteKeyContext | null;
+```
+
+The verified site key for a `site` call; null otherwise.
+
+<a id="tenant-9"></a>
+
+##### tenant
+
+```ts
+tenant: TenantInfo | null;
+```
+
+###### Inherited from
+
+[`HookContext`](#hookcontext).[`tenant`](#tenant-7)
+
+***
+
 <a id="registeredaction"></a>
 
 ### RegisteredAction
@@ -5166,7 +5328,7 @@ Plain language, in the site's words. Agent-read text.
 
 #### Properties
 
-<a id="action-8"></a>
+<a id="action-9"></a>
 
 ##### action
 
@@ -5228,7 +5390,7 @@ completion:
 
 What `completeHandoff` recorded, if the site called it.
 
-<a id="context-4"></a>
+<a id="context-5"></a>
 
 ##### context
 
@@ -5271,7 +5433,7 @@ server's `onActionEvent` sinks. Fire-and-forget: it never delays or affects the 
 BaseContext.emit
 ```
 
-<a id="expectedrev-3"></a>
+<a id="expectedrev-4"></a>
 
 ##### expectedRev?
 
@@ -5347,7 +5509,7 @@ Hand off to the human. Return it directly for `needs_human`, or pass it as `fall
 BaseContext.handoff
 ```
 
-<a id="identity-6"></a>
+<a id="identity-7"></a>
 
 ##### identity
 
@@ -5467,7 +5629,7 @@ Report long-running work; define `onPoll` on the action to produce the eventual 
 BaseContext.pending
 ```
 
-<a id="request-5"></a>
+<a id="request-6"></a>
 
 ##### request
 
@@ -5516,7 +5678,7 @@ handoff approved.
 BaseContext.requestApproval
 ```
 
-<a id="sitekey-5"></a>
+<a id="sitekey-6"></a>
 
 ##### siteKey
 
@@ -5544,7 +5706,7 @@ state: S;
 
 The `state` passed to `handoff`.
 
-<a id="tenant-9"></a>
+<a id="tenant-10"></a>
 
 ##### tenant
 
@@ -5673,7 +5835,7 @@ Passed to the `revision` provider.
 
 #### Properties
 
-<a id="identity-7"></a>
+<a id="identity-8"></a>
 
 ##### identity?
 
@@ -5684,7 +5846,7 @@ optional identity?: Identity | null;
 The user the runtime established for this request, once it has: on an action call, a continue,
 a resume, a poll, and `/axe/state`. Absent for the manifest and before authentication.
 
-<a id="request-6"></a>
+<a id="request-7"></a>
 
 ##### request
 
@@ -5694,7 +5856,7 @@ request: Request | null;
 
 The request being served; null when the manifest is described outside a request.
 
-<a id="sitekey-6"></a>
+<a id="sitekey-7"></a>
 
 ##### siteKey?
 
@@ -5704,7 +5866,7 @@ optional siteKey?: SiteKeyContext | null;
 
 The verified site key, when the call is a `site` call or a follow-up of one ([P-TOK-7]).
 
-<a id="tenant-10"></a>
+<a id="tenant-11"></a>
 
 ##### tenant
 
@@ -5874,7 +6036,7 @@ optional accepts?: Accept[];
 
 Continuation only: the accepted entries, with JSON Schemas.
 
-<a id="action-9"></a>
+<a id="action-10"></a>
 
 ##### action
 
@@ -6050,7 +6212,7 @@ state: JsonValue | undefined;
 
 Site-provided state for `onContinue` / `onResume` / `onPoll`.
 
-<a id="tenant-11"></a>
+<a id="tenant-12"></a>
 
 ##### tenant
 
@@ -6194,7 +6356,7 @@ The answer to `claim`.
 
 ***
 
-<a id="endpoint-1"></a>
+<a id="endpoint-2"></a>
 
 ### Endpoint
 
@@ -6470,7 +6632,7 @@ Decoded-size limit for `document.base64` payloads (spec/KINDS.md).
 
 ## Functions
 
-<a id="action-10"></a>
+<a id="action-11"></a>
 
 ### action()
 

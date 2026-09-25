@@ -314,9 +314,17 @@ export interface ActOutput {
 /** `act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`. Every result carries the `seq` of its ledger entry (`output.seq`, or `error.details.seq`). */
 export type ActResult = OkResult<ActOutput> | ErrorResult;
 
+/**
+ * Where a ledger entry that did not come from `act` came from ([S-LED-8], [S-AXE-14]):
+ * `application`, a change the application recorded with `record` (a person's own control, an
+ * approval, a server push); `server`, a refusal the AXE runtime made before the bridge's handler
+ * ran (a stale `expectedRev`), recorded by the bridge. Absent on every entry `act` wrote.
+ */
+export type LedgerSource = "application" | "server";
+
 /** One line of the ledger: an act that ran, or a refusal, with who asked and which revisions it spanned (spec [S-LED-*]). */
 export interface LedgerEntry {
-  /** 1-based, increasing by one per act; never reused. */
+  /** 1-based, increasing by one per entry; never reused. */
   seq: number;
   /** When the entry was written. */
   at: string;
@@ -342,6 +350,40 @@ export interface LedgerEntry {
    * revision at completion (a newer one arrived while the handler ran) [S-REV-6].
    */
   ignoredRev?: number;
+  /**
+   * Present only on an entry `act` did not write: `application` for a change recorded with
+   * `record`, `server` for a refusal the runtime made before the surface ([S-LED-8]).
+   */
+  source?: LedgerSource;
+  /** The revision a refused caller presented, when the entry records a refusal made before the surface. */
+  expectedRev?: number;
+}
+
+/**
+ * What `record` appends ([S-LED-8]): a change the application made outside `act`, or a refusal
+ * the surface never saw. `op` is the application's name for what happened (`APPROVE`, `CLICK`),
+ * `target` the entry id or object it concerned, `actor` who did it, as for an act.
+ */
+export interface RecordRequest {
+  op: string;
+  target: string | null;
+  actor: string;
+  /** Entry ids the change moved. Must be empty (the default) for a refusal. */
+  changed?: string[];
+  /** Free text the change carried; the ledger's text policy and the sensitive rule apply ([S-PRV-2]). */
+  text?: string;
+  /**
+   * The revision before the change: pass the revision you read before changing state, so the
+   * entry spans the move. Default: the revision when `record` is called. Ignored for a refusal,
+   * whose `revBefore` and `revAfter` are both the current revision.
+   */
+  revBefore?: number;
+  /** `ok` (the default) for a change; an error code for a refusal the surface never saw. */
+  status?: "ok" | ErrorCode;
+  /** For a refusal: the revision the refused caller presented. */
+  expectedRev?: number;
+  /** Default `application`. The bridge passes `server` for a refusal the runtime made. */
+  source?: LedgerSource;
 }
 
 export interface LedgerQuery {
@@ -426,8 +468,21 @@ export interface Surface {
     request: ActRequest,
     options?: { run?: (fn: () => MaybePromise<unknown>) => MaybePromise<unknown> },
   ): Promise<ActResult>;
-  /** The ledger: every act and every refusal, oldest first. See `LedgerQuery` for `since`, `actor`, and `limit`. */
+  /**
+   * The ledger, oldest first: every act through the surface (run or refused), every change the
+   * application recorded with `record`, and, served through the bridge, every refusal the AXE
+   * runtime made before the surface. See `LedgerQuery` for `since`, `actor`, and `limit`.
+   */
   ledger(query?: LedgerQuery): LedgerEntry[];
+  /**
+   * Append a change the application made outside `act` (a person's own control, an approval, a
+   * server push), or a refusal the surface never saw, so the ledger is the one history
+   * ([S-LED-8]). The entry carries `source` (default `application`), `revAfter` the current
+   * revision, and the text policy as for an act. It runs no handler and does not move the
+   * revision: make the change and move the revision (`bump`, `setRev`) first, passing the
+   * revision you read before it as `revBefore`. Returns the entry.
+   */
+  record(change: RecordRequest): LedgerEntry;
   /** Publish `observe`, `act`, `ledger`, and `rev` on a host object (`window.__surface`) for browser agents. */
   expose(
     host?: object | null,
@@ -1158,6 +1213,45 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         out = since !== undefined ? out.slice(0, limit) : out.slice(out.length - limit);
       return [...out];
     },
+    record(change) {
+      const { op, target, actor, text, source = "application" } = change ?? ({} as RecordRequest);
+      const status = change?.status ?? WIRE.status.ok;
+      const changedIds = change?.changed ?? [];
+      if (typeof op !== "string" || !op)
+        throw new TypeError("record: op must be a non-empty string.");
+      if (typeof actor !== "string" || !actor)
+        throw new TypeError("record: actor must be a non-empty string.");
+      if (target !== null && typeof target !== "string")
+        throw new TypeError("record: target must be a string or null.");
+      if (status !== WIRE.status.ok && !(Object.values(WIRE.error) as string[]).includes(status))
+        throw new TypeError(`record: status must be "ok" or an error code; received ${status}.`);
+      if (!Array.isArray(changedIds) || changedIds.some((id) => typeof id !== "string"))
+        throw new TypeError("record: changed must be an array of entry ids.");
+      // [S-LED-4] A refusal is recorded as one: nothing changed, the revision did not move.
+      const refused = status !== WIRE.status.ok;
+      if (refused && changedIds.length > 0)
+        throw new TypeError("record: a refusal changed nothing; pass changed: [].");
+      if (source !== "application" && source !== "server")
+        throw new TypeError(`record: source must be "application" or "server".`);
+      const before = !refused && typeof change.revBefore === "number" ? change.revBefore : rev;
+      const entry: LedgerEntry = {
+        seq: ++seq,
+        at: now().toISOString(),
+        op,
+        target,
+        actor,
+        revBefore: before,
+        revAfter: rev,
+        status,
+        changed: [...changedIds],
+      };
+      Object.assign(entry, ledgerTextFor(text, target));
+      entry.source = source;
+      if (typeof change.expectedRev === "number") entry.expectedRev = change.expectedRev;
+      log.push(entry);
+      if (log.length > ledgerMax) log.splice(0, log.length - ledgerMax);
+      return { ...entry, changed: [...entry.changed] };
+    },
     expose(host = typeof window !== "undefined" ? window : null, opts) {
       if (!host) return;
       (host as { __surface?: unknown }).__surface = {
@@ -1216,6 +1310,7 @@ export const {
   observe,
   act,
   ledger,
+  record,
   expose,
 } = surface;
 

@@ -17,6 +17,7 @@ export type {
   Identity,
   SiteKeyVerdict,
   HookContext,
+  ProviderResultContext,
   AdapterContext,
   Endpoint,
   RevisionContext,

@@ -25,10 +25,11 @@ import type {
   JsonValue,
   Pagination,
   RequestContext,
+  Result,
   Risk,
 } from "./types";
 import type { ResultIntent } from "./results";
-import type { Identity } from "./server";
+import type { Identity, ProviderResultContext } from "./server";
 import type { SiteKeyContext } from "./principal";
 import type {
   fail,
@@ -286,6 +287,15 @@ export interface ActionProvider {
    * listeners; the derived MCP server sends `notifications/tools/list_changed`.
    */
   onChange?(listener: () => void): () => void;
+  /**
+   * Hear the result of every call to an action this provider supplied, on every endpoint, after
+   * the site's own `onResult` and before the response is sent ([S-AXE-14] in `spec/SURFACE.md`).
+   * The context says who the runtime established and whether a handler produced the result, so a
+   * provider can record what the runtime refused before its handler ran (the Surface bridge
+   * records such a refusal in the caller's ledger). It cannot change the result; a hook that
+   * throws is logged and the response goes out unchanged.
+   */
+  onResult?(ctx: ProviderResultContext, result: Result): MaybePromise<void>;
 }
 
 export const ACTION_NAME_PATTERN = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/;

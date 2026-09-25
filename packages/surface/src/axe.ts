@@ -37,10 +37,11 @@ import type {
   ActionProvider,
   AvailabilityInput,
   Identity,
+  ProviderResultContext,
   RegisteredAction,
   TenantInfo,
 } from "@axe/core";
-import type { AuthMode, AXEActionEventInput, JsonValue, Risk } from "@axe/core/types";
+import type { AuthMode, AXEActionEventInput, JsonValue, Result, Risk } from "@axe/core/types";
 import * as WIRE from "@axe/core/vocabulary";
 import type {
   ActRequest,
@@ -51,6 +52,7 @@ import type {
   Observation,
   ObservedEntry,
   Op,
+  RecordRequest,
   Surface,
 } from "./index";
 
@@ -147,6 +149,17 @@ export interface SurfaceBridge extends ActionProvider {
   get(name: string): RegisteredAction | undefined;
   /** Fires when entries were registered or unregistered since the last revision move; a `bump` alone does not fire it. */
   onChange(listener: () => void): () => void;
+  /**
+   * Called by the server for every result of the bridge's actions ([S-AXE-14]); `addProvider`
+   * wires it, so there is nothing to pass to `createAXE`. A refusal the runtime made before an
+   * entry action's handler ran (a stale `expectedRev` under [S-AXE-4], an input that fails the
+   * schema, a missing `idempotencyKey`) is recorded in the caller's ledger with `source: "server"`,
+   * the entry id and op the act would have had, and the actor of [S-AXE-3], when the runtime
+   * admitted the caller under the action's `auth` mode. Everything else is left alone: an act the
+   * surface saw is already in the ledger, and an unidentified caller of a protected action writes
+   * nothing.
+   */
+  onResult(ctx: ProviderResultContext, result: Result): Promise<void>;
 }
 
 /**
@@ -215,6 +228,12 @@ export interface DomainBridge extends ActionProvider {
   get(name: string): RegisteredAction | undefined;
   /** The set never changes shape; the listener is accepted and never called. */
   onChange(listener: () => void): () => void;
+  /**
+   * As `SurfaceBridge.onResult` ([S-AXE-14]): records a refusal the runtime made before a domain
+   * action's handler ran, with the input's `entryId` as the target when it has one (else the
+   * action name) and the op that entry's own action would use.
+   */
+  onResult(ctx: ProviderResultContext, result: Result): Promise<void>;
 }
 
 /** The filters and paging `<ns>.observe` accepts ([S-OBS-5]). Every member is optional. */
@@ -271,6 +290,8 @@ const LedgerEntrySchema = z.object({
   textHash: z.string().optional(),
   changed: z.array(z.string()),
   ignoredRev: z.number().int().optional(),
+  source: z.enum(["application", "server"]).optional(),
+  expectedRev: z.number().int().optional(),
 });
 
 const ActOutputSchema = z.object({
@@ -673,6 +694,70 @@ function bridgeCore(
     return again(caller.surface, saved, actionName, context, emit, fail);
   };
 
+  /**
+   * The provider's `onResult` ([S-AXE-14]): a refusal the runtime made before one of the bridge's
+   * acting handlers ran is recorded on the caller's surface, so the ledger has no gap where an
+   * agent was refused. `describe` says, for an action name, whether it is one of this bridge's
+   * acting actions and under which `auth` mode, and the target and op its act would have had.
+   * Never double counted: a result a handler produced (`handled`), one carrying the `seq` of a
+   * ledger entry, and a second call for the same request are all left alone.
+   */
+  const recorded = new WeakSet<Request>();
+  const onResultFor =
+    (
+      modeOf: (name: string) => AuthMode | undefined,
+      targetOf: (
+        name: string,
+        input: JsonValue | undefined,
+        surface: Surface,
+      ) => { target: string; op: Op },
+    ) =>
+    async (ctx: ProviderResultContext, result: Result): Promise<void> => {
+      if (ctx.endpoint !== "action" || ctx.handled !== false) return;
+      if (result.status !== WIRE.status.error) return;
+      if (result.error.details?.[WIRE.field.seq] !== undefined) return;
+      if (recorded.has(ctx.request)) return;
+      const mode = modeOf(ctx.action);
+      if (mode === undefined) return;
+      // Only a caller the runtime admitted under the action's mode reaches the surface, so only
+      // such a caller writes to its ledger [S-AUTH-3].
+      const admitted =
+        mode === WIRE.authMode.none ||
+        (mode === WIRE.authMode.user && !!ctx.identity) ||
+        (mode === WIRE.authMode.site && !!ctx.siteKey);
+      if (!admitted) return;
+      const s = await resolveFor({
+        identity: ctx.identity,
+        tenant: ctx.tenant,
+        siteKey: ctx.siteKey,
+        request: ctx.request,
+      });
+      if (!s) return;
+      recorded.add(ctx.request);
+      const { target, op } = targetOf(ctx.action, ctx.input, s);
+      const change: RecordRequest = {
+        op,
+        target,
+        // [S-AXE-3] as for an act: the authenticated `onBehalfOf` (the runtime may refuse before it
+        // copies the identity into the context), else `agent`.
+        actor: actorFor(
+          ctx.identity ? { ...ctx.context, onBehalfOf: ctx.identity.onBehalfOf } : ctx.context,
+        ),
+        status: result.error.code,
+        changed: [],
+        source: "server",
+      };
+      const input = ctx.input;
+      if (input && typeof input === "object" && !Array.isArray(input)) {
+        const text = (input as Record<string, JsonValue>)[WIRE.field.text];
+        if (typeof text === "string") change.text = text;
+      }
+      const presented = toSurfaceRev(ctx.expectedRev);
+      if (typeof presented === "number" && Number.isFinite(presented))
+        change.expectedRev = presented;
+      s.record(change);
+    };
+
   // ---------------------------------------------------------------------------------------------
   // The read side: the table and the ledger, unchanged by churn.
   // ---------------------------------------------------------------------------------------------
@@ -820,7 +905,7 @@ function bridgeCore(
   const ledger = action(ledgerName, {
     title: "Read the ledger",
     description:
-      "Returns what has been done through the application's surface, oldest first: every act that ran and every act that was refused, with who asked, the op and the target, the revisions before and after, and the outcome. Pass since (a seq you have already seen) to read only what happened after it, and limit to cap the count.",
+      "Returns the application's record, oldest first: acts through its controls, run or refused; changes the application recorded itself (source application: a person's edit, an approval); and calls the server refused before any control (source server: a stale expectedRev). Each entry names the actor, op, target, revisions before and after, and status. since skips seen seqs; limit caps the count.",
     readOnly: true,
     risk: "none",
     auth: readMode,
@@ -853,10 +938,11 @@ function bridgeCore(
           { label: "Status", path: "/status", format: "text" },
           { label: "Rev before", path: "/revBefore", format: "number" },
           { label: "Rev after", path: "/revAfter", format: "number" },
+          { label: "Source", path: "/source", format: "text" },
           { label: "At", path: "/at", format: "datetime" },
         ],
       },
-      emptyMessage: "Nothing has been done through the surface yet.",
+      emptyMessage: "Nothing has been recorded yet.",
       disclaimer:
         "A refusal is an entry whose status is an error code and whose changed list is empty; nothing was applied.",
     },
@@ -891,6 +977,7 @@ function bridgeCore(
     resumeAct,
     buildObserve,
     ledger,
+    onResultFor,
   };
 }
 
@@ -989,10 +1076,13 @@ export function surfaceActions(
     return z.object({}).strict();
   };
 
+  // The op each entry action performs, by name, for a refusal recorded before its handler ran.
+  const opByName = new Map<string, Op>();
   const buildEntryAction = (e: Entry): RegisteredAction => {
     const name = actionNameFor(e.id);
     const title = nameOf(e);
     const op = opFor(e);
+    opByName.set(name, op);
     const { risk, idempotent, reversible } = core.metaOf(e);
     // Only a handoff with a page to come back from can become needs_human [S-AXE-2].
     const declaredHandoff =
@@ -1101,9 +1191,19 @@ export function surfaceActions(
     "Each actionable row names its own action.",
   );
 
+  const onResult = core.onResultFor(
+    (name) => {
+      if (entryIdFor(name) === undefined) return undefined;
+      ensure();
+      return byName.get(name)?.definition.auth;
+    },
+    (name) => ({ target: entryIdFor(name)!, op: opByName.get(name) ?? WIRE.op.click }),
+  );
+
   return {
     actionNameFor,
     entryIdFor,
+    onResult,
     actions() {
       ensure();
       return built;
@@ -1379,8 +1479,25 @@ export function domainActions(
   );
   const all: RegisteredAction[] = [observe, core.ledger, ...domainList];
   const byName = new Map(all.map((a) => [a.name, a]));
+  const specByName = new Map(specs.map((spec) => [nameOfSpec(spec), spec]));
+  const onResult = core.onResultFor(
+    (name) => {
+      const spec = specByName.get(name);
+      return spec ? (spec.auth ?? writeMode) : undefined;
+    },
+    (name, input, s) => {
+      const raw =
+        input && typeof input === "object" && !Array.isArray(input)
+          ? (input as Record<string, JsonValue>)[WIRE.field.entryId]
+          : undefined;
+      const id = typeof raw === "string" && raw.length > 0 && raw.length <= 1024 ? raw : undefined;
+      const live = id === undefined ? undefined : s.get(id);
+      return { target: id ?? name, op: live ? opFor(live) : WIRE.op.click };
+    },
+  );
 
   return {
+    onResult,
     actionFor(entryId) {
       const e = surface.get(entryId);
       const spec = e ? coverOf(e) : null;

@@ -165,14 +165,27 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
       seq: 1,
     });
     expect(b.log[0]).toMatchObject({ p: "Gibbs", actor: "dana" });
-    // Stale: refused by the protocol before the handler; the surface never sees it.
+    // Stale: refused by the protocol before the handler, which never runs; the bridge records the
+    // refusal in the ledger [S-AXE-14] (a public surface, so the anonymous caller is `agent`).
     const stale = (await act("surface.pick-me-robinson", {}, { expectedRev: 0 })) as ErrorResult;
     expect(stale.error.code).toBe("conflict");
     expect(stale.error.retryable).toBe(true);
     expect(stale.error.details).toEqual({ expectedRev: 0, currentRev: 1 });
     expect(stale.rev).toBe(1);
     expect(b.log).toHaveLength(1);
-    expect(b.surface.ledger()).toHaveLength(1);
+    expect(b.surface.ledger()).toHaveLength(2);
+    expect(b.surface.ledger()[1]).toMatchObject({
+      seq: 2,
+      op: "CLICK",
+      target: "pick:me:Robinson",
+      actor: "agent",
+      status: "conflict",
+      revBefore: 1,
+      revAfter: 1,
+      changed: [],
+      source: "server",
+      expectedRev: 0,
+    });
     // Without expectedRev the surface itself asks for it: every act presents the revision it saw.
     const none = (await act("surface.pick-me-robinson", {})) as ErrorResult;
     expect(none.error.code).toBe("invalid_input");
@@ -502,14 +515,22 @@ describe("surfaceActions: one AXE action per control [S-AXE-1]", () => {
       ["invalid_input", 2],
       ["invalid_input", 3],
     ]);
-    // A shape error (not a string) is still the protocol's, before the surface.
+    // A shape error (not a string) is still the protocol's, before the surface; the bridge
+    // records the refusal, without the text, which was not a string [S-AXE-14].
     const shape = (await act(
       "surface.cell-2026-03",
       { text: 5 },
       { expectedRev: 1 },
     )) as ErrorResult;
     expect(shape.error.code).toBe("invalid_input");
-    expect(s.ledger()).toHaveLength(3);
+    expect(s.ledger()).toHaveLength(4);
+    expect(s.ledger()[3]).toMatchObject({
+      target: "cell:2026-03",
+      op: "TYPE_TEXT",
+      status: "invalid_input",
+      source: "server",
+    });
+    expect("text" in s.ledger()[3]!).toBe(false);
     const good = (await act(
       "surface.cell-2026-04",
       { text: "4.0M" },

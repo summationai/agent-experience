@@ -129,6 +129,29 @@ export interface HookContext {
   tenant: TenantInfo | null;
 }
 
+/**
+ * Passed to an action provider's `onResult` ([S-AXE-14] in `spec/SURFACE.md`): the hook context
+ * plus what the runtime established for the call. The server calls it for every result of an
+ * action the provider supplied, on every endpoint, after the site's own `onResult`.
+ */
+export interface ProviderResultContext extends HookContext {
+  /** The user the runtime authenticated for this call; null when anonymous or not reached. */
+  identity: Identity | null;
+  /** The verified site key for a `site` call; null otherwise. */
+  siteKey: SiteKeyContext | null;
+  /** The envelope's `input` as the agent sent it, on the action endpoint; absent elsewhere. */
+  input?: JsonValue;
+  /** The envelope's `expectedRev`, when the call carried a well-formed one. */
+  expectedRev?: Revision;
+  /**
+   * True when the result came from the action's handler (or `onContinue`, `onResume`, `onPoll`),
+   * on this request or, for a retried `idempotencyKey`, on the request that first ran it. False
+   * when the runtime refused the call before any handler: a stale `expectedRev`, an input that
+   * fails the schema, a missing `idempotencyKey`, a refusal from the site's `onRequest`.
+   */
+  handled: boolean;
+}
+
 /** Passed by adapters to inject the framework's own session and tenant resolution. */
 export interface AdapterContext {
   identity?: Identity | null;
@@ -334,6 +357,13 @@ export class AXE {
   /** Provider actions whose `auth` mode and affordance targets have been checked. */
   private readonly vetted = new WeakSet<RegisteredAction>();
   private readonly changeListeners = new Set<() => void>();
+  /** The provider that supplied each provided action, so its `onResult` hears the action's results. */
+  private readonly providerOf = new WeakMap<RegisteredAction, ActionProvider>();
+  /** Per request in flight: the provider of the action called, the call's input, and whether a handler ran. */
+  private readonly calls = new WeakMap<
+    Request,
+    { provider?: ActionProvider; input?: JsonValue; expectedRev?: Revision; handled: boolean }
+  >();
   /** The principal resolved for each request in flight, for the revision provider's context. */
   private readonly callers = new WeakMap<
     Request,
@@ -529,6 +559,7 @@ export class AXE {
       const a = p.get ? p.get(name) : p.actions().find((x) => x.name === name);
       if (a) {
         this.vet(a);
+        this.providerOf.set(a, p);
         return a;
       }
     }
@@ -551,6 +582,7 @@ export class AXE {
         }
         if (prior) continue;
         this.vet(a);
+        this.providerOf.set(a, p);
         seen.set(a.name, a);
         out.push(a);
       }
@@ -1456,6 +1488,7 @@ export class AXE {
     } catch (e) {
       console.error("[axe] onResult hook failed", e);
     }
+    await this.providerResult(hookCtx, result);
     const event: AXEEvent = {
       schemaVersion: 1,
       ts: new Date().toISOString(),
@@ -1478,11 +1511,62 @@ export class AXE {
     return this.send(hookCtx.request, result);
   }
 
+  /** Remember something about the call a request carries, for the provider's `onResult`. */
+  private noteCall(
+    request: Request,
+    patch: {
+      provider?: ActionProvider;
+      input?: JsonValue;
+      expectedRev?: Revision;
+      handled?: boolean;
+    },
+  ): void {
+    const prior = this.calls.get(request) ?? { handled: false };
+    this.calls.set(request, { ...prior, ...patch });
+  }
+
+  /** The provider that supplied an action, or undefined for a registered or unknown one. */
+  private providerFor(name: string): ActionProvider | undefined {
+    if (!name) return undefined;
+    try {
+      const a = this.getAction(name);
+      return a ? this.providerOf.get(a) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Tell the provider that supplied the action about its result ([S-AXE-14]), with the principal
+   * the runtime established and whether a handler produced the result. A provider hook that throws
+   * is logged and the response goes out unchanged, as for `onResult`.
+   */
+  private async providerResult(hookCtx: HookContext, result: Result): Promise<void> {
+    const call = this.calls.get(hookCtx.request);
+    const provider = call?.provider ?? this.providerFor(hookCtx.action);
+    if (!provider?.onResult) return;
+    const caller = this.callers.get(hookCtx.request);
+    const ctx: ProviderResultContext = {
+      ...hookCtx,
+      identity: caller?.identity ?? null,
+      siteKey: caller?.siteKey ?? null,
+      handled: call?.handled ?? false,
+    };
+    if (call?.input !== undefined) ctx.input = call.input;
+    if (call?.expectedRev !== undefined) ctx.expectedRev = call.expectedRev;
+    try {
+      await provider.onResult(ctx, result);
+    } catch (e) {
+      console.error("[axe] provider onResult hook failed", e);
+    }
+  }
+
   /** Run a handler-ish function and normalize what comes back (value, intent, or throw) into an intent. */
   private async runHandler<T>(
     hookCtx: HookContext,
     fn: () => MaybePromise<T>,
   ): Promise<ResultIntent> {
+    this.noteCall(hookCtx.request, { handled: true });
     try {
       const value = await fn();
       if (isIntent(value)) return value;
@@ -2017,6 +2101,12 @@ export class AXE {
     if (expectedRev === false)
       return this.runHooksAndFinish(hookCtx, badExpectedRev(), startedAt, WIRE.ladder.error, null);
 
+    const provider = this.providerOf.get(a);
+    this.noteCall(request, {
+      ...(provider ? { provider } : {}),
+      input: body["input"] as JsonValue,
+      ...(expectedRev !== undefined ? { expectedRev } : {}),
+    });
     const outcome = await this.invokeAction(
       a,
       body["input"],
@@ -2243,8 +2333,10 @@ export class AXE {
         inputHash,
         "This idempotencyKey was already used with different input. Use a new key for a new request (spec [P-IDEM-3]).",
       );
-      if (c.kind === "replay")
+      if (c.kind === "replay") {
+        this.noteCall(request, { handled: true });
         return { result: c.result, ladder: ladderFor(c.result), kind: kindFor(c.result) };
+      }
       if (c.kind !== "run") return err(c.result);
       claim = c;
     }
@@ -2405,6 +2497,7 @@ export class AXE {
       await hashJson({ kind, payload: payload as JsonValue }),
       "This continuation token was already used with a different kind or payload.",
     );
+    if (claim.kind === "replay") this.noteCall(request, { handled: true });
     if (claim.kind !== "run") return finish(claim.result, kind);
     const a = this.getAction(record.action);
     const refuse = async (result: Result) => {
@@ -2541,6 +2634,7 @@ export class AXE {
       await hashJson({}),
       "This resume token was already used.",
     );
+    if (claim.kind === "replay") this.noteCall(request, { handled: true });
     if (claim.kind !== "run") return finish(claim.result);
     const refuse = async (result: Result) => {
       await this.idempotency.release(opKey, claim.owner);
@@ -2749,6 +2843,7 @@ export class AXE {
     const opKey = tokenOperationKey("poll", record.tenant, record.id);
     const claim = await this.claimOperation(opKey, "poll", "");
     if (claim.kind === "busy") return finish(pendingAgain(claim.retryAfter));
+    if (claim.kind === "replay") this.noteCall(request, { handled: true });
     if (claim.kind !== "run") return finish(claim.result);
     const a = this.getAction(record.action);
     if (!a?.spec.onPoll) {

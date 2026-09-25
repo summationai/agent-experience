@@ -1053,6 +1053,16 @@ changed: string[];
 
 Entry ids whose state the act moved; empty for a refusal.
 
+<a id="expectedrev-2"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: number;
+```
+
+The revision a refused caller presented, when the entry records a refusal made before the surface.
+
 <a id="ignoredrev"></a>
 
 ##### ignoredRev?
@@ -1102,7 +1112,18 @@ The revision when the act arrived.
 seq: number;
 ```
 
-1-based, increasing by one per act; never reused.
+1-based, increasing by one per entry; never reused.
+
+<a id="source"></a>
+
+##### source?
+
+```ts
+optional source?: LedgerSource;
+```
+
+Present only on an entry `act` did not write: `application` for a change recorded with
+`record`, `server` for a refusal the runtime made before the surface ([S-LED-8]).
 
 <a id="status"></a>
 
@@ -1542,6 +1563,104 @@ optional value?: JsonValue;
 
 ***
 
+<a id="recordrequest"></a>
+
+### RecordRequest
+
+What `record` appends ([S-LED-8]): a change the application made outside `act`, or a refusal
+the surface never saw. `op` is the application's name for what happened (`APPROVE`, `CLICK`),
+`target` the entry id or object it concerned, `actor` who did it, as for an act.
+
+#### Properties
+
+<a id="actor-5"></a>
+
+##### actor
+
+```ts
+actor: string;
+```
+
+<a id="changed-3"></a>
+
+##### changed?
+
+```ts
+optional changed?: string[];
+```
+
+Entry ids the change moved. Must be empty (the default) for a refusal.
+
+<a id="expectedrev-3"></a>
+
+##### expectedRev?
+
+```ts
+optional expectedRev?: number;
+```
+
+For a refusal: the revision the refused caller presented.
+
+<a id="op-3"></a>
+
+##### op
+
+```ts
+op: string;
+```
+
+<a id="revbefore-1"></a>
+
+##### revBefore?
+
+```ts
+optional revBefore?: number;
+```
+
+The revision before the change: pass the revision you read before changing state, so the
+entry spans the move. Default: the revision when `record` is called. Ignored for a refusal,
+whose `revBefore` and `revAfter` are both the current revision.
+
+<a id="source-1"></a>
+
+##### source?
+
+```ts
+optional source?: LedgerSource;
+```
+
+Default `application`. The bridge passes `server` for a refusal the runtime made.
+
+<a id="status-1"></a>
+
+##### status?
+
+```ts
+optional status?: WireError | "ok";
+```
+
+`ok` (the default) for a change; an error code for a refusal the surface never saw.
+
+<a id="target-2"></a>
+
+##### target
+
+```ts
+target: string | null;
+```
+
+<a id="text-4"></a>
+
+##### text?
+
+```ts
+optional text?: string;
+```
+
+Free text the change carried; the ledger's text policy and the sensitive rule apply ([S-PRV-2]).
+
+***
+
 <a id="schemalike"></a>
 
 ### SchemaLike
@@ -1815,7 +1934,9 @@ Look up a registered entry.
 ledger(query?): LedgerEntry[];
 ```
 
-The ledger: every act and every refusal, oldest first. See `LedgerQuery` for `since`, `actor`, and `limit`.
+The ledger, oldest first: every act through the surface (run or refused), every change the
+application recorded with `record`, and, served through the bridge, every refusal the AXE
+runtime made before the surface. See `LedgerQuery` for `since`, `actor`, and `limit`.
 
 ###### Parameters
 
@@ -1880,6 +2001,31 @@ Drop every entry whose id starts with `prefix` and is not in `keep`. Adapters th
 ###### Returns
 
 `void`
+
+<a id="record"></a>
+
+##### record()
+
+```ts
+record(change): LedgerEntry;
+```
+
+Append a change the application made outside `act` (a person's own control, an approval, a
+server push), or a refusal the surface never saw, so the ledger is the one history
+([S-LED-8]). The entry carries `source` (default `application`), `revAfter` the current
+revision, and the text policy as for an act. It runs no handler and does not move the
+revision: make the change and move the revision (`bump`, `setRev`) first, passing the
+revision you read before it as `revBefore`. Returns the entry.
+
+###### Parameters
+
+###### change
+
+[`RecordRequest`](#recordrequest)
+
+###### Returns
+
+[`LedgerEntry`](#ledgerentry)
 
 <a id="register"></a>
 
@@ -2328,6 +2474,21 @@ A JSON value.
 
 ***
 
+<a id="ledgersource"></a>
+
+### LedgerSource
+
+```ts
+type LedgerSource = "application" | "server";
+```
+
+Where a ledger entry that did not come from `act` came from ([S-LED-8], [S-AXE-14]):
+`application`, a change the application recorded with `record` (a person's own control, an
+approval, a server push); `server`, a refusal the AXE runtime made before the bridge's handler
+ran (a stale `expectedRev`), recorded by the bridge. Absent on every entry `act` wrote.
+
+***
+
 <a id="ledgertextpolicy"></a>
 
 ### LedgerTextPolicy
@@ -2356,7 +2517,7 @@ type MaybePromise<T> = T | Promise<T>;
 
 ***
 
-<a id="op-3"></a>
+<a id="op-4"></a>
 
 ### Op
 
@@ -2621,7 +2782,9 @@ not move. Freezes nest: the surface thaws when the last one is released.
 ledger: (query?) => LedgerEntry[];
 ```
 
-The ledger: every act and every refusal, oldest first. See `LedgerQuery` for `since`, `actor`, and `limit`.
+The ledger, oldest first: every act through the surface (run or refused), every change the
+application recorded with `record`, and, served through the bridge, every refusal the AXE
+runtime made before the surface. See `LedgerQuery` for `since`, `actor`, and `limit`.
 
 #### Parameters
 
@@ -2692,6 +2855,33 @@ Drop every entry whose id starts with `prefix` and is not in `keep`. Adapters th
 #### Returns
 
 `void`
+
+***
+
+<a id="record-1"></a>
+
+### record
+
+```ts
+record: (change) => LedgerEntry;
+```
+
+Append a change the application made outside `act` (a person's own control, an approval, a
+server push), or a refusal the surface never saw, so the ledger is the one history
+([S-LED-8]). The entry carries `source` (default `application`), `revAfter` the current
+revision, and the text policy as for an act. It runs no handler and does not move the
+revision: make the change and move the revision (`bump`, `setRev`) first, passing the
+revision you read before it as `revBefore`. Returns the entry.
+
+#### Parameters
+
+##### change
+
+[`RecordRequest`](#recordrequest)
+
+#### Returns
+
+[`LedgerEntry`](#ledgerentry)
 
 ***
 

@@ -337,7 +337,7 @@ export function buildAXE(): AXE {
     action("plan.history", {
       title: "Read the plan's history",
       description:
-        "Returns the most recent entries of the plan's history: who changed what and when, people and agents alike, and every approval request and decision.",
+        "Returns the most recent entries of the plan's history: every committed change, who made it and when, people and agents alike, and every approval request and decision. A refused or stale write changed nothing and is not listed.",
       input: z.object({ limit: z.number().int().min(1).max(100).optional() }),
       output: z.object({
         entries: z.array(

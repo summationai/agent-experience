@@ -203,3 +203,90 @@ describe("action providers: a dynamic set of actions", () => {
     expect(state.actions["grid.c"]).toEqual({ available: false, reason: "the month is locked" });
   });
 });
+
+describe("a provider's onResult [S-AXE-14]", () => {
+  it("hears every result of its own actions with the call's input, expectedRev, and whether a handler produced it", async () => {
+    let rev = 1;
+    const axe = site(() => rev);
+    axe.register(cell("grid.refresh", "Refresh"));
+    const { provider } = registry([cell("grid.cell-2026-03", "March")]);
+    const heard: {
+      action: string;
+      handled: boolean;
+      input?: unknown;
+      expectedRev?: unknown;
+      status: string;
+      code?: string;
+      identity: unknown;
+    }[] = [];
+    provider.onResult = (ctx, result) => {
+      heard.push({
+        action: ctx.action,
+        handled: ctx.handled,
+        ...(ctx.input !== undefined ? { input: ctx.input } : {}),
+        ...(ctx.expectedRev !== undefined ? { expectedRev: ctx.expectedRev } : {}),
+        status: result.status,
+        ...(result.status === "error" ? { code: result.error.code } : {}),
+        identity: ctx.identity,
+      });
+    };
+    axe.addProvider(provider);
+    const envelope = (expectedRev: number, input: unknown = {}) => ({
+      input,
+      idempotencyKey: crypto.randomUUID(),
+      expectedRev,
+    });
+    await call(axe, "/axe/actions/grid.cell-2026-03", envelope(1));
+    rev = 2;
+    const stale = (await call(axe, "/axe/actions/grid.cell-2026-03", envelope(1))).json;
+    expect((stale as ErrorResult).error.code).toBe("conflict");
+    await call(axe, "/axe/actions/grid.cell-2026-03", envelope(2, { extra: true }));
+    // A registered action's results never reach a provider.
+    await call(axe, "/axe/actions/grid.refresh", envelope(2));
+    expect(heard).toEqual([
+      {
+        action: "grid.cell-2026-03",
+        handled: true,
+        input: {},
+        expectedRev: 1,
+        status: "ok",
+        identity: null,
+      },
+      {
+        action: "grid.cell-2026-03",
+        handled: false,
+        input: {},
+        expectedRev: 1,
+        status: "error",
+        code: "conflict",
+        identity: null,
+      },
+      {
+        action: "grid.cell-2026-03",
+        handled: false,
+        input: { extra: true },
+        expectedRev: 2,
+        status: "error",
+        code: "invalid_input",
+        identity: null,
+      },
+    ]);
+  });
+
+  it("a provider hook that throws leaves the response unchanged", async () => {
+    const axe = site();
+    const { provider } = registry([cell("grid.cell-2026-03", "March")]);
+    provider.onResult = () => {
+      throw new Error("sink down");
+    };
+    axe.addProvider(provider);
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { json } = await call(axe, "/axe/actions/grid.cell-2026-03", {
+      input: {},
+      idempotencyKey: "k",
+    });
+    expect((json as OkResult<{ cell: string }>).output.cell).toBe("grid.cell-2026-03");
+    expect(spy).toHaveBeenCalledWith("[axe] provider onResult hook failed", expect.any(Error));
+    spy.mockRestore();
+  });
+});

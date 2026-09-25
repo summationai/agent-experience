@@ -45,6 +45,7 @@ type WireApi =
   | "lintManifest"
   | "onRequest"
   | "onResult"
+  | "ProviderResultContext"
   | "onError"
   | "onEvent"
   | "consoleSink"
@@ -155,6 +156,7 @@ type WireApi =
   | "onActionEvent"
   | "emit"
   | "ledger"
+  | "record"
   | "freeze"
   | "thaw"
   | "surfaceAttributes"
@@ -376,6 +378,7 @@ type WireField =
   | "ignoredRev"
   | "conflict"
   | "textHash"
+  | "source"
   | "protocol"
   | "name"
   | "description"
@@ -1000,9 +1003,11 @@ const api: Readonly<{
   pollBudgetMs: "pollBudgetMs";
   present: "present";
   protectedResourceMetadata: "protectedResourceMetadata";
+  providerResultContext: "ProviderResultContext";
   prune: "prune";
   readOnlyHint: "readOnlyHint";
   reconcile: "reconcile";
+  record: "record";
   redactEvent: "redactEvent";
   register: "register";
   registerGenerated: "registerGenerated";
@@ -1351,6 +1356,7 @@ const field: Readonly<{
   since: "since";
   sites: "sites";
   sort: "sort";
+  source: "source";
   state: "state";
   status: "status";
   steps: "steps";
@@ -1913,9 +1919,11 @@ const WIRE: Readonly<{
      pollBudgetMs: "pollBudgetMs";
      present: "present";
      protectedResourceMetadata: "protectedResourceMetadata";
+     providerResultContext: "ProviderResultContext";
      prune: "prune";
      readOnlyHint: "readOnlyHint";
      reconcile: "reconcile";
+     record: "record";
      redactEvent: "redactEvent";
      register: "register";
      registerGenerated: "registerGenerated";
@@ -2176,6 +2184,7 @@ const WIRE: Readonly<{
      since: "since";
      sites: "sites";
      sort: "sort";
+     source: "source";
      state: "state";
      status: "status";
      steps: "steps";

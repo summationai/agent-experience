@@ -234,7 +234,7 @@ describe("domainActions: a fixed set of parameterized actions [S-AXE-10]", () =>
               rev,
             );
       await call("demand:2026-01", { text: "250" }, 0); // ok
-      await call("demand:2026-02", { text: "250" }, 0); // stale: conflict, refused by the protocol
+      await call("demand:2026-02", { text: "250" }, 0); // stale: conflict, refused by the protocol, recorded by the bridge
       await call("demand:2026-02", { text: "1234567" }, 1); // too long: invalid_input, ledgered
       await call("lock:2026-01", {}, 1); // ok
       await call("demand:2026-01", { text: "1" }, 2); // read only now: unavailable
@@ -251,9 +251,21 @@ describe("domainActions: a fixed set of parameterized actions [S-AXE-10]", () =>
     expect(domain.state).toEqual(control.state);
     expect(domain.ledger).toEqual(control.ledger);
     expect(domain.events).toEqual(control.events);
-    // The stale call is refused by the protocol before the surface, so it is not in the ledger.
+    // The stale call is refused by the protocol before the surface; the bridge records it, with the
+    // same target and op in both granularities [S-AXE-14].
+    expect(
+      (control.ledger as { status: string; source?: string }[]).map((e) => [e.status, e.source]),
+    ).toEqual([
+      ["ok", undefined],
+      ["conflict", "server"],
+      ["invalid_input", undefined],
+      ["ok", undefined],
+      ["unavailable", undefined],
+      ["ok", undefined],
+    ]);
     expect((control.ledger as { status: string }[]).map((e) => e.status)).toEqual([
       "ok",
+      "conflict",
       "invalid_input",
       "ok",
       "unavailable",
@@ -512,6 +524,7 @@ describe("domainActions: a fixed set of parameterized actions [S-AXE-10]", () =>
     expect(b.status).toBe("ok");
     expect(p.s.ledger().map((e) => [e.target, e.status])).toEqual([
       ["demand:2026-01", "ok"],
+      ["demand:2026-02", "conflict"],
       ["demand:2026-02", "ok"],
     ]);
   });
