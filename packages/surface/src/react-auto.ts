@@ -31,6 +31,13 @@ export interface UseAutoSurfaceOptions extends Omit<
    * are watched, which covers routers built on the History API.
    */
   location?: unknown;
+  /**
+   * Called in an effect once the scan has started, with its handle: the place to connect the relay
+   * (`connectRelay(handle.surface, …)`, usually after a dynamic `import()` so nothing loads during a
+   * server render). May return a cleanup, or a promise of one; it runs before the scan stops.
+   * The latest function is used; changing it does not restart the scan.
+   */
+  onReady?: (handle: AutoSurfaceHandle) => void | (() => void) | Promise<void | (() => void)>;
 }
 
 const AutoSurfaceContext = createContext<AutoSurfaceHandle | null>(null);
@@ -44,9 +51,12 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
     root,
     surface = defaultSurface,
     location,
+    onReady,
     ...rest
   } = options;
   const [handle, setHandle] = useState<AutoSurfaceHandle | null>(null);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const restRef = useRef(rest);
   restRef.current = rest;
   const configRef = useRef(config);
@@ -76,7 +86,25 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
     hist.pushState = wrappedPush;
     hist.replaceState = wrappedReplace;
     setHandle(h);
+    // onReady may be async (a dynamic import); a cleanup that arrives after teardown runs at once.
+    let stopped = false;
+    let cleanup: (() => void) | undefined;
+    const settle = (c: void | (() => void)) => {
+      if (typeof c !== "function") return;
+      if (stopped) c();
+      else cleanup = c;
+    };
+    try {
+      const ready = onReadyRef.current?.(h);
+      if (ready && typeof (ready as Promise<unknown>).then === "function")
+        (ready as Promise<void | (() => void)>).then(settle, () => undefined);
+      else settle(ready as void | (() => void));
+    } catch {
+      // The app's onReady failing must not stop the surface.
+    }
     return () => {
+      stopped = true;
+      cleanup?.();
       if (hist.pushState === wrappedPush) hist.pushState = push;
       if (hist.replaceState === wrappedReplace) hist.replaceState = replace;
       h.stop();

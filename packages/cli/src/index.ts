@@ -10,6 +10,7 @@
  *   axe mcp <url>                    serve the site as an MCP server over stdio
  *   axe generate <openapi.json>      derive actions from an OpenAPI document
  *   axe relay --dev                  let an agent drive a signed-in person's live tab over MCP
+ *   axe surface init|coverage|prompt add Surface to an existing app and check what agents see
  */
 import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
@@ -25,6 +26,7 @@ import { audit } from "./commands/audit";
 import { mcp } from "./commands/mcp";
 import { generateCommand } from "./commands/generate";
 import { relay } from "./commands/relay";
+import { surface } from "./surface/index";
 
 const HELP = `axe — Agentic eXperience Engineering CLI
 
@@ -38,6 +40,9 @@ Usage:
   ${WIRE.cli.mcp} <url> [--auth <token>]
   ${WIRE.cli.generate} <openapi.json> [--base-url <url>] [--out <axe.json>] [--code <axe.ts>] [--json]
   ${WIRE.cli.relay} --dev [--stdio] [--port <n>] [--origin <url>]... (see ${WIRE.cli.relay} --help)
+  ${WIRE.cli.surfaceInit} [--dir <app>] [--framework auto|react-router|next|vite-react|react|plain] [--flag <name>] [--relay <url>|--relay-dev] [--dry-run] [--yes] [--install] [--vendor <dir>]
+  ${WIRE.cli.surfaceCoverage} <url> [--auth <header|cookies>] [--routes a,b,c] [--max-pages <n>] [--json] [--out <report.md>]
+  ${WIRE.cli.surface} prompt
 
 Options:
   -h, --help       Show this help
@@ -106,6 +111,8 @@ export async function run(
         return await generateCommand(ctx);
       case WIRE.cli.relay:
         return await relay(ctx);
+      case WIRE.cli.surface:
+        return await surface(ctx);
       default:
         stderr(`Unknown command "${command}".\n\n${HELP}`);
         return 1;

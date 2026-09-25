@@ -246,6 +246,33 @@ optional timeoutMs?: number;
 
 [`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`observe`](auto.md#observe)
 
+<a id="onready"></a>
+
+##### onReady?
+
+```ts
+optional onReady?: (handle) => void | Promise<void | (() => void)> | (() => void);
+```
+
+Called in an effect once the scan has started, with its handle: the place to connect the relay
+(`connectRelay(handle.surface, …)`, usually after a dynamic `import()` so nothing loads during a
+server render). May return a cleanup, or a promise of one; it runs before the scan stops.
+The latest function is used; changing it does not restart the scan.
+
+###### Parameters
+
+###### handle
+
+[`AutoSurfaceHandle`](auto.md#autosurfacehandle)
+
+###### Returns
+
+`void` \| `Promise`\<`void` \| (() => `void`)\> \| (() => `void`)
+
+###### Inherited from
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`onReady`](#onready-1)
+
 <a id="revision"></a>
 
 ##### revision?
@@ -458,6 +485,29 @@ optional timeoutMs?: number;
 ###### Inherited from
 
 [`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`observe`](auto.md#observe)
+
+<a id="onready-1"></a>
+
+##### onReady?
+
+```ts
+optional onReady?: (handle) => void | Promise<void | (() => void)> | (() => void);
+```
+
+Called in an effect once the scan has started, with its handle: the place to connect the relay
+(`connectRelay(handle.surface, …)`, usually after a dynamic `import()` so nothing loads during a
+server render). May return a cleanup, or a promise of one; it runs before the scan stops.
+The latest function is used; changing it does not restart the scan.
+
+###### Parameters
+
+###### handle
+
+[`AutoSurfaceHandle`](auto.md#autosurfacehandle)
+
+###### Returns
+
+`void` \| `Promise`\<`void` \| (() => `void`)\> \| (() => `void`)
 
 <a id="revision-1"></a>
 

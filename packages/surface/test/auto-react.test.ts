@@ -185,6 +185,41 @@ describe("SurfaceProvider [S-AUTO-12]", () => {
     expect(surface.entries()).toEqual([]);
   });
 
+  it("onReady gets the started handle in an effect, and its cleanup (sync or async) runs on unmount", async () => {
+    const surface = createSurface();
+    const seen: string[] = [];
+    const root = mount(
+      h(
+        SurfaceProvider,
+        {
+          surface,
+          onReady: (handle: { surface: unknown }) => {
+            seen.push(handle.surface === surface ? "ready" : "wrong surface");
+            return Promise.resolve(() => void seen.push("cleaned"));
+          },
+        },
+        h("button", null, "Refresh"),
+      ),
+    );
+    await reactAct(async () => {
+      await Promise.resolve();
+    });
+    expect(seen).toEqual(["ready"]);
+    reactAct(() => root.unmount());
+    roots = roots.filter((r) => r !== root);
+    expect(seen).toEqual(["ready", "cleaned"]);
+    // flag={false}: onReady never runs.
+    const off: string[] = [];
+    mount(
+      h(
+        SurfaceProvider,
+        { surface: createSurface(), flag: false, onReady: () => void off.push("x") },
+        h("i"),
+      ),
+    );
+    expect(off).toEqual([]);
+  });
+
   it("flag={false} starts nothing", () => {
     const surface = createSurface();
     mount(h(SurfaceProvider, { surface, flag: false }, h("button", null, "Refresh")));

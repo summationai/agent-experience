@@ -282,7 +282,10 @@ type WireCli =
   | "axe audit"
   | "axe mcp"
   | "axe generate"
-  | "axe relay";
+  | "axe relay"
+  | "axe surface"
+  | "axe surface init"
+  | "axe surface coverage";
 ```
 
 Union of every `cli` name.
@@ -1163,6 +1166,9 @@ const cli: Readonly<{
   mcp: "axe mcp";
   preview: "axe preview";
   relay: "axe relay";
+  surface: "axe surface";
+  surfaceCoverage: "axe surface coverage";
+  surfaceInit: "axe surface init";
   validate: "axe validate";
 }>;
 ```
@@ -2085,6 +2091,9 @@ const WIRE: Readonly<{
      mcp: "axe mcp";
      preview: "axe preview";
      relay: "axe relay";
+     surface: "axe surface";
+     surfaceCoverage: "axe surface coverage";
+     surfaceInit: "axe surface init";
      validate: "axe validate";
   }>;
   compare: Readonly<{
