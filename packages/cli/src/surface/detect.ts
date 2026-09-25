@@ -232,7 +232,9 @@ function detectPackageManager(dir: string): {
 /** Layout files under the app directory that render an outlet or children (bounded walk). */
 function mountCandidates(dir: string, framework: Framework, rootFile: string): string[] {
   if (framework !== "react-router" && framework !== "next") return [];
-  const base = framework === "next" ? dirname(rootFile) : join(dir, reactRouterAppDir(dir));
+  // React Router layouts are route modules; Next layouts live anywhere under app/.
+  const base =
+    framework === "next" ? dirname(rootFile) : join(dir, reactRouterAppDir(dir), "routes");
   const out: string[] = [];
   let visited = 0;
   const walk = (d: string, depth: number) => {
@@ -262,7 +264,7 @@ function mountCandidates(dir: string, framework: Framework, rootFile: string): s
       const isLayout =
         framework === "next"
           ? /^layout\.(tsx|jsx)$/.test(name)
-          : /(^_|layout|shell)/i.test(name) || /(layout|shell)/i.test(relative(base, d));
+          : /^(_|layout\b|shell\b)|[._+](layout|shell)\.(tsx|jsx)$/i.test(name);
       if (!isLayout) continue;
       const text = readFileSync(p, "utf8");
       if (framework === "next" ? /\{\s*children\s*\}/.test(text) : /<Outlet\b/.test(text))
@@ -270,7 +272,9 @@ function mountCandidates(dir: string, framework: Framework, rootFile: string): s
     }
   };
   walk(base, 0);
-  return out.slice(0, 12);
+  // Shallowest first: the signed-in shell is usually the first layout under the routes.
+  const depth = (p: string) => p.split("/").length;
+  return out.sort((a, b) => depth(a) - depth(b) || a.localeCompare(b)).slice(0, 6);
 }
 
 export function detect(dirArg: string, forced?: Framework): Detection {
