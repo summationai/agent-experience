@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "echo docs have no build step",
-    "test": "echo docs have no tests"
+    "test": "vitest run"
   },
   "dependencies": {
     "axe": "workspace:*",

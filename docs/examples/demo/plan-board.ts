@@ -10,6 +10,11 @@
 // revision-guarded and recorded in the ledger with who made it. Locking March needs the person's
 // approval, which only the page can give, so an agent that tries is handed back to the human.
 //
+// The ledger is the board's one history. It holds every act through the controls, run or refused;
+// the approval, which the app makes outside `act` and records itself (`surface.record`); and a
+// stale call the server refuses before any control runs, which the bridge records on its own
+// (`addProvider` wires its result hook). So every revision move has an entry.
+//
 // Two demo sessions, passed as bearer tokens (never use fixed tokens outside a local demo):
 //   dana-browser  the person, used by the page
 //   dana-agent    the agent acting for the same person, used by `axe mcp`
@@ -151,10 +156,20 @@ app.post("/demo/approve/:month", (req, res) => {
     res.status(404).json({ error: "No such month." });
     return;
   }
+  // The approval is the app's own change, made outside `act`: record it, spanning the revision it
+  // moved, so the ledger has no gap where the person approved.
+  const revBefore = surface.currentRev();
   m.approved = true;
   sync();
   surface.bump({ what: `approve:${m.key}` });
-  res.json({ ok: true });
+  const entry = surface.record({
+    op: "APPROVE",
+    target: `lock:${m.key}`,
+    actor: SESSIONS[token]!,
+    changed: [`lock:${m.key}`],
+    revBefore,
+  });
+  res.json({ ok: true, rev: surface.currentRev(), seq: entry.seq });
 });
 
 app.get("/", (_req, res) => {
@@ -180,6 +195,7 @@ const PAGE = `<!doctype html>
   .agent { color: #6b3fa0; font-weight: 600; }
   #log td { font-size: 13px; padding: 4px 8px; }
   .err { color: #b00020; }
+  .src { color: #666; font-style: italic; }
 </style></head>
 <body>
 <h1>Plan Board</h1>
@@ -187,8 +203,8 @@ const PAGE = `<!doctype html>
 <p id="msg" class="err"></p>
 <table><thead><tr><th>Month</th><th>Demand</th><th></th><th>Status</th></tr></thead><tbody id="rows"></tbody></table>
 <h2>Ledger</h2>
-<p class="rev">Every act through the board, by either participant, including refusals.</p>
-<table id="log"><thead><tr><th>#</th><th>Who</th><th>What</th><th>Result</th><th>Revision</th></tr></thead><tbody></tbody></table>
+<p class="rev">Every act through the board by either participant, run or refused; the approvals, recorded by the app; and stale calls the server refused before any control ran.</p>
+<table id="log"><thead><tr><th>#</th><th>Who</th><th>What</th><th>Result</th><th>Revision</th><th>Source</th></tr></thead><tbody></tbody></table>
 <script>
 const TOKEN = "dana-browser";
 let view = null;
@@ -232,7 +248,7 @@ async function refresh() {
   const led = await call("plan.ledger", { input: { limit: 20 } });
   if (led.status === "ok") {
     document.querySelector("#log tbody").innerHTML = led.output.entries.slice().reverse().map((e) =>
-      "<tr><td>" + e.seq + "</td><td class='" + (e.actor.includes("agent") ? "agent" : "") + "'>" + e.actor + "</td><td>" + e.op + " " + e.target + (e.text ? " “" + e.text + "”" : "") + "</td><td>" + e.status + "</td><td>" + e.revBefore + "→" + e.revAfter + "</td></tr>").join("");
+      "<tr><td>" + e.seq + "</td><td class='" + (e.actor.includes("agent") ? "agent" : "") + "'>" + e.actor + "</td><td>" + e.op + " " + e.target + (e.text ? " “" + e.text + "”" : "") + "</td><td>" + e.status + (e.expectedRev !== undefined ? " (saw rev " + e.expectedRev + ")" : "") + "</td><td>" + e.revBefore + "→" + e.revAfter + "</td><td class='src'>" + (e.source === "application" ? "recorded" : e.source === "server" ? "refused by server" : "act") + "</td></tr>").join("");
   }
 }
 refresh();
