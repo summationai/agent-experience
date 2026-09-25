@@ -9,7 +9,7 @@ describe("browser bundle", () => {
   it("@axe/relay/client bundles for the browser without Node built-ins, Zod, or ws, under 16 kB minified", async () => {
     const result = await build({
       stdin: {
-        contents: `export { connectRelay, devToken } from "${join(__dirname, "../src/client.ts").replace(/\\/g, "/")}";`,
+        contents: `export { connectRelay, devToken, injectedRelay, relayOptions } from "${join(__dirname, "../src/client.ts").replace(/\\/g, "/")}";`,
         resolveDir: __dirname,
         loader: "ts",
       },
@@ -49,6 +49,43 @@ describe("browser bundle", () => {
       expect(typeof mod["connectRelay"]).toBe("function");
     } finally {
       if (saved !== undefined) g["WebSocket"] = saved;
+    }
+  });
+
+  it("injectedRelay() is null without the host's global (a normal browser, or the server), and relayOptions falls back", async () => {
+    const mod = await import(pathToFileURL(join(__dirname, "../src/client.ts")).href);
+    const g = globalThis as Record<string, unknown>;
+    expect(g["window"]).toBeUndefined();
+    expect(g["__AXE_RELAY__"]).toBeUndefined();
+    expect(mod.injectedRelay()).toBeNull();
+    const fallback = { url: "ws://127.0.0.1:4717/tab", getToken: () => "dev", onStatus: () => {} };
+    expect(mod.relayOptions(fallback)).toBe(fallback);
+    // Malformed injections are ignored rather than half-used.
+    for (const bad of [{}, { url: "wss://r/tab" }, { token: "t" }, "wss://r/tab"]) {
+      g["__AXE_RELAY__"] = bad;
+      expect(mod.injectedRelay()).toBeNull();
+    }
+    try {
+      g["__AXE_RELAY__"] = { url: "wss://relay.example/tab", token: "t0", mode: "unattended" };
+      expect(mod.injectedRelay()).toEqual({
+        url: "wss://relay.example/tab",
+        token: "t0",
+        mode: "unattended",
+        indicator: false,
+      });
+      // The injected connection replaces the fallback's endpoint and token, and keeps its hooks.
+      const merged = mod.relayOptions(fallback);
+      expect(merged).toMatchObject({
+        url: "wss://relay.example/tab",
+        token: "t0",
+        mode: "unattended",
+      });
+      expect(merged.getToken).toBeUndefined();
+      expect(merged.onStatus).toBe(fallback.onStatus);
+      g["__AXE_RELAY__"] = { url: "wss://relay.example/tab", token: "t0", mode: "attended" };
+      expect(mod.injectedRelay()).toMatchObject({ mode: "attended", indicator: true });
+    } finally {
+      delete g["__AXE_RELAY__"];
     }
   });
 });

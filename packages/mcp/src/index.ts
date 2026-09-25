@@ -56,7 +56,7 @@ import {
 } from "./apps";
 
 export { isSensitiveAccept, toFormSchema } from "./elicitation";
-export type { FormSchema } from "./elicitation";
+export type { ElicitationModes, FormSchema } from "./elicitation";
 export {
   APPS_EXTENSION,
   APPS_MIME_TYPE,
@@ -75,7 +75,7 @@ export interface AxeLike {
    * Serve one AXE request. The second argument is the adapter context: an `identity` or `tenant`
    * established by the caller, used instead of the site's own `authenticate` (see `CallerContext`).
    */
-  handle(request: Request, adapter?: AdapterContext): Promise<Response>;
+  handle(request: Request, adapter?: AdapterContext, call?: ToolCallContext): Promise<Response>;
   describe(): Manifest;
   /** When present, the manifest with `live.rev` and availability rendered (an `AXE` instance has it). */
   describeLive?(): Promise<Manifest>;
@@ -85,6 +85,27 @@ export interface AxeLike {
    * forwarded to connected clients as `notifications/tools/list_changed`.
    */
   onActionsChanged?(listener: () => void): () => void;
+}
+
+/**
+ * The MCP tool call an in-process AXE request is serving, passed as `AxeLike.handle`'s third
+ * argument. It lets the in-process server ask the user something through the client, within the
+ * same tool call, in the same session and as the same caller (the relay asks for approvals this
+ * way). Absent outside a tool call and for a URL or manifest source.
+ */
+export interface ToolCallContext {
+  /** The elicitation modes the client declared; none when elicitation is off or the transport cannot carry a server request. */
+  elicitation: ElicitationModes;
+  /**
+   * Send an elicitation request to the client, related to this tool call. The client shows it to
+   * the user; the model cannot answer it. Rejects when the client cannot take it (a timeout, a
+   * stateless exchange, an undeclared mode).
+   */
+  elicit(params: ElicitRequestFormParams | ElicitRequestURLParams): Promise<ElicitResult>;
+  /** Tell the client that a URL-mode elicitation is finished (`notifications/elicitation/complete`). */
+  completeElicitation(elicitationId: string): Promise<void>;
+  /** Aborted when the client cancels the tool call or the connection closes. */
+  signal: AbortSignal;
 }
 
 export interface McpServerOptions {
@@ -195,8 +216,11 @@ interface Bridge {
   forceRefresh(): Promise<void>;
   /** Called when the derived tool list changed. */
   onToolsChanged(listener: () => void): () => void;
-  /** The AXE client for one call: the shared client, or one bound to the caller. */
-  clientFor(caller: CallerContext | undefined): AXEClient;
+  /**
+   * The AXE client for one call: the shared client, or one bound to the caller (and, for an
+   * in-process source, to the tool call, which the source receives as `ToolCallContext`).
+   */
+  clientFor(caller: CallerContext | undefined, call?: ToolCallContext): AXEClient;
   /** `auth` or `headers` in the shared client options. */
   sharesCredentials: boolean;
 }
@@ -253,8 +277,12 @@ async function makeBridge(
     const dynamic = typeof axe.onActionsChanged === "function";
     const read = async () => (axe.describeLive ? await axe.describeLive() : axe.describe());
     const initial = await read();
-    const inProcess = (adapter?: AdapterContext) => (input: string | URL, init?: RequestInit) =>
-      axe.handle(new Request(input, init), adapter);
+    const inProcess =
+      (adapter?: AdapterContext, call?: ToolCallContext) =>
+      (input: string | URL, init?: RequestInit) =>
+        call
+          ? axe.handle(new Request(input, init), adapter, call)
+          : axe.handle(new Request(input, init), adapter);
     const root = new AXEClient(initial, { ...shared, fetch: inProcess() });
     // For an in-process server whose actions can change, the manifest is read again on every tool
     // listing and call (a Surface publishes one action per live control).
@@ -268,15 +296,16 @@ async function makeBridge(
       forceRefresh: async () => undefined,
       onToolsChanged,
       sharesCredentials,
-      clientFor(caller) {
-        if (!caller) return root;
+      clientFor(caller, call) {
+        if (!caller && !call) return root;
+        if (!caller) return new AXEClient(root.manifest(), { ...shared, fetch: inProcess(undefined, call) });
         const adapter: AdapterContext = {};
         if (caller.identity !== undefined) adapter.identity = caller.identity;
         if (caller.tenant !== undefined) adapter.tenant = caller.tenant;
         return new AXEClient(root.manifest(), {
           ...uncredentialed,
           ...(caller.client ?? {}),
-          fetch: inProcess(adapter),
+          fetch: inProcess(adapter, call),
         });
       },
     };
@@ -403,9 +432,18 @@ function buildServer(bridge: Bridge, scope: ServerScope): { server: Server; disp
             timeout: elicitTimeout,
           }),
       };
+      const call: ToolCallContext = {
+        elicitation: interaction.modes,
+        elicit: interaction.elicit,
+        completeElicitation: (elicitationId) =>
+          server.createElicitationCompletionNotifier(elicitationId, {
+            relatedRequestId: extra.requestId,
+          })(),
+        signal: extra.signal,
+      };
       return await callTool(
         bridge,
-        bridge.clientFor(caller),
+        bridge.clientFor(caller, call),
         name,
         args,
         scope.pollUrls,

@@ -6,11 +6,21 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { ElicitRequest, ElicitResult } from "@modelcontextprotocol/sdk/types.js";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { Surface } from "@axe/surface";
-import type { connectRelay, devToken, RelayConnection, RelayStatus } from "../src/client";
+import type {
+  connectRelay,
+  devToken,
+  injectedRelay,
+  relayOptions,
+  RelayConnection,
+  RelayStatus,
+} from "../src/client";
+import type { autoSurface } from "@axe/surface/auto";
 import { createRelay } from "../src/server";
 import type { Relay, RelayAddress, RelayOptions } from "../src/server";
 
@@ -47,6 +57,9 @@ export interface PageApi {
   createSurface: () => Surface;
   connectRelay: typeof connectRelay;
   devToken: typeof devToken;
+  injectedRelay: typeof injectedRelay;
+  relayOptions: typeof relayOptions;
+  autoSurface: typeof autoSurface;
 }
 
 export interface Page {
@@ -147,11 +160,18 @@ export function registerPlan(page: { surface: Surface; calls: string[] }): void 
 
 /** Open a page in a jsdom window with the bundled client. `storage` seeds sessionStorage (a reload). */
 export async function openPage(
-  options: { url?: string; storage?: Record<string, string> } = {},
+  options: {
+    url?: string;
+    storage?: Record<string, string>;
+    /** What a host's init script sets before page scripts run: `window.__AXE_RELAY__`. */
+    inject?: Record<string, unknown>;
+    /** The page's body HTML. */
+    body?: string;
+  } = {},
 ): Promise<Page> {
   const { JSDOM } = await import("jsdom");
   const dom = new JSDOM(
-    "<!doctype html><html><head><title>Plan</title></head><body><main>app</main></body></html>",
+    `<!doctype html><html><head><title>Plan</title></head><body>${options.body ?? "<main>app</main>"}</body></html>`,
     {
       url: options.url ?? `${APP_ORIGIN}/plan`,
       runScripts: "outside-only",
@@ -160,6 +180,8 @@ export async function openPage(
   );
   const window = dom.window;
   for (const [k, v] of Object.entries(options.storage ?? {})) window.sessionStorage.setItem(k, v);
+  if (options.inject)
+    (window as unknown as Record<string, unknown>)["__AXE_RELAY__"] = { ...options.inject };
   // jsdom has no fetch; the page's development-token helper uses Node's.
   (window as unknown as { fetch: typeof fetch }).fetch = fetch;
   window.eval(await pageBundle());
@@ -325,12 +347,37 @@ export function wrap(client: Client, close: () => Promise<void>): Agent {
   };
 }
 
+/** How a test client answers elicitation: the modes it declares and what the person does. */
+export interface Elicitor {
+  modes: { form?: boolean; url?: boolean };
+  answer: (params: ElicitRequest["params"]) => ElicitResult | Promise<ElicitResult>;
+}
+
+/** An MCP SDK client that declares elicitation (when `elicit` is given) and answers it as the person would. */
+export function elicitingClient(name: string, elicit?: Elicitor): Client {
+  const client = new Client(
+    { name, version: "0" },
+    elicit
+      ? {
+          capabilities: {
+            elicitation: {
+              ...(elicit.modes.form ? { form: {} } : {}),
+              ...(elicit.modes.url ? { url: {} } : {}),
+            },
+          },
+        }
+      : {},
+  );
+  if (elicit) client.setRequestHandler(ElicitRequestSchema, (req) => elicit.answer(req.params));
+  return client;
+}
+
 /** The MCP SDK's client over Streamable HTTP with a bearer token. */
-export async function httpAgent(mcpUrl: string, token: string): Promise<Agent> {
+export async function httpAgent(mcpUrl: string, token: string, elicit?: Elicitor): Promise<Agent> {
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), {
     requestInit: { headers: { Authorization: `Bearer ${token}` } },
   });
-  const client = new Client({ name: "relay-test-agent", version: "0" });
+  const client = elicitingClient("relay-test-agent", elicit);
   await client.connect(transport as unknown as Transport);
   return wrap(client, () => client.close());
 }

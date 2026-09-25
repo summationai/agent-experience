@@ -25,6 +25,19 @@ export const CLOSE = {
   stopped: 4410,
 } as const;
 
+/**
+ * `attended`: a person is looking at the tab (the default). `unattended`: the tab runs in a hidden
+ * browser session a host started for the person (`@axe/host`), and no one is looking at it.
+ */
+export type RelayMode = "attended" | "unattended";
+
+/**
+ * Where the person decides an act that needs approval: `page`, the tab's own agent panel;
+ * `agent`, the calling agent's MCP client (elicitation), with the relay's approval page for
+ * sensitive acts; `both`, whichever answers first.
+ */
+export type RelayApprovalChannel = "page" | "agent" | "both";
+
 /** Who a relay token speaks for: one signed-in person in one tenant. */
 export interface RelayPrincipal {
   principal: string;
@@ -42,6 +55,10 @@ export type TabMessage =
       instance: string;
       title: string;
       path: string;
+      /** Absent: `attended`. */
+      mode?: RelayMode;
+      /** Where approvals may be decided; absent: `page`. The tab accepts `approve` and `deny` from the relay only for `agent` or `both`. */
+      approvals?: RelayApprovalChannel;
     }
   | { t: "renew"; token: string }
   | { t: "snapshot"; re: number; observation: Observation; ledger: LedgerEntry[] }
@@ -62,6 +79,15 @@ export type TabMessage =
   | {
       t: "recorded";
       re: number;
+      error?: string;
+      observation?: Observation;
+      ledger?: LedgerEntry[];
+    }
+  | {
+      /** The answer to `approve` or `deny`: whether the tab now holds that decision for the approval. */
+      t: "decided";
+      re: number;
+      ok: boolean;
       error?: string;
       observation?: Observation;
       ledger?: LedgerEntry[];
@@ -106,7 +132,28 @@ export type RelayMessage =
       since: number;
       change: RecordRequest;
     }
-  | { t: "agent"; state: "paired" | "active" };
+  | { t: "agent"; state: "paired" | "active" }
+  | {
+      /**
+       * The person approved the pending approval `approval` outside the page (in the agent's MCP
+       * client, or on the relay's approval page). The tab grants it exactly as its panel's
+       * Approve does, records the decision in its ledger under `by`, and answers `decided`. Sent
+       * only to a tab whose `hello` accepted approvals from the agent.
+       */
+      t: "approve";
+      id: number;
+      since: number;
+      approval: string;
+      by: string;
+    }
+  | {
+      /** The person declined the pending approval `approval` outside the page; answered by `decided`. */
+      t: "deny";
+      id: number;
+      since: number;
+      approval: string;
+      by: string;
+    };
 
 /** Tab ids and instance ids: short, URL-safe. */
 export const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;

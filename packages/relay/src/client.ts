@@ -10,14 +10,19 @@
  * Stop control; Stop disconnects and refuses every further act from the relay. A high-risk act
  * (or one whose effect asks for confirmation) waits for the person to approve it in the indicator.
  *
+ * Unattended mode (`mode: "unattended"`, usually from `injectedRelay()`): the tab runs in a hidden
+ * browser session a host started for the person, so there is no indicator by default, and the
+ * person approves in the agent's own MCP client instead; the relay tells the tab (`approve`).
+ *
  * Browser-native only: no framework, no Zod, no Node built-ins. See docs/relay.md.
  */
 import type { ActRequest, ActResult, LedgerEntry, ObservedEntry, Surface } from "@axe/surface";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
 import { CLOSE, ID_PATTERN, RELAY_PROTOCOL } from "./protocol";
-import type { RelayMessage, TabMessage } from "./protocol";
+import type { RelayApprovalChannel, RelayMessage, RelayMode, TabMessage } from "./protocol";
 
 export { RELAY_PROTOCOL };
+export type { RelayApprovalChannel, RelayMode };
 
 /**
  * Where the connection stands. `connecting`: opening the first connection. `pairing`: connected
@@ -71,9 +76,24 @@ export interface ConnectRelayOptions {
   /** Told after every change of `RelayStatus`. */
   onStatus?: (status: RelayStatus) => void;
   /**
-   * The in-page indicator: `true` (the default) renders a small fixed panel in the page's corner,
-   * an `Element` renders it inside that element, and `false` renders nothing, in which case your
-   * own UI must show `onStatus` and offer `stop()`, `approve()`, and `deny()`.
+   * `attended` (the default): a person is looking at this tab. `unattended`: the tab runs in a
+   * hidden browser session a host started for the person (`injectedRelay()` says so), so the
+   * indicator is off by default and approvals go to the agent's MCP client.
+   */
+  mode?: RelayMode;
+  /**
+   * Where the person decides an act that needs approval: `page` (the indicator's Approve and
+   * Deny, or your own UI), `agent` (the relay asks through the calling agent's MCP client, and
+   * tells this tab the answer), or `both` (whichever answers first). Default `page` when
+   * attended, `agent` when unattended. Only with `agent` or `both` does the tab accept a decision
+   * from the relay.
+   */
+  approvals?: RelayApprovalChannel;
+  /**
+   * The in-page indicator: `true` (the default when attended) renders a small fixed panel in the
+   * page's corner, an `Element` renders it inside that element, and `false` (the default when
+   * unattended) renders nothing, in which case your own UI must show `onStatus` and offer
+   * `stop()`, `approve()`, and `deny()` when a person is looking.
    */
   indicator?: boolean | Element;
   /**
@@ -159,7 +179,68 @@ export function devToken(relayUrl: string): () => Promise<string> {
   };
 }
 
-/** Default approval rule: high risk, or an effect that asks for confirmation. */
+/**
+ * The global a host (`@axe/host`) sets with an init script, before any page script runs, when it
+ * opens the application in a hidden browser session for a person: `window.__AXE_RELAY__`.
+ */
+export const INJECTED_RELAY_GLOBAL = "__AXE_RELAY__";
+
+/** What a host puts in `window.__AXE_RELAY__`. */
+export interface InjectedRelayConfig {
+  /** The relay's tab endpoint. */
+  url: string;
+  /** A relay token the host minted for the person the session is for. */
+  token: string;
+  mode: RelayMode;
+  /** Show the in-page indicator. Default: on when attended, off when unattended. */
+  indicator?: boolean;
+  /** Optional: a function (an exposed binding) that returns a fresh token, for sessions that outlive one. */
+  getToken?: () => string | Promise<string>;
+}
+
+/**
+ * The connection a host injected into this page (`window.__AXE_RELAY__`), as `connectRelay`
+ * options, or null in a normal browser (and on the server). Reads the global when called, never
+ * at import. No pairing: the host minted the token for the person the session is for.
+ */
+export function injectedRelay(): ConnectRelayOptions | null {
+  const raw = (globalThis as Record<string, unknown>)[INJECTED_RELAY_GLOBAL];
+  if (!raw || typeof raw !== "object") return null;
+  const c = raw as Partial<InjectedRelayConfig>;
+  if (typeof c.url !== "string" || !c.url) return null;
+  const hasToken = typeof c.token === "string" && c.token.length > 0;
+  if (!hasToken && typeof c.getToken !== "function") return null;
+  const mode: RelayMode = c.mode === "attended" ? "attended" : "unattended";
+  return {
+    url: c.url,
+    ...(hasToken ? { token: c.token as string } : {}),
+    ...(typeof c.getToken === "function" ? { getToken: c.getToken } : {}),
+    mode,
+    indicator: typeof c.indicator === "boolean" ? c.indicator : mode === "attended",
+  };
+}
+
+/**
+ * `injectedRelay()` when a host injected a connection, else `fallback` (your attended relay, such
+ * as the development one). The injected connection replaces the fallback's `url`, token,
+ * `mode`, `approvals`, and `indicator`; the fallback's other options (`onStatus`,
+ * `requireApproval`, `describe`, ...) are kept. `connectRelay(surface, relayOptions(dev))`.
+ */
+export function relayOptions(fallback: ConnectRelayOptions): ConnectRelayOptions {
+  const injected = injectedRelay();
+  if (!injected) return fallback;
+  const {
+    url: _url,
+    token: _token,
+    getToken: _getToken,
+    mode: _mode,
+    approvals: _approvals,
+    indicator: _indicator,
+    ...rest
+  } = fallback;
+  return { ...rest, ...injected };
+}
+
 /** The surface's own approval gate (an auto-derived surface's policy), shared by symbol. */
 const APPROVER = Symbol.for("axe.surface.approver");
 
@@ -199,6 +280,10 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
   if (!WS) throw new Error("connectRelay: this environment has no WebSocket.");
   const storage = options.storage === undefined ? defaultStorage() : options.storage;
   const requireApproval = options.requireApproval ?? defaultRequireApproval;
+  const mode: RelayMode = options.mode === "unattended" ? "unattended" : "attended";
+  const channel: RelayApprovalChannel =
+    options.approvals ?? (mode === "unattended" ? "agent" : "page");
+  const fromAgent = channel !== "page";
   const approvalTtl = options.approvalTtlMs ?? 300_000;
   const initialBackoff = options.backoff?.initialMs ?? 500;
   const maxBackoff = options.backoff?.maxMs ?? 30_000;
@@ -249,18 +334,15 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     reason: null,
   };
 
+  const wanted = options.indicator ?? mode === "attended";
   const indicator =
-    options.indicator === false ||
-    (typeof document === "undefined" && !(options.indicator && options.indicator !== true))
+    wanted === false || (typeof document === "undefined" && !(wanted && wanted !== true))
       ? null
-      : createIndicator(
-          options.indicator === true || options.indicator === undefined ? null : options.indicator,
-          {
-            stop: () => connection.stop(),
-            approve: (id) => connection.approve(id),
-            deny: (id) => connection.deny(id),
-          },
-        );
+      : createIndicator(wanted === true ? null : wanted, channel !== "agent", {
+          stop: () => connection.stop(),
+          approve: (id) => connection.approve(id),
+          deny: (id) => connection.deny(id),
+        });
 
   const publish = (patch: Partial<RelayStatus> = {}): void => {
     Object.assign(status, patch, { tabId });
@@ -439,12 +521,17 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         return reply(
           errorOf(
             "unavailable",
-            `"${row.name}" needs the person's approval in the tab before it runs. Ask them to approve it in the page's agent panel, then call this tool again with the same arguments and the same expectedRev. Nothing was applied.`,
+            channel === "agent"
+              ? `"${row.name}" needs the person's approval before it runs, and no one is looking at this tab: the relay asks them through your MCP client. When they approve, call this tool again with the same arguments and the same expectedRev. Nothing was applied.`
+              : `"${row.name}" needs the person's approval in the tab before it runs. Ask them to approve it in the page's agent panel, then call this tool again with the same arguments and the same expectedRev. Nothing was applied.`,
             {
               reason: "approval_required",
               approval: { id: held.id, expiresAt: new Date(held.expiresAt).toISOString() },
               rev: request.expectedRev,
-              whatAgentShouldSayToUser: `I would like to "${row.name}" in your open tab. Please approve it in the agent panel on the page if you agree.`,
+              whatAgentShouldSayToUser:
+                channel === "agent"
+                  ? `I would like to "${row.name}". Please approve it when your client asks, if you agree.`
+                  : `I would like to "${row.name}" in your open tab. Please approve it in the agent panel on the page if you agree.`,
             },
             true,
           ),
@@ -528,6 +615,44 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         }
         return;
       }
+      case "approve":
+      case "deny": {
+        // A decision the person made outside the page (the agent's MCP client, or the relay's
+        // approval page), accepted only when this page said approvals may come from the agent.
+        let ok = false;
+        let error: string | undefined;
+        const a = approvals.get(String(m.approval));
+        const want = m.t === "approve" ? "approved" : "denied";
+        if (stopped) error = "The person stopped agent access in this tab.";
+        else if (!fromAgent) error = "This tab takes approvals in the page only.";
+        else if (!a || a.expiresAt <= Date.now())
+          error = "No such approval is open (it lapsed or was replaced).";
+        else if (a.state === "pending") {
+          if (m.t === "approve") grant(a);
+          else a.state = "denied";
+          ok = true;
+          try {
+            surface.record({
+              op: m.t,
+              target: a.entryId,
+              actor: String(m.by || "the person").slice(0, 200),
+              changed: [],
+            });
+          } catch {
+            // the decision stands without its ledger line
+          }
+          publish();
+        } else ok = a.state === want;
+        send({
+          t: "decided",
+          re: m.id,
+          ok,
+          ...(error ? { error } : {}),
+          observation: surface.observe(),
+          ledger: ledgerSince(m.since),
+        });
+        return;
+      }
       case "fulfill": {
         void (async () => {
           try {
@@ -583,6 +708,8 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
         instance,
         title: String(d.title ?? "").slice(0, 200),
         path: String(d.path ?? "").slice(0, 500),
+        mode,
+        approvals: channel,
       });
     };
     socket.onmessage = (ev: MessageEvent) => onMessage(ev.data);
@@ -610,6 +737,20 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     };
   };
 
+  /** Grant one approval: the relay's gate and the surface's own gate, so one decision runs the act. */
+  const grant = (a: RelayApproval): void => {
+    a.state = "approved";
+    // An auto-derived surface holds unrecognized or destructive controls for approval itself.
+    const approver = (surface as unknown as Record<symbol, unknown>)[APPROVER];
+    if (typeof approver === "function") {
+      try {
+        (approver as (entryId: string) => boolean)(a.entryId);
+      } catch {
+        // The surface's gate refusing leaves the act to its own refusal.
+      }
+    }
+  };
+
   const connection: RelayConnection = {
     get tabId() {
       return tabId;
@@ -623,17 +764,7 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     approve(id) {
       const a = approvals.get(id);
       if (!a || a.state !== "pending" || stopped) return false;
-      a.state = "approved";
-      // The person approved in the page: grant the surface's own gate too, so one decision runs
-      // the act (an auto-derived surface holds unrecognized or destructive controls for approval).
-      const approver = (surface as unknown as Record<symbol, unknown>)[APPROVER];
-      if (typeof approver === "function") {
-        try {
-          (approver as (entryId: string) => boolean)(a.entryId);
-        } catch {
-          // The surface's gate refusing leaves the act to its own refusal.
-        }
-      }
+      grant(a);
       publish();
       return true;
     },
@@ -711,6 +842,7 @@ button.primary { background: #f5f5f4; color: #1c1917; border-color: #f5f5f4; }
 
 function createIndicator(
   container: Element | null,
+  showApprovals: boolean,
   handlers: { stop(): void; approve(id: string): void; deny(id: string): void },
 ): Indicator {
   const doc = container?.ownerDocument ?? document;
@@ -771,7 +903,7 @@ function createIndicator(
       stop.addEventListener("click", () => handlers.stop());
       row.append(msg, stop);
       panel.append(row);
-      for (const a of status.approvals) {
+      for (const a of showApprovals ? status.approvals : []) {
         const ask = el("div", "ask");
         ask.setAttribute("data-approval", a.id);
         ask.append(el("div", undefined, `The agent asks to: ${a.name}`));
