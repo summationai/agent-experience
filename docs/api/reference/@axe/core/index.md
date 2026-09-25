@@ -286,6 +286,16 @@ readonly config: AXEConfig & object;
 auth: AuthConfig;
 ```
 
+<a id="maxbodybytes"></a>
+
+##### maxBodyBytes
+
+```ts
+readonly maxBodyBytes: number;
+```
+
+The request body limit in bytes, after defaults ([P-LIM-1]). Adapters that read a raw stream honor it.
+
 #### Accessors
 
 <a id="definitions"></a>
@@ -863,6 +873,12 @@ In-memory `IdempotencyStore`. Every method runs without awaiting between its rea
 so claims are atomic among all runtimes in one process that share the instance. Nothing survives
 a restart and nothing is shared with another process.
 
+Retention is bounded ([P-LIM-4]): expired entries are swept on writes at most once per
+`sweepIntervalMs`, and at `maxEntries` the oldest completed entries (and claims whose lease has
+passed) are evicted first. An evicted completed entry shortens the idempotency window for that
+key: a retry after eviction runs the handler again. A claim whose lease is still running is never
+evicted; when every entry is one, `claim` throws. No timer runs, so nothing keeps a process alive.
+
 #### Implements
 
 - [`IdempotencyStore`](#idempotencystore-1)
@@ -877,15 +893,13 @@ a restart and nothing is shared with another process.
 new MemoryIdempotencyStore(options?): MemoryIdempotencyStore;
 ```
 
-`now` is the clock for leases and expiry, injectable for tests.
+`now` is the clock for leases and expiry, injectable for tests. See `RetentionOptions`.
 
 ###### Parameters
 
 ###### options?
 
-###### now?
-
-() => `number`
+[`RetentionOptions`](#retentionoptions) = `{}`
 
 ###### Returns
 
@@ -903,7 +917,7 @@ new MemoryIdempotencyStore(options?): MemoryIdempotencyStore;
 get size(): number;
 ```
 
-Number of live records, completed or in progress, for tests.
+Number of entries held, completed or in progress (expired ones not yet swept included), for tests.
 
 ###### Returns
 
@@ -940,6 +954,20 @@ request's, take it over and return `acquired`. Otherwise return what is there.
 ###### Implementation of
 
 [`IdempotencyStore`](#idempotencystore-1).[`claim`](#claim-1)
+
+<a id="close"></a>
+
+##### close()
+
+```ts
+close(): void;
+```
+
+Drop every entry. Later calls throw. There is no timer to stop.
+
+###### Returns
+
+`void`
 
 <a id="complete"></a>
 
@@ -1035,13 +1063,30 @@ Drop the in-progress claim `owner` holds, so the key can be used again. A no-op 
 
 [`IdempotencyStore`](#idempotencystore-1).[`release`](#release-1)
 
+<a id="sweep"></a>
+
+##### sweep()
+
+```ts
+sweep(): number;
+```
+
+Drop every expired entry now; returns how many. Writes do this on their own; see `sweepIntervalMs`.
+
+###### Returns
+
+`number`
+
 ***
 
 <a id="memorytokenstore"></a>
 
 ### MemoryTokenStore
 
-In-memory `TokenStore` with expiry. Suitable for a single process.
+In-memory `TokenStore` with expiry. Suitable for a single process. Retention is bounded
+([P-LIM-4]): expired records are swept on writes at most once per `sweepIntervalMs`, and at
+`maxEntries` the oldest records are evicted (an evicted token answers `not_found`). No timer
+runs, so nothing keeps a process alive.
 
 #### Implements
 
@@ -1054,8 +1099,14 @@ In-memory `TokenStore` with expiry. Suitable for a single process.
 ##### Constructor
 
 ```ts
-new MemoryTokenStore(): MemoryTokenStore;
+new MemoryTokenStore(options?): MemoryTokenStore;
 ```
+
+###### Parameters
+
+###### options?
+
+[`RetentionOptions`](#retentionoptions) = `{}`
 
 ###### Returns
 
@@ -1073,13 +1124,27 @@ new MemoryTokenStore(): MemoryTokenStore;
 get size(): number;
 ```
 
-Number of live records, for tests.
+Number of records held (expired ones not yet swept included), for tests.
 
 ###### Returns
 
 `number`
 
 #### Methods
+
+<a id="close-1"></a>
+
+##### close()
+
+```ts
+close(): void;
+```
+
+Drop every record. Later calls throw. There is no timer to stop.
+
+###### Returns
+
+`void`
 
 <a id="delete"></a>
 
@@ -1158,6 +1223,20 @@ set(
 ###### Implementation of
 
 [`TokenStore`](#tokenstore-1).[`set`](#set-1)
+
+<a id="sweep-1"></a>
+
+##### sweep()
+
+```ts
+sweep(): number;
+```
+
+Drop every expired record now; returns how many. Writes do this on their own; see `sweepIntervalMs`.
+
+###### Returns
+
+`number`
 
 ***
 
@@ -1871,6 +1950,20 @@ optional manifestCacheSeconds?: number;
 ```
 
 `Cache-Control` max-age for the manifest, in seconds. Default 300.
+
+<a id="maxbodybytes-1"></a>
+
+##### maxBodyBytes?
+
+```ts
+optional maxBodyBytes?: number;
+```
+
+Largest request body the runtime reads, in bytes (spec [P-LIM-1]). A larger body is refused
+with `invalid_input`, `details.reason: "payload_too_large"`, and HTTP 413, before it is parsed:
+on a `Content-Length` above the limit nothing is read, and a body without one is read only up
+to the limit. Default 1048576 (1 MiB). A body parser in front of the runtime that has already
+consumed the body applies its own limit first (docs/deploying.md, "Limits and retention").
 
 <a id="name-2"></a>
 
@@ -4772,6 +4865,51 @@ BaseContext.unavailable
 
 ***
 
+<a id="retentionoptions"></a>
+
+### RetentionOptions
+
+Retention options shared by `MemoryTokenStore` and `MemoryIdempotencyStore`.
+
+#### Properties
+
+<a id="maxentries"></a>
+
+##### maxEntries?
+
+```ts
+optional maxEntries?: number;
+```
+
+Most entries kept at once. A write at the limit first sweeps expired entries, then evicts the
+oldest entries that may be evicted. Default 10000.
+
+<a id="now"></a>
+
+##### now?
+
+```ts
+optional now?: () => number;
+```
+
+The clock, in epoch milliseconds. Injectable for tests. Default `Date.now`.
+
+###### Returns
+
+`number`
+
+<a id="sweepintervalms"></a>
+
+##### sweepIntervalMs?
+
+```ts
+optional sweepIntervalMs?: number;
+```
+
+Least time between two sweeps of expired entries, in milliseconds. Default 60000.
+
+***
+
 <a id="revisioncontext"></a>
 
 ### RevisionContext
@@ -5414,6 +5552,18 @@ Default idempotency window: 24 hours.
 
 ***
 
+<a id="default_max_entries"></a>
+
+### DEFAULT\_MAX\_ENTRIES
+
+```ts
+const DEFAULT_MAX_ENTRIES: 10000 = 10_000;
+```
+
+Default `maxEntries` for the in-memory stores.
+
+***
+
 <a id="default_operation_lease_seconds"></a>
 
 ### DEFAULT\_OPERATION\_LEASE\_SECONDS
@@ -5423,6 +5573,18 @@ const DEFAULT_OPERATION_LEASE_SECONDS: 60 = 60;
 ```
 
 Default operation lease: how long a claim holds before a retry may take it over.
+
+***
+
+<a id="default_sweep_interval_ms"></a>
+
+### DEFAULT\_SWEEP\_INTERVAL\_MS
+
+```ts
+const DEFAULT_SWEEP_INTERVAL_MS: 60000 = 60_000;
+```
+
+Default `sweepIntervalMs` for the in-memory stores.
 
 ***
 
@@ -5982,6 +6144,10 @@ function toJsonSchema(schema, io): JsonSchema;
 
 Convert a Zod schema to JSON Schema draft 2020-12.
 `io` is `"input"` for schemas that describe what callers send and `"output"` for what handlers return.
+
+For `"input"`, every node whose Zod schema checks more than JSON Schema can express carries
+`"x-axe-refined": true` ([P-SCHEMA-5]), so the manifest never claims a looser schema than the
+server enforces without saying so. The lint reports each one (`refined-schema`).
 
 #### Parameters
 
