@@ -1309,6 +1309,35 @@ Action event name for every act that goes through the bridge.
 
 ## Functions
 
+<a id="autoactions"></a>
+
+### autoActions()
+
+```ts
+function autoActions(source, options?): DomainBridge;
+```
+
+The domain-action bridge for an auto surface. Pass the handle (so configured `groups` become
+actions) or a bare surface. `domains` in `options` replaces the auto set. The set is fixed for
+the life of the bridge; a later `handle.configure()` that adds a group needs a new bridge.
+
+#### Parameters
+
+##### source
+
+  \| [`Surface`](index.md#surface)
+  \| [`AutoSurfaceHandle`](auto.md#autosurfacehandle)
+
+##### options?
+
+[`DomainActionsOptions`](#domainactionsoptions) = `{}`
+
+#### Returns
+
+[`DomainBridge`](#domainbridge)
+
+***
+
 <a id="domainactions"></a>
 
 ### domainActions()

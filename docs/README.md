@@ -32,33 +32,34 @@ Start at the top and read down. Each page ends with next steps.
 2. [Getting started](getting-started.md) — a 15-minute tutorial: install, one read-only action, mount, `axe inspect`, `axe conformance`, connect Claude Desktop.
 3. [Concepts](concepts.md) — manifest, actions, display and affordances, the result envelope, the escalation ladder, requirements and kinds, handoff and resume, idempotency, auth, flows, risk.
 4. [Surface](surface.md) — live state for agents: an application's registry of its own controls, with reasons and one revision, served as AXE actions.
-5. [Designing actions](designing-actions.md) — the most important guide: decomposing a human flow, writing descriptions for a model, choosing risk, designing requirements, designing read actions, anti-patterns, a worked example.
-6. [Schemas: the supported subset](schemas.md) — the JSON Schema keywords the validator, the Zod converter, and `@axe/generate` support, how unsupported constructs fail, patterns and backtracking, refinements, and input as sent versus input as parsed.
-7. [Generating actions](generating.md) — derive actions from what you already have: an OpenAPI document, a zod-typed function table, a tRPC router; overrides, policy, what the generator refuses to invent, `axe generate`.
-8. [Presenting results](presenting-results.md) — the search → present → select arc: `display`, pointers, attributes, disclaimer and url, brand, affordances, pagination and freshness, the reference renderers.
-9. [Requirements and kinds](requirements-and-kinds.md) — the `needs_input` contract, the well-known kind registry, custom kinds, validation, chaining, security of sensitive payloads.
-10. [Human handoff](human-handoff.md) — when it is necessary, the lifecycle, the resume landing page, token security, what to show the human.
-11. [Human oversight](human-oversight.md) — approval requests: a person approves a consequential call on the site, bound to the call, the principal, the tenant, and the state; cancellation, invalidation, expiry, replay, receipts, and one history.
-12. [Live state and revisions](live-state.md) — what can be done right now and why not the rest, the state the agent saw, `expectedRev` and `rev`, `/axe/state`, how it composes with idempotency and Surface.
-13. [Reference application](reference-app.md) — Plan Review, a runnable Next.js app: server actions over AXE and browser-local controls on the page, two people and two tenants, conflicts, approvals, and browser tests; who owns each capability and what the app deliberately does not do.
-14. [Evaluation](evaluation.md) — the reference app under four agent interfaces (generic markup, accessible names, basic tools, AXE) with scripted agents and outcome checks: what is measured, how to run it, the recorded results, and what has not been run.
-15. [Pilot plan](pilot-plan.md) — a plan, not yet run, for testing with three to five external design partners: selection, tasks, baselines, instrumentation, and proposed go/no-go thresholds.
-16. [Auth](auth.md) — the three modes, passing your session in, API keys, the v1 OAuth path.
-17. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
-18. [MCP](mcp.md) — the derived MCP server, the mapping table, elicitation and the Apps view, connecting clients, limits.
-19. [Relay](relay.md) — an agent outside the browser (Claude Code over MCP) driving a signed-in person's live tab: the page connects its surface, the relay serves it; development pairing in one command, production with relay tokens and OAuth, Stop, approvals, and the security model.
-20. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
-21. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
-22. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
-23. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
-24. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
-25. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
-26. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
-27. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
-28. [API reference](api/README.md) — generated from the source for every package.
-29. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
-30. [Glossary](glossary.md).
-31. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
+5. [Easy mode: derive, then refine](auto-surface.md) — `@axe/surface/auto`: a surface read from the rendered page, the three guarantee tiers, safety defaults and approval, the configuration overlay, coverage, and generic tools.
+6. [Designing actions](designing-actions.md) — the most important guide: decomposing a human flow, writing descriptions for a model, choosing risk, designing requirements, designing read actions, anti-patterns, a worked example.
+7. [Schemas: the supported subset](schemas.md) — the JSON Schema keywords the validator, the Zod converter, and `@axe/generate` support, how unsupported constructs fail, patterns and backtracking, refinements, and input as sent versus input as parsed.
+8. [Generating actions](generating.md) — derive actions from what you already have: an OpenAPI document, a zod-typed function table, a tRPC router; overrides, policy, what the generator refuses to invent, `axe generate`.
+9. [Presenting results](presenting-results.md) — the search → present → select arc: `display`, pointers, attributes, disclaimer and url, brand, affordances, pagination and freshness, the reference renderers.
+10. [Requirements and kinds](requirements-and-kinds.md) — the `needs_input` contract, the well-known kind registry, custom kinds, validation, chaining, security of sensitive payloads.
+11. [Human handoff](human-handoff.md) — when it is necessary, the lifecycle, the resume landing page, token security, what to show the human.
+12. [Human oversight](human-oversight.md) — approval requests: a person approves a consequential call on the site, bound to the call, the principal, the tenant, and the state; cancellation, invalidation, expiry, replay, receipts, and one history.
+13. [Live state and revisions](live-state.md) — what can be done right now and why not the rest, the state the agent saw, `expectedRev` and `rev`, `/axe/state`, how it composes with idempotency and Surface.
+14. [Reference application](reference-app.md) — Plan Review, a runnable Next.js app: server actions over AXE and browser-local controls on the page, two people and two tenants, conflicts, approvals, and browser tests; who owns each capability and what the app deliberately does not do.
+15. [Evaluation](evaluation.md) — the reference app under four agent interfaces (generic markup, accessible names, basic tools, AXE) with scripted agents and outcome checks: what is measured, how to run it, the recorded results, and what has not been run.
+16. [Pilot plan](pilot-plan.md) — a plan, not yet run, for testing with three to five external design partners: selection, tasks, baselines, instrumentation, and proposed go/no-go thresholds.
+17. [Auth](auth.md) — the three modes, passing your session in, API keys, the v1 OAuth path.
+18. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
+19. [MCP](mcp.md) — the derived MCP server, the mapping table, elicitation and the Apps view, connecting clients, limits.
+20. [Relay](relay.md) — an agent outside the browser (Claude Code over MCP) driving a signed-in person's live tab: the page connects its surface, the relay serves it; development pairing in one command, production with relay tokens and OAuth, Stop, approvals, and the security model.
+21. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
+22. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+23. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
+24. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
+25. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
+26. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
+27. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
+28. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
+29. [API reference](api/README.md) — generated from the source for every package.
+30. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
+31. [Glossary](glossary.md).
+32. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 

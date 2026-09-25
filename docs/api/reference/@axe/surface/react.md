@@ -70,7 +70,483 @@ optional data-surface-object?: string;
 optional data-surface-reason?: string;
 ```
 
+***
+
+<a id="surfaceproviderprops"></a>
+
+### SurfaceProviderProps
+
+#### Extends
+
+- [`UseAutoSurfaceOptions`](#useautosurfaceoptions)
+
+#### Properties
+
+<a id="children"></a>
+
+##### children?
+
+```ts
+optional children?: ReactNode;
+```
+
+<a id="config"></a>
+
+##### config?
+
+```ts
+optional config?: SurfaceConfig;
+```
+
+The configuration overlay. Keep its identity stable (a module constant or `useMemo`); a new object reconfigures.
+
+###### Inherited from
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`config`](#config-1)
+
+<a id="enabled"></a>
+
+##### enabled?
+
+```ts
+optional enabled?: boolean;
+```
+
+Feature flag: false starts nothing (and stops a running scan). Default true.
+
+###### Inherited from
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`enabled`](#enabled-1)
+
+<a id="expose"></a>
+
+##### expose?
+
+```ts
+optional expose?: boolean;
+```
+
+Publish `window.__surface` with `coverage()`. Default false.
+
+###### Inherited from
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`expose`](#expose-1)
+
+<a id="flag"></a>
+
+##### flag?
+
+```ts
+optional flag?: boolean;
+```
+
+Feature flag, the same as `enabled`: false starts nothing.
+
+<a id="hidden"></a>
+
+##### hidden?
+
+```ts
+optional hidden?: "unavailable" | "skip";
+```
+
+What to do with a control that is on the page but not shown (`hidden`, `display: none`, a
+closed `<details>`): `skip` (the default) leaves it out; `unavailable` lists it with the reason
+"not shown on the page".
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`hidden`](auto.md#hidden)
+
+<a id="layout"></a>
+
+##### layout?
+
+```ts
+optional layout?: boolean;
+```
+
+Read layout (sizes, `checkVisibility`). Default: true in browsers, false under jsdom.
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`layout`](auto.md#layout)
+
+<a id="location"></a>
+
+##### location?
+
+```ts
+optional location?: unknown;
+```
+
+The router's location, when the app has one (`useLocation()` of React Router, `usePathname()`
+of Next): a change re-scans at once. Without it, `pushState`, `replaceState`, and `popstate`
+are watched, which covers routers built on the History API.
+
+###### Inherited from
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`location`](#location-1)
+
+<a id="now"></a>
+
+##### now?
+
+```ts
+optional now?: () => Date;
+```
+
+Clock for coverage timestamps.
+
+###### Returns
+
+`Date`
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`now`](auto.md#now)
+
+<a id="observe"></a>
+
+##### observe?
+
+```ts
+optional observe?: object;
+```
+
+###### debounceMs?
+
+```ts
+optional debounceMs?: number;
+```
+
+Coalesce DOM changes for this long before re-scanning. Default 30 ms.
+
+###### settle?
+
+```ts
+optional settle?: object;
+```
+
+After an act, wait for this long without a DOM change (bounded by `timeoutMs`) before reporting. Default 50 and 1500 ms.
+
+###### settle.quietMs?
+
+```ts
+optional quietMs?: number;
+```
+
+###### settle.timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`observe`](auto.md#observe)
+
+<a id="revision"></a>
+
+##### revision?
+
+```ts
+optional revision?: "none" | "bump";
+```
+
+Move the surface's revision when the derived set changes (`bump`, the default), or leave the revision to the application (`none`).
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`revision`](auto.md#revision)
+
+<a id="root"></a>
+
+##### root?
+
+```ts
+optional root?: RefObject<Element | null>;
+```
+
+Derive from this element instead of `document.body`.
+
+###### Inherited from
+
+[`SurfaceProviderProps`](#surfaceproviderprops).[`root`](#root)
+
+<a id="route"></a>
+
+##### route?
+
+```ts
+optional route?: (location) => string;
+```
+
+The route part of every key, from the location. Default: the pathname with numeric, UUID, and
+long hexadecimal segments replaced by `:id`, so one record's page and the next share keys.
+
+###### Parameters
+
+###### location
+
+`Location`
+
+###### Returns
+
+`string`
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`route`](auto.md#route-1)
+
+<a id="surface"></a>
+
+##### surface?
+
+```ts
+optional surface?: Surface;
+```
+
+The surface to register on. Default the module-level `surface` of `@axe/surface`, the one `useSurface` registers on, so declared and derived entries share one table.
+
+###### Inherited from
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`surface`](#surface-1)
+
+***
+
+<a id="useautosurfaceoptions"></a>
+
+### UseAutoSurfaceOptions
+
+#### Extends
+
+- `Omit`\<[`AutoSurfaceOptions`](auto.md#autosurfaceoptions), `"root"` \| `"surface"` \| `"config"` \| `"expose"`\>
+
+#### Extended by
+
+- [`SurfaceProviderProps`](#surfaceproviderprops)
+
+#### Properties
+
+<a id="config-1"></a>
+
+##### config?
+
+```ts
+optional config?: SurfaceConfig;
+```
+
+The configuration overlay. Keep its identity stable (a module constant or `useMemo`); a new object reconfigures.
+
+<a id="enabled-1"></a>
+
+##### enabled?
+
+```ts
+optional enabled?: boolean;
+```
+
+Feature flag: false starts nothing (and stops a running scan). Default true.
+
+<a id="expose-1"></a>
+
+##### expose?
+
+```ts
+optional expose?: boolean;
+```
+
+Publish `window.__surface` with `coverage()`. Default false.
+
+<a id="hidden-1"></a>
+
+##### hidden?
+
+```ts
+optional hidden?: "unavailable" | "skip";
+```
+
+What to do with a control that is on the page but not shown (`hidden`, `display: none`, a
+closed `<details>`): `skip` (the default) leaves it out; `unavailable` lists it with the reason
+"not shown on the page".
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`hidden`](auto.md#hidden)
+
+<a id="layout-1"></a>
+
+##### layout?
+
+```ts
+optional layout?: boolean;
+```
+
+Read layout (sizes, `checkVisibility`). Default: true in browsers, false under jsdom.
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`layout`](auto.md#layout)
+
+<a id="location-1"></a>
+
+##### location?
+
+```ts
+optional location?: unknown;
+```
+
+The router's location, when the app has one (`useLocation()` of React Router, `usePathname()`
+of Next): a change re-scans at once. Without it, `pushState`, `replaceState`, and `popstate`
+are watched, which covers routers built on the History API.
+
+<a id="now-1"></a>
+
+##### now?
+
+```ts
+optional now?: () => Date;
+```
+
+Clock for coverage timestamps.
+
+###### Returns
+
+`Date`
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`now`](auto.md#now)
+
+<a id="observe-1"></a>
+
+##### observe?
+
+```ts
+optional observe?: object;
+```
+
+###### debounceMs?
+
+```ts
+optional debounceMs?: number;
+```
+
+Coalesce DOM changes for this long before re-scanning. Default 30 ms.
+
+###### settle?
+
+```ts
+optional settle?: object;
+```
+
+After an act, wait for this long without a DOM change (bounded by `timeoutMs`) before reporting. Default 50 and 1500 ms.
+
+###### settle.quietMs?
+
+```ts
+optional quietMs?: number;
+```
+
+###### settle.timeoutMs?
+
+```ts
+optional timeoutMs?: number;
+```
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`observe`](auto.md#observe)
+
+<a id="revision-1"></a>
+
+##### revision?
+
+```ts
+optional revision?: "none" | "bump";
+```
+
+Move the surface's revision when the derived set changes (`bump`, the default), or leave the revision to the application (`none`).
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`revision`](auto.md#revision)
+
+<a id="root-1"></a>
+
+##### root?
+
+```ts
+optional root?: RefObject<Element | null>;
+```
+
+Derive from this element instead of `document.body`.
+
+<a id="route-1"></a>
+
+##### route?
+
+```ts
+optional route?: (location) => string;
+```
+
+The route part of every key, from the location. Default: the pathname with numeric, UUID, and
+long hexadecimal segments replaced by `:id`, so one record's page and the next share keys.
+
+###### Parameters
+
+###### location
+
+`Location`
+
+###### Returns
+
+`string`
+
+###### Inherited from
+
+[`AutoSurfaceOptions`](auto.md#autosurfaceoptions).[`route`](auto.md#route-1)
+
+<a id="surface-1"></a>
+
+##### surface?
+
+```ts
+optional surface?: Surface;
+```
+
+The surface to register on. Default the module-level `surface` of `@axe/surface`, the one `useSurface` registers on, so declared and derived entries share one table.
+
 ## Functions
+
+<a id="surfaceprovider"></a>
+
+### SurfaceProvider()
+
+```ts
+function SurfaceProvider(props): FunctionComponentElement<ProviderProps<AutoSurfaceHandle | null>>;
+```
+
+Derive the surface from the page this tree renders. Put it near the root:
+
+```tsx
+<SurfaceProvider config={surfaceConfig} flag={flags.agentSurface} expose>
+  <App />
+</SurfaceProvider>
+```
+
+#### Parameters
+
+##### props
+
+[`SurfaceProviderProps`](#surfaceproviderprops)
+
+#### Returns
+
+`FunctionComponentElement`\<`ProviderProps`\<[`AutoSurfaceHandle`](auto.md#autosurfacehandle) \| `null`\>\>
+
+***
 
 <a id="tosurfaceprops"></a>
 
@@ -91,6 +567,44 @@ Convert the string attributes into React props: boolean-valued ARIA attributes b
 #### Returns
 
 [`SurfaceProps`](#surfaceprops)
+
+***
+
+<a id="useautosurface"></a>
+
+### useAutoSurface()
+
+```ts
+function useAutoSurface(options?): AutoSurfaceHandle | null;
+```
+
+Start `autoSurface` on mount (when `enabled`), and stop it on unmount. Returns the handle once it has started, else null.
+
+#### Parameters
+
+##### options?
+
+[`UseAutoSurfaceOptions`](#useautosurfaceoptions) = `{}`
+
+#### Returns
+
+[`AutoSurfaceHandle`](auto.md#autosurfacehandle) \| `null`
+
+***
+
+<a id="useautosurfacehandle"></a>
+
+### useAutoSurfaceHandle()
+
+```ts
+function useAutoSurfaceHandle(): AutoSurfaceHandle | null;
+```
+
+The handle of the nearest `SurfaceProvider`, or null before it has started (and on the server).
+
+#### Returns
+
+[`AutoSurfaceHandle`](auto.md#autosurfacehandle) \| `null`
 
 ***
 

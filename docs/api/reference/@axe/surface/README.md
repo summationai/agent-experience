@@ -4,6 +4,7 @@
 
 ## Modules
 
+- [auto](auto.md)
 - [axe](axe.md)
 - [index](index.md)
 - [react](react.md)

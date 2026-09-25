@@ -31,6 +31,15 @@ export type Op = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 export type EntryKind = "action" | "field" | "collection";
 
 /**
+ * Where an entry came from, which is also what it guarantees ([S-AUTO-1]): `derived` was read from
+ * the rendered page by `autoSurface` and acts through the page's own events; `annotated` is derived
+ * and refined by configuration or `data-surface-*` attributes; `declared` was registered by the
+ * application (or given a real handler by configuration) and runs the application's own function.
+ * An entry without `source` is declared.
+ */
+export type EntryTier = "derived" | "annotated" | "declared";
+
+/**
  * Who moves the revision. `surface`: the application calls `bump()` after every change, and
  * `freeze`/`thaw` move the revision too. `app`: the application adopts its own revision with
  * `setRev()` (a server counter), and `freeze`/`thaw` leave it alone, since a freeze is not a change
@@ -74,6 +83,11 @@ export interface HandlerReport {
    * and adopts nothing from the report. Throwing a `SurfaceConflict` does the same.
    */
   conflict?: { currentRev?: number };
+  /**
+   * Text the page showed in response (a toast, a status line), for the agent to read in the act's
+   * output. `autoSurface` reports what appeared while the page settled ([S-AUTO-5]).
+   */
+  notices?: string[];
 }
 
 /**
@@ -172,6 +186,14 @@ export interface ActionEntry {
   object?: string;
   state?: Availability;
   effect: Effect;
+  /**
+   * The control's own toggle or selection state, when it has one, as the page shows it:
+   * `{ checked }` for a checkbox, switch, or radio (`true`, `false`, or `"mixed"`), `{ pressed }`
+   * for a toggle button, `{ selected }` for a tab or option, `{ expanded }` for a disclosure. Never
+   * part of the `name` ([S-DOM-1]).
+   */
+  value?: JsonValue;
+  tier?: EntryTier;
   /** The control's own handler. May return a `HandlerReport`; `context` carries the presented `expectedRev`. */
   handler: (
     actor: string,
@@ -193,6 +215,7 @@ export interface FieldEntry {
    * events never carry it. The row says `sensitive: true` instead of carrying `value`.
    */
   sensitive?: boolean;
+  tier?: EntryTier;
   edit:
     | { op?: "TYPE_TEXT"; readOnly: true; reason?: string }
     | {
@@ -224,6 +247,7 @@ export interface CollectionEntry {
   loaded?: number | null;
   filter?: JsonValue;
   sort?: JsonValue;
+  tier?: EntryTier;
   /** Load more. Present makes the collection actionable with `SCROLL_DOWN`. May return a `HandlerReport`. */
   more?: (context: ActContext) => MaybePromise<HandlerReport | unknown>;
 }
@@ -239,6 +263,8 @@ export interface ObservedEntry {
   name: string;
   object: string | null;
   rev: number;
+  /** Present on an entry that is not declared ([S-AUTO-1]): `derived` or `annotated`. */
+  tier?: Exclude<EntryTier, "declared">;
   state?: {
     available: boolean;
     reason: string | null;
@@ -309,6 +335,8 @@ export interface ActOutput {
   changed: string[];
   /** The ledger entry this act wrote. */
   seq: number;
+  /** What the page said in response, when the handler reported it (`HandlerReport.notices`). */
+  notices?: string[];
 }
 
 /** `act()` returns the AXE result envelope: `ok`, or `error` with `conflict` (stale), `not_found`, `invalid_input`, or `unavailable`. Every result carries the `seq` of its ledger entry (`output.seq`, or `error.details.seq`). */
@@ -549,7 +577,7 @@ function isSchemaLike(value: unknown): value is SchemaLike {
 /** A handler's return value, when it is a `HandlerReport`. */
 function reportOf(value: unknown): HandlerReport | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  const v = value as { changed?: unknown; rev?: unknown; conflict?: unknown };
+  const v = value as { changed?: unknown; rev?: unknown; conflict?: unknown; notices?: unknown };
   const out: HandlerReport = {};
   if (Array.isArray(v.changed)) out.changed = v.changed.map(String);
   if (typeof v.rev === "number" && Number.isFinite(v.rev)) out.rev = v.rev;
@@ -558,7 +586,8 @@ function reportOf(value: unknown): HandlerReport | undefined {
     out.conflict =
       typeof current === "number" && Number.isFinite(current) ? { currentRev: current } : {};
   }
-  return out.changed || out.rev !== undefined || out.conflict ? out : undefined;
+  if (Array.isArray(v.notices) && v.notices.length) out.notices = v.notices.map(String);
+  return out.changed || out.rev !== undefined || out.conflict || out.notices ? out : undefined;
 }
 
 function nameOf(e: Entry): string {
@@ -828,6 +857,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           object: e.object ?? null,
           rev,
         };
+        if (e.tier && e.tier !== "declared") row.tier = e.tier;
         if (e.kind === "action") {
           // A freeze supersedes the control's own state: nothing is actionable, and there is
           // nothing to fulfill or hand off until it lifts.
@@ -850,6 +880,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
           };
           if (f.confirm) row.effect.confirm = true;
           if (f.text) row.effect.text = f.text;
+          if (e.value !== undefined) row.value = e.value;
         } else if (e.kind === "field") {
           // [S-PRV-1] A sensitive field says so and carries no value.
           if (e.sensitive) row.sensitive = true;
@@ -1193,16 +1224,15 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         const mayHaveChanged =
           changed.length > 0 || rev !== before || (mode === "app" && report?.changed === undefined);
         if (mayHaveChanged) epoch += 1;
-        return {
-          status: WIRE.status.ok,
-          output: {
-            rev,
-            id: row.id,
-            actor,
-            changed,
-            seq: record(WIRE.status.ok, changed, ignoredRev),
-          },
+        const output: ActOutput = {
+          rev,
+          id: row.id,
+          actor,
+          changed,
+          seq: record(WIRE.status.ok, changed, ignoredRev),
         };
+        if (report?.notices) output.notices = report.notices;
+        return { status: WIRE.status.ok, output };
       });
     },
     ledger({ since, actor: who, limit } = {}) {

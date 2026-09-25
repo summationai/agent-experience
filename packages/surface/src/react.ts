@@ -175,3 +175,7 @@ export function toSurfaceProps(attributes: Record<string, string>): SurfaceProps
   }
   return out as unknown as SurfaceProps;
 }
+
+// Easy mode: derive the surface from the rendered page ([S-AUTO-12]).
+export { SurfaceProvider, useAutoSurface, useAutoSurfaceHandle } from "./react-auto";
+export type { SurfaceProviderProps, UseAutoSurfaceOptions } from "./react-auto";

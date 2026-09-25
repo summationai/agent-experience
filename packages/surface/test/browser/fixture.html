@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>autoSurface browser fixture</title>
+    <style>
+      .gone {
+        display: none;
+      }
+      .ghost {
+        visibility: hidden;
+      }
+      .flat {
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        padding: 0;
+        border: 0;
+      }
+      #list {
+        height: 120px;
+        overflow: auto;
+      }
+      #list .row {
+        height: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Browser fixture</h1>
+      <button id="shown">Refresh</button>
+      <div class="gone"><button>Hidden by a stylesheet</button></div>
+      <button class="ghost">Invisible</button>
+      <label for="q">Query</label><input id="q" />
+      <div id="list" role="list" aria-label="Results"></div>
+    </main>
+    <script>
+      const list = document.getElementById("list");
+      let n = 0;
+      const add = (k) => {
+        for (let i = 0; i < k; i++) {
+          const d = document.createElement("div");
+          d.className = "row";
+          d.setAttribute("role", "listitem");
+          d.textContent = "Row " + ++n;
+          list.appendChild(d);
+        }
+      };
+      add(5);
+      // An infinite list: scrolling near the end renders more rows.
+      list.addEventListener("scroll", () => {
+        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 10) add(5);
+      });
+    </script>
+  </body>
+</html>
