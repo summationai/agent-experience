@@ -146,11 +146,7 @@ function relayLines(o: TemplateOptions): { imports: string[]; module: string[] }
     module: [
       "",
       "// The relay carries this tab's surface to an agent outside the page (an MCP client).",
-      ...(env
-        ? [
-            `// Override with ${env.prefix}SURFACE_RELAY_URL; the token is the one the relay prints.`,
-          ]
-        : ["// Set the token the relay prints; keep real tokens out of source."]),
+      ...(env ? [`// Override the URL with ${env.prefix}SURFACE_RELAY_URL.`] : []),
       "const relay = {",
       `  url: ${url},`,
       tokenLine,
@@ -172,9 +168,9 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     ...(o.relay
       ? [
           `${PROVIDER_PROPS.onReady}={(handle) => {`,
-          `        const connection = ${NAMES.connectRelay}(handle.surface, relay);`,
-          "        return () => connection.stop();",
-          "      }}",
+          `  const connection = ${NAMES.connectRelay}(handle.surface, relay);`,
+          "  return () => connection.stop();",
+          "}}",
         ]
       : []),
   ];
