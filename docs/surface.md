@@ -445,16 +445,16 @@ export async function draftGibbs(post: (path: string, body: unknown) => Promise<
 
 | Controls | Mode | MCP tools | `tools/list` | Est. tokens | Notifications over 50 UI changes | Read before first correct act | Five tasks: bytes read |
 | -------: | ---- | --------: | -----------: | ----------: | -------------------------------: | ----------------------------: | ---------------------: |
-|        5 | per control | 12 | 13 KB | ~3,200 | 46 | 15 KB | not run |
+|        5 | per control | 12 | 13 KB | ~3,200 | 18 | 15 KB | not run |
 |        5 | domain | 10 | 11 KB | ~2,800 | 0 | 14 KB | not run |
-|       50 | per control | 56 | 72 KB | ~18,400 | 46 | 75 KB | 92 KB |
+|       50 | per control | 56 | 72 KB | ~18,400 | 20 | 75 KB | 92 KB |
 |       50 | domain | 10 | 11 KB | ~2,750 | 0 | 14 KB | 31 KB |
-|      300 | per control | 297 | 401 KB | ~102,600 | 46 | 404 KB | 442 KB |
+|      300 | per control | 297 | 401 KB | ~102,600 | 21 | 404 KB | 442 KB |
 |      300 | domain | 10 | 11 KB | ~2,750 | 0 | 14 KB | 54 KB |
-|     1000 | per control | 974 | 1325 KB | ~339,100 | 46 | 1328 KB | 1393 KB |
+|     1000 | per control | 974 | 1325 KB | ~339,100 | 19 | 1328 KB | 1393 KB |
 |     1000 | domain | 10 | 11 KB | ~2,750 | 0 | 14 KB | 82 KB |
 
-Both scripted agents completed all five tasks at every size, verified against the application's state. The per-control tool list grows by about 1.4 KB per control; the domain list is constant. Per control, every re-registration moves `registryVersion` and sends `notifications/tools/list_changed`, including 25 to 28 of the 46 where no tool's description or schema changed; an agent that lists the tools again on each notification reads about 36 MB (KB and MB here are 1024-based) over the 50 changes at 300 controls. Server-side caching of the built actions ([S-AXE-9]) makes none of that smaller for the agent.
+Both scripted agents completed all five tasks at every size, verified against the application's state. The per-control tool list grows by about 1.4 KB per control; the domain list is constant. Per control, the bridge sends `notifications/tools/list_changed` only when a published tool definition changed ([S-OBS-4]); a re-render that re-registers rows unchanged sends nothing. Even so, an agent that lists the tools again on each notification reads about 17 MB (KB and MB here are 1024-based) over the 50 changes at 300 controls. Server-side caching of the built actions ([S-AXE-9]) makes none of that smaller for the agent.
 
 ### When to use which
 
