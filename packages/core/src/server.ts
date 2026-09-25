@@ -1636,12 +1636,21 @@ export class AXE {
               a,
               "returned requestApproval but declares no approvalState",
             );
-          const state = await a.spec.approvalState({
-            action: a.name,
-            input: call.rawInput,
-            tenant: binding.tenant,
-            onBehalfOf: call.onBehalfOf,
-          });
+          let state: JsonValue;
+          try {
+            state = await a.spec.approvalState({
+              action: a.name,
+              input: call.rawInput,
+              tenant: binding.tenant,
+              onBehalfOf: call.onBehalfOf,
+            });
+          } catch (e) {
+            return this.approvalMisuse(
+              hookCtx,
+              a,
+              `could not read its approvalState (${e instanceof Error ? e.message : String(e)})`,
+            );
+          }
           approval = omitUndefined({
             input: call.rawInput,
             state,
@@ -1714,6 +1723,10 @@ export class AXE {
     hookCtx: HookContext,
     a: RegisteredAction,
     what: string,
+    wire: { message: string; retryable: boolean } = {
+      message: "The action could not ask for approval. The site has been notified.",
+      retryable: false,
+    },
   ): Promise<Result> {
     try {
       await this.config.onError?.(
@@ -1725,11 +1738,7 @@ export class AXE {
     }
     return {
       status: WIRE.status.error,
-      error: fail(
-        WIRE.error.internal,
-        "The action could not ask for approval. The site has been notified.",
-        { retryable: false },
-      ).error,
+      error: fail(WIRE.error.internal, wire.message, { retryable: wire.retryable }).error,
     };
   }
 
@@ -2585,7 +2594,25 @@ export class AXE {
       const again = await this.handoffResumeRefusal(fresh);
       if (again) return refuse(again);
       const approval = fresh.approval!;
-      if (!(await this.approvalStateHolds(fresh, approval))) {
+      let holds: boolean;
+      try {
+        holds = await this.approvalStateHolds(fresh, approval);
+      } catch (e) {
+        // The site could not say what the state is: nothing runs, and the request stays as it was.
+        return refuse(
+          await this.approvalMisuse(
+            hookCtx,
+            a,
+            `could not read its approvalState at resume (${e instanceof Error ? e.message : String(e)})`,
+            {
+              message:
+                "The site could not check this approval. Nothing was applied. The site has been notified; retry later.",
+              retryable: true,
+            },
+          ),
+        );
+      }
+      if (!holds) {
         approval.invalidated = { at: new Date().toISOString() };
         await this.saveHandoff(fresh);
         this.approvalEvent(

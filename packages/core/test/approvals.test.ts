@@ -465,6 +465,22 @@ describe("approval requests", () => {
     ).toThrow(/onResume/);
   });
 
+  it("an approvalState that throws at resume runs nothing and leaves the approval standing", async () => {
+    const s = site();
+    const { handoff, id } = await s.requestLock();
+    await s.axe.approveHandoff(id, { approver: "bob", tenant: "acme" });
+    const docs = s.docs as Record<string, Doc | undefined>;
+    const saved = docs["acme"];
+    docs["acme"] = undefined; // approvalState now throws reading the document
+    const r = (await s.resume(handoff.resumeToken)) as ErrorResult;
+    expect(r.error).toMatchObject({ code: "internal", retryable: true });
+    expect(s.errors.map((e) => e.message).join("\n")).toContain("could not read its approvalState");
+    docs["acme"] = saved;
+    expect((await s.axe.getHandoff(id, { tenant: "acme" }))!.status).toBe("approved");
+    expect((await s.resume(handoff.resumeToken)).status).toBe("ok");
+    expect(s.executed).toHaveLength(1);
+  });
+
   it("approval lifecycle events name the actors and the handoff, never the input or the state [P-APPR-9]", async () => {
     const s = site();
     const a = await s.requestLock("k1");
