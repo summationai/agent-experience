@@ -123,6 +123,12 @@ export interface ClientOptions {
   maxRetryAfterMs?: number;
   /** Retries after `rate_limited`/`unavailable`. Default 1. */
   retries?: number;
+  /**
+   * Longest time, in ms, a fetched manifest is used before `ensureFresh()` revalidates it. The
+   * effective bound is the smaller of this and the manifest response's `Cache-Control` max-age
+   * (`no-cache` and `no-store` mean 0). Default 300000. See "Manifest freshness".
+   */
+  manifestMaxAgeMs?: number;
 }
 
 export interface InvokeOptions {
@@ -443,6 +449,7 @@ export async function discover(
       const res = await get(u, "application/json");
       if (!res.ok) return undefined;
       const body = (await res.json()) as unknown;
+      if (looksLikeManifest(body)) fetchedManifests.set(body, fetchRecord(u, res));
       return looksLikeManifest(body) ? body : undefined;
     } catch (e) {
       if (e instanceof AXETrustError) refused.push(e.message);
@@ -515,8 +522,11 @@ export function findLinkHref(html: string): string | undefined {
 
 export class AXEClient {
   private readonly f: FetchLike;
-  private readonly base: string;
+  private base: string;
   private readonly policy: Policy;
+  private fetched: ManifestFetch;
+  private refreshing: Promise<ManifestChange> | undefined;
+  private readonly changeListeners = new Set<(change: ManifestChange) => void>();
 
   /**
    * Build a client from a manifest. Credentials are anchored at the origin `discover()` found the
@@ -524,7 +534,7 @@ export class AXEClient {
    * trusts a manifest you hand it. Add origins with `trust.origins`.
    */
   constructor(
-    private readonly manifestDoc: Manifest,
+    private manifestDoc: Manifest,
     private readonly options: ClientOptions = {},
   ) {
     this.f = options.fetch ?? fetch;
@@ -541,6 +551,10 @@ export class AXEClient {
       }
     }
     this.policy = makePolicy(anchor, options.trust);
+    this.fetched = fetchedManifests.get(manifestDoc) ?? {
+      url: `${this.base}${WIRE.path.manifest}`,
+      at: Date.now(),
+    };
   }
 
   /**
@@ -714,7 +728,7 @@ export class AXEClient {
     input: unknown,
     options: RunOptions = {},
   ): Promise<RunOutcome<O>> {
-    const def = this.action(name);
+    const def = this.action(name) ?? (await this.actionAfterRefresh(name));
     if (!def) {
       return {
         status: "error",
@@ -890,6 +904,170 @@ export class AXEClient {
     }
     return parsed as Result<O>;
   }
+
+  // -------------------------------------------------------------------------
+  // Manifest freshness (review item 10, 2026-09-24). Kept separate from the request path.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Whether the manifest is older than its bound: the smaller of `manifestMaxAgeMs` (default five
+   * minutes) and the `Cache-Control` max-age the site sent with it.
+   */
+  isManifestStale(now: number = Date.now()): boolean {
+    const cap = this.options.manifestMaxAgeMs ?? DEFAULT_MANIFEST_MAX_AGE_MS;
+    const bound = Math.min(cap, this.fetched.maxAgeMs ?? cap);
+    return now - this.fetched.at >= bound;
+  }
+
+  /**
+   * Fetch the manifest again, conditionally (`If-None-Match` when the site sent an `ETag`), and
+   * replace this client's copy when it changed. Concurrent calls share one request. The new
+   * manifest's `baseUrl` must pass the destination policy, or the old manifest is kept and
+   * `AXETrustError` is thrown. Listeners from `onManifestChange` hear about a change.
+   */
+  refresh(options: { signal?: AbortSignal } = {}): Promise<ManifestChange> {
+    if (!this.refreshing) {
+      this.refreshing = this.fetchManifest(options.signal).finally(() => {
+        this.refreshing = undefined;
+      });
+    }
+    return this.refreshing;
+  }
+
+  /** `refresh()` when the manifest is stale; otherwise nothing. */
+  async ensureFresh(options: { signal?: AbortSignal } = {}): Promise<ManifestChange | undefined> {
+    if (!this.isManifestStale()) return undefined;
+    return this.refresh(options);
+  }
+
+  /** Called after every refresh that changed the manifest. Returns an unsubscribe function. */
+  onManifestChange(listener: (change: ManifestChange) => void): () => void {
+    this.changeListeners.add(listener);
+    return () => void this.changeListeners.delete(listener);
+  }
+
+  /** An action this client does not know: the site may have added it since. One refresh, then look again. */
+  private async actionAfterRefresh(name: string): Promise<ActionDefinition | undefined> {
+    try {
+      await this.refresh();
+    } catch {
+      return undefined;
+    }
+    return this.action(name);
+  }
+
+  private async fetchManifest(signal: AbortSignal | undefined): Promise<ManifestChange> {
+    const url = this.fetched.url;
+    const base = { Accept: "application/json", [WIRE.header.protocol]: WIRE.protocol.version };
+    const headers: Record<string, string> = this.fetched.etag
+      ? { ...base, "If-None-Match": this.fetched.etag }
+      : base;
+    const init: { method: string; signal?: AbortSignal } = { method: "GET" };
+    if (signal) init.signal = signal;
+    const res = await send(this.f, this.policy, "discovery", url, init, headers, async () => ({
+      ...(this.options.headers ?? {}),
+    }));
+    const unchanged: ManifestChange = {
+      changed: false,
+      added: [],
+      removed: [],
+      modified: [],
+      manifest: this.manifestDoc,
+    };
+    if (res.status === 304) {
+      const etag = this.fetched.etag;
+      this.fetched = fetchRecord(url, res);
+      if (!this.fetched.etag && etag) this.fetched.etag = etag;
+      return unchanged;
+    }
+    if (!res.ok)
+      throw new AXEClientError(`Refreshing the manifest from ${url} failed: HTTP ${res.status}.`);
+    let body: unknown;
+    try {
+      body = await res.json();
+    } catch (e) {
+      throw new AXEClientError(`The manifest at ${url} was not JSON.`, e);
+    }
+    if (!looksLikeManifest(body))
+      throw new AXEClientError(`The document at ${url} is not an AXE manifest.`);
+    const d = this.checkDestination(body.baseUrl);
+    if (!d.allowed) {
+      throw new AXETrustError(
+        `The refreshed manifest at ${url} names baseUrl ${body.baseUrl}, which this client may not contact: ${d.reason}.`,
+        body.baseUrl,
+        "action",
+      );
+    }
+    const change = diffManifests(this.manifestDoc, body);
+    this.fetched = fetchRecord(url, res);
+    const anchor = discoveredFrom.get(this.manifestDoc);
+    if (anchor) discoveredFrom.set(body, anchor);
+    fetchedManifests.set(body, this.fetched);
+    this.manifestDoc = body;
+    this.base = body.baseUrl.replace(/\/$/, "");
+    if (!change.changed) return unchanged;
+    for (const listener of this.changeListeners) {
+      try {
+        listener(change);
+      } catch {
+        // a listener's failure is its own
+      }
+    }
+    return change;
+  }
+}
+
+/** What `refresh()` found: the action names added, removed, and whose definition changed. */
+export interface ManifestChange {
+  changed: boolean;
+  added: string[];
+  removed: string[];
+  modified: string[];
+  /** The manifest in use after the refresh. */
+  manifest: Manifest;
+}
+
+interface ManifestFetch {
+  url: string;
+  /** When the manifest was fetched or last revalidated (ms since epoch). */
+  at: number;
+  etag?: string;
+  /** From `Cache-Control`; undefined when the site sent no max-age. */
+  maxAgeMs?: number;
+}
+
+const DEFAULT_MANIFEST_MAX_AGE_MS = 300_000;
+
+/** Where and how each manifest returned by `discover()` or `refresh()` was fetched. */
+const fetchedManifests = new WeakMap<object, ManifestFetch>();
+
+function fetchRecord(url: string, res: Response): ManifestFetch {
+  const record: ManifestFetch = { url, at: Date.now() };
+  const etag = res.headers.get("etag");
+  if (etag) record.etag = etag;
+  const cc = (res.headers.get("cache-control") ?? "").toLowerCase();
+  if (/\bno-(store|cache)\b/.test(cc)) record.maxAgeMs = 0;
+  else {
+    const m = /\bmax-age=(\d+)/.exec(cc);
+    if (m) record.maxAgeMs = Number(m[1]) * 1000;
+  }
+  return record;
+}
+
+function diffManifests(before: Manifest, after: Manifest): ManifestChange {
+  const old = new Map(before.actions.map((a) => [a.name, JSON.stringify(a)]));
+  const now = new Map(after.actions.map((a) => [a.name, JSON.stringify(a)]));
+  const added = [...now.keys()].filter((n) => !old.has(n));
+  const removed = [...old.keys()].filter((n) => !now.has(n));
+  const modified = [...now.keys()].filter((n) => old.has(n) && old.get(n) !== now.get(n));
+  const { actions: _a, ...restBefore } = before;
+  const { actions: _b, ...restAfter } = after;
+  const changed =
+    added.length > 0 ||
+    removed.length > 0 ||
+    modified.length > 0 ||
+    JSON.stringify(restBefore) !== JSON.stringify(restAfter);
+  return { changed, added, removed, modified, manifest: after };
 }
 
 function isResult(v: unknown): v is Result {
