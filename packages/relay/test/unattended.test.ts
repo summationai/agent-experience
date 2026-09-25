@@ -132,6 +132,28 @@ describe.skipIf(noJsdom)("unattended: injected connection", () => {
   });
 });
 
+describe.skipIf(noJsdom)("unattended: the tab's page", () => {
+  it("relay_tabs follows a client-side route change (found driving a Next app headless)", async () => {
+    const r = await relay();
+    const p = await unattendedPage(r);
+    registerPlan(p);
+    connectInjected(p);
+    await ready(r, p);
+    expect(r.relay.tabs({ principal: "alice", tenant: "acme" })[0]!.path).toBe("/plan");
+    // A router's pushState, then the surface re-registers what the new route shows.
+    p.window.history.pushState({}, "", "/history");
+    p.window.document.title = "History";
+    p.surface.bump();
+    await until(() => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]!.path === "/history");
+    const a = await agent(r, "agent-alice");
+    const tabs = (await a.call("relay_tabs")).result.output!["tabs"] as {
+      path: string;
+      title: string;
+    }[];
+    expect(tabs[0]).toMatchObject({ path: "/history", title: "History" });
+  });
+});
+
 describe.skipIf(noJsdom)("unattended: approvals in the agent's client (HTTP sessions)", () => {
   it("form elicitation: the person approves in the client, the act runs once in the same tool call, and the ledger names who approved", async () => {
     const r = await relay();

@@ -383,7 +383,14 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     if (changeTimer !== undefined || stopped) return;
     changeTimer = setTimeout(() => {
       changeTimer = undefined;
-      send({ t: "changed", rev: surface.currentRev(), ledgerSeq: lastSeq() });
+      const d = describe();
+      send({
+        t: "changed",
+        rev: surface.currentRev(),
+        ledgerSeq: lastSeq(),
+        title: String(d.title ?? "").slice(0, 200),
+        path: String(d.path ?? "").slice(0, 500),
+      });
     }, 25);
   });
 

@@ -103,7 +103,8 @@ export type TabMessage =
     }
   /** The answer to `read` or `wait`: the page's `PageRead` or `WaitResult`, in the tab's revisions. */
   | { t: "content"; re: number; result?: JsonValue; error?: string }
-  | { t: "changed"; rev: number; ledgerSeq: number }
+  /** The surface changed; `title` and `path` as `hello` gives them, which a client-side route change moves. */
+  | { t: "changed"; rev: number; ledgerSeq: number; title?: string; path?: string }
   | { t: "active" }
   | { t: "stop" }
   /** The page's principal or tenant changed (`rekey`): drop this tab's record and revoke its token. */

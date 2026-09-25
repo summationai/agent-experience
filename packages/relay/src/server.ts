@@ -1808,6 +1808,9 @@ export function createRelay(options: RelayOptions = {}): Relay {
           tab.lastActive = Date.now();
           if (tab.syncedInstance === tab.instance && typeof m.rev === "number")
             tab.mirror.noteRev(m.rev);
+          // A client-side route change moves the page without a new connection.
+          if (typeof m.title === "string") tab.title = m.title.slice(0, 200);
+          if (typeof m.path === "string") tab.path = m.path.slice(0, 500);
           return;
         case "active":
           tab.lastActive = Date.now();

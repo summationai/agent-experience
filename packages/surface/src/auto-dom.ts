@@ -337,6 +337,15 @@ function styleOf(el: Element, ctx: ScanContext): CSSStyleDeclaration | null {
   }
 }
 
+/**
+ * A flex or grid container: its children are laid out as separate boxes, so text in adjacent
+ * children is separate even with no whitespace between them in the markup.
+ */
+export function laysOutApart(el: Element, ctx: ScanContext): boolean {
+  const display = styleOf(el, ctx)?.display ?? "";
+  return /(^|\s|-)(flex|grid)$/.test(display);
+}
+
 /** Hidden from everyone: `hidden`, `display: none`, `visibility: hidden`, a closed `<details>`, or (with layout) no box at all. */
 export function isHidden(el: Element, ctx: ScanContext): boolean {
   const cached = ctx.hidden.get(el);
@@ -437,6 +446,14 @@ export function textOf(node: Node, ctx: ScanContext, skip?: Element, depth = 0):
       if (d > 0) {
         if (el.getAttribute("aria-hidden") === "true") return;
         if (isHidden(el, ctx)) return;
+        // An embedded text box contributes its value, not its label (accname 1.2, step 2C
+        // before 2D): a cell with an input shows the person the number, not "Widgets, March".
+        if (el.localName === "input") {
+          const input = el as HTMLInputElement;
+          if (TEXT_INPUT_TYPES.has(input.type) && input.type !== "password")
+            text += ` ${input.value} `;
+          return;
+        }
         const label = norm(el.getAttribute("aria-label"));
         if (label) {
           text += ` ${label} `;

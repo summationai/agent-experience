@@ -13,6 +13,7 @@ import {
   idrefText,
   isContentEditable,
   isHidden,
+  laysOutApart,
   nameOfContainer,
   norm,
   opaqueKind,
@@ -288,7 +289,9 @@ export function collectContent(env: ReadEnv): Collected {
   };
 
   const cell = (c: Element) => {
-    if (env.sensitive(c)) {
+    // A cell shows its controls' values; a private control keeps the whole cell private.
+    const controls = Array.from(c.querySelectorAll("input, textarea, select"));
+    if (env.sensitive(c) || controls.some((k) => env.sensitive(k))) {
       redacted++;
       return "";
     }
@@ -405,11 +408,18 @@ export function collectContent(env: ReadEnv): Collected {
   const children = (el: Element, skipFirst: Element | null) => {
     const shadow = (el as Element & { shadowRoot?: ShadowRoot | null }).shadowRoot;
     const kids = shadow ? Array.from(shadow.childNodes) : Array.from(el.childNodes);
+    // Items of a flex or grid row are separate boxes: "Status: draft" and "Revision 1" in two
+    // spans with no space between them are two lines, not "Status: draftRevision 1".
+    const apart = kids.some((n) => n.nodeType === 1) && laysOutApart(el, ctx);
     for (const n of kids) {
       if (capped) return;
       if (n === skipFirst) continue;
       if (n.nodeType === 3) line += (n as Text).data;
-      else if (n.nodeType === 1) visit(n as Element);
+      else if (n.nodeType === 1) {
+        if (apart) breakLine();
+        visit(n as Element);
+        if (apart) breakLine();
+      }
     }
   };
 

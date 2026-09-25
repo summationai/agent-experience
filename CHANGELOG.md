@@ -257,3 +257,10 @@ What the first integration into a legacy-DOM application asked for, made general
 - `@axe/relay` is always installed alongside `@axe/surface` (install commands and tarball overrides).
 - Next steps print the host first: `npx axe host login <url>`, then `claude mcp add <name> -- npx axe host --dev --stdio --app <url>` (the name from the app's package.json), with the attended relay last as the fallback.
 - The fixture typecheck stubs gain `injectedRelay` and `ConnectRelayOptions`.
+
+### Found driving a real app headless (`examples/plan-review` through `axe host`)
+
+- `@axe/surface/auto` reader: a text box in a table cell is read as its value, not its label (an embedded control contributes its value before `aria-label`, accname 1.2 step 2C); an editable grid read "Widgets, March 2027" in every cell instead of the numbers. A cell holding a private control is withheld whole.
+- `@axe/surface/auto` reader: the children of a flex or grid container are separate lines, so "Status: draft" and "Revision 1" in adjacent spans are a field and a line, not "Status: draftRevision 1".
+- `@axe/surface/react`: `SurfaceProvider`'s `children` is typed `unknown`, so an application whose `@types/react` is another copy than the SDK's (React 19 types in a workspace or linked checkout) typechecks; `examples/auto-react19` typechecks a TSX use of it.
+- `@axe/relay`: the tab reports its title and path with every change notification, so `relay_tabs` follows a client-side route change (it kept the path of the page the tab connected on).

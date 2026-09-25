@@ -151,6 +151,33 @@ describe("read: sections, fields, tables, text [S-AUTO-14]", () => {
   });
 });
 
+describe("read: an editable grid and a flex status row (found driving a Next app headless)", () => {
+  it("reads an input in a table cell as its value, not its label, and flex items as separate lines", () => {
+    document.body.innerHTML = `
+      <main><h1>FY27 H1 demand</h1>
+        <section style="display: flex; gap: 8px"><span>Status: draft</span><span>Revision 1</span><span>Total 7,300 units</span></section>
+        <table>
+          <thead><tr><th>Item</th><th>January 2027</th><th>February 2027</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Widgets</th><td><input aria-label="Widgets, January 2027" value="1200"></td><td><input aria-label="Widgets, February 2027" value="1210"></td></tr>
+            <tr><th scope="row">Cards</th><td><input aria-label="Card number" autocomplete="cc-number" value="4111111111111111"></td><td>4890</td></tr>
+          </tbody>
+        </table>
+      </main>`;
+    const h = autoSurface();
+    handles.push(h);
+    const r = h.read();
+    const s = section(r, "FY27 H1 demand")!;
+    expect(s.fields).toContainEqual({ label: "Status", value: "draft" });
+    expect(s.text).toContain("Revision 1");
+    expect(s.text).not.toContain("draftRevision");
+    expect(s.tables[0]!.rows[0]).toEqual(["Widgets", "1200", "1210"]);
+    // A private control keeps its cell private.
+    expect(s.tables[0]!.rows[1]).toEqual(["Cards", "", "4890"]);
+    expect(all(r)).not.toContain("4111111111111111");
+  });
+});
+
 describe("read: redaction and ignored subtrees [S-AUTO-14]", () => {
   it("withholds passwords and card numbers, keeps their labels, and counts them", () => {
     const r = start().read();

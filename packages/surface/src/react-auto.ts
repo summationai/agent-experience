@@ -132,7 +132,12 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
 export interface SurfaceProviderProps extends UseAutoSurfaceOptions {
   /** Feature flag, the same as `enabled`: false starts nothing. */
   flag?: boolean;
-  children?: ReactNode;
+  /**
+   * The tree to render: any React node. Typed `unknown` so an application whose `@types/react`
+   * is another copy than the one the SDK was built against (a workspace, a linked checkout, React
+   * 19 types over the SDK's React 18 ones) still typechecks.
+   */
+  children?: unknown;
 }
 
 /**
@@ -147,7 +152,7 @@ export interface SurfaceProviderProps extends UseAutoSurfaceOptions {
 export function SurfaceProvider(props: SurfaceProviderProps) {
   const { flag, children, enabled, ...rest } = props;
   const handle = useAutoSurface({ ...rest, enabled: flag ?? enabled ?? true });
-  return createElement(AutoSurfaceContext.Provider, { value: handle }, children);
+  return createElement(AutoSurfaceContext.Provider, { value: handle }, children as ReactNode);
 }
 
 /** The handle of the nearest `SurfaceProvider`, or null before it has started (and on the server). */
