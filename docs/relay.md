@@ -196,6 +196,8 @@ export async function startRelayInBrowser(s: Surface): Promise<() => void> {
 
 ## Production
 
+The browser side needs only `@axe/relay` (its `client` and `token` entries import nothing at runtime). A relay server also needs its optional peer dependencies: install `@axe/mcp`, `@modelcontextprotocol/sdk`, and `ws` next to `@axe/relay` where the server runs. A web application that only connects its tabs installs none of them, which also keeps it clear of registry age gates on those packages.
+
 A production relay authenticates both sides: tabs with relay tokens your backend minted, agents with OAuth access tokens.
 
 <!-- include: examples/relay/server.ts#production -->
