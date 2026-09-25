@@ -18,6 +18,9 @@ docs/api/reference/@axe/core/vocabulary.html
 docs/api/reference/@axe/express.html
 docs/api/reference/@axe/fetch.html
 docs/api/reference/@axe/generate.html
+docs/api/reference/@axe/host/README.html
+docs/api/reference/@axe/host/cli.html
+docs/api/reference/@axe/host/index.html
 docs/api/reference/@axe/mcp.html
 docs/api/reference/@axe/next.html
 docs/api/reference/@axe/relay/README.html
@@ -47,6 +50,7 @@ docs/for-agent-builders.html
 docs/generating.html
 docs/getting-started.html
 docs/glossary.html
+docs/host.html
 docs/human-handoff.html
 docs/human-oversight.html
 docs/integrations/express.html
@@ -87,6 +91,7 @@ docs/review/2026-09-24/18-claims-and-roadmap.html
 docs/review/2026-09-24/README.html
 docs/review/2026-09-24/data/evaluation-2026-09-24.html
 docs/review/2026-09-24/data/granularity.html
+docs/review/2026-09-25/unattended-e2e.html
 docs/schemas.html
 docs/security.html
 docs/site.html
