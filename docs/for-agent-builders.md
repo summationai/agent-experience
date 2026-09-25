@@ -73,6 +73,38 @@ When the manifest carries `live`, the site publishes [live state](live-state.md)
 
 Identify your agent with `agent`: `name`, `version`, `vendor`, and `contact`. It is sent as `context.agent` and as the `User-Agent`. The `vendor` is the field sites match against in `policies.agents` and the one that shows up in their [analytics](analytics.md), so use the organization operating the agent, spelled the same way every time. An agent with no `vendor` cannot be allowed by name and is invisible in the site's dashboards.
 
+## Keeping the manifest fresh
+
+Sites add, remove, and change actions while your agent runs. A client keeps the manifest it was built with until you ask for another, so a long-lived agent should revalidate it ([P-DISC-13](../spec/AXE-PROTOCOL.md#31-manifest-location)).
+
+<!-- include: examples/for-agent-builders/refresh.ts#refresh -->
+```ts
+import { AXEClient } from "@axe/client";
+
+const client = await AXEClient.discover("https://oakridge-rentals.example", {
+  // Never use a manifest older than two minutes, or the site's Cache-Control max-age if shorter.
+  manifestMaxAgeMs: 120_000,
+});
+
+client.onManifestChange(({ added, removed, modified }) => {
+  console.log(`actions added ${added}, removed ${removed}, changed ${modified}`);
+});
+
+// Before building tools for a new turn: revalidate if stale (a conditional GET, usually a 304).
+await client.ensureFresh();
+
+// Or refresh now, whatever the age.
+const change = await client.refresh();
+if (change.changed) console.log(`now ${change.manifest.actions.length} actions`);
+```
+<!-- /include -->
+
+- `refresh()` fetches the manifest again from where it was found, conditionally (`If-None-Match`) when the site sent an `ETag`, and replaces the client's copy when it changed. It resolves to a `ManifestChange`: `changed`, and the action names `added`, `removed`, and `modified`. Concurrent calls share one request.
+- `isManifestStale()` compares the copy's age with its bound: the smaller of `manifestMaxAgeMs` (default five minutes) and the `Cache-Control` max-age the site sent (`no-cache` means always stale). `ensureFresh()` refreshes only when stale.
+- `onManifestChange` listeners hear about every refresh that changed something; rebuild your tool list there.
+- `run()` refreshes once on its own when you name an action the copy does not have, then runs it if the site now has it.
+- A refreshed manifest must name a `baseUrl` the [trust policy](#where-the-client-sends-credentials) allows; otherwise `refresh()` throws `AXETrustError` and the client keeps its copy.
+
 ## Where the client sends credentials
 
 A manifest, a result, and a discovery hint are data from the site, and each can name a URL: `baseUrl`, `live.url`, `pollUrl`, an `AXE-Manifest` header, a `<link rel="axe-manifest">`. None of them decides where your token goes. The client anchors its credentials at the origin you discovered from; for a manifest you pass to `new AXEClient` yourself, at that manifest's `baseUrl` origin. `auth` and `headers` go to the anchor and to the origins in `trust.origins`, and nowhere else ([spec §17.1](../spec/AXE-PROTOCOL.md#171-where-an-agent-sends-requests-and-credentials)).

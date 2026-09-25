@@ -137,6 +137,28 @@ Satisfy a `needs_input` requirement.
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="ensurefresh"></a>
+
+##### ensureFresh()
+
+```ts
+ensureFresh(options?): Promise<ManifestChange | undefined>;
+```
+
+`refresh()` when the manifest is stale; otherwise nothing.
+
+###### Parameters
+
+###### options?
+
+###### signal?
+
+`AbortSignal`
+
+###### Returns
+
+`Promise`\<[`ManifestChange`](#manifestchange) \| `undefined`\>
+
 <a id="invoke"></a>
 
 ##### invoke()
@@ -175,6 +197,27 @@ Invoke an action. Generates an idempotency key for mutating actions when none is
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
 
+<a id="ismanifeststale"></a>
+
+##### isManifestStale()
+
+```ts
+isManifestStale(now?): boolean;
+```
+
+Whether the manifest is older than its bound: the smaller of `manifestMaxAgeMs` (default five
+minutes) and the `Cache-Control` max-age the site sent with it.
+
+###### Parameters
+
+###### now?
+
+`number` = `...`
+
+###### Returns
+
+`boolean`
+
 <a id="live"></a>
 
 ##### live()
@@ -202,6 +245,26 @@ The manifest this client was built from.
 ###### Returns
 
 [`Manifest`](#manifest-1)
+
+<a id="onmanifestchange"></a>
+
+##### onManifestChange()
+
+```ts
+onManifestChange(listener): () => void;
+```
+
+Called after every refresh that changed the manifest. Returns an unsubscribe function.
+
+###### Parameters
+
+###### listener
+
+(`change`) => `void`
+
+###### Returns
+
+() => `void`
 
 <a id="poll"></a>
 
@@ -232,6 +295,31 @@ Poll a `pending` result until it settles or `maxWaitMs` passes (then the last `p
 ###### Returns
 
 `Promise`\<[`Result`](#result)\<`O`\>\>
+
+<a id="refresh"></a>
+
+##### refresh()
+
+```ts
+refresh(options?): Promise<ManifestChange>;
+```
+
+Fetch the manifest again, conditionally (`If-None-Match` when the site sent an `ETag`), and
+replace this client's copy when it changed. Concurrent calls share one request. The new
+manifest's `baseUrl` must pass the destination policy, or the old manifest is kept and
+`AXETrustError` is thrown. Listeners from `onManifestChange` hear about a change.
+
+###### Parameters
+
+###### options?
+
+###### signal?
+
+`AbortSignal`
+
+###### Returns
+
+`Promise`\<[`ManifestChange`](#manifestchange)\>
 
 <a id="resume"></a>
 
@@ -1129,6 +1217,18 @@ Extra headers. Treated as credentials: sent only to origins in the credential au
 optional locale?: string;
 ```
 
+<a id="manifestmaxagems"></a>
+
+##### manifestMaxAgeMs?
+
+```ts
+optional manifestMaxAgeMs?: number;
+```
+
+Longest time, in ms, a fetched manifest is used before `ensureFresh()` revalidates it. The
+effective bound is the smaller of this and the manifest response's `Cache-Control` max-age
+(`no-cache` and `no-store` mean 0). Default 300000. See "Manifest freshness".
+
 <a id="maxretryafterms"></a>
 
 ##### maxRetryAfterMs?
@@ -1744,6 +1844,58 @@ protocol: string;
 
 ```ts
 optional updatedAt?: string;
+```
+
+***
+
+<a id="manifestchange"></a>
+
+### ManifestChange
+
+What `refresh()` found: the action names added, removed, and whose definition changed.
+
+#### Properties
+
+<a id="added"></a>
+
+##### added
+
+```ts
+added: string[];
+```
+
+<a id="changed"></a>
+
+##### changed
+
+```ts
+changed: boolean;
+```
+
+<a id="manifest-2"></a>
+
+##### manifest
+
+```ts
+manifest: Manifest;
+```
+
+The manifest in use after the refresh.
+
+<a id="modified"></a>
+
+##### modified
+
+```ts
+modified: string[];
+```
+
+<a id="removed"></a>
+
+##### removed
+
+```ts
+removed: string[];
 ```
 
 ***

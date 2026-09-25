@@ -98,6 +98,8 @@ The threats above face the site. This one faces the agent. A manifest discovered
 
 The MCP server derived by `@axe/mcp` exposes polling to a model as the `axe_poll` tool. A tool argument is model-supplied, so prompt-injected text could name any URL; the tool polls only a `pollUrl` the server itself returned in a `pending` result.
 
+An MCP server served over HTTP is used by many people at once. `serveHttp` authenticates every request (not only the one that opened a session), binds each session to the principal that opened it, and resolves the AXE identity for every tool call from that request's verified token through `clientFor`; it refuses to start when one user's credentials would act for every caller. The MCP access token itself is not forwarded to the site unless it was issued for the site too. Issued poll URLs are remembered per session or per principal. See [MCP](mcp.md#authentication-over-http).
+
 ### Request forgery from a host-side agent
 
 An agent that runs on a server (an MCP server on a company network, a backend worker) fetches URLs that sites choose, from a network position the sites do not have. That is server-side request forgery: a manifest pointing `live.url` at `http://10.0.0.5/admin` or `https://169.254.169.254/` asks your host to fetch its own internal services.
@@ -157,6 +159,7 @@ A surface holds field values, domain objects, and the text agents typed. In the 
 | Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                 | `@axe/client/present`, `toHTML`            |
 | Agent credentials sent to other origins | Credentials bound to the discovery origin plus `trust.origins`; redirects checked per hop; no credentials across origins; https downgrade refused | `@axe/client`, `trust` |
 | Model-chosen poll URLs | `axe_poll` polls only a `pollUrl` the server returned | `@axe/mcp` |
+| One MCP endpoint shared by many users | Per-request token verification; sessions bound to their principal; per-call AXE identity from `clientFor`; shared credentials refused; poll URLs scoped per session or principal | `@axe/mcp`, `serveHttp` |
 | Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@axe/core/events`                         |
 | Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
 | Anonymous or cross-user surface reads | Bridge actions default to `auth: "user"`; per-caller surfaces from a template; `sensitive` fields and the ledger text policy | `@axe/surface/axe`, `@axe/surface`        |
