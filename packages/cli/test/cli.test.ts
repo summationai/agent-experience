@@ -63,6 +63,18 @@ describe("axe CLI", () => {
     expect(err.join("\n")).toContain('Unknown command "bogus"');
   });
 
+  it("axe host is wired to @axe/host: help, and development only from the command line", async () => {
+    reset();
+    expect(await run([], io)).toBe(1);
+    expect(out.join("\n")).toContain("axe host --dev --app <url>");
+    reset();
+    expect(await run(["host", "--help"], io)).toBe(0);
+    expect(out.join("\n")).toContain("axe host login <app url>");
+    reset();
+    expect(await run(["host", "--app", "http://localhost:5173"], io)).toBe(1);
+    expect(err.join("\n")).toContain("createHost({ appUrl, agentAuth, sessionFor })");
+  });
+
   it("init scaffolds axe.ts and a mount file for each framework", async () => {
     for (const fw of ["express", "next", "fetch"]) {
       const dir = mkdtempSync(join(tmpdir(), "axe-init-"));

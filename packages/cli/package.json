@@ -1,7 +1,7 @@
 {
   "name": "axe",
   "version": "0.1.0",
-  "description": "Command-line tool for AXE and Surface: init, validate, inspect, preview, conformance, audit, mcp, generate, relay, surface init, surface coverage.",
+  "description": "Command-line tool for AXE and Surface: init, validate, inspect, preview, conformance, audit, mcp, generate, relay, host, surface init, surface coverage.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,7 +30,8 @@
     "@axe/testing": "workspace:*",
     "tsx": "^4.23.15",
     "@axe/generate": "workspace:*",
-    "@axe/relay": "workspace:*"
+    "@axe/relay": "workspace:*",
+    "@axe/host": "workspace:*"
   },
   "repository": {
     "type": "git",

@@ -21,7 +21,7 @@ import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 
 import { WebSocketServer } from "ws";
 import type { WebSocket as NodeWebSocket, RawData } from "ws";
 import { action, createAXE, z } from "@axe/core";
-import type { AdapterContext, AXE, Identity, TenantInfo } from "@axe/core";
+import type { AdapterContext, AXE, Identity } from "@axe/core";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
 import { createSurface } from "@axe/surface";
 import type {
@@ -257,6 +257,13 @@ export interface Relay {
   /** The tabs of one principal, most recently active first. */
   tabs(who: RelayPrincipal): RelayTabInfo[];
   /**
+   * Serve one AXE request of an agent tool call, as the relay's own MCP front does: `adapter`
+   * from `relayAgentContext`, and `call` (the `AxeLike.handle` third argument), which carries
+   * approvals to the agent's client. For a front end that serves the relay's tools itself
+   * (`@axe/host`); pass it `createMcpServer` as the `AxeLike`'s `handle`.
+   */
+  handleAgent(request: Request, adapter: AdapterContext, call?: ToolCallContext): Promise<Response>;
+  /**
    * End agent access to one tab of `who` (or all of them, without `tabId`), as Stop does: the
    * token is revoked, every later act is refused, and the page is told (a host then closes its
    * session). For a host's own "stop" control. Returns how many tabs it stopped.
@@ -268,6 +275,26 @@ export interface Relay {
 /** The actor a tab records for an act from the relay. */
 export function relayActor(principal: string): string {
   return `${principal} (agent via relay)`;
+}
+
+/**
+ * The adapter context the relay's AXE server (`relay.axe`) expects for an agent acting as `who`,
+ * for a front end that serves the relay's tools itself (`@axe/host` does). `agent` keys the
+ * agent's tab selection; give each agent its own. Never build it from anything but the agent's
+ * own verified identity: it decides which tabs the agent reaches ([S-RELAY-3]).
+ */
+export function relayAgentContext(
+  agent: string,
+  who: RelayPrincipal,
+  baseUrl = "http://localhost",
+): AdapterContext {
+  return {
+    identity: {
+      onBehalfOf: who.principal,
+      claims: { relayAgent: agent, relayTenant: who.tenant },
+    },
+    tenant: { id: who.tenant, name: who.tenant, baseUrl },
+  };
 }
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
@@ -1521,11 +1548,6 @@ export function createRelay(options: RelayOptions = {}): Relay {
   // ---------------------------------------------------------------------------------------------
   // Agent identity: what the AXE runtime sees for each MCP caller.
   // ---------------------------------------------------------------------------------------------
-  const tenantInfo = (tenant: string): TenantInfo => ({
-    id: tenant,
-    name: tenant,
-    baseUrl: options.baseUrl ?? "http://localhost",
-  });
   const adapterFor = (agent: string, who: RelayPrincipal | null): AdapterContext => {
     const resolved = who ?? (dev ? (paired.get(agent) ?? null) : null);
     if (!resolved)
@@ -1535,13 +1557,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
           claims: { relayAgent: agent, relayUnpaired: true },
         },
       };
-    return {
-      identity: {
-        onBehalfOf: resolved.principal,
-        claims: { relayAgent: agent, relayTenant: resolved.tenant },
-      },
-      tenant: tenantInfo(resolved.tenant),
-    };
+    return relayAgentContext(agent, resolved, options.baseUrl ?? "http://localhost");
   };
 
   const axeLike = (fallback?: () => AdapterContext): AxeLike => ({
@@ -1959,6 +1975,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
       stdio = derived;
       return derived;
     },
+    handleAgent: (request, adapter, call) => axeLike().handle(request, adapter, call),
     tabs(who) {
       return tabsOf(who).map((t) => t.info(false));
     },

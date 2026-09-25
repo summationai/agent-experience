@@ -1,0 +1,79 @@
+{
+  "name": "@axe/host",
+  "version": "0.1.0",
+  "description": "Unattended mode: the SDK runs a headless browser session of the application for the person the agent authenticated as, and the agent drives the app's real UI through its Surface over MCP, with no pairing and no tab of the person's own.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./cli": {
+      "import": {
+        "types": "./dist/cli.d.ts",
+        "default": "./dist/cli.js"
+      },
+      "require": {
+        "types": "./dist/cli.d.cts",
+        "default": "./dist/cli.cjs"
+      }
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "cli": [
+        "./dist/cli.d.ts"
+      ]
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "axe-host": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@axe/core": "workspace:*",
+    "@axe/mcp": "workspace:*",
+    "@axe/relay": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "playwright-core": "^1.63.0",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@axe/surface": "workspace:*",
+    "esbuild": "^0.25.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/summationai/agent-experience",
+    "directory": "packages/host"
+  },
+  "keywords": [
+    "axe",
+    "agents",
+    "ai",
+    "surface",
+    "mcp",
+    "headless",
+    "playwright"
+  ]
+}
