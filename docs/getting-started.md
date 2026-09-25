@@ -301,10 +301,12 @@ PASS  manifest.schema                 Manifest validates against the schema
 ...
 PASS  runtime.example-roundtrip       Read actions return ok for their examples; outputs validate; display resolves
 ...
-35 passed, 0 failed, 1 warnings, 18 skipped. Conformant.
+36 passed, 0 failed, 1 warnings, 27 skipped. Conformant.
+Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised. Each skip's detail line says what the run lacked.
+...
 ```
 
-The skipped checks exercise mutating actions and the escalation ladder; they run once you add a mutating action and pass `--auth`. The one warning is a hint you can fix with a single line in `robots.txt`; see [Deploying](deploying.md#discovery).
+The skipped checks exercise mutating actions and the escalation ladder; they run once you add a mutating action and pass `--auth`. Until then they are not verified, which is what the second line says. The one warning is a hint you can fix with a single line in `robots.txt`; see [Deploying](deploying.md#discovery).
 
 `axe audit` gives you the AXE Score and a fix list, in the style of Lighthouse:
 
@@ -313,10 +315,10 @@ npx axe audit http://localhost:3000
 ```
 
 ```
-AXE Score: 89 / 100   http://localhost:3000/
+AXE Score: 88 / 100   http://localhost:3000/
 ...
 Fix list (highest impact first):
- 1. +7.5 Affordance graph is connected: reads lead somewhere, transactions are reachable [Actionable]
+ 1. +9.2 Affordance graph is connected: reads lead somewhere, transactions are reachable [Actionable]
     classes.search returns a list but offers no affordances
     See docs/presenting-results.md#affordances
  2. +3.2 robots.txt directive, link tag, or header points at the manifest [Discoverable]

@@ -172,6 +172,8 @@ A surface holds field values, domain objects, and the text agents typed. In the 
 | Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
 | Anonymous or cross-user surface reads | Bridge actions default to `auth: "user"`; per-caller surfaces from a template; `sensitive` fields and the ledger text policy | `@axe/surface/axe`, `@axe/surface`        |
 
+Each row is pinned by tests in the SDK's own suites, run by `pnpm -r test`. The [review checklist](review/2026-09-24/README.md) names the tests per property, with what each one fails on without the change: token binding (item 01), atomic operations (02), client trust (03), poll authorization (04), Surface authorization (05), CSRF (06), site principals (07), write preconditions (08), MCP HTTP identity (09), capability freshness (10), mounted React behavior (11), and limits and schema boundaries (12). A test pins the code path it exercises, in this repository; it does not show that a deployment configured the mechanism, and it does not test your handlers. `axe conformance` and `axe audit` observe a few of these from outside (tampered tokens, principal binding with `--auth`, error hygiene, request policy); they are not a security test of your site.
+
 ## What your site must provide
 
 The production configuration below shows the shape.
@@ -263,6 +265,7 @@ These are true of v0. The first two are deferred with reasons in [ROADMAP.md](..
 - **No manifest signing.** Manifest integrity rests on HTTPS. An attacker who can serve content on your origin can serve a different manifest.
 - **No agent attestation.** `context.agent` and `User-Agent` are self-reported. `policies.agents` matches those strings; it does not verify them.
 - **Honesty rules are heuristics.** The agent-directive and persuasion checks are regular expressions over known phrasings. Novel phrasing passes both registration and the audit. A passing audit is not proof that a manifest is safe to follow.
+- **Conformance and audit are not security reviews.** A conformant site with a high score can still leak data across users or tenants through its own handlers. See [What a score does not mean](audit.md#what-a-score-does-not-mean).
 - **Parity is a spot-check.** The audit looks for agent-returned values as text on the human page. Dynamic pages, formatted numbers, and personalized prices defeat it in either direction.
 - **Zod refinements are not enforced on continue.** Stored `accepts` schemas are JSON Schema so they can live in any `TokenStore`, and payloads are validated against that. A refinement on a custom kind's Zod schema is not applied to `/axe/continue`; put the constraint in `onContinue`. The published schema marks the node `x-axe-refined`, which tells the agent a matching payload may still be refused; it does not make the runtime apply the refinement.
 - **The backtracking check is a heuristic.** It finds a repeated group whose body ends in a repetition; overlapping alternatives such as `(a|aa)+` pass it. Patterns run in the platform's backtracking engine with no time limit.

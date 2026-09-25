@@ -1416,7 +1416,7 @@ async function runtime(r: Runner): Promise<void> {
   r.add(
     "runtime.error-hygiene",
     "Error bodies contain no stack traces or internals",
-    leaked.length ? "fail" : "pass",
+    leaked.length ? "fail" : r.errorBodies.length === 0 ? "skip" : "pass",
     ["P-ERR-2"],
     leaked.length
       ? `${leaked.length} of ${r.errorBodies.length} error responses leaked a stack trace or HTML error page.`
@@ -1550,7 +1550,8 @@ async function ladder(r: Runner): Promise<void> {
   r.add(
     "ladder.needs-human-avoidable",
     "needs_human not used where a well-known kind would do",
-    avoidable.length ? "fail" : "pass",
+    // Nothing observed is nothing verified: skip rather than pass vacuously.
+    avoidable.length ? "fail" : r.obs.needsHuman.length === 0 ? "skip" : "pass",
     ["P-RES-2", "P-HAND-2"],
     avoidable.length
       ? avoidable
@@ -2168,6 +2169,13 @@ export function formatConformanceTable(
   lines.push(
     "",
     `${report.passed} passed, ${report.failed} failed, ${report.warnings} warnings, ${report.skipped} skipped. ${report.ok ? "Conformant." : "Not conformant."}`,
+  );
+  if (report.skipped > 0)
+    lines.push(
+      `Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised. Each skip's detail line says what the run lacked.`,
+    );
+  lines.push(
+    "Conformance checks the protocol behavior observable from outside. It is not a security review and not evidence that the application's own logic is correct. See docs/testing-and-conformance.md#what-conformance-does-not-show.",
   );
   return lines.join("\n");
 }

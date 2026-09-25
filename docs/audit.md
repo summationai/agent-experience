@@ -1,6 +1,6 @@
 # Audit: the AXE Score
 
-`axe audit` gives a site one number from 0 to 100, a per-category breakdown, and a fix list ordered by how many points each fix recovers. It is the Lighthouse of AXE: not a pass/fail gate, but a way to see how well agents will do on your site and what to change first.
+`axe audit` gives a site one number from 0 to 100, a per-category breakdown, and a fix list ordered by how many points each fix recovers. It is the Lighthouse of AXE: not a pass/fail gate, but a way to see how legible your manifest and responses are to an agent and what to change first. It is a lint with a live smoke test, not a certification; [What a score does not mean](#what-a-score-does-not-mean) lists what it cannot tell you.
 
 ```sh
 npx axe audit <url> [--auth <token>] [--no-mutate] [--vendor <name>] [--browser] [--json] [--html <file>] [--min-score <n>]
@@ -26,8 +26,8 @@ Scoring works the same way in every category:
 
 1. Each check has a weight within its category. In the shipped file the weights in each category sum to its maximum, but only the ratios matter.
 2. Each check earns a fraction from 0 to 1. Many checks are proportional: if 3 of 4 actions have examples, the check earns 0.75.
-3. A skipped check is excluded from the denominator. A site with no deprecated actions is not penalized for the deprecation check, and a run without `--auth` is not penalized for the idempotency check it could not exercise.
-4. Category score = earned weight ÷ scored weight × category maximum, rounded to one decimal. The total is the rounded sum.
+3. A skipped check is excluded from the denominator and earns nothing: its `earned` is 0 in the JSON report. A site with no deprecated actions is not penalized for the deprecation check, and a run without `--auth` is not penalized for the idempotency check it could not exercise; neither is credited for it. A check made of two halves (`presentable.pointers-resolve`, `trustworthy.tokens`) scores only the halves that ran. A check with nothing to count (no actions, no input fields, no `needs_human` observed) skips rather than passing.
+4. Category score = earned weight ÷ scored weight × category maximum, rounded to one decimal. A category in which every check skipped is not scored: it shows "not scored", earns nothing, and is left out of the total. The total is the sum of the scored categories, scaled to 100 over their maximums and rounded. When every category is scored, which is the usual case, that is the plain sum. A URL that serves no manifest scores 0.
 5. A hard failure zeroes its category regardless of the other checks. There is one: instructions to the agent in agent-read text.
 6. The fix list contains every failed or partial check, with the points recoverable by fixing it completely, sorted highest first. A hard failure is listed at the full category maximum.
 
@@ -183,7 +183,8 @@ A ? is a warning to investigate, not a deduction; parity has no weight in the sc
 - a hard-failure banner when P-HON-1 matched, naming the check;
 - the fix list, each entry with its recoverable points, category, detail, and a link to the doc section that explains the remedy;
 - one table per category with a progress bar and every check's status (✓ pass, ◐ partial, ✗ fail, – skip), id, weight, and detail;
-- the parity spot-check table with clickable item URLs and, after `--browser`, the ✓ and ? marks per value.
+- the parity spot-check table with clickable item URLs and, after `--browser`, the ✓ and ? marks per value;
+- a closing "What this score is not" section, also printed at the end of the terminal table: how many checks counted and how many skipped, the conformance counts behind the score, and the limits in the next section.
 
 The CI job in [Running conformance in CI](testing-and-conformance.md#running-conformance-in-ci) uploads it as a build artifact. For a pull request that changes the manifest, attach it or paste the fix list into the description; the fix list is the review checklist. `--json` emits the same data as an `AuditReport`, with the nested conformance report, for dashboards that track the score over time.
 
@@ -197,17 +198,17 @@ Recommended floors:
 - **90 once you have display and affordances.** A site with a list read that leads somewhere, one mutating action with examples so idempotency is scored, a discovery hint, and clean text sits in the low to mid 90s. Below 90 at that stage usually means a missing hint, a missing disclaimer, or a persuasion finding.
 - Treat 100 as a ceiling, not a target. The remaining points are usually a platform index or an image check that does not apply.
 
-The getting-started tutorial scores 89, and the shape of that number is instructive:
+The getting-started tutorial scores 88, and the shape of that number is instructive:
 
 | Category     | Score     | Why                                                                                                                                                                                        |
 | ------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Discoverable | 16.8 / 20 | No discovery hint. The index check is skipped, so the hint's 3 points are 3 of 19 scored, or 3.2 points.                                                                                   |
 | Describable  | 25 / 25   | One action, described, with a validated example and described inputs.                                                                                                                      |
 | Presentable  | 15 / 15   | `display` with `url` and `disclaimer`; no images, so that check is skipped.                                                                                                                |
-| Actionable   | 12.5 / 20 | `classes.search` returns a list and offers no affordances, so the graph check earns 0 of 6. Idempotency is skipped (no mutating action), leaving 16 scored points; the dead end costs 7.5. |
+| Actionable   | 10.8 / 20 | `classes.search` returns a list and offers no affordances, so the graph check earns 0 of 6. Idempotency and the `needs_input`-first check are skipped (no mutating action, no `needs_human` observed), leaving 13 scored points; the dead end costs 9.2. |
 | Trustworthy  | 20 / 20   | Rate limit, terms, contact, and fallback declared; the token check is skipped.                                                                                                             |
 
-A lone read action with no affordances is the most common shape of a first integration, and the fix list puts the remedy first: an affordance from each class to a booking action, worth 7.5 points, followed by a robots.txt line worth 3.2. The `trustworthy.human-fallback` check is a live fetch, so the same manifest scores 88 when `humanFallbackUrl` is not reachable from the auditing machine, as happens in this repository's CI where the example runs on a different port than the URL it declares.
+A lone read action with no affordances is the most common shape of a first integration, and the fix list puts the remedy first: an affordance from each class to a booking action, worth 9.2 points, followed by a robots.txt line worth 3.2. The `trustworthy.human-fallback` check is a live fetch, so the same manifest scores 87 when `humanFallbackUrl` is not reachable from the auditing machine, as happens in this repository's CI where the example runs on a different port than the URL it declares.
 
 Run the gate from a script when you want more than a threshold, for instance to also write the HTML report or to fail on a hard failure regardless of score:
 
@@ -222,6 +223,17 @@ if (audit.hardFailure) console.error(`Hard failure: ${audit.hardFailure}`);
 if (audit.score < 80) process.exitCode = 1;
 ```
 <!-- /include -->
+
+## What a score does not mean
+
+The audit reads a manifest, runs the conformance suite, and scores what it saw. Four things follow.
+
+- **Skipped is not passed.** A check that could not run (no credentials, no mutating action with an example, `--no-mutate`, a feature not used) earns nothing and is left out. A score of 95 from a run that skipped the ladder says nothing about the ladder. Both reports print the number of skipped checks; read it next to the score.
+- **The honesty checks are heuristics.** P-HON-1 and P-HON-2 are regular expressions over agent-read text. They catch the phrasings in the tables above and miss a paraphrase. The fake-kind check compares schemas structurally, only for kinds offered in an observed `needs_input`. The parity check samples up to three items per action and, with `--browser`, looks for strings on the page; it has no weight. A clean Trustworthy category means no pattern matched, not that the site is honest.
+- **It is not a security review.** The audit does not test authorization, tenant isolation, CSRF, token binding, or your handlers. Those properties are pinned by the SDK's own test suites, listed in [Security](security.md#what-the-sdk-mitigates) and the [review checklist](review/2026-09-24/README.md), and they hold only for the code paths those tests cover. Your application's authorization is yours to test.
+- **It does not measure task success or value.** Nothing in the score shows that an agent completes a task on your site, that users prefer it, or that anyone will adopt it. The scripted evaluation harness in [Evaluation](evaluation.md) measures task outcomes for a scripted agent against the reference app; it is not a measure of model performance either.
+
+What a score is good for: a diff. A drop on a pull request points at the manifest field or response that changed, and the fix list is a review checklist.
 
 ## Tuning the weights
 
@@ -249,7 +261,7 @@ Every weight lives in one file, `packages/testing/src/audit/weights.json`, expor
 
 A fork can change the numbers: an industry group that cares more about presentation than discovery can move points between categories, and a team can raise the weight of the check it keeps failing to make the fix list reflect its priorities. Two constraints. The category maximums must sum to 100, or the score is no longer out of 100. And every check the audit scores must keep its entry, with the category prefix matching: the scorer throws on an id it cannot find, and a test in `@axe/testing` asserts every id has the form category.check. Within a category, weights are ratios, so their sum does not need to equal the maximum.
 
-Changing the weights changes what "89" means. If you publish scores for other people's sites, publish the weights file next to them.
+Changing the weights changes what "88" means. If you publish scores for other people's sites, publish the weights file next to them.
 
 ## Next steps
 
