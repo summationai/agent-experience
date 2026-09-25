@@ -48,6 +48,21 @@ export function renderMarkdown(r: Results): string {
     L(`| ${v.title} | ${v.how} | ${i ? `${i.lines} (${i.note})` : ""} |`);
   }
   L();
+  L(
+    "Setup before each task, not counted in the measures below: signing in and loading the plan page (v1, v2), or connecting to the MCP server and listing its tools (v3, v4; v4 also fetches the manifest). Medians over every run.",
+  );
+  L();
+  L("| Variant | Setup requests | Setup bytes |");
+  L("| --- | --- | --- |");
+  for (const v of r.variants) {
+    const cs = r.summary.filter((c) => c.variant === v.id);
+    if (!cs.length) continue;
+    const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 0;
+    L(
+      `| ${v.id} | ${med(cs.map((c) => c.medianSetupRequests))} | ${kb(med(cs.map((c) => c.medianSetupBytes)))} |`,
+    );
+  }
+  L();
   L("## Scenarios");
   L();
   L("| Scenario | Task | Fault |");

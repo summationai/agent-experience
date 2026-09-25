@@ -215,6 +215,8 @@ export interface CellSummary {
   medianAgentBytes: number;
   medianLatencyMs: number;
   maxLatencyMs: number;
+  medianSetupRequests: number;
+  medianSetupBytes: number;
   faultApplies: boolean;
   errors: string[];
   mismatches: string[];
@@ -247,6 +249,8 @@ export function summarize(records: RunRecord[]): CellSummary[] {
       medianAgentBytes: median(rs.map((r) => r.agentBytes)),
       medianLatencyMs: median(rs.map((r) => r.latencyMs)),
       maxLatencyMs: Math.max(...rs.map((r) => r.latencyMs)),
+      medianSetupRequests: median(rs.map((r) => r.setupRequests)),
+      medianSetupBytes: median(rs.map((r) => r.setupBytes)),
       faultApplies: rs[0]!.faultApplies,
       errors: [...new Set(rs.map((r) => r.error).filter((e): e is string => !!e))],
       mismatches: [...new Set(rs.flatMap((r) => r.outcome.mismatches))],

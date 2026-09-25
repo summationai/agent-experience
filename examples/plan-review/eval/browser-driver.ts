@@ -66,6 +66,7 @@ export async function openBrowserDriver(o: BrowserDriverOptions): Promise<Driver
   await page.getByRole("button", { name: /Sign in as bob, Acme/ }).click();
   await page.waitForURL("**/plan");
   o.onPage?.(page);
+  await Promise.all(pending.splice(0)); // sign-in traffic belongs to setup
 
   const semantic = o.markup === "semantic";
 
