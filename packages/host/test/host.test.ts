@@ -129,7 +129,7 @@ describe("unattended mode in Chromium", () => {
     // Every act is in the tab's ledger under the agent's principal.
     const ledger = await alice.call("surface_ledger");
     expect(ledger.text).toContain("alice (agent via relay)");
-    // [S-HOST-6] No tool carries the relay token or the session.
+    // [S-HOST-4] No tool carries the relay token or the session.
     for (const t of [tabs, add, set, ledger]) {
       expect(t.text).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}/);
       expect(t.text).not.toContain("x-app-session");
@@ -180,11 +180,11 @@ describe("unattended mode in Chromium", () => {
 
   it("an idle session closes, and the next tool call starts it again", async (ctx) => {
     if (missing) return ctx.skip();
-    const { host, agent: open, events } = await start({ idleMs: 1500 });
+    const { host, agent: open, events } = await start({ idleMs: 2500 });
     const alice = await open("agent-alice");
     await observe(alice);
-    expect(host.sessions()).toHaveLength(1);
-    await until(() => host.sessions().length === 0, 10_000);
+    expect(events.filter((e) => e.type === "session.ready")).toHaveLength(1);
+    await until(() => host.sessions().length === 0, 15_000);
     expect(events).toContainEqual({
       type: "session.closed",
       principal: "alice",

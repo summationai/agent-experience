@@ -11,6 +11,7 @@
     "packages/testing",
     "packages/surface",
     "packages/relay",
+    "packages/host",
     "packages/generate",
     "packages/cli"
   ],

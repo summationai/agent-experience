@@ -456,6 +456,430 @@ url: boolean;
 
 ***
 
+<a id="extratool"></a>
+
+### ExtraTool
+
+A tool answered by your own code (`McpServerOptions.extraTools`).
+
+#### Properties
+
+<a id="definition"></a>
+
+##### definition
+
+```ts
+definition: object;
+```
+
+The MCP tool definition: name, description, input schema, annotations.
+
+###### \_meta?
+
+```ts
+optional _meta?: object;
+```
+
+###### Index Signature
+
+```ts
+[key: string]: unknown
+```
+
+###### annotations?
+
+```ts
+optional annotations?: object;
+```
+
+###### annotations.destructiveHint?
+
+```ts
+optional destructiveHint?: boolean;
+```
+
+###### annotations.idempotentHint?
+
+```ts
+optional idempotentHint?: boolean;
+```
+
+###### annotations.openWorldHint?
+
+```ts
+optional openWorldHint?: boolean;
+```
+
+###### annotations.readOnlyHint?
+
+```ts
+optional readOnlyHint?: boolean;
+```
+
+###### annotations.title?
+
+```ts
+optional title?: string;
+```
+
+###### description?
+
+```ts
+optional description?: string;
+```
+
+###### execution?
+
+```ts
+optional execution?: object;
+```
+
+###### execution.taskSupport?
+
+```ts
+optional taskSupport?: "required" | "optional" | "forbidden";
+```
+
+###### icons?
+
+```ts
+optional icons?: object[];
+```
+
+###### inputSchema
+
+```ts
+inputSchema: object;
+```
+
+###### Index Signature
+
+```ts
+[key: string]: unknown
+```
+
+###### inputSchema.properties?
+
+```ts
+optional properties?: object;
+```
+
+###### Index Signature
+
+```ts
+[key: string]: object
+```
+
+###### inputSchema.required?
+
+```ts
+optional required?: string[];
+```
+
+###### inputSchema.type
+
+```ts
+type: "object";
+```
+
+###### name
+
+```ts
+name: string;
+```
+
+###### outputSchema?
+
+```ts
+optional outputSchema?: object;
+```
+
+###### Index Signature
+
+```ts
+[key: string]: unknown
+```
+
+###### outputSchema.properties?
+
+```ts
+optional properties?: object;
+```
+
+###### Index Signature
+
+```ts
+[key: string]: object
+```
+
+###### outputSchema.required?
+
+```ts
+optional required?: string[];
+```
+
+###### outputSchema.type
+
+```ts
+type: "object";
+```
+
+###### title?
+
+```ts
+optional title?: string;
+```
+
+#### Methods
+
+<a id="call"></a>
+
+##### call()
+
+```ts
+call(args, context): Promise<{
+[key: string]: unknown;
+  _meta?: {
+   [key: string]: unknown;
+     io.modelcontextprotocol/related-task?: {
+        taskId: string;
+     };
+     progressToken?: string | number;
+  };
+  content: (
+     | {
+     _meta?: {
+      [key: string]: unknown;
+     };
+     annotations?: {
+        audience?: ("user" | "assistant")[];
+        lastModified?: string;
+        priority?: number;
+     };
+     text: string;
+     type: "text";
+   }
+     | {
+     _meta?: {
+      [key: string]: unknown;
+     };
+     annotations?: {
+        audience?: ("user" | "assistant")[];
+        lastModified?: string;
+        priority?: number;
+     };
+     data: string;
+     mimeType: string;
+     type: "image";
+   }
+     | {
+     _meta?: {
+      [key: string]: unknown;
+     };
+     annotations?: {
+        audience?: ("user" | "assistant")[];
+        lastModified?: string;
+        priority?: number;
+     };
+     data: string;
+     mimeType: string;
+     type: "audio";
+   }
+     | {
+     _meta?: {
+      [key: string]: unknown;
+     };
+     annotations?: {
+        audience?: ("user" | "assistant")[];
+        lastModified?: string;
+        priority?: number;
+     };
+     description?: string;
+     icons?: object[];
+     mimeType?: string;
+     name: string;
+     size?: number;
+     title?: string;
+     type: "resource_link";
+     uri: string;
+   }
+     | {
+     _meta?: {
+      [key: string]: unknown;
+     };
+     annotations?: {
+        audience?: ("user" | "assistant")[];
+        lastModified?: string;
+        priority?: number;
+     };
+     resource:   | {
+        _meta?: {
+         [key: string]: unknown;
+        };
+        mimeType?: string;
+        text: string;
+        uri: string;
+      }
+        | {
+        _meta?: {
+         [key: string]: unknown;
+        };
+        blob: string;
+        mimeType?: string;
+        uri: string;
+      };
+     type: "resource";
+  })[];
+  isError?: boolean;
+  structuredContent?: {
+   [key: string]: unknown;
+  };
+}>;
+```
+
+###### Parameters
+
+###### args
+
+`Record`\<`string`, `unknown`\>
+
+###### context
+
+[`ExtraToolContext`](#extratoolcontext)
+
+###### Returns
+
+`Promise`\<\{
+\[`key`: `string`\]: `unknown`;
+  `_meta?`: \{
+   \[`key`: `string`\]: `unknown`;
+     `io.modelcontextprotocol/related-task?`: \{
+        `taskId`: `string`;
+     \};
+     `progressToken?`: `string` \| `number`;
+  \};
+  `content`: (
+     \| \{
+     `_meta?`: \{
+      \[`key`: `string`\]: `unknown`;
+     \};
+     `annotations?`: \{
+        `audience?`: (`"user"` \| `"assistant"`)[];
+        `lastModified?`: `string`;
+        `priority?`: `number`;
+     \};
+     `text`: `string`;
+     `type`: `"text"`;
+   \}
+     \| \{
+     `_meta?`: \{
+      \[`key`: `string`\]: `unknown`;
+     \};
+     `annotations?`: \{
+        `audience?`: (`"user"` \| `"assistant"`)[];
+        `lastModified?`: `string`;
+        `priority?`: `number`;
+     \};
+     `data`: `string`;
+     `mimeType`: `string`;
+     `type`: `"image"`;
+   \}
+     \| \{
+     `_meta?`: \{
+      \[`key`: `string`\]: `unknown`;
+     \};
+     `annotations?`: \{
+        `audience?`: (`"user"` \| `"assistant"`)[];
+        `lastModified?`: `string`;
+        `priority?`: `number`;
+     \};
+     `data`: `string`;
+     `mimeType`: `string`;
+     `type`: `"audio"`;
+   \}
+     \| \{
+     `_meta?`: \{
+      \[`key`: `string`\]: `unknown`;
+     \};
+     `annotations?`: \{
+        `audience?`: (`"user"` \| `"assistant"`)[];
+        `lastModified?`: `string`;
+        `priority?`: `number`;
+     \};
+     `description?`: `string`;
+     `icons?`: `object`[];
+     `mimeType?`: `string`;
+     `name`: `string`;
+     `size?`: `number`;
+     `title?`: `string`;
+     `type`: `"resource_link"`;
+     `uri`: `string`;
+   \}
+     \| \{
+     `_meta?`: \{
+      \[`key`: `string`\]: `unknown`;
+     \};
+     `annotations?`: \{
+        `audience?`: (`"user"` \| `"assistant"`)[];
+        `lastModified?`: `string`;
+        `priority?`: `number`;
+     \};
+     `resource`:   \| \{
+        `_meta?`: \{
+         \[`key`: `string`\]: `unknown`;
+        \};
+        `mimeType?`: `string`;
+        `text`: `string`;
+        `uri`: `string`;
+      \}
+        \| \{
+        `_meta?`: \{
+         \[`key`: `string`\]: `unknown`;
+        \};
+        `blob`: `string`;
+        `mimeType?`: `string`;
+        `uri`: `string`;
+      \};
+     `type`: `"resource"`;
+  \})[];
+  `isError?`: `boolean`;
+  `structuredContent?`: \{
+   \[`key`: `string`\]: `unknown`;
+  \};
+\}\>
+
+***
+
+<a id="extratoolcontext"></a>
+
+### ExtraToolContext
+
+What an extra tool's `call` receives besides its arguments.
+
+#### Properties
+
+<a id="authinfo-1"></a>
+
+##### authInfo?
+
+```ts
+optional authInfo?: AuthInfo;
+```
+
+The request's verified access token, over HTTP with `serveHttp`'s `auth`.
+
+<a id="caller"></a>
+
+##### caller?
+
+```ts
+optional caller?: CallerContext;
+```
+
+What `clientFor` returned for this caller, over HTTP.
+
+***
+
 <a id="formatoptions"></a>
 
 ### FormatOptions
@@ -701,6 +1125,20 @@ sessions, not stateless HTTP). A `needs_input` whose preferred kind is not sensi
 the form subset is asked for in a form and continued; a sensitive kind or a `needs_human`
 step is offered as the site's page in URL mode when the client supports it. `false` turns it
 off. Default: on, with `timeoutMs` 600000 (ten minutes) for the user to answer.
+
+<a id="extratools"></a>
+
+##### extraTools?
+
+```ts
+optional extraTools?: ExtraTool[];
+```
+
+Tools served beside the derived ones, answered by your own code with any MCP content (an
+image, say) instead of an AXE result. A name that a derived tool also uses is an error. Each
+call receives the request's verified `authInfo` (HTTP with `auth`) and the caller `clientFor`
+returned for it; over stdio both are absent. Identify the caller from them, never from the
+arguments.
 
 <a id="name"></a>
 
@@ -1164,6 +1602,26 @@ stateless exchange, an undeclared mode).
    \[`key`: `string`\]: `string` \| `number` \| `boolean` \| `string`[];
   \};
 \}\>
+
+## Type Aliases
+
+<a id="calltoolresult"></a>
+
+### CallToolResult
+
+```ts
+type CallToolResult = Infer<typeof CallToolResultSchema>;
+```
+
+***
+
+<a id="tool"></a>
+
+### Tool
+
+```ts
+type Tool = Infer<typeof ToolSchema>;
+```
 
 ## Variables
 

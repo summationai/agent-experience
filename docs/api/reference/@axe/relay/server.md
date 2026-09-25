@@ -289,6 +289,41 @@ The HTTP routes (`/mcp`, `/dev/token`, `/health`) as a fetch handler, for a fram
 
 `Promise`\<`Response`\>
 
+<a id="handleagent"></a>
+
+##### handleAgent()
+
+```ts
+handleAgent(
+   request, 
+   adapter, 
+   call?
+): Promise<Response>;
+```
+
+Serve one AXE request of an agent tool call, as the relay's own MCP front does: `adapter`
+from `relayAgentContext`, and `call` (the `AxeLike.handle` third argument), which carries
+approvals to the agent's client. For a front end that serves the relay's tools itself
+(`@axe/host`); pass it `createMcpServer` as the `AxeLike`'s `handle`.
+
+###### Parameters
+
+###### request
+
+`Request`
+
+###### adapter
+
+`AdapterContext`
+
+###### call?
+
+`ToolCallContext`
+
+###### Returns
+
+`Promise`\<`Response`\>
+
 <a id="listen"></a>
 
 ##### listen()
@@ -1521,6 +1556,43 @@ The actor a tab records for an act from the relay.
 #### Returns
 
 `string`
+
+***
+
+<a id="relayagentcontext"></a>
+
+### relayAgentContext()
+
+```ts
+function relayAgentContext(
+   agent, 
+   who, 
+   baseUrl?
+): AdapterContext;
+```
+
+The adapter context the relay's AXE server (`relay.axe`) expects for an agent acting as `who`,
+for a front end that serves the relay's tools itself (`@axe/host` does). `agent` keys the
+agent's tab selection; give each agent its own. Never build it from anything but the agent's
+own verified identity: it decides which tabs the agent reaches ([S-RELAY-3]).
+
+#### Parameters
+
+##### agent
+
+`string`
+
+##### who
+
+[`RelayPrincipal`](#relayprincipal)
+
+##### baseUrl?
+
+`string` = `"http://localhost"`
+
+#### Returns
+
+`AdapterContext`
 
 ## References
 

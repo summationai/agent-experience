@@ -166,6 +166,23 @@ A surface holds field values, domain objects, and the text agents typed. In the 
 
 What remains yours: minting relay tokens only for the signed-in person in a request your session authenticated, a signing key used for nothing else, `origins` that match your application, TLS (`wss://`) in front of the relay, and routing a person's tabs and agents to one relay process. A script already running in your page can press Approve, as it can click any control; the gate protects against the agent, not against the page.
 
+### A hosted browser acting as the person
+
+In unattended mode `@axe/host` runs the application in a headless browser on your server, signed in as the person the agent authenticated as ([Unattended mode](host.md), [S-HOST-1] to [S-HOST-8]). That browser holds a real session and acts with it, from your network.
+
+| Threat | Mitigation |
+| --- | --- |
+| An agent drives another person's session | A session is for exactly the principal and tenant the agent's verified token names; the host mints the page's relay token for that identity only, and the relay serves an agent only its own person's tab. |
+| One person's cookies or storage reach another | One browser context per identity; nothing is shared but the browser process. A tenant change is another session. |
+| The hidden page is paired by someone else | There is no pairing: the host opens the tab itself for the signed-in identity. The connection is injected only into frames of the application's origin, and the renewal function mints only for them. |
+| The application session leaks | What `sessionFor` returns is never logged, put in an event, or returned by a tool; headers go only to the application's origin; relay tokens are short-lived and renew in-band. |
+| Request forgery through navigation (a link to an internal address, a redirect) | Navigations to origins other than the application's and `allowedOrigins` are refused and the page stays; `restrict: "all"` refuses every other request; cloud metadata addresses are never reachable; service workers are blocked so nothing fetches around the rules. |
+| A consequential act nobody approved | Nobody sees the hidden page, so approvals go to the person in the agent's UI (elicitation); without it the act does not run. |
+| Browsers exhaust the host | `maxSessions` (least recently used closed first) and `idleMs`. |
+| A local web page drives a development host | Loopback only, loopback `Host` required, a development key on `/mcp`, and the watch page behind a random path. |
+
+What remains yours: issuing the application session in `sessionFor` only for the identity the verified token names, short-lived and scoped to what an agent may do; an egress policy for the host (subresource requests to other origins are allowed unless `restrict: "all"`); and keeping the development storage state (`axe host login`) out of version control.
+
 ## What the SDK mitigates
 
 | Threat                               | Mechanism                                                                                                                              | Where                                      |

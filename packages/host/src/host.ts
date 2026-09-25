@@ -519,7 +519,7 @@ export function createHost(options: HostOptions): Host {
       return true;
     });
 
-  /** Refuse what the session may not load: other origins' navigations (or everything, with `restrict: "all"`). */
+  /** [S-HOST-7] Refuse what the session may not load: other origins' navigations (or everything, with `restrict: "all"`). */
   const router =
     (s: Hosted, headers: Record<string, string> | undefined) =>
     async (route: Route, request: PwRequest): Promise<void> => {
@@ -677,7 +677,7 @@ export function createHost(options: HostOptions): Host {
     }
   };
 
-  // Stop in the relay ([S-HOST-7]): the agent's own `relay_stop` ends this session and the next
+  // Stop in the relay ([S-HOST-8]): the agent's own `relay_stop` ends this session and the next
   // tool call may start another; the person's or the owner's Stop also holds the identity.
   function onRelayEvent(event: RelayEvent): void {
     emit({ type: "relay", event });

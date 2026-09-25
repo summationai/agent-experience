@@ -68,6 +68,9 @@ importers:
       '@axe/generate':
         specifier: workspace:*
         version: link:../packages/generate
+      '@axe/host':
+        specifier: workspace:*
+        version: link:../packages/host
       '@axe/mcp':
         specifier: workspace:*
         version: link:../packages/mcp
