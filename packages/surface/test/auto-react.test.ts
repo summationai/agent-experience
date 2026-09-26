@@ -240,13 +240,28 @@ describe("SurfaceProvider [S-AUTO-12]", () => {
     });
     const surface = createSurface();
     const root = mount(
-      h(SurfaceProvider, { surface, webMcp: true }, h("button", null, "Refresh dashboard")),
+      h(
+        SurfaceProvider,
+        { surface, webMcp: true, expose: true },
+        h("button", null, "Refresh dashboard"),
+      ),
     );
     await reactAct(async () => {
       await Promise.resolve();
     });
     expect([...tools.keys()]).toContain("surface_observe");
+    expect([...tools.keys()]).toContain("surface_read");
+    expect([...tools.keys()]).toContain("surface_wait");
     expect([...tools.values()].some((tool) => tool.title === "Refresh dashboard")).toBe(true);
+    const published = (
+      window as unknown as {
+        __surface: { webMcp: () => { state: string; tools: string[] } };
+      }
+    ).__surface;
+    expect(published.webMcp()).toMatchObject({
+      state: "ready",
+      tools: expect.arrayContaining(["surface_observe", "surface_read", "surface_wait"]),
+    });
     reactAct(() => root.unmount());
     roots = roots.filter((r) => r !== root);
     expect(tools.size).toBe(0);

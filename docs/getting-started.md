@@ -51,11 +51,11 @@ Options that matter on a real app:
 
 ### 3. Open it with a browser-native agent
 
-Start the app and open it normally. In a browser that supports WebMCP, the provider registers `surface_observe` and one tool per usable control directly from the package-held surface. WebMCP is still experimental; see [WebMCP](webmcp.md) for browser support and testing flags.
+Start the app and open it normally. In a compatible WebMCP host, the provider registers `surface_observe`, `surface_read`, `surface_wait`, and one tool per usable control directly from the package-held surface. WebMCP is still experimental, and generic browser automation is not equivalent to a host that delivers registered site tools to its agent. Before testing agent behavior, run the [three-layer host preflight](webmcp.md#host-compatibility-and-preflight).
 
 Controls classified as high risk, controls that declare confirmation, and controls waiting on `approval_required` do not run merely because an agent invokes their WebMCP tool. They require a trusted `requestApproval` callback configured by the application; without one, the adapter refuses the call. The callback must resolve only from the person's interaction and must never be exposed as an agent-reachable tool or control.
 
-Where WebMCP is absent, the accessibility and Surface DOM attributes still improve browser automation. In development, an agent with page-script access can use `window.__surface`.
+Where WebMCP is absent, the accessibility and Surface DOM attributes still improve ordinary browser automation, but clicks made that way are not Surface calls. In development, an agent with page-script/CDP access can use `window.__surface`, including `window.__surface.webMcp()` to diagnose browser support and tool registration.
 
 ### 4. Measure and refine
 

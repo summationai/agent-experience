@@ -80,6 +80,10 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
     });
     if (expose) h.expose(window);
     const webMcpHandle = webMcp ? exposeWebMcp(h.surface, webMcp === true ? {} : webMcp) : null;
+    if (expose && webMcpHandle) {
+      const published = (window as unknown as { __surface?: Record<string, unknown> }).__surface;
+      if (published) published.webMcp = () => webMcpHandle.diagnostic();
+    }
     // Routers built on the History API change the URL without a DOM event of their own.
     const hist = window.history;
     const push = hist.pushState;

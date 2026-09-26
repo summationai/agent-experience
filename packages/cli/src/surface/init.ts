@@ -440,7 +440,7 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
         ]
       : [
           {
-            text: "Open the app in a WebMCP-capable agent browser. Other browser agents can use the page's controls; development also publishes window.__surface.",
+            text: "Open the app in an agent browser that implements WebMCP and delivers Site tools to the task. A generic/headless click-and-type session is not a WebMCP host. In development, window.__surface.webMcp() reports registration health.",
           },
         ]),
     { text: `See what an agent sees: npx ${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]` },

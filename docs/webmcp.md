@@ -24,10 +24,12 @@ import { surface } from "../surface/board";
 // Browser-driving agents keep reading window.__surface, whatever the browser supports.
 surface.expose(typeof window !== "undefined" ? window : null);
 
-// Registers surface_observe and one tool per control when document.modelContext exists;
-// otherwise registers nothing and says why. The human UI is the same either way.
+// Registers surface_observe, page read/wait tools when this is an auto surface, and one tool per
+// control when document.modelContext exists; otherwise registers nothing and says why. The human
+// UI is the same either way.
 const webmcp = exposeWebMcp(surface, { actor: "browser-agent" });
 if (!webmcp.supported) console.info(`WebMCP not offered: ${webmcp.reason}`);
+else void webmcp.ready().then(() => console.info("WebMCP:", webmcp.diagnostic()));
 
 // A single-page app that tears the board down (a route change) closes it too.
 export function leaveBoard(): void {
@@ -36,7 +38,7 @@ export function leaveBoard(): void {
 ```
 <!-- /include -->
 
-`exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; and `close()`, which unregisters everything and stops following the surface.
+`exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; `diagnostic()`, which distinguishes unavailable, registering, ready, degraded, registration error, and closed states; and `close()`, which unregisters everything and stops following the surface. When React's `SurfaceProvider` also has `expose`, the same diagnostic is available at `window.__surface.webMcp()`.
 
 Options:
 
@@ -45,6 +47,7 @@ Options:
 - `actor`: the `actor` the ledger records for acts made through these tools. Default `webmcp`.
 - `unavailable`: `describe` (the default) registers an unavailable control with its reason; `omit` leaves it out until it is available.
 - `observe`: register the observe tool. Default true.
+- `content`: register read and wait tools when the surface came from `autoSurface`. Default true.
 - `run`: wraps each handler run, as `surface.act`'s option does.
 - `requestApproval`: trusted application UI for high-risk, confirmation, and `approval_required` controls. It receives the exact observed entry, act, and input and returns a boolean or `{ approved, actor }`. Without it, those calls are refused. It must resolve only from the person's interaction and must never be reachable by the agent.
 - `onError`: called when the browser refuses a registration (another script holds the name, a permissions policy forbids tools).
@@ -60,9 +63,25 @@ export const quiet = exposeWebMcp(surface, { unavailable: "omit", prefix: "draft
 ## What is registered
 
 - **`surface_observe`.** Read-only. Returns the observation: every entry's id, name, availability with its reason, and effect, under one revision, as text and as structured content. Sensitive field values are not in it ([S-PRV-1](../spec/SURFACE.md#61-authorization-and-privacy)).
+- **`surface_read`.** Read-only, on an auto surface. Returns the headings, text, fields, tables, lists, notices, and named opaque regions that the page shows the person. It is bounded and paginated; private values are withheld and chart values are never guessed.
+- **`surface_wait`.** Read-only, on an auto surface. Waits within a bound for visible text, a control's availability, a moved revision, a matching route, or an idle page, and reports what changed and which notices appeared. It is the direct way to follow work such as a report moving from “Preparing” to ready.
 - **One tool per control that can be acted on.** An action (a click), a field that is not sensitive (typing text), a collection that can load more. The tool's description is the entry's `describeEntry` line, what the tool does, and for an unavailable control what would unblock it or what a person must do. The input schema takes an optional `expectedRev`, `text` for a field (with the field's own schema and `maxLength`), and `confirm` for a control that asks for confirmation. A control that is not reversible carries the `consequentialHint` annotation, which the draft defines for tools whose effect cannot be undone.
 
-Tool names are the prefix and the entry id, with every character other than letters, digits, `_`, and `-` replaced by `_`: `pick:me:gibbs` becomes `surface_pick_me_gibbs`. Two ids that would share a name, or an id that would take the observe tool's name, get an eight-character hash of the id appended. A name is the same for an id every time, so an agent that learned it keeps it.
+Tool names are the prefix and the entry id, with every character other than letters, digits, `_`, and `-` replaced by `_`: `pick:me:gibbs` becomes `surface_pick_me_gibbs`. Two ids that would share a name, or an id that would take the observe, read, or wait tool's name, get an eight-character hash of the id appended. A name is the same for an id every time, so an agent that learned it keeps it.
+
+## Host compatibility and preflight
+
+The browser is the WebMCP host. A package in the page can register tools only when that browser provides `document.modelContext.registerTool`; it cannot make a generic browser-automation or headless-computer-use session forward those tools to its model. Such a session may still click the ordinary UI, but that is not a Surface tool call and does not gain Surface's revision guard or ledger.
+
+For ChatGPT desktop, use its built-in browser with site tools enabled and a model that supports site tools. OpenAI's [site-tools documentation](https://learn.chatgpt.com/docs/webmcp) describes that path; an external browser tab, a generic headless browser task, and a nested CLI agent are separate hosts and must not be assumed to inherit the page's tools.
+
+Before asking an agent to act, verify all three layers:
+
+1. `typeof document.modelContext?.registerTool === "function"` — the browser implements imperative WebMCP.
+2. `await window.__surface?.webMcp?.()` in a development integration — registration settled with `state: "ready"` (or inspect its per-tool errors when `degraded` or `error`).
+3. The browser's Site tools UI lists `surface_observe`, and, for an auto surface, `surface_read` and `surface_wait` — the host actually delivered them to the agent.
+
+If step 1 fails, choose a compatible browser host. If step 2 fails, fix the reported registration errors. If step 3 fails while step 2 says ready, the browser host did not make the registered tools available to that task; changing tool descriptions or prompting the model cannot repair that transport boundary.
 
 ## What is never registered
 
@@ -101,7 +120,7 @@ Do not implement this callback with a DOM control included in the surface, a Web
 
 Nothing is registered, `supported` is false, and the page works as before. The other ways in stay available:
 
-- **Browser-driving agents** read the page, or `window.__surface` after `surface.expose(window)` ([S-DOM-2](../spec/SURFACE.md#7-browser-agents)).
+- **Browser-driving agents** read and operate the ordinary page, or use `window.__surface` when their browser channel has JavaScript/CDP access and the application called `surface.expose(window)` ([S-DOM-2](../spec/SURFACE.md#7-browser-agents)). Generic browser clicks are not Surface calls.
 - **Server-side agents** reach the same controls through the AXE bridge (`surfaceActions` from `@axe/surface/axe`, see [Surface](surface.md)) and, for MCP hosts, `@axe/mcp` ([MCP](mcp.md)), with the authorization rules those need.
 
 An application that exposes its browser surface from one module with `expose(window)`, as the reference application under `examples/` is built to, adds the WebMCP adapter on the next line, as in the example above.

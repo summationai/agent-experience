@@ -344,6 +344,22 @@ The surface to register on. Default the module-level `surface` of `@axe/surface`
 
 [`UseAutoSurfaceOptions`](#useautosurfaceoptions).[`surface`](#surface-1)
 
+<a id="webmcp"></a>
+
+##### webMcp?
+
+```ts
+optional webMcp?: boolean | WebMcpOptions;
+```
+
+Register this page's live controls with the browser's own agent through WebMCP. `true` uses
+the safe defaults; an options object configures names and trusted approval UI. Feature
+detected: where WebMCP is absent, nothing is registered. Default false.
+
+###### Inherited from
+
+[`SurfaceProviderProps`](#surfaceproviderprops).[`webMcp`](#webmcp)
+
 ***
 
 <a id="useautosurfaceoptions"></a>
@@ -572,6 +588,18 @@ optional surface?: Surface;
 
 The surface to register on. Default the module-level `surface` of `@axe/surface`, the one `useSurface` registers on, so declared and derived entries share one table.
 
+<a id="webmcp-1"></a>
+
+##### webMcp?
+
+```ts
+optional webMcp?: boolean | WebMcpOptions;
+```
+
+Register this page's live controls with the browser's own agent through WebMCP. `true` uses
+the safe defaults; an options object configures names and trusted approval UI. Feature
+detected: where WebMCP is absent, nothing is registered. Default false.
+
 ## Functions
 
 <a id="surfaceprovider"></a>
@@ -585,7 +613,7 @@ function SurfaceProvider(props): FunctionComponentElement<ProviderProps<AutoSurf
 Derive the surface from the page this tree renders. Put it near the root:
 
 ```tsx
-<SurfaceProvider config={surfaceConfig} flag={flags.agentSurface} expose>
+<SurfaceProvider config={surfaceConfig} flag={flags.agentSurface} webMcp expose>
   <App />
 </SurfaceProvider>
 ```

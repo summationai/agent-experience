@@ -38,13 +38,133 @@ registerTool(tool, options?): unknown;
 
 ***
 
+<a id="webmcpapprovaldecision"></a>
+
+### WebMcpApprovalDecision
+
+A trusted approval UI may name the person recorded in the surface ledger.
+
+#### Properties
+
+<a id="actor"></a>
+
+##### actor?
+
+```ts
+optional actor?: string;
+```
+
+<a id="approved"></a>
+
+##### approved
+
+```ts
+approved: boolean;
+```
+
+***
+
+<a id="webmcpapprovalrequest"></a>
+
+### WebMcpApprovalRequest
+
+The exact WebMCP call a trusted application approval UI presents to the person.
+
+#### Properties
+
+<a id="act"></a>
+
+##### act
+
+```ts
+act: Readonly<ActRequest>;
+```
+
+<a id="entry"></a>
+
+##### entry
+
+```ts
+entry: ObservedEntry;
+```
+
+<a id="input"></a>
+
+##### input
+
+```ts
+input: Readonly<Record<string, unknown>>;
+```
+
+***
+
+<a id="webmcpdiagnostic"></a>
+
+### WebMcpDiagnostic
+
+#### Properties
+
+<a id="errors"></a>
+
+##### errors
+
+```ts
+errors: object[];
+```
+
+###### message
+
+```ts
+message: string;
+```
+
+###### tool
+
+```ts
+tool: string;
+```
+
+<a id="reason"></a>
+
+##### reason?
+
+```ts
+optional reason?: string;
+```
+
+<a id="state"></a>
+
+##### state
+
+```ts
+state: "unavailable" | "error" | "closed" | "registering" | "ready" | "degraded";
+```
+
+<a id="supported"></a>
+
+##### supported
+
+```ts
+supported: boolean;
+```
+
+<a id="tools"></a>
+
+##### tools
+
+```ts
+tools: string[];
+```
+
+***
+
 <a id="webmcphandle"></a>
 
 ### WebMcpHandle
 
 #### Properties
 
-<a id="reason"></a>
+<a id="reason-1"></a>
 
 ##### reason?
 
@@ -54,7 +174,7 @@ readonly optional reason?: string;
 
 Why nothing was registered, when `supported` is false.
 
-<a id="supported"></a>
+<a id="supported-1"></a>
 
 ##### supported
 
@@ -80,6 +200,20 @@ Unregister every tool and stop following the surface. Calling it twice is harmle
 
 `void`
 
+<a id="diagnostic"></a>
+
+##### diagnostic()
+
+```ts
+diagnostic(): WebMcpDiagnostic;
+```
+
+Registration health for development diagnostics and compatibility checks.
+
+###### Returns
+
+[`WebMcpDiagnostic`](#webmcpdiagnostic)
+
 <a id="ready"></a>
 
 ##### ready()
@@ -94,7 +228,7 @@ Resolves when the current registration round has settled.
 
 `Promise`\<`void`\>
 
-<a id="tools"></a>
+<a id="tools-1"></a>
 
 ##### tools()
 
@@ -116,7 +250,7 @@ Tool names registered right now.
 
 #### Properties
 
-<a id="actor"></a>
+<a id="actor-1"></a>
 
 ##### actor?
 
@@ -125,6 +259,16 @@ optional actor?: string;
 ```
 
 The `actor` recorded in the ledger for acts made through these tools. Default `webmcp`.
+
+<a id="content"></a>
+
+##### content?
+
+```ts
+optional content?: boolean;
+```
+
+Register `<prefix>read` and `<prefix>wait` when the surface has page content. Default true.
 
 <a id="modelcontext"></a>
 
@@ -180,6 +324,29 @@ optional prefix?: string;
 ```
 
 Prefix for every tool name. Default `surface_`.
+
+<a id="requestapproval"></a>
+
+##### requestApproval?
+
+```ts
+optional requestApproval?: (request) => MaybePromise<boolean | WebMcpApprovalDecision>;
+```
+
+Ask the person before a high-risk action, an action that declares `confirm`, or a control
+whose surface state says `approval_required`. This is trusted application UI: it must show
+the exact request and resolve only from the person's interaction. Never implement it with
+anything an agent can invoke. Without it, approval-sensitive calls are refused.
+
+###### Parameters
+
+###### request
+
+[`WebMcpApprovalRequest`](#webmcpapprovalrequest)
+
+###### Returns
+
+[`MaybePromise`](index.md#maybepromise)\<`boolean` \| [`WebMcpApprovalDecision`](#webmcpapprovaldecision)\>
 
 <a id="run"></a>
 
@@ -331,7 +498,7 @@ What a tool's `execute` resolves to: text for the agent, and the surface's own e
 
 #### Properties
 
-<a id="content"></a>
+<a id="content-1"></a>
 
 ##### content
 
@@ -377,9 +544,10 @@ structuredContent: Record<string, unknown>;
 function exposeWebMcp(surface, options?): WebMcpHandle;
 ```
 
-Register the surface's controls, and an observe tool, as WebMCP tools on this page, and keep
-them in step with the surface: every change `subscribe` reports re-derives the set and
-re-registers only tools whose name, description, schema, or hints changed.
+Register the surface's controls and observation as WebMCP tools on this page, plus page read and
+wait tools when this is an auto surface, and keep them in step with the surface: every change
+`subscribe` reports re-derives the set and re-registers only tools whose name, description,
+schema, or hints changed.
 
 Feature-detected: without a WebMCP object nothing is registered and the handle says
 `supported: false` with the reason. Browser-driving agents can still use `surface.expose()`,

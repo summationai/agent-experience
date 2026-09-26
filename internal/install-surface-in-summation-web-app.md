@@ -117,7 +117,7 @@ Confirm the preview has this shape:
 - The provider includes `config={surfaceConfig}`, `flag={enabled}`, `expose={development}`, and `webMcp`.
 - `enabled` is exactly the Summation feature-flag result; it has no injected-connection clause.
 - There are no imports from `@axe/relay`, no `onReady`, and no connection setup.
-- `app/surface.config.ts` is the empty, reviewable overlay.
+- `app/surface.config.ts` is the reviewable overlay. Set `app: "Summation"` so observations and diagnostics identify the application rather than the SDK's generic fallback name.
 
 If the diff is correct, run the same command with `--yes`. Do not pass `--install`, because the unpublished tarballs were installed manually. Run it once more and confirm it reports nothing to change. Prefer the `~/surface` import alias in `_layout.tsx` if that is the local convention.
 
@@ -151,17 +151,29 @@ The observation should identify the current app, have a numeric revision, list c
 
 ### 8. Verify with a browser-native agent
 
-Use a browser that implements the current WebMCP API. For local Chrome testing, enable `chrome://flags/#enable-webmcp-testing` and restart the browser if necessary. On the app page, `document.modelContext` must exist; the provider feature-detects it and otherwise leaves the page unchanged.
+Use a browser host that implements the current imperative WebMCP API and delivers its registered tools to the current agent task. For ChatGPT desktop, use its built-in browser, turn on Site tools under Settings > Browser > Permissions, and select a model that currently supports Site tools. Do not use an external Chrome tab, a nested CLI agent, or a generic/headless computer-use task as the acceptance test: those may expose only click/type browser automation even though the page package is installed.
+
+For local Chrome API testing, enable `chrome://flags/#enable-webmcp-testing` and restart the browser if necessary. This proves registration against Chrome's API, not delivery to a ChatGPT task.
+
+On the app page, run this preflight in development:
+
+```js
+typeof document.modelContext?.registerTool === "function";
+await window.__surface?.webMcp?.();
+```
+
+The first expression must be `true`. The diagnostic must settle at `state: "ready"` and list `surface_observe`, `surface_read`, and `surface_wait`; `degraded` or `error` includes the refused registrations. Finally, inspect the browser's Site tools UI and confirm it lists the same tools. These are three separate checks: browser API support, successful page registration, and delivery to the agent.
 
 In the browser's agent UI:
 
-1. Confirm it can call `surface_observe` and describe several controls using their application-owned names and unavailable reasons.
-2. Ask it to perform one ordinary, reversible action such as opening a menu, changing a tab, or applying a harmless filter.
-3. Check the visible application state yourself; do not accept the agent's narration as proof.
-4. Change the page after an observation and confirm an act using the old revision is refused without applying anything, if the browser UI lets you provide `expectedRev`.
-5. Try one high-risk or approval-gated control only in disposable local state. Because this integration has no trusted `requestApproval` callback, it must be refused with no handler run. That refusal is the expected safe behavior.
+1. Confirm it calls `surface_observe` before acting and describes several controls using their application-owned names and unavailable reasons.
+2. Confirm `surface_read` reports the current page status. For a slow operation, confirm `surface_wait` follows the visible status instead of repeatedly clicking or guessing from elapsed time.
+3. Ask it to perform one ordinary, reversible action such as opening a menu, changing a tab, or applying a harmless filter.
+4. Check the visible application state yourself; do not accept the agent's narration as proof.
+5. Change the page after an observation and confirm an act using the old revision is refused without applying anything, if the browser UI lets you provide `expectedRev`.
+6. Try one high-risk or approval-gated control only in disposable local state. Because this integration has no trusted `requestApproval` callback, it must be refused with no handler run. That refusal is the expected safe behavior.
 
-If the browser exposes `document.modelContext` but has no usable native agent UI, record that limitation and verify registration with the browser's WebMCP tooling plus `window.__surface`; do not add remote infrastructure as a workaround.
+If registration is ready but the current task exposes only generic browser controls, record a host-delivery limitation. The page cannot promote its JavaScript tools into that task. Use the compatible built-in-browser Site tools path for this package-only experiment; a truly browser-independent/headless agent requires the separate hosted transport discussed after this experiment.
 
 ### 9. Measure and make only high-value refinements
 

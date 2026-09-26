@@ -262,6 +262,7 @@ type WireApi =
   | "autoActions"
   | "useAutoSurface"
   | "useAutoSurfaceHandle"
+  | "webMcp"
   | "elementFor"
   | "metaFor"
   | "debounceMs"
@@ -1207,6 +1208,7 @@ const api: Readonly<{
   validateJsonSchema: "validateJsonSchema";
   verifyRelayToken: "verifyRelayToken";
   verifySiteKey: "verifySiteKey";
+  webMcp: "webMcp";
   withMimeTypes: "withMimeTypes";
 }>;
 ```
@@ -2203,6 +2205,7 @@ const WIRE: Readonly<{
      validateJsonSchema: "validateJsonSchema";
      verifyRelayToken: "verifyRelayToken";
      verifySiteKey: "verifySiteKey";
+     webMcp: "webMcp";
      withMimeTypes: "withMimeTypes";
   }>;
   authMode: Readonly<{

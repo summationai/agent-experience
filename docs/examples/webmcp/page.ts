@@ -7,10 +7,12 @@ import { surface } from "../surface/board";
 // Browser-driving agents keep reading window.__surface, whatever the browser supports.
 surface.expose(typeof window !== "undefined" ? window : null);
 
-// Registers surface_observe and one tool per control when document.modelContext exists;
-// otherwise registers nothing and says why. The human UI is the same either way.
+// Registers surface_observe, page read/wait tools when this is an auto surface, and one tool per
+// control when document.modelContext exists; otherwise registers nothing and says why. The human
+// UI is the same either way.
 const webmcp = exposeWebMcp(surface, { actor: "browser-agent" });
 if (!webmcp.supported) console.info(`WebMCP not offered: ${webmcp.reason}`);
+else void webmcp.ready().then(() => console.info("WebMCP:", webmcp.diagnostic()));
 
 // A single-page app that tears the board down (a route change) closes it too.
 export function leaveBoard(): void {

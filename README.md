@@ -50,7 +50,7 @@ npm install @axe/surface
 npx axe surface init --yes
 ```
 
-The package keeps the live controls, revision, ledger, and handlers in the page. It registers them directly with a browser-native agent through WebMCP where supported, publishes the same semantics in the DOM, and exposes `window.__surface` in development. There is no standalone MCP server or relay in this path.
+The package keeps the live controls, revision, ledger, and handlers in the page. In a compatible browser host it registers `surface_observe`, page read/wait tools, and the controls directly with the browser-native agent through WebMCP; it also publishes the same semantics in the DOM and exposes `window.__surface` diagnostics in development. There is no standalone MCP server or relay in this path. A generic headless browser session that offers only click/type automation is not a WebMCP host; see the [host preflight](docs/webmcp.md#host-compatibility-and-preflight).
 
 An agent outside the browser is optional. `axe surface init --remote` adds the browser client for an injected host connection; `--relay-dev` or `--relay <url>` adds the attended relay. Those adapters can present the same package-held surface over MCP without moving authority out of the page ([Unattended mode](docs/host.md), [Relay](docs/relay.md)).
 

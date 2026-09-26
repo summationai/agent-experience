@@ -110,6 +110,9 @@ describe("browser bundle", () => {
     expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(43 * 1024);
   });
 
+  // The bound grew from 44 to 47 kB when the provider's WebMCP adapter gained the auto surface's
+  // read/wait loop and registration diagnostics. The DOM reader was already in this bundle; the
+  // increase is the two schemas, tool handlers, and diagnostic state.
   it("SurfaceProvider from @axe/surface/react carries the derivation and nothing server-side", async () => {
     const out = await bundle(
       `import { SurfaceProvider } from "@axe/surface/react";
@@ -120,6 +123,6 @@ describe("browser bundle", () => {
     console.log(
       `SurfaceProvider: ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(44 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(47 * 1024);
   });
 });

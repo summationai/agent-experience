@@ -9,6 +9,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSurface } from "../src/index";
 import type { ActionEntry, Surface } from "../src/index";
+import { CONTENT } from "../src/auto-content";
+import type { PageContent, PageRead, WaitResult } from "../src/auto-content";
 import { exposeWebMcp, webMcpToolNames } from "../src/webmcp";
 import type { ModelContextLike, WebMcpTool, WebMcpToolResult } from "../src/webmcp";
 
@@ -96,6 +98,12 @@ describe("@axe/surface/webmcp", () => {
     const handle = exposeWebMcp(s);
     expect(handle.supported).toBe(false);
     expect(handle.reason).toContain("not available");
+    expect(handle.diagnostic()).toMatchObject({
+      supported: false,
+      state: "unavailable",
+      tools: [],
+      errors: [],
+    });
     await handle.ready();
     expect(handle.tools()).toEqual([]);
     handle.close();
@@ -148,6 +156,94 @@ describe("@axe/surface/webmcp", () => {
     for (const t of mc.tools.values()) expect(JSON.stringify(t)).not.toContain("4812");
     handle.close();
     expect(mc.tools.size).toBe(0);
+  });
+
+  it("offers auto-surface page reading and waiting as stable read-only Surface tools", async () => {
+    const mc = new FakeModelContext();
+    install(mc);
+    const { s } = page();
+    const reads: unknown[] = [];
+    const waits: unknown[] = [];
+    const pageRead: PageRead = {
+      route: "/reports/:id",
+      path: "/reports/42",
+      title: "Revenue report",
+      rev: 4,
+      sections: [
+        {
+          heading: "Status",
+          level: 2,
+          text: "Preparing",
+          fields: [],
+          tables: [],
+          lists: [],
+        },
+      ],
+      notices: [],
+      truncated: false,
+      redacted: 0,
+    };
+    const waited: WaitResult = {
+      met: true,
+      elapsedMs: 120,
+      rev: 5,
+      fromRev: 4,
+      reason: "text “Ready” is on the page",
+      changed: ["report:status"],
+      notices: ["Report ready"],
+    };
+    const content: PageContent = {
+      read: (options) => {
+        reads.push(options);
+        return pageRead;
+      },
+      wait: async (condition, options) => {
+        waits.push({ condition, options });
+        return waited;
+      },
+    };
+    (s as unknown as Record<symbol, unknown>)[CONTENT] = content;
+
+    const handle = exposeWebMcp(s);
+    await handle.ready();
+    expect([...mc.tools.keys()].sort()).toEqual([
+      "surface_observe",
+      "surface_plan_march_lock",
+      "surface_plan_march_note",
+      "surface_read",
+      "surface_wait",
+    ]);
+    expect(mc.tools.get("surface_read")?.title).toBe("Read the page through Surface");
+    expect(mc.tools.get("surface_wait")?.annotations).toMatchObject({ readOnlyHint: true });
+
+    const read = await mc.executeTool("surface_read", { query: "status", maxRows: 20 });
+    expect(read.content[0]!.text).toContain("# Revenue report");
+    expect(read.content[0]!.text).toContain("Preparing");
+    expect(read.structuredContent).toEqual(pageRead);
+    expect(reads).toEqual([{ query: "status", maxRows: 20 }]);
+
+    const wait = await mc.executeTool("surface_wait", {
+      condition: { text: "Ready" },
+      timeoutMs: 1_000,
+    });
+    expect(wait.content[0]!.text).toContain("Condition met at rev 5");
+    expect(wait.structuredContent).toEqual(waited);
+    expect(waits).toMatchObject([{ condition: { text: "Ready" }, options: { timeoutMs: 1_000 } }]);
+    const invalidWait = await mc.executeTool("surface_wait", { condition: {} });
+    expect(invalidWait).toMatchObject({
+      isError: true,
+      structuredContent: {
+        status: "error",
+        error: { code: "invalid_input", retryable: false },
+      },
+    });
+    expect(handle.diagnostic()).toMatchObject({
+      supported: true,
+      state: "ready",
+      errors: [],
+    });
+    handle.close();
+    expect(handle.diagnostic().state).toBe("closed");
   });
 
   it("acts through the page's own surface at the latest revision, passes expectedRev, and maps the result to text and structured content", async () => {
@@ -311,11 +407,21 @@ describe("@axe/surface/webmcp", () => {
   });
 
   it("maps ids to valid, stable, unique tool names and reports a refused registration", async () => {
-    const names = webMcpToolNames(["a:b", "a.b", "observe", "plain-id_2", "x".repeat(200)]);
+    const names = webMcpToolNames([
+      "a:b",
+      "a.b",
+      "observe",
+      "read",
+      "wait",
+      "plain-id_2",
+      "x".repeat(200),
+    ]);
     expect(names.get("plain-id_2")).toBe("surface_plain-id_2");
     expect(names.get("a:b")).not.toBe(names.get("a.b"));
     expect(names.get("a:b")).toMatch(/^surface_a_b_[0-9a-f]{8}$/);
     expect(names.get("observe")).toMatch(/^surface_observe_[0-9a-f]{8}$/);
+    expect(names.get("read")).toMatch(/^surface_read_[0-9a-f]{8}$/);
+    expect(names.get("wait")).toMatch(/^surface_wait_[0-9a-f]{8}$/);
     expect(names.get("x".repeat(200))!.length).toBe(128);
     for (const n of names.values()) expect(n).toMatch(/^[A-Za-z0-9_-]{1,128}$/);
     expect(webMcpToolNames(["a:b", "a.b"]).get("a:b")).toBe(names.get("a:b"));
@@ -343,6 +449,11 @@ describe("@axe/surface/webmcp", () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0]![1]).toBe("surface_observe");
     expect(handle.tools()).toEqual(["surface_go"]);
+    expect(handle.diagnostic()).toMatchObject({
+      state: "degraded",
+      tools: ["surface_go"],
+      errors: [{ tool: "surface_observe", message: expect.stringContaining("duplicate") }],
+    });
     handle.close();
     handle.close();
     expect([...mc.tools.keys()]).toEqual(["surface_observe"]);
