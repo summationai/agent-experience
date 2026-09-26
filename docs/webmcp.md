@@ -2,6 +2,8 @@
 
 WebMCP is a browser API through which a page registers tools for an agent built into the browser. `@axe/surface/webmcp` offers a [Surface](surface.md) through it: the page's controls become tools the browser's agent can call, each one running through the page's own surface with its revision guard, availability, and ledger. This page covers the status of the API, what the adapter registers, what it never registers, and what to use where the browser has no WebMCP.
 
+For React easy mode, `axe surface init` enables this directly with `<SurfaceProvider webMcp>`. The application installs only `@axe/surface`; no standalone MCP server or relay participates.
+
 ## Status
 
 WebMCP is a draft, and most browsers do not have it. What this page and the adapter rest on, as read on 2026-09-24:
@@ -44,6 +46,7 @@ Options:
 - `unavailable`: `describe` (the default) registers an unavailable control with its reason; `omit` leaves it out until it is available.
 - `observe`: register the observe tool. Default true.
 - `run`: wraps each handler run, as `surface.act`'s option does.
+- `requestApproval`: trusted application UI for high-risk, confirmation, and `approval_required` controls. It receives the exact observed entry, act, and input and returns a boolean or `{ approved, actor }`. Without it, those calls are refused. It must resolve only from the person's interaction and must never be reachable by the agent.
 - `onError`: called when the browser refuses a registration (another script holds the name, a permissions policy forbids tools).
 
 <!-- include: examples/webmcp/page.ts#options -->
@@ -74,6 +77,26 @@ A tool call is `surface.act` with the entry's id and op. With `expectedRev`, a p
 
 Every change the surface reports through `subscribe` re-derives the tools. A tool is registered again only when its name, description, schema, or annotations changed, so a revision bump alone costs nothing, and a control that became unavailable is re-registered with its reason (or dropped, with `unavailable: "omit"`).
 
+### Trusted approval
+
+`consequentialHint` is metadata, not an enforcement boundary. The adapter therefore refuses a high-risk action, an action with `confirm`, or an `approval_required` control unless `requestApproval` is configured. When the callback approves an auto-derived gate, the adapter opens that one gate and immediately makes the exact revision-bound act. It records the person's decision before the act in the page's ledger.
+
+```ts
+const webmcp = exposeWebMcp(surface, {
+  requestApproval: async ({ entry, act }) => {
+    // `showApprovalDialog` must resolve only from the person's click.
+    const approved = await showApprovalDialog({
+      title: entry.name,
+      risk: entry.effect?.risk,
+      expectedRev: act.expectedRev,
+    });
+    return { approved, actor: currentMemberName };
+  },
+});
+```
+
+Do not implement this callback with a DOM control included in the surface, a WebMCP tool, a message supplied by the agent, or an automatically accepted browser event.
+
 ## Where there is no WebMCP
 
 Nothing is registered, `supported` is false, and the page works as before. The other ways in stay available:
@@ -85,7 +108,7 @@ An application that exposes its browser surface from one module with `expose(win
 
 ## Bundle
 
-`@axe/surface/webmcp` is a separate entry. `@axe/surface` and `@axe/surface/react` do not import it; a test pins that. It adds about 5.6 kB minified to a page that already has `@axe/surface`.
+`@axe/surface/webmcp` remains a separate entry for framework-free use. `SurfaceProvider` imports the small adapter so its `webMcp` prop works without another application dependency; ordinary hooks from `@axe/surface/react` still tree-shake it when the provider is not used.
 
 ## Next steps
 

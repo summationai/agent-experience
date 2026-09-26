@@ -17,10 +17,11 @@
  * module registers nothing and says so; the page and its human UI are unaffected. See
  * docs/webmcp.md and spec/SURFACE.md §8.
  *
- * It imports nothing from React and is never imported by `@axe/surface` or `@axe/surface/react`,
- * so pages that do not use it do not ship it.
+ * It imports nothing from React. The main entry and hook-only React imports tree-shake it away;
+ * `SurfaceProvider` includes it so the provider's `webMcp` option needs no second integration.
  */
-import type { Surface, ObservedEntry, ActResult, Op, MaybePromise } from "./index";
+import type { Surface, ObservedEntry, ActRequest, ActResult, Op, MaybePromise } from "./index";
+import type { ErrorResult } from "@axe/core/types";
 import { describeEntry } from "./index";
 
 // ---------------------------------------------------------------------------------------------
@@ -76,8 +77,30 @@ export interface WebMcpOptions {
   observe?: boolean;
   /** Wraps each handler run, as `surface.act`'s `run` option (React's `act`, a zone). */
   run?: (fn: () => MaybePromise<unknown>) => MaybePromise<unknown>;
+  /**
+   * Ask the person before a high-risk action, an action that declares `confirm`, or a control
+   * whose surface state says `approval_required`. This is trusted application UI: it must show
+   * the exact request and resolve only from the person's interaction. Never implement it with
+   * anything an agent can invoke. Without it, approval-sensitive calls are refused.
+   */
+  requestApproval?: (
+    request: WebMcpApprovalRequest,
+  ) => MaybePromise<boolean | WebMcpApprovalDecision>;
   /** Called when the browser refuses a registration. Default: ignore. */
   onError?: (error: unknown, toolName: string) => void;
+}
+
+/** The exact WebMCP call a trusted application approval UI presents to the person. */
+export interface WebMcpApprovalRequest {
+  entry: ObservedEntry;
+  act: Readonly<ActRequest>;
+  input: Readonly<Record<string, unknown>>;
+}
+
+/** A trusted approval UI may name the person recorded in the surface ledger. */
+export interface WebMcpApprovalDecision {
+  approved: boolean;
+  actor?: string;
 }
 
 export interface WebMcpHandle {
@@ -164,6 +187,41 @@ const EXPECTED_REV = {
   description:
     "Optional. The rev from the observation you are acting on (surface_observe). If the page changed since, nothing is applied and the result says conflict. Omitted: the page's current revision is used.",
 };
+
+/** The auto-surface approval gate, installed for trusted in-page channels. */
+const APPROVER = Symbol.for("axe.surface.approver");
+
+function needsApproval(row: ObservedEntry): boolean {
+  if (row.kind !== "action") return false;
+  const gated = row.state?.available === false && row.state.handoff?.reason === "approval_required";
+  if (row.state?.available === false) return gated;
+  return gated || row.effect?.risk === "high" || row.effect?.confirm === true;
+}
+
+function approvalError(
+  row: ObservedEntry,
+  reason:
+    | "approval_channel_missing"
+    | "approval_channel_failed"
+    | "approval_denied"
+    | "approval_not_supported",
+): ErrorResult {
+  const messages = {
+    approval_channel_missing: `Not done: ${row.name}. The control needs the person's approval, but this page did not configure a trusted WebMCP approval UI.`,
+    approval_channel_failed: `Not done: ${row.name}. The page's trusted WebMCP approval UI failed.`,
+    approval_denied: `Not done: ${row.name}. The person declined the request.`,
+    approval_not_supported: `Not done: ${row.name}. The control is waiting for approval, but this surface has no trusted approval gate.`,
+  } as const;
+  return {
+    status: "error",
+    error: {
+      code: reason === "approval_denied" ? "forbidden" : "unavailable",
+      message: messages[reason],
+      retryable: reason !== "approval_denied",
+      details: { reason, entryId: row.id },
+    },
+  };
+}
 
 function opFor(row: ObservedEntry): Op {
   if (row.kind === "action") return "CLICK";
@@ -324,6 +382,9 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
       inputSchema: inputSchemaFor(row),
       annotations,
       execute: async (input = {}) => {
+        // Re-read at execution time: risk and availability can change between registration and a
+        // tool call, and the approval boundary must use the live row rather than its description.
+        const liveRow = surface.observe().entries.find((entry) => entry.id === id) ?? row;
         const given = input["expectedRev"];
         const expectedRev =
           typeof given === "number" && Number.isFinite(given) ? given : surface.currentRev();
@@ -331,6 +392,61 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
         if (op === "TYPE_TEXT")
           request.text = typeof input["text"] === "string" ? input["text"] : "";
         if (input["confirm"] === true) request.confirm = true;
+        if (needsApproval(liveRow)) {
+          if (!options.requestApproval) {
+            const result = approvalError(liveRow, "approval_channel_missing");
+            return {
+              content: [{ type: "text", text: result.error.message }],
+              structuredContent: result as unknown as Record<string, unknown>,
+              isError: true,
+            } satisfies WebMcpToolResult;
+          }
+          let answer: boolean | WebMcpApprovalDecision;
+          try {
+            answer = await options.requestApproval({ entry: liveRow, act: request, input });
+          } catch {
+            const result = approvalError(liveRow, "approval_channel_failed");
+            return {
+              content: [{ type: "text", text: result.error.message }],
+              structuredContent: result as unknown as Record<string, unknown>,
+              isError: true,
+            } satisfies WebMcpToolResult;
+          }
+          const approved =
+            typeof answer === "boolean" ? answer : answer != null && answer.approved === true;
+          const person =
+            answer != null && typeof answer === "object" && answer.actor
+              ? String(answer.actor).slice(0, 200)
+              : "person via WebMCP";
+          surface.record({
+            op: approved ? "APPROVE" : "DENY",
+            target: liveRow.id,
+            actor: person,
+            changed: [],
+          });
+          if (!approved) {
+            const result = approvalError(liveRow, "approval_denied");
+            return {
+              content: [{ type: "text", text: result.error.message }],
+              structuredContent: result as unknown as Record<string, unknown>,
+              isError: true,
+            } satisfies WebMcpToolResult;
+          }
+          if (
+            liveRow.state?.available === false &&
+            liveRow.state.handoff?.reason === "approval_required"
+          ) {
+            const approve = (surface as unknown as Record<symbol, unknown>)[APPROVER];
+            if (typeof approve !== "function" || approve(liveRow.id) !== true) {
+              const result = approvalError(liveRow, "approval_not_supported");
+              return {
+                content: [{ type: "text", text: result.error.message }],
+                structuredContent: result as unknown as Record<string, unknown>,
+                isError: true,
+              } satisfies WebMcpToolResult;
+            }
+          }
+        }
         // The page's own surface runs the act: its revision guard, ledger, and handler.
         const result = await surface.act(request, actOptions);
         const view = surface.observe().entries.find((r) => r.id === id) ?? row;

@@ -188,6 +188,75 @@ describe("@axe/surface/webmcp", () => {
     handle.close();
   });
 
+  it("refuses approval-sensitive acts without trusted UI, and records the person's decision before acting", async () => {
+    const mc = new FakeModelContext();
+    install(mc);
+    const { s, lock, approved } = page();
+    s.register({ ...lock, effect: { ...lock.effect, risk: "high" } });
+
+    const closed = exposeWebMcp(s);
+    await closed.ready();
+    const refused = await mc.executeTool("surface_plan_march_lock");
+    expect(refused.isError).toBe(true);
+    expect(refused.structuredContent).toMatchObject({
+      status: "error",
+      error: { details: { reason: "approval_channel_missing" } },
+    });
+    expect(approved).toEqual([]);
+    closed.close();
+
+    const requests: string[] = [];
+    const open = exposeWebMcp(s, {
+      requestApproval: ({ entry, act }) => {
+        requests.push(`${entry.name}:${act.expectedRev}`);
+        return { approved: true, actor: "Dana" };
+      },
+    });
+    await open.ready();
+    const ok = await mc.executeTool("surface_plan_march_lock");
+    expect(ok.structuredContent).toMatchObject({ status: "ok" });
+    expect(requests).toEqual(["Lock March:0"]);
+    expect(approved).toEqual(["webmcp"]);
+    expect(s.ledger().map((e) => [e.op, e.actor])).toEqual([
+      ["APPROVE", "Dana"],
+      ["CLICK", "webmcp"],
+    ]);
+    open.close();
+  });
+
+  it("opens an auto-surface approval gate only after trusted WebMCP approval", async () => {
+    const mc = new FakeModelContext();
+    install(mc);
+    const { s, lock, approved } = page();
+    const gated = {
+      ...lock,
+      effect: { ...lock.effect, risk: "high" as const },
+      state: {
+        available: false as const,
+        reason: "needs the person's approval",
+        handoff: {
+          reason: "approval_required",
+          instructions: "Ask the person.",
+          whatAgentShouldSayToUser: "May I lock March?",
+        },
+      },
+    };
+    s.register(gated);
+    (s as unknown as Record<symbol, unknown>)[Symbol.for("axe.surface.approver")] = (
+      id: string,
+    ) => {
+      if (id !== lock.id) return false;
+      s.register({ ...gated, state: { available: true } });
+      return true;
+    };
+    const handle = exposeWebMcp(s, { requestApproval: () => true });
+    await handle.ready();
+    const result = await mc.executeTool("surface_plan_march_lock");
+    expect(result.structuredContent).toMatchObject({ status: "ok" });
+    expect(approved).toEqual(["webmcp"]);
+    handle.close();
+  });
+
   it("follows availability: a changed reason re-registers the tool, `omit` drops an unavailable control, and a freeze is described", async () => {
     const mc = new FakeModelContext();
     install(mc);
@@ -217,7 +286,7 @@ describe("@axe/surface/webmcp", () => {
     expect(described.description).toContain("A person must do this on the page");
     const refused = await mc.executeTool("surface_plan_march_lock", {});
     expect(refused.isError).toBe(true);
-    expect(refused.content[0]!.text).toContain("unavailable");
+    expect(refused.content[0]!.text).toContain("trusted WebMCP approval UI");
     handle.close();
 
     const omitting = exposeWebMcp(s, { unavailable: "omit" });

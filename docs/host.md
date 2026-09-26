@@ -1,6 +1,6 @@
 # Unattended mode: the agent uses the app for you
 
-The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface `axe surface init` mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the default way an agent outside the browser reaches an application; the person's own tab ([Relay](relay.md), attended mode) stays as the fallback.
+The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is an optional adapter for an agent outside the browser; the package-only default is browser-native WebMCP, and the person's own tab ([Relay](relay.md), attended mode) is the other remote option.
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,7 @@ flowchart LR
 
 ## What the application needs
 
-Nothing beyond easy mode. The provider that `axe surface init` writes (with no options) connects with the connection a host injected (`window.__AXE_RELAY__`), and nothing connects in a person's own browser:
+Initialize the application with `axe surface init --remote`. That opt-in adds the relay browser client and makes the generated provider connect with the connection a host injected (`window.__AXE_RELAY__`); without `--remote`, init installs only the package-held browser-native surface:
 
 <!-- include: examples/host/page.ts#page -->
 ```ts
@@ -36,7 +36,7 @@ export const surfaceOn = (flag: boolean): boolean => flag || injectedRelay() !==
 ```
 <!-- /include -->
 
-An integration written before this (or by hand) needs the same two things: connect when `injectedRelay()` returns a connection, and do not let a flag that is off for the person keep the provider from mounting in a hosted session. `--start <path>` opens the page the agent starts on (for example `/dashboards`). The attended fallback, where the person's own tab connects to a relay (`axe surface init --relay-dev`, or `--relay <url>`), keeps the injected connection first:
+An integration written by hand needs the same two things: connect when `injectedRelay()` returns a connection, and do not let a flag that is off for the person keep the provider from mounting in a hosted session. `--start <path>` opens the page the agent starts on (for example `/dashboards`). The attended alternative, where the person's own tab connects to a relay (`axe surface init --relay-dev`, or `--relay <url>`), keeps the injected connection first:
 
 <!-- include: examples/host/page.ts#fallback -->
 ```ts

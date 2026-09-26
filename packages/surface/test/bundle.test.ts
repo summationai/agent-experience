@@ -60,7 +60,7 @@ describe("browser bundle", () => {
     // jsdom is the mounted React tests' environment, a devDependency; it never enters the bundle.
     expect(out.inputs.filter((f) => /jsdom/.test(f))).toEqual([]);
     expect(out.inputs.some((f) => f.includes("vocabulary"))).toBe(true);
-    // The WebMCP adapter is an optional subpath: neither entry pulls it in.
+    // Hook-only imports tree-shake SurfaceProvider and its WebMCP adapter away.
     expect(out.inputs.filter((f) => /webmcp/.test(f))).toEqual([]);
     // Nor the derivation: the hooks alone tree-shake SurfaceProvider and @axe/surface/auto away.
     expect(out.inputs.filter((f) => /auto-dom/.test(f))).toEqual([]);

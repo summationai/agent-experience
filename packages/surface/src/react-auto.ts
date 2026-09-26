@@ -10,6 +10,8 @@ import type { Surface } from "./index";
 import { surface as defaultSurface } from "./index";
 import { autoSurface } from "./auto";
 import type { AutoSurfaceHandle, AutoSurfaceOptions, SurfaceConfig } from "./auto";
+import { exposeWebMcp } from "./webmcp";
+import type { WebMcpOptions } from "./webmcp";
 
 export interface UseAutoSurfaceOptions extends Omit<
   AutoSurfaceOptions,
@@ -21,6 +23,12 @@ export interface UseAutoSurfaceOptions extends Omit<
   enabled?: boolean;
   /** Publish `window.__surface` with `coverage()`. Default false. */
   expose?: boolean;
+  /**
+   * Register this page's live controls with the browser's own agent through WebMCP. `true` uses
+   * the safe defaults; an options object configures names and trusted approval UI. Feature
+   * detected: where WebMCP is absent, nothing is registered. Default false.
+   */
+  webMcp?: boolean | WebMcpOptions;
   /** Derive from this element instead of `document.body`. */
   root?: RefObject<Element | null>;
   /** The surface to register on. Default the module-level `surface` of `@axe/surface`, the one `useSurface` registers on, so declared and derived entries share one table. */
@@ -48,6 +56,7 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
     config,
     enabled = true,
     expose = false,
+    webMcp = false,
     root,
     surface = defaultSurface,
     location,
@@ -70,6 +79,7 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
       ...(el ? { root: el } : {}),
     });
     if (expose) h.expose(window);
+    const webMcpHandle = webMcp ? exposeWebMcp(h.surface, webMcp === true ? {} : webMcp) : null;
     // Routers built on the History API change the URL without a DOM event of their own.
     const hist = window.history;
     const push = hist.pushState;
@@ -105,12 +115,13 @@ export function useAutoSurface(options: UseAutoSurfaceOptions = {}): AutoSurface
     return () => {
       stopped = true;
       cleanup?.();
+      webMcpHandle?.close();
       if (hist.pushState === wrappedPush) hist.pushState = push;
       if (hist.replaceState === wrappedReplace) hist.replaceState = replace;
       h.stop();
       setHandle(null);
     };
-  }, [enabled, expose, surface, root]);
+  }, [enabled, expose, webMcp, surface, root]);
   // A new configuration object reconfigures the running scan.
   useEffect(() => {
     if (configRef.current === config) return;
@@ -144,7 +155,7 @@ export interface SurfaceProviderProps extends UseAutoSurfaceOptions {
  * Derive the surface from the page this tree renders. Put it near the root:
  *
  * ```tsx
- * <SurfaceProvider config={surfaceConfig} flag={flags.agentSurface} expose>
+ * <SurfaceProvider config={surfaceConfig} flag={flags.agentSurface} webMcp expose>
  *   <App />
  * </SurfaceProvider>
  * ```

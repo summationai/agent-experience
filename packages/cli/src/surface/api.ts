@@ -11,6 +11,8 @@ export const MODULES = {
   react: "@axe/surface/react",
   /** `autoSurface`, `SurfaceConfig`, `formatCoverage`. */
   auto: "@axe/surface/auto",
+  /** `exposeWebMcp` for plain-HTML setup; React uses the provider prop. */
+  webMcp: "@axe/surface/webmcp",
   /** `connectRelay`, `injectedRelay`, `devToken`. */
   relayClient: "@axe/relay/client",
 } as const;
@@ -21,6 +23,7 @@ export const NAMES = {
   autoSurface: "autoSurface",
   config: "SurfaceConfig",
   formatCoverage: "formatCoverage",
+  exposeWebMcp: "exposeWebMcp",
   connectRelay: "connectRelay",
   /** The connection a host injected (`window.__AXE_RELAY__`), read when called; null elsewhere. */
   injectedRelay: "injectedRelay",
@@ -36,6 +39,7 @@ export const PROVIDER_PROPS = {
   config: "config",
   flag: "flag",
   expose: "expose",
+  webMcp: "webMcp",
   onReady: "onReady",
 } as const;
 

@@ -37,6 +37,8 @@ export interface InitOptions {
   flagImport?: string;
   /** The file to mount in, relative to `dir` (default: the framework root). */
   mount?: string;
+  /** Include the optional relay/host adapter for an agent outside the browser. */
+  remote?: boolean;
   relay?: string;
   /** Directory holding the packed tarballs, for the unpublished install form. */
   vendor?: string;
@@ -206,7 +208,13 @@ export function planInit(o: InitOptions): InitPlan {
     d.framework === "plain"
       ? { quote: '"' as const, semi: true, unit: "  " }
       : detectStyle(rootText);
-  const t: TemplateOptions = { framework: d.framework, typescript: d.typescript, style, flag };
+  const t: TemplateOptions = {
+    framework: d.framework,
+    typescript: d.typescript,
+    style,
+    flag,
+    remote: o.remote === true || o.relay !== undefined,
+  };
   if (o.relay !== undefined) t.relay = o.relay;
   const plain = d.framework === "plain";
   const surfaceExt = plain ? "js" : d.typescript ? "tsx" : "jsx";
@@ -376,8 +384,9 @@ function serverName(d: Detection): string {
 
 function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
   const d = plan.detection;
-  const registry = installCommand(d, true);
-  const tar = installCommand(d, true, o.vendor ?? "vendor");
+  const remote = o.remote === true || o.relay !== undefined;
+  const registry = installCommand(d, remote);
+  const tar = installCommand(d, remote, o.vendor ?? "vendor");
   const flagName = defaultFlagName(d.framework);
   const devUrl =
     d.framework === "next"
@@ -390,13 +399,14 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
   );
   const name = serverName(d);
   const steps: { text: string; more?: string[] }[] = [];
-  if (!installed && !declares(d.dir, [PACKAGES.surface, PACKAGES.relay]))
+  const required = [PACKAGES.surface, ...(remote ? [PACKAGES.relay] : [])];
+  if (!installed && !declares(d.dir, required))
     steps.push({
       text: "Install (nothing was added to package.json; --install runs it):",
       more: [
         registry.argv.map(quoteArg).join(" "),
         "Unpublished (0.1.0 is not on npm): pack the SDK from a checkout and install the tarballs:",
-        `<sdk-checkout>/scripts/pack-for-consumer.sh ${o.vendor ?? "vendor"} core surface relay`,
+        `<sdk-checkout>/scripts/pack-for-consumer.sh ${o.vendor ?? "vendor"} core surface${remote ? " relay" : ""}`,
         tar.argv.map(quoteArg).join(" "),
         `and in ${tar.overrides!.file}: "${tar.overrides!.key}": ${JSON.stringify(tar.overrides!.value)}`,
         "Commit the tarballs, their SOURCE pin, and the lockfile together; a Dockerfile or CI job that installs from the lockfile copies the vendor directory in before the install step.",
@@ -404,34 +414,43 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     });
   steps.push(
     {
-      text: `Run the app in development (${devUrl}). Surface is always on in a session the host runs for an agent${
+      text: `Run the app in development (${devUrl}). Surface registers with a browser-native agent when WebMCP is available${
         o.flagHook
-          ? `; in a person's browser, when ${o.flagHook} is true`
+          ? `, when ${o.flagHook} is true`
           : o.flag !== undefined && !/^[A-Z]/.test(o.flag)
-            ? "; in a person's browser, when your flag is on"
+            ? ", when your flag is on"
             : flagName
-              ? `; in a person's browser, in development (${o.flag ?? flagName}=1 turns it on in a build)`
-              : "; in a person's browser, from localhost only"
+              ? `, in development (${o.flag ?? flagName}=1 turns it on in a build)`
+              : ", from localhost only"
       }.`,
     },
-    {
-      text: "Sign in once, for the agent, in the browser this opens (the session is saved to .axe/host-state.json; keep .axe/ out of git):",
-      more: [`npx ${WIRE.cli.host} login ${devUrl}`],
-    },
-    {
-      text: "Connect Claude: the host runs the app headless for you, and the agent acts through its UI (approvals appear in Claude):",
-      more: [
-        `claude mcp add ${name} -- npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
-        `Claude Desktop and absolute paths: run npx ${WIRE.cli.host} --dev --app ${devUrl} --name ${name}, which prints both.`,
-      ],
-    },
+    ...(remote
+      ? [
+          {
+            text: "Sign in once for the optional unattended host (the session is saved to .axe/host-state.json; keep .axe/ out of git):",
+            more: [`npx ${WIRE.cli.host} login ${devUrl}`],
+          },
+          {
+            text: "Connect Claude through the optional remote adapter: the host runs the app headless for you and serves its tools over MCP:",
+            more: [
+              `claude mcp add ${name} -- npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
+              `Claude Desktop and absolute paths: run npx ${WIRE.cli.host} --dev --app ${devUrl} --name ${name}, which prints both.`,
+            ],
+          },
+        ]
+      : [
+          {
+            text: "Open the app in a WebMCP-capable agent browser. Other browser agents can use the page's controls; development also publishes window.__surface.",
+          },
+        ]),
     { text: `See what an agent sees: npx ${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]` },
     {
       text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: npx ${WIRE.cli.surface} prompt`,
     },
     {
-      text:
-        o.relay === DEV_RELAY_URL
+      text: !remote
+        ? "An agent outside the browser is optional: re-run with --remote for an injected host connection, or --relay-dev for an attended relay."
+        : o.relay === DEV_RELAY_URL
           ? "Fallback, the person's own tab (attended): npx axe relay --dev, then pair the agent with the code the tab shows."
           : o.relay !== undefined
             ? "Fallback, the person's own tab (attended): the tab connects to your relay; mint its token in /api/relay-token."
@@ -451,6 +470,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
     flag: { type: "string" },
     relay: { type: "string" },
     "relay-dev": { type: "boolean" },
+    remote: { type: "boolean" },
     "dry-run": { type: "boolean" },
     yes: { type: "boolean", short: "y" },
     install: { type: "boolean" },
@@ -472,6 +492,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
   if (values.flag !== undefined) o.flag = String(values.flag);
   if (values.relay !== undefined) o.relay = String(values.relay);
   if (values["relay-dev"]) o.relay = DEV_RELAY_URL;
+  if (values.remote) o.remote = true;
   if (values.vendor !== undefined) o.vendor = String(values.vendor);
   if (values.mount !== undefined) o.mount = String(values.mount);
   if (values["flag-hook"] !== undefined) o.flagHook = String(values["flag-hook"]);
@@ -521,7 +542,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let installed = false;
   if (values.install && !values["dry-run"]) {
-    const cmd = installCommand(d, true, o.vendor);
+    const cmd = installCommand(d, o.remote === true || o.relay !== undefined, o.vendor);
     ctx.stdout(`Running: ${cmd.argv.map(quoteArg).join(" ")}  (in ${cmd.cwd})`);
     if (cmd.overrides && writeOverrides(d.dir, cmd.overrides))
       ctx.stdout(

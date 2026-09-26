@@ -51,9 +51,14 @@ declare module "@axe/surface/react" {
     config?: SurfaceConfig;
     flag?: boolean;
     expose?: boolean;
+    webMcp?: boolean;
     onReady?: (handle: AutoSurfaceHandle) => void | (() => void) | Promise<void | (() => void)>;
     children?: ReactNode;
   }): ReactNode;
+}
+
+declare module "@axe/surface/webmcp" {
+  export function exposeWebMcp(surface: unknown): { close(): void };
 }
 
 declare module "@axe/relay/client" {

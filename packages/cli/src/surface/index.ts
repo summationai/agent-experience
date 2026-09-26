@@ -16,7 +16,8 @@ import { surfaceCoverage } from "./coverage";
 export const SURFACE_HELP = `Usage:
   ${WIRE.cli.surfaceInit} [--dir <app>] [--framework auto|react-router|next|vite-react|react|plain]
                     [--mount <layout file>] [--flag <ENV_VAR>|<module>#<export>]
-                    [--flag-hook '<hook call>' --flag-import <module>] [--relay <url>|--relay-dev]
+                    [--flag-hook '<hook call>' --flag-import <module>] [--remote]
+                    [--relay <url>|--relay-dev]
                     [--dry-run] [--yes] [--install] [--vendor <dir>]
   ${WIRE.cli.surfaceCoverage} <url> [--auth <header|cookies>]... [--routes /a,/b] [--max-pages <n>]
                     [--wait <ms>] [--playwright-from <dir>] [--json] [--out <report.md>]

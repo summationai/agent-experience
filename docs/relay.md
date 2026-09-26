@@ -9,7 +9,7 @@ flowchart LR
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-Most applications do not need this page: `axe surface init` connects the page to the relay a host runs, and [Unattended mode](host.md) is how an agent outside the browser reaches the application by default. This page is the relay underneath it, and the attended fallback: the agent in the person's own open tab, with pairing in development.
+Most applications do not need this page: the package-only `axe surface init` path uses browser-native WebMCP and no relay. This page covers the optional remote adapter: the relay underneath [Unattended mode](host.md), and attended mode in the person's own open tab, with pairing in development.
 
 Two modes. **Unattended** (the default for agents, [Unattended mode](host.md)): the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI. **Attended**: the person has the tab open, sees the indicator, and approves in the page.
 

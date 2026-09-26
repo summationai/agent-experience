@@ -43,16 +43,16 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 
 Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
-The quick path for an existing web app, where the agent uses the app's own UI for you:
+The package-only path for an existing web app, where a browser-native agent uses the app's own UI:
 
 ```sh
-npm install @axe/surface @axe/relay
-npx axe surface init --yes                                   # mounts the easy-mode surface
-npx axe host login http://localhost:5173                     # sign in once, for the agent
-claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
+npm install @axe/surface
+npx axe surface init --yes
 ```
 
-Then ask Claude to do something in the app. The host runs it in headless Chromium as you, the agent reads, acts, and waits through the page's own controls, and consequential acts ask you in Claude first ([Unattended mode](docs/host.md)). The agent in your own open tab, with pairing, is the fallback ([Relay](docs/relay.md)).
+The package keeps the live controls, revision, ledger, and handlers in the page. It registers them directly with a browser-native agent through WebMCP where supported, publishes the same semantics in the DOM, and exposes `window.__surface` in development. There is no standalone MCP server or relay in this path.
+
+An agent outside the browser is optional. `axe surface init --remote` adds the browser client for an injected host connection; `--relay-dev` or `--relay <url>` adds the attended relay. Those adapters can present the same package-held surface over MCP without moving authority out of the page ([Unattended mode](docs/host.md), [Relay](docs/relay.md)).
 
 - **[Getting started](docs/getting-started.md)** — Surface in an existing app in four steps, and from `npm install` to a passing AXE conformance check in 15 minutes.
 - **[Concepts](docs/concepts.md)** — manifest, actions, display and affordances, the result envelope, the escalation ladder.
@@ -88,8 +88,8 @@ The packages share one set of application logic and differ in how a caller reach
 | `@axe/next`     | Next.js App Router and Pages API adapter.                                                                                 |
 | `@axe/fetch`    | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                                            |
 | `@axe/surface`  | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions, WebMCP tools, or DOM attributes. |
-| `@axe/relay`    | A broker that lets an agent outside the browser (Claude Code over MCP) drive a signed-in person's live tab through its surface. |
-| `@axe/host`     | Unattended mode, the default: runs the app in a headless browser for the person the agent signed in as, so the agent drives the real UI with no pairing. |
+| `@axe/relay`    | Optional remote adapter: a broker that lets an agent outside the browser drive a signed-in person's live tab through its surface. |
+| `@axe/host`     | Optional unattended adapter: runs the app in a headless browser for the signed-in person, with no pairing. |
 | `@axe/generate` | Derive actions from an OpenAPI document, a zod-typed function table, or a tRPC router; refuses to invent.                 |
 | `@axe/testing`  | Conformance suite, AXE audit, drift check, and test helpers.                                                              |
 | `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`, `axe relay`, `axe host`. |

@@ -28,6 +28,7 @@ afterEach(() => {
   for (const r of roots) reactAct(() => r.unmount());
   roots = [];
   document.body.innerHTML = "";
+  delete (document as { modelContext?: unknown }).modelContext;
   window.history.replaceState({}, "", "/");
 });
 
@@ -224,5 +225,30 @@ describe("SurfaceProvider [S-AUTO-12]", () => {
     const surface = createSurface();
     mount(h(SurfaceProvider, { surface, flag: false }, h("button", null, "Refresh")));
     expect(surface.entries()).toEqual([]);
+  });
+
+  it("webMcp registers the package-held surface with a supporting browser and cleans up", async () => {
+    const tools = new Map<string, { title?: string }>();
+    Object.defineProperty(document, "modelContext", {
+      configurable: true,
+      value: {
+        registerTool(tool: { name: string; title?: string }, options?: { signal?: AbortSignal }) {
+          tools.set(tool.name, tool);
+          options?.signal?.addEventListener("abort", () => tools.delete(tool.name));
+        },
+      },
+    });
+    const surface = createSurface();
+    const root = mount(
+      h(SurfaceProvider, { surface, webMcp: true }, h("button", null, "Refresh dashboard")),
+    );
+    await reactAct(async () => {
+      await Promise.resolve();
+    });
+    expect([...tools.keys()]).toContain("surface_observe");
+    expect([...tools.values()].some((tool) => tool.title === "Refresh dashboard")).toBe(true);
+    reactAct(() => root.unmount());
+    roots = roots.filter((r) => r !== root);
+    expect(tools.size).toBe(0);
   });
 });

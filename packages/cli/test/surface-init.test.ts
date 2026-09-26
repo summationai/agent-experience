@@ -164,7 +164,7 @@ describe("axe surface init: the diff", () => {
     );
     const surface = plan.changes.find((c) => c.display === "app/surface.tsx")!.after;
     expect(surface).toContain(
-      "\n    return (\n        <SurfaceProvider\n            config={surfaceConfig}",
+      "\n    return (\n        <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development} webMcp>",
     );
   });
 });
@@ -251,7 +251,7 @@ describe("axe surface init: flags and the relay", () => {
 
   it("gates on a build-time variable by default, on in development and off in production", () => {
     expect(surfaceOf(planInit({ dir: copy("react-router") }))).toContain(
-      'const enabled = development || import.meta.env.VITE_SURFACE === "1" || injectedRelay() !== null;',
+      'const enabled = development || import.meta.env.VITE_SURFACE === "1";',
     );
     const next = surfaceOf(planInit({ dir: copy("next") }));
     expect(next.startsWith('"use client";\n')).toBe(true);
@@ -260,10 +260,9 @@ describe("axe surface init: flags and the relay", () => {
     const plain = surfaceOf(planInit({ dir: copy("plain") }));
     expect(plain).toContain('["localhost", "127.0.0.1"].includes(location.hostname)');
     expect(plain).toContain("surfaceConfig, expose: development });");
-    expect(plain).toContain("const enabled = development || injectedRelay() !== null;");
-    expect(plain).toContain(
-      "  const options = injectedRelay();\n  if (options) connectRelay(handle.surface, options);",
-    );
+    expect(plain).toContain("const enabled = development;");
+    expect(plain).toContain('import { exposeWebMcp } from "@axe/surface/webmcp";');
+    expect(plain).toContain("  exposeWebMcp(handle.surface);");
     // expose follows development, not the flag.
     expect(surfaceOf(planInit({ dir: copy("vite-react") }))).toContain("expose={development}");
   });
@@ -276,10 +275,7 @@ describe("axe surface init: flags and the relay", () => {
       planInit({ dir: copy("react-router"), flag: "~/flags#useAgentSurface" }),
     );
     expect(hook).toContain('import { useAgentSurface } from "~/flags";');
-    // A hosted session (`axe host`) is on even when the app's own flag is off for the person.
-    expect(hook).toContain(
-      "  const enabled = useAgentSurface() || injectedRelay() !== null;\n  return (",
-    );
+    expect(hook).toContain("  const enabled = useAgentSurface();\n  return (");
     const bad = await cli([
       "surface",
       "init",
@@ -304,11 +300,13 @@ describe("axe surface init: flags and the relay", () => {
     );
   });
 
-  it("always connects a host's injected relay; --relay-dev adds the attended development relay", async () => {
-    // Unattended by default: whatever the flags, a session a host runs connects with no pairing.
+  it("is browser-native by default; --remote and relay options add the out-of-browser adapter", async () => {
     const plain = surfaceOf(planInit({ dir: copy("react-router") }));
-    expect(plain).toContain('import { connectRelay, injectedRelay } from "@axe/relay/client";');
-    expect(plain).toContain(
+    expect(plain).not.toContain("@axe/relay/client");
+    expect(plain).toContain("webMcp");
+    const remote = surfaceOf(planInit({ dir: copy("react-router"), remote: true }));
+    expect(remote).toContain('import { connectRelay, injectedRelay } from "@axe/relay/client";');
+    expect(remote).toContain(
       [
         "      onReady={(handle) => {",
         "        const options = injectedRelay();",
@@ -318,7 +316,7 @@ describe("axe surface init: flags and the relay", () => {
         "      }}",
       ].join("\n"),
     );
-    expect(plain).not.toContain("devToken");
+    expect(remote).not.toContain("devToken");
     const dev = surfaceOf(planInit({ dir: copy("react-router"), relay: DEV_RELAY_URL }));
     expect(dev).toContain(
       'import { connectRelay, devToken, injectedRelay } from "@axe/relay/client";',
@@ -343,7 +341,7 @@ describe("axe surface init: flags and the relay", () => {
       'process.env.NEXT_PUBLIC_SURFACE_RELAY_URL ?? "wss://relay.example.com"',
     );
     expect(r.out).toContain("pack-for-consumer.sh vendor core surface relay");
-    // Next steps: the host (unattended) first, the attended relay as the fallback.
+    // With a remote option, next steps include the optional host.
     const login = r.out.indexOf("npx axe host login http://localhost:3000");
     const add = r.out.indexOf(
       "claude mcp add next-fixture -- npx axe host --dev --stdio --app http://localhost:3000",
@@ -391,9 +389,7 @@ describe("axe surface init: choosing the mount", () => {
       "app/surface.tsx",
     ]);
     expect(plan.diff).toContain('+import { AgentSurface } from "../surface";');
-    expect(plan.diff).toContain(
-      '+    const enabled = useFeatureFlag("ui_axe_surface") || injectedRelay() !== null;',
-    );
+    expect(plan.diff).toContain('+    const enabled = useFeatureFlag("ui_axe_surface");');
     expect(plan.diff).not.toContain("app/root.tsx");
     const bad = await cli(["surface", "init", "--dir", dir, "--mount", "app/nope.tsx"]);
     expect(bad.err).toContain("--mount app/nope.tsx: no such file");

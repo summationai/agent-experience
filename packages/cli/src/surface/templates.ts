@@ -23,6 +23,8 @@ export interface TemplateOptions {
   typescript: boolean;
   style: Style;
   flag: FlagSpec;
+  /** Include the optional out-of-browser relay/host adapter. */
+  remote?: boolean;
   /** Relay URL when `--relay` or `--relay-dev` was given. */
   relay?: string;
 }
@@ -97,7 +99,7 @@ interface Gate {
   says: string;
 }
 
-/** Always on in a session a host runs for an agent, whatever the app's own gate says. */
+/** With the optional remote adapter, always on in a session a host runs for an agent. */
 const HOSTED = `${NAMES.injectedRelay}() !== null`;
 const HOSTED_SAYS =
   "Always on in a session a host runs for an agent (`axe host`, which injects window.__AXE_RELAY__).";
@@ -105,29 +107,31 @@ const HOSTED_SAYS =
 function gate(o: TemplateOptions): Gate {
   const env = envOf(o.framework);
   const dev = env ? env.dev : LOCAL_DEV;
+  const hosted = o.remote ? ` || ${HOSTED}` : "";
+  const hostedSays = o.remote ? ` ${HOSTED_SAYS}` : "";
   const devLine = env ? `const development = ${dev};` : `const development =\n  ${dev};`;
   if (o.flag.kind === "call") {
     const hook = /^use[A-Z0-9]/.test(o.flag.name);
     return {
       imports: [`import { ${o.flag.name} } from "${o.flag.module}";`],
       module: [devLine],
-      body: [`const enabled = ${o.flag.call} || ${HOSTED};`],
-      says: `On when ${o.flag.call} (from ${o.flag.module}) is true; that ${hook ? "hook" : "check"} decides every environment.${hook ? " A hook needs its provider above the mount: mount below it with --mount." : ""} ${HOSTED_SAYS}`,
+      body: [`const enabled = ${o.flag.call}${hosted};`],
+      says: `On when ${o.flag.call} (from ${o.flag.module}) is true; that ${hook ? "hook" : "check"} decides every environment.${hook ? " A hook needs its provider above the mount: mount below it with --mount." : ""}${hostedSays}`,
     };
   }
   if (!env)
     return {
       imports: [],
-      module: [devLine, `const enabled = development || ${HOSTED};`],
+      module: [devLine, `const enabled = development${hosted};`],
       body: [],
-      says: `On when the page is served from localhost; off everywhere else. ${HOSTED_SAYS} Replace \`development\` in \`enabled\` with your feature-flag check to turn it on elsewhere.`,
+      says: `On when the page is served from localhost; off everywhere else.${hostedSays} Replace \`development\` in \`enabled\` with your feature-flag check to turn it on elsewhere.`,
     };
   const name = o.flag.kind === "env" ? o.flag.name : `${env.prefix}SURFACE`;
   return {
     imports: [],
-    module: [devLine, `const enabled = development || ${env.read(name)} === "1" || ${HOSTED};`],
+    module: [devLine, `const enabled = development || ${env.read(name)} === "1"${hosted};`],
     body: [],
-    says: `On in development, and in a build made with ${name}=1. Production builds are off unless that is set. ${HOSTED_SAYS}`,
+    says: `On in development, and in a build made with ${name}=1. Production builds are off unless that is set.${hostedSays}`,
   };
 }
 
@@ -144,6 +148,7 @@ interface RelayLines {
  * (attended: the person's own tab, with pairing); with `--relay <url>`, the app's own relay.
  */
 function relayLines(o: TemplateOptions): RelayLines {
+  if (!o.remote) return { imports: [], module: [], options: "null" };
   const injected = `${NAMES.injectedRelay}()`;
   const imports = (extra: string[] = []) => [
     `import { ${[NAMES.connectRelay, ...extra, NAMES.injectedRelay].join(", ")} } from "${MODULES.relayClient}";`,
@@ -202,27 +207,31 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     `${PROVIDER_PROPS.config}={surfaceConfig}`,
     `${PROVIDER_PROPS.flag}={enabled}`,
     `${PROVIDER_PROPS.expose}={development}`,
-    `${PROVIDER_PROPS.onReady}={(handle) => {`,
-    `  const options = ${r.options};`,
-    "  if (!options) return;",
-    `  const connection = ${NAMES.connectRelay}(handle.surface, options);`,
-    "  return () => connection.stop();",
-    "}}",
+    PROVIDER_PROPS.webMcp,
+    ...(o.remote
+      ? [
+          `${PROVIDER_PROPS.onReady}={(handle) => {`,
+          `  const options = ${r.options};`,
+          "  if (!options) return;",
+          `  const connection = ${NAMES.connectRelay}(handle.surface, options);`,
+          "  return () => connection.stop();",
+          "}}",
+        ]
+      : []),
   ];
-  const open =
-    props.length <= 3
-      ? [`    <${NAMES.provider} ${props.join(" ")}>`]
-      : [`    <${NAMES.provider}`, ...props.map((p) => `      ${p}`), "    >"];
+  const open = !o.remote
+    ? [`    <${NAMES.provider} ${props.join(" ")}>`]
+    : [`    <${NAMES.provider}`, ...props.map((p) => `      ${p}`), "    >"];
   const lines = [
     ...(o.framework === "next" ? [`"use client";`, ""] : []),
     `// Agent Surface for this app, ${MARKER}. Yours to edit.`,
     "//",
     `// <${WRAPPER}> wraps the app root. On, autoSurface discovers the controls under it and, in`,
     `// development, publishes window.${PAGE_GLOBAL} for \`axe surface coverage\` and browser agents.`,
+    "// It also registers the live controls with a browser-native agent when WebMCP is available.",
     "// Off, it renders its children and nothing else. Overlay config: ./surface.config.",
-    "// Nothing here runs at import time: the provider starts discovery (and the relay) in an",
-    "// effect, so a server render renders the children only. injectedRelay() reads",
-    "// window.__AXE_RELAY__ when called and is null on the server.",
+    `// Nothing here runs at import time: the provider starts discovery${o.remote ? " and the remote connection" : ""} in an effect,`,
+    "// so a server render renders the children only.",
     "//",
     ...comment(g.says),
     ...(ts ? [`import type { ReactNode } from "react";`] : []),
@@ -261,6 +270,7 @@ export function plainSurfaceFile(o: TemplateOptions): string {
     `// ${MODULES.auto} is a bare module specifier: load this file through your bundler, or map`,
     "// the specifier with an import map to the package's built files.",
     `import { ${NAMES.autoSurface} } from "${MODULES.auto}";`,
+    `import { ${NAMES.exposeWebMcp} } from "${MODULES.webMcp}";`,
     ...r.imports,
     ...g.imports,
     `import surfaceConfig from "./surface.config.js";`,
@@ -272,8 +282,13 @@ export function plainSurfaceFile(o: TemplateOptions): string {
     "if (enabled) {",
     "  // expose publishes window.__surface for `axe surface coverage` and browser-driving agents.",
     `  const handle = ${NAMES.autoSurface}({ ${AUTO_OPTIONS.root}: document.body, ${AUTO_OPTIONS.config}: surfaceConfig, expose: development });`,
-    `  const options = ${r.options};`,
-    `  if (options) ${NAMES.connectRelay}(handle.surface, options);`,
+    `  ${NAMES.exposeWebMcp}(handle.surface);`,
+    ...(o.remote
+      ? [
+          `  const options = ${r.options};`,
+          `  if (options) ${NAMES.connectRelay}(handle.surface, options);`,
+        ]
+      : []),
     "}",
     "",
   ];

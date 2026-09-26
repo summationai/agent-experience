@@ -1,18 +1,18 @@
 # Getting started
 
-There are two ways in. If you have a web application and want an agent to drive it through the controls people already use, start with the four steps below: install, `axe surface init`, sign in once and connect Claude, and ask. If you want to declare server operations as typed actions an agent calls over HTTP, skip to [Serve actions over AXE](#serve-actions-over-axe). Most applications end up with both.
+There are two ways in. If you have a web application and want a browser-native agent to drive it through the controls people already use, start with the package-only steps below. If you want to declare server operations as typed actions an agent calls over HTTP, skip to [Serve actions over AXE](#serve-actions-over-axe). An agent outside the browser is an optional adapter, not a requirement of Surface.
 
 ## Add Surface to an existing app in four steps
 
-Out of the box this gets most of the way: Surface discovers the page's controls, and the agent uses the app through them in a headless browser the SDK runs for it, signed in as you. You never open the site; approvals come to you in the agent's own UI. It works with React Router 7 (framework mode), the Next.js App Router, Vite with React, React under any other bundler, and plain HTML pages.
+Out of the box Surface discovers the page's controls and keeps their live state, revision, ledger, and handlers in the page. A browser-native agent receives them through WebMCP where supported; other browser agents can use the same DOM semantics, and development publishes `window.__surface`. No standalone MCP server or relay is involved. It works with React Router 7 (framework mode), the Next.js App Router, Vite with React, React under any other bundler, and plain HTML pages.
 
 ### 1. Install
 
 ```sh
-npm install @axe/surface @axe/relay
+npm install @axe/surface
 ```
 
-`@axe/relay/client` is the small browser client the page connects through; the relay server, MCP, and WebSocket dependencies are optional peers that only the host installs. While the packages are unpublished, `axe surface init --vendor <dir> --install` installs from tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout).
+While the packages are unpublished, `axe surface init --vendor <dir> --install` installs the `core` and `surface` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout).
 
 ### 2. Run `axe surface init`
 
@@ -36,7 +36,7 @@ npx axe surface init --dry-run
  }
 ```
 
-`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` that connects the page to the agent whenever the host injected a connection (`injectedRelay()`), and is always on in such a hosted session. In a person's own browser it is on in development and off in a production build unless `VITE_SURFACE=1` was set at build time. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
+`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` with `webMcp` enabled. In a person's browser it is on in development and off in a production build unless `VITE_SURFACE=1` was set at build time. WebMCP is feature-detected, so a browser without it gets no registered tools and the page behaves normally. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
 
 ```sh
 npx axe surface init --yes
@@ -45,32 +45,40 @@ npx axe surface init --yes
 Options that matter on a real app:
 
 - `--mount <file>`: mount in a layout instead of the root, when the root also renders pages before sign-in. `init` lists the layout routes it found.
-- `--flag <NAME>` for a different build-time variable (`NEXT_PUBLIC_SURFACE` is the Next.js default), or `--flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import '~/feature-flags'` to gate on your feature-flag client. A hosted session is on whatever the flag says.
-- `--relay-dev` (or `--relay <url>`): the attended fallback, where the agent acts in your own open tab through a relay and pairs with it ([Relay](relay.md)).
+- `--flag <NAME>` for a different build-time variable (`NEXT_PUBLIC_SURFACE` is the Next.js default), or `--flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import '~/feature-flags'` to gate on your feature-flag client.
+- `--remote`: also accept a connection injected by the optional unattended host. This adds `@axe/relay` to the application; a hosted session turns the surface on whatever the person's flag says.
+- `--relay-dev` (or `--relay <url>`): opt into the attended remote adapter, where an agent outside the browser acts in the person's open tab ([Relay](relay.md)). These options imply `--remote`.
 
-### 3. Sign in once and connect Claude
+### 3. Open it with a browser-native agent
 
-Start the app in development, then sign in once, in a browser the host opens for you, and connect Claude Code:
+Start the app and open it normally. In a browser that supports WebMCP, the provider registers `surface_observe` and one tool per usable control directly from the package-held surface. WebMCP is still experimental; see [WebMCP](webmcp.md) for browser support and testing flags.
 
-```sh
-npx axe host login http://localhost:5173
-claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
-```
+Controls classified as high risk, controls that declare confirmation, and controls waiting on `approval_required` do not run merely because an agent invokes their WebMCP tool. They require a trusted `requestApproval` callback configured by the application; without one, the adapter refuses the call. The callback must resolve only from the person's interaction and must never be exposed as an agent-reachable tool or control.
 
-The first saves your signed-in session to `.axe/host-state.json` (keep `.axe/` out of version control). The second lets Claude Code start the host, which runs your app in headless Chromium with that session and serves its tools over MCP. For Claude Desktop, run `npx axe host --dev --app http://localhost:5173 --name myapp` once: it prints the `claude_desktop_config.json` entry with absolute paths. See [Unattended mode](host.md).
+Where WebMCP is absent, the accessibility and Surface DOM attributes still improve browser automation. In development, an agent with page-script access can use `window.__surface`.
 
-### 4. Ask
+### 4. Measure and refine
 
-Ask the agent to do something in the app ("raise Widgets for March to 1500 and submit the plan"). It reads the page (`surface_read`), observes the controls with their live availability and reasons (`surface_observe`), acts through the same handlers a click runs, waits for slow work (`surface_wait`), and presents the revision it observed, so a stale act is a conflict instead of a surprise. A consequential act asks you in Claude first. `host_screenshot` shows the page.
-
-To make it better, run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
+Run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
 
 ```sh
 npx axe surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
 npx axe surface prompt > integrate-surface.md
 ```
 
-The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page (published in development by `expose`), and lists what the page could not say (unnamed controls, missing reasons, destructive actions, private fields) with the rule to paste for each; `--json` is for machines, `--auth` passes a session cookie or an `Authorization` header. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout. For server operations with no control on the page, the AXE path below derives an MCP server from typed actions; see [MCP](mcp.md).
+The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page, and lists what the page could not say with the rule to paste for each. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout.
+
+## Optional: reach it from outside the browser
+
+The package-only path is the default. If the agent is a separate process such as Claude Code, re-run init with `--remote`, install `@axe/relay`, and use the existing host adapter:
+
+```sh
+npx axe surface init --remote --yes --install
+npx axe host login http://localhost:5173
+claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
+```
+
+The host runs the signed-in app in a headless browser and currently presents the surface to Claude over MCP. MCP is an agent-facing compatibility adapter here: the authoritative surface and every act remain in the page. See [Unattended mode](host.md). `--relay-dev` is the attended alternative using the person's open tab.
 
 ## Serve actions over AXE
 

@@ -16,45 +16,28 @@ diff --git a/src/surface.jsx b/src/surface.jsx
 new file mode 100644
 --- /dev/null
 +++ b/src/surface.jsx
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,25 @@
 +// Agent Surface for this app, written by `axe surface init`. Yours to edit.
 +//
 +// <AgentSurface> wraps the app root. On, autoSurface discovers the controls under it and, in
 +// development, publishes window.__surface for `axe surface coverage` and browser agents.
++// It also registers the live controls with a browser-native agent when WebMCP is available.
 +// Off, it renders its children and nothing else. Overlay config: ./surface.config.
-+// Nothing here runs at import time: the provider starts discovery (and the relay) in an
-+// effect, so a server render renders the children only. injectedRelay() reads
-+// window.__AXE_RELAY__ when called and is null on the server.
++// Nothing here runs at import time: the provider starts discovery in an effect,
++// so a server render renders the children only.
 +//
-+// On when the page is served from localhost; off everywhere else. Always on in a session a host
-+// runs for an agent (`axe host`, which injects window.__AXE_RELAY__). Replace `development` in
++// On when the page is served from localhost; off everywhere else. Replace `development` in
 +// `enabled` with your feature-flag check to turn it on elsewhere.
 +import { SurfaceProvider } from "@axe/surface/react";
-+import { connectRelay, injectedRelay } from "@axe/relay/client";
 +import surfaceConfig from "./surface.config";
 +
 +const development =
 +  typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
-+const enabled = development || injectedRelay() !== null;
-+
-+// The relay carries the page's surface to an agent outside the browser (an MCP client). A host
-+// that runs this app for an agent (unattended mode, `axe host`) injects the connection;
-+// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay
-+// for a person's own tab (attended mode, with pairing).
++const enabled = development;
 +
 +export function AgentSurface({ children }) {
 +  return (
-+    <SurfaceProvider
-+      config={surfaceConfig}
-+      flag={enabled}
-+      expose={development}
-+      onReady={(handle) => {
-+        const options = injectedRelay();
-+        if (!options) return;
-+        const connection = connectRelay(handle.surface, options);
-+        return () => connection.stop();
-+      }}
-+    >
++    <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development} webMcp>
 +      {children}
 +    </SurfaceProvider>
 +  );

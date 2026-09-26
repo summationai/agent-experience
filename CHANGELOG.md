@@ -271,3 +271,10 @@ What the first integration into a legacy-DOM application asked for, made general
 - `llms.txt`: the four-step summary and section, "Decide your shape" (unattended versus attended first), "Reach it through existing agent interfaces" (the host first), "Ship behind a flag" (a hosted session is on whatever the flag says), and "What does not exist yet" (production OAuth and `sessionFor` are the application's; everything in memory in one process).
 - `packages/cli/templates/integrate-surface.md` verifies through `axe host`; `internal/install-surface-in-summation-web-app.md` replaces pairing and the tab's panel with `axe host login` once and `claude mcp add summation -- node .../index.js host --dev --stdio --app http://localhost:5173 --start "/?ui_axe_surface=true" --state <abs path>`, keeps the tab relay as the fallback, and lists the production pieces as follow-ups.
 - Vocabulary: `actTimeoutMs`, `navigated`.
+
+### Package-first Surface integration (supersedes the default path above)
+
+- `axe surface init` now generates a browser-native integration by default: only `@axe/surface` is installed, React uses `<SurfaceProvider webMcp>`, and plain pages call `exposeWebMcp`. No relay, host, or standalone MCP server is required. `--remote` opts into `@axe/relay/client`; `--relay` and `--relay-dev` imply remote mode.
+- `@axe/surface/react`: `SurfaceProvider` and `useAutoSurface` accept `webMcp: true | WebMcpOptions` and own the adapter's start/stop lifecycle.
+- `@axe/surface/webmcp`: `requestApproval` is the trusted application callback for high-risk, explicitly confirmed, and approval-gated actions. Without it the tool refuses the act; denials are refused and person decisions are recorded in the Surface ledger. The adapter alone may grant the auto-surface's private one-use approval gate.
+- The remote host and relay remain available as optional transports for agents outside the browser, with the page's Surface still authoritative. Public docs, `llms.txt`, the integration prompt, and the internal Summation guide now distinguish the package-only default from explicit `--remote` mode.
