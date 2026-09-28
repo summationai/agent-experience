@@ -26,6 +26,19 @@ declare module "@axe/surface/auto" {
     editable?: boolean;
   }
   export interface SurfaceConfig {
+    profile?:
+      | {
+          id: string;
+          name: string;
+          authentication?: { state: "unknown" | "signed-out" | "signed-in" };
+          context?: { kind: string; id?: string; name?: string };
+        }
+      | (() => {
+          id: string;
+          name: string;
+          authentication?: { state: "unknown" | "signed-out" | "signed-in" };
+          context?: { kind: string; id?: string; name?: string };
+        });
     rules?: SurfaceRule[];
   }
   export interface AutoSurfaceHandle {

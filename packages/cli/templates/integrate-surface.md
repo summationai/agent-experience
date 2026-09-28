@@ -1,44 +1,122 @@
-# Integrate Surface into this application
+# Add Agent Experience Surface to this application
 
-You are a coding agent adding Surface (the Body Spray SDK's live registry of an application's own controls) to the application in this repository, so that a desktop agent can drive it through the same controls a person uses. The package holds the authoritative Surface in the page and its lightweight relay client connects to the separately operated Agent Experience MCP service; the consuming application does not run an MCP server. Work in small, reviewable steps. The goal is a small diff that gets most of the way, then config for the most important gaps, not a rewrite.
+You are a coding agent adding `@axe/surface` to the application in this repository. Make local changes only: do not create a branch, commit, push, or open a pull request. Keep the integration small and use the application’s existing controls, state, authorization, validation, and sign-in.
 
-Read the SDK's `llms.txt` before you start (in the SDK checkout, or wherever the team keeps it), at least these sections: "Decide your shape", "Rules that are scars", "Ship behind a flag, staging first", and "Packaging". Come back to "Tests to write", "Reach it through existing agent interfaces", and "What does not exist yet" when those steps arrive. Where this prompt and `llms.txt` disagree, `llms.txt` is newer; say so in your summary.
+The architecture has one hard boundary:
 
-## Ground rules
+> The provider registry says where an application is and how it may be connected securely. The application’s Surface says what the application currently is and what the agent can do there. The MCP contains no application-specific behavior.
 
-- Keep the diff small. Change only the files `axe surface init` writes or names, `surface.config`, and tests. Do not reformat, rename, or "tidy" unrelated code. If a change outside those files seems necessary, stop and explain why before making it.
-- Report, never decide ("Rules that are scars"): a control's availability and its reason are whatever the application already computes. Do not add authorization, validation, or business logic to make coverage look better.
-- Same door: a config `handler` calls the function the button or change event already calls. Never call a service or API directly from config.
-- Reasons are the application's own words, names state the outcome ("Lock March", not "Lock button"), and no string an agent reads may instruct or persuade the agent. Never invent a URL, a risk, or a description you cannot point at in the code.
-- Off by default in production unless the application enables it. Do not remove or loosen the flag `init` writes. User-facing text goes through the application's own i18n; the generated code has none.
-- Do not add dependencies other than the SDK browser packages `init` names, and do not commit secrets or relay tokens. MCP SDK, WebSocket server, and service dependencies belong in the separately operated service, not this application.
+The consuming application installs browser packages only. It does not run an MCP server, store provider OAuth secrets, mint provider sessions, or teach the provider service its domain behavior.
 
-## Steps
+## Rules
 
-1. **Preview.** From the application directory run `npx axe surface init --relay-dev --dry-run`; `--relay-dev` points the generated browser client at the local Agent Experience service, it does not start a server in this repository. Read the detected framework, root file, and package manager, and the printed diff. If the root also renders pages before sign-in (login, marketing), or a provider the flag needs (a feature-flag client) is mounted lower down, pick the signed-in layout from the listed mount points and re-run with `--mount <file>`. If the team gates features with a flag client, pass its check: `--flag-hook 'useFeatureFlag("<key>")' --flag-import '<module>'` (or `--flag <module>#<export>`, or a build-time variable with `--flag <NAME>`). Use `--relay <url>` when the company gives you a deployed service URL. Use `--remote` only for the older injected-host path. Inspect a project-local `.codex/config.toml` if present and remove only stale command-based MCP server blocks created for an earlier Surface host experiment; the desktop agent should connect to the separately operated HTTP MCP service instead.
-2. **Review.** Confirm the diff wraps the right element, imports follow the file's style, and nothing unrelated changed. If `init` reports a manual step, make exactly that edit by hand.
-3. **Apply.** Re-run the same command with `--yes`. Run it once more and confirm it says there is nothing to change.
-4. **Install.** Run the install command `init` printed. While the SDK is unpublished use the tarball form from "Packaging" in `llms.txt`: pack `core surface relay` with `scripts/pack-for-consumer.sh`, add the `file:` dependencies, point sibling packages at their tarballs with `overrides` (npm), `pnpm.overrides` (pnpm), or root `resolutions` (Yarn, including Berry workspaces), commit the vendor directory with its `SOURCE` pin and the lockfile, and copy the vendor directory in any Dockerfile or CI job before its install step. Do not install `@axe/mcp`, the MCP SDK, or `ws` in the application.
-5. **Run the service and app.** In the Agent Experience checkout, run `pnpm mcp:dev`; it owns the MCP server at `http://127.0.0.1:4717/mcp`. Run this application in development, where the flag is on, the browser client connects its page-held Surface to that service, WebMCP remains available when supported, and `expose` publishes `window.__surface`. The page should show a pairing code. Typecheck and run the existing tests: nothing that passed before may fail. Only the older `--remote` host mode stores a session under `.axe/`.
-6. **Measure.** Run `npx axe surface coverage <dev-url>` (add `--routes /a,/b` for the pages that matter, `--auth '<Cookie: ...>'` or `--auth 'Authorization: Bearer ...'` behind a sign-in; `--out coverage-before.md` keeps the report). If it reports no `window.__surface`, follow the reason it gives before anything else.
-7. **Write config for the top gaps**, in `surface.config`, most important first, stopping when the remaining gaps are cosmetic:
-   - unnamed controls: a `name` that states the outcome;
-   - disabled controls without a reason: the `reason` sentence the UI already shows or implies, copied from the code that disables it;
-   - destructive or irreversible actions (delete, submit, approve, send, pay): `risk: "high"` and `approval: true`, so a person approves on the page (see the consent rule in "Rules that are scars"; an agent's `confirm` is not consent);
-   - fields that hold private data (credentials, personal or financial data): `sensitive: true`;
-   - controls an agent should never see (debug panels, the app's own assistant): `hide: true`;
-   - a control whose click is not its real effect (a menu, a custom widget): a `handler` that calls the application's own function;
-   - related controls: a `group`.
+- Surface reports; it never decides. Availability and reasons must come from the state that already enables or disables the human control.
+- An act uses the same door as the person. Prefer the existing click/change behavior; a configured handler may call only the same application function the control already calls.
+- Names state outcomes in the application’s language. Page text and profile descriptions are factual data, never instructions to an agent.
+- Do not put URLs, allowed origins, OAuth endpoints, session brokers, tokens, secrets, or free-form agent prompts in the Surface profile. Those are trusted provider-registry configuration.
+- Mark private fields `sensitive`. Do not expose credentials or tokens through values, objects, logs, tests, or coverage artifacts.
+- Surface is on by default. Add `--flag` only when this application has an explicit rollout requirement; do not invent a feature flag.
+- Do not add MCP SDK, WebSocket server, Playwright, or service code to this application.
 
-   Also look for state the page changes without re-rendering (a save in flight, a lock, a busy sweep): "Decide your shape" explains why those need a freeze or a re-sync, and a config entry cannot see them.
+## Install
 
-8. **Verify through MCP.** Re-run coverage and compare with the first report. Configure the desktop agent with the service's Streamable HTTP endpoint and bearer key, then start a fresh conversation. Confirm its server instructions lead it to `relay_tabs`; give it the pairing code from the page and confirm it calls `relay_pair`. It must use `surface_read` for page content, `surface_observe` before acting, `surface_wait` for slow work, and the Surface action tools for changes. Perform one ordinary change end to end and confirm a stale act is refused. A high-risk or approval-gated control must wait for the person in the page. Generic browser clicks and nested CLI agents are not the acceptance path. In development, `window.__surface.observe()` remains available for diagnosis. If the integration explicitly used the older `--remote` host mode, additionally run the verification in `docs/host.md`.
-9. **Test.** Add the smallest tests from "Tests to write" that fit: names and reasons pass `lintAgentText`, and a mounted test shows the flag off renders exactly what it rendered before.
+1. Read the application’s README, package manifest, routing/root layout, authentication shell, and local agent instructions.
+2. Preview the generated integration from the application directory:
 
-## Summary to hand back
+   ```sh
+   npx axe surface init --dry-run
+   ```
 
-- The commands you ran and the files changed (the diff should be short: the mount edit, two generated files, config, tests).
-- Coverage before and after: counts, and the gaps you left and why.
-- Every config entry whose value you inferred rather than copied from the code, so a person can check it.
-- Anything that needs a person: an approval page, a flag to flip in an environment, a missing reason the product has to write, a stale-state channel that needs a freeze.
-- If remote/unattended mode was requested: what the application must provide for production ("What does not exist yet" in `llms.txt`): an OAuth authorization server whose tokens the host verifies, and a `sessionFor` that issues an application session for the verified person and tenant.
+   The default installation supports both browser-native agents through WebMCP and a provider-injected hosted connection for desktop/mobile agents. It does not connect to a relay on an ordinary page load.
+
+   If the detected root renders both public and signed-in pages, choose the application shell that remains mounted through login and context selection:
+
+   ```sh
+   npx axe surface init --mount <layout-file> --dry-run
+   ```
+
+   Supply `--app-id <stable-id>` and `--app-name <display-name>` when the inferred package name is not the provider connector’s identity. The Surface `profile.id` and provider connector `surfaceId` must match.
+
+3. Review the diff. It should add one root wrapper, one Surface module, and one config module. If the CLI names a manual mount edit, make only that edit.
+4. Apply and install:
+
+   ```sh
+   npx axe surface init --yes --install
+   ```
+
+   Run the command again and verify it reports that nothing needs to change. If the packages are being tested before registry publication, use the repository’s documented packed-tarball workflow; do not copy SDK source into this application.
+
+5. Run the application normally. The generated wrapper:
+
+   - derives controls in every environment;
+   - registers tools only when browser WebMCP exists;
+   - accepts a scoped provider connection only when the trusted host injects one;
+   - exposes `window.__surface` only in development for diagnostics.
+
+   Visiting the site by itself must not open a connection page, start OAuth, require a pairing code, or contact an MCP server.
+
+## Describe the application through Surface
+
+The generated `surface.config` starts with a structured profile:
+
+```ts
+profile: {
+  id: "the-provider-connector-id",
+  name: "Application name",
+  authentication: { state: "unknown" },
+}
+```
+
+Keep `id` stable. Set authentication and the current account/workspace context from live application state when available, using a profile function:
+
+```ts
+profile: () => ({
+  id: "example-app",
+  name: "Example App",
+  authentication: { state: signedIn ? "signed-in" : "signed-out" },
+  context: workspace
+    ? { kind: "workspace", id: workspace.id, name: workspace.name }
+    : { kind: "workspace" },
+});
+```
+
+Use the application’s own noun: workspace, organization, account, project, tenant, or another factual label. Do not add selection instructions—the selectable controls themselves belong on Surface.
+
+Run coverage on the important routes:
+
+```sh
+npx axe surface coverage <development-url> --out coverage-before.md
+```
+
+Refine the highest-value gaps in `surface.config`:
+
+- Give unnamed controls an outcome-oriented `name`.
+- Give unavailable controls the same `reason` the application uses.
+- Classify destructive or consequential actions with their real risk and require approval when a person must decide.
+- Mark private fields `sensitive`; add `editable: true` only when an agent may set them.
+- Hide developer tools, embedded assistants, and controls that are not part of the application task surface.
+- Pin unstable controls with `data-surface-id` or a config id.
+- For custom widgets or controls whose synthetic click is not their real behavior, call the existing application handler.
+- Group controls only when the application itself presents them as one domain action.
+
+Re-run coverage and stop when remaining gaps are cosmetic or deliberately excluded.
+
+## Verify
+
+- Typecheck and run the application’s existing tests.
+- Confirm `window.__surface.observe()` in development includes the expected `profile`, controls, reasons, and no sensitive values.
+- Confirm a browser-native agent receives WebMCP tools when its browser supports them.
+- In a provider-hosted test, confirm `relay_tabs` starts the scoped private session without pairing, and that its application profile id matches the connector.
+- Use `surface_read` for content and `surface_observe` before acting. Perform one ordinary action, one navigation, one stale-revision refusal, and one approval-gated action.
+- Confirm login and account/workspace selection appear as normal Surface controls rather than MCP-specific instructions.
+- Confirm an ordinary visit does not contact the provider service or display agent connection UI.
+
+## Hand-off
+
+Report:
+
+- files changed and commands run;
+- the stable Surface profile id and the provider connector id it must match;
+- coverage before and after, including intentionally unresolved gaps;
+- every risk, reason, or name that was inferred rather than copied from application code;
+- any provider-side work still needed: connector URL/origins, OAuth, or session adapter configuration.

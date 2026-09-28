@@ -39,6 +39,9 @@ export interface InitOptions {
   mount?: string;
   /** Include the relay/service or injected-host adapter for an agent outside the browser. */
   remote?: boolean;
+  /** Stable id and human name shared with the provider connector. */
+  appId?: string;
+  appName?: string;
   relay?: string;
   /** Directory holding the packed tarballs, for the unpublished install form. */
   vendor?: string;
@@ -208,12 +211,27 @@ export function planInit(o: InitOptions): InitPlan {
     d.framework === "plain"
       ? { quote: '"' as const, semi: true, unit: "  " }
       : detectStyle(rootText);
+  const inferredAppId = (d.packageName ?? "application")
+    .replace(/^@[^/]+\//, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[._-]+|[._-]+$/g, "");
+  const appId = (o.appId ?? inferredAppId) || "application";
+  if (!/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/.test(appId) || appId.length > 80)
+    throw new Error(
+      "--app-id must be at most 80 lowercase letters, digits, dots, underscores, or hyphens.",
+    );
+  const appName = o.appName ?? d.packageName?.replace(/^@[^/]+\//, "") ?? "Application";
+  if (!appName.trim() || appName.length > 120)
+    throw new Error("--app-name must be between 1 and 120 characters.");
   const t: TemplateOptions = {
     framework: d.framework,
     typescript: d.typescript,
     style,
     flag,
-    remote: o.remote === true || o.relay !== undefined,
+    remote: o.remote !== false,
+    appId,
+    appName,
   };
   if (o.relay !== undefined) t.relay = o.relay;
   const plain = d.framework === "plain";
@@ -366,10 +384,9 @@ function declares(dir: string, names: string[]): boolean {
 
 function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
   const d = plan.detection;
-  const remote = o.remote === true || o.relay !== undefined;
+  const remote = o.remote !== false;
   const registry = installCommand(d, remote);
   const tar = installCommand(d, remote, o.vendor ?? "vendor");
-  const flagName = defaultFlagName(d.framework);
   const devUrl =
     d.framework === "next"
       ? "http://localhost:3000"
@@ -398,11 +415,9 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
       text: `Run the app in development (${devUrl}). Surface registers with a browser-native agent when WebMCP is available${
         o.flagHook
           ? `, when ${o.flagHook} is true`
-          : o.flag !== undefined && !/^[A-Z]/.test(o.flag)
-            ? ", when your flag is on"
-            : flagName
-              ? `, in development (${o.flag ?? flagName}=1 turns it on in a build)`
-              : ", from localhost only"
+          : o.flag !== undefined
+            ? `, when ${o.flag} is on`
+            : ", in every environment"
       }.`,
     },
     ...(remote
@@ -426,12 +441,12 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     },
     {
       text: !remote
-        ? "An agent outside the browser is optional: re-run with --remote for an injected host connection, or --relay-dev for an attended relay."
+        ? "This browser-only installation exposes WebMCP. Re-run without --browser-only to accept a provider-injected host connection too."
         : o.relay === DEV_RELAY_URL
           ? "Start the company-side local service from the SDK checkout with pnpm mcp:dev, connect the desktop agent to http://127.0.0.1:4717/mcp, then pair it with the code the tab shows."
           : o.relay !== undefined
             ? "The person's own tab connects to the company-side service; its authenticated deployment supplies the short-lived tab token."
-            : "Fallback, the person's own tab (attended): re-run with --relay-dev, or let a browser agent drive window.__surface.",
+            : "The provider-injected connection needs no application token endpoint or pairing. Use --relay-dev only when deliberately testing the older attended-tab flow.",
     },
   );
   return steps.flatMap((s, i) => [
@@ -448,6 +463,9 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
     relay: { type: "string" },
     "relay-dev": { type: "boolean" },
     remote: { type: "boolean" },
+    "browser-only": { type: "boolean" },
+    "app-id": { type: "string" },
+    "app-name": { type: "string" },
     "dry-run": { type: "boolean" },
     yes: { type: "boolean", short: "y" },
     install: { type: "boolean" },
@@ -464,12 +482,17 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
     throw new Error(`--framework must be auto or one of ${FRAMEWORKS.join(", ")}`);
   if (values.relay !== undefined && values["relay-dev"])
     throw new Error("Pass --relay <url> or --relay-dev, not both.");
+  if (values.remote && values["browser-only"])
+    throw new Error("Pass --remote or --browser-only, not both.");
   const o: InitOptions = { dir: String(values.dir ?? ".") };
   if (fw) o.framework = fw as Framework;
   if (values.flag !== undefined) o.flag = String(values.flag);
   if (values.relay !== undefined) o.relay = String(values.relay);
   if (values["relay-dev"]) o.relay = DEV_RELAY_URL;
-  if (values.remote) o.remote = true;
+  if (values["browser-only"]) o.remote = false;
+  else o.remote = true;
+  if (values["app-id"] !== undefined) o.appId = String(values["app-id"]);
+  if (values["app-name"] !== undefined) o.appName = String(values["app-name"]);
   if (values.vendor !== undefined) o.vendor = String(values.vendor);
   if (values.mount !== undefined) o.mount = String(values.mount);
   if (values["flag-hook"] !== undefined) o.flagHook = String(values["flag-hook"]);
@@ -485,7 +508,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
   const others = d.candidates.filter((c) => c !== mountName);
   if (others.length)
     ctx.stdout(
-      `Other mount points (layouts that render the app's pages): ${others.join(", ")}. If the root also renders pre-auth pages, mount in the signed-in shell instead: --mount <file>.`,
+      `Other mount points (layouts that render the app's pages): ${others.join(", ")}. Keep Surface mounted across sign-in and account/workspace selection; use --mount <file> only when that layout still covers those states.`,
     );
   for (const k of plan.kept) ctx.stdout(`  kept: ${k}`);
   for (const m of plan.manual) ctx.stderr(`  manual step: ${m}`);
@@ -519,7 +542,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let installed = false;
   if (values.install && !values["dry-run"]) {
-    const cmd = installCommand(d, o.remote === true || o.relay !== undefined, o.vendor);
+    const cmd = installCommand(d, o.remote !== false, o.vendor);
     ctx.stdout(`Running: ${cmd.argv.map(quoteArg).join(" ")}  (in ${cmd.cwd})`);
     if (cmd.overrides && writeOverrides(d.dir, cmd.overrides))
       ctx.stdout(

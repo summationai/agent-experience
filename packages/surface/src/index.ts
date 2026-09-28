@@ -298,6 +298,11 @@ export interface ObservedEntry {
 
 export interface Observation {
   protocol: string;
+  /**
+   * Structured application identity and live account/workspace context. This is descriptive
+   * application data, never agent instructions or connection/security configuration.
+   */
+  profile?: SurfaceProfile;
   app: string;
   rev: number;
   at: string;
@@ -308,6 +313,39 @@ export interface Observation {
   /** The latest ledger `seq`, so an agent can ask `ledger({ since })` for what happened since it looked. */
   ledgerSeq: number;
 }
+
+/** The signed-in state the application itself currently renders. */
+export type SurfaceAuthenticationState = "unknown" | "signed-out" | "signed-in";
+
+/** A live account, workspace, organization, project, or other application context. */
+export interface SurfaceContextProfile {
+  /** The application's neutral name for this kind of context (`workspace`, `organization`, …). */
+  kind: string;
+  /** Stable application identifier, when one is selected. */
+  id?: string;
+  /** Human-readable name, when one is selected. */
+  name?: string;
+}
+
+/**
+ * Structured facts the application publishes about itself through Surface. It deliberately has
+ * no free-form instruction field and no URLs, origins, OAuth endpoints, or session policy: those
+ * are trusted provider-registry concerns.
+ */
+export interface SurfaceProfile {
+  /** Stable id agreed with the provider connector (`summation`, `acme-planner`, …). */
+  id: string;
+  /** Human-readable application name. */
+  name: string;
+  /** Short factual description for people and application discovery, not instructions to agents. */
+  description?: string;
+  /** The context the application currently shows. */
+  context?: SurfaceContextProfile;
+  /** Authentication state visible to the application. */
+  authentication?: { state: SurfaceAuthenticationState };
+}
+
+export type SurfaceProfileSource = SurfaceProfile | (() => SurfaceProfile);
 
 /** The transient state a `freeze` reports on every entry. */
 export interface Frozen {
@@ -430,6 +468,8 @@ export interface LedgerQuery {
 
 export interface SurfaceOptions {
   app?: string;
+  /** Structured application identity and live context. Prefer this to the legacy `app` label. */
+  profile?: SurfaceProfileSource;
   /** Clock for `observe().at`; injectable for deterministic tests and builds. */
   now?: () => Date;
   /**
@@ -463,7 +503,12 @@ export interface LedgerOptions {
 }
 
 export interface Surface {
-  configure(options: { app?: string; toJsonSchema?: SurfaceOptions["toJsonSchema"] }): void;
+  configure(options: {
+    app?: string;
+    /** Set or replace the structured profile; `null` clears it. */
+    profile?: SurfaceProfileSource | null;
+    toJsonSchema?: SurfaceOptions["toJsonSchema"];
+  }): void;
   register(entry: Entry): void;
   unregister(id: string): void;
   /** Drop every entry whose id starts with `prefix` and is not in `keep`. Adapters that re-scan a rendered region use this. */
@@ -496,6 +541,8 @@ export interface Surface {
    */
   subscribe(fn: () => void): () => void;
   setObjects(fn: () => Record<string, JsonValue>): void;
+  /** Set a static or live structured application profile; `null` clears it. */
+  setProfile(profile: SurfaceProfileSource | null): void;
   observe(): Observation;
   act(
     request: ActRequest,
@@ -624,6 +671,79 @@ function errorResult(
   return { status: WIRE.status.error, error };
 }
 
+const SURFACE_PROFILE_ID = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
+
+/** Runtime validation for a profile loaded from JavaScript or configuration. */
+export function checkSurfaceProfile(profile: SurfaceProfile): string[] {
+  const out: string[] = [];
+  if (!profile || typeof profile !== "object") return ["profile must be an object."];
+  if (
+    typeof profile.id !== "string" ||
+    !SURFACE_PROFILE_ID.test(profile.id) ||
+    profile.id.length > 80
+  )
+    out.push(
+      "profile.id must be at most 80 lowercase letters, digits, dots, underscores, or hyphens.",
+    );
+  if (typeof profile.name !== "string" || !profile.name.trim() || profile.name.length > 120)
+    out.push("profile.name must be between 1 and 120 characters.");
+  if (
+    profile.description !== undefined &&
+    (typeof profile.description !== "string" || profile.description.length > 500)
+  )
+    out.push("profile.description must be at most 500 characters.");
+  if (profile.context) {
+    if (typeof profile.context !== "object") out.push("profile.context must be an object.");
+    else {
+      if (
+        typeof profile.context.kind !== "string" ||
+        !profile.context.kind.trim() ||
+        profile.context.kind.length > 80
+      )
+        out.push("profile.context.kind must be between 1 and 80 characters.");
+      if (
+        profile.context.id !== undefined &&
+        (typeof profile.context.id !== "string" || profile.context.id.length > 200)
+      )
+        out.push("profile.context.id must be at most 200 characters.");
+      if (
+        profile.context.name !== undefined &&
+        (typeof profile.context.name !== "string" || profile.context.name.length > 200)
+      )
+        out.push("profile.context.name must be at most 200 characters.");
+    }
+  }
+  if (
+    profile.authentication &&
+    (typeof profile.authentication !== "object" ||
+      !["unknown", "signed-out", "signed-in"].includes(profile.authentication.state))
+  )
+    out.push('profile.authentication.state must be "unknown", "signed-out", or "signed-in".');
+  return out;
+}
+
+function profileValue(source: SurfaceProfileSource | undefined): SurfaceProfile | undefined {
+  if (!source) return undefined;
+  const profile = typeof source === "function" ? source() : source;
+  const problems = checkSurfaceProfile(profile);
+  if (problems.length) throw new Error(`surface profile: ${problems.join(" ")}`);
+  return {
+    id: profile.id,
+    name: profile.name,
+    ...(profile.description !== undefined ? { description: profile.description } : {}),
+    ...(profile.context
+      ? {
+          context: {
+            kind: profile.context.kind,
+            ...(profile.context.id !== undefined ? { id: profile.context.id } : {}),
+            ...(profile.context.name !== undefined ? { name: profile.context.name } : {}),
+          },
+        }
+      : {}),
+    ...(profile.authentication ? { authentication: { state: profile.authentication.state } } : {}),
+  };
+}
+
 /** Create a surface. Applications usually create one per page and call `expose()`. */
 export function createSurface(options: SurfaceOptions = {}): Surface {
   const entries = new Map<string, Entry>();
@@ -635,6 +755,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   };
   let rev = 0;
   let app = options.app ?? "app";
+  let profileSource = options.profile;
   let objectsFn: () => Record<string, JsonValue> = () => ({});
   const now = options.now ?? (() => new Date());
   // Active freezes, oldest first. The newest reason is the one reported.
@@ -748,9 +869,18 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
   };
 
   const surface: Surface = {
-    configure({ app: name, toJsonSchema }) {
-      if (name) app = String(name);
+    configure({ app: name, profile, toJsonSchema }) {
+      let reportChanged = false;
+      if (name && String(name) !== app) {
+        app = String(name);
+        reportChanged = true;
+      }
+      if (profile !== undefined && (profile ?? undefined) !== profileSource) {
+        profileSource = profile ?? undefined;
+        reportChanged = true;
+      }
       if (toJsonSchema) convert = toJsonSchema;
+      if (reportChanged) changed();
     },
     register(entry) {
       if (!entry || typeof entry.id !== "string" || !entry.kind)
@@ -848,6 +978,12 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
     setObjects(fn) {
       objectsFn = typeof fn === "function" ? fn : () => ({});
     },
+    setProfile(profile) {
+      if ((profile ?? undefined) !== profileSource) {
+        profileSource = profile ?? undefined;
+        changed();
+      }
+    },
     observe() {
       let i = 0;
       const out: ObservedEntry[] = [];
@@ -912,9 +1048,11 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
         }
         out.push(row);
       }
+      const profile = profileValue(profileSource);
       const view: Observation = {
         protocol: WIRE.protocol.version,
-        app,
+        ...(profile ? { profile } : {}),
+        app: profile?.name ?? app,
         rev,
         at: now().toISOString(),
         entries: out,
@@ -1320,6 +1458,7 @@ export function createSurface(options: SurfaceOptions = {}): Surface {
       mode = pinnedMode ?? "surface";
       convert = options.toJsonSchema;
       app = options.app ?? "app";
+      profileSource = options.profile;
       objectsFn = () => ({});
       // Store subscribers are mounted components; they stay and read the empty table.
       changed();
@@ -1342,6 +1481,7 @@ export const {
   bump,
   onChange,
   setObjects,
+  setProfile,
   observe,
   act,
   ledger,

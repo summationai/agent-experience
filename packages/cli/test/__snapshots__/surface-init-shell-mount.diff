@@ -22,29 +22,48 @@ diff --git a/app/surface.tsx b/app/surface.tsx
 new file mode 100644
 --- /dev/null
 +++ b/app/surface.tsx
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,45 @@
 +// Agent Surface for this app, written by `axe surface init`. Yours to edit.
 +//
 +// <AgentSurface> wraps the app root. On, autoSurface discovers the controls under it and, in
 +// development, publishes window.__surface for `axe surface coverage` and browser agents.
 +// It also registers the live controls with a browser-native agent when WebMCP is available.
 +// Off, it renders its children and nothing else. Overlay config: ./surface.config.
-+// Nothing here runs at import time: the provider starts discovery in an effect,
++// Nothing here runs at import time: the provider starts discovery and the remote connection in an effect,
 +// so a server render renders the children only.
 +//
 +// On when useFeatureFlag("ui_axe_surface") (from ~/feature-flags) is true; that hook decides every
-+// environment. A hook needs its provider above the mount: mount below it with --mount.
++// environment. A hook needs its provider above the mount: mount below it with --mount. Always on
++// after a provider browser handoff or in an optional `axe host` session (both are read by
++// `injectedRelay()`).
 +import type { ReactNode } from "react";
 +import { SurfaceProvider } from "@axe/surface/react";
++import { connectRelay, injectedRelay } from "@axe/relay/client";
 +import { useFeatureFlag } from "~/feature-flags";
 +import surfaceConfig from "./surface.config";
 +
 +const development = import.meta.env.DEV;
 +
++// The relay carries the page's surface to an agent outside the browser (an MCP client). The
++// provider supplies a scoped connection through its browser handoff or optional host;
++// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay
++// for a person's own tab (attended mode, with pairing).
++
 +export function AgentSurface({ children }: { children: ReactNode }) {
-+    const enabled = useFeatureFlag("ui_axe_surface");
++    const enabled = useFeatureFlag("ui_axe_surface") || injectedRelay() !== null;
 +    return (
-+        <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development} webMcp>
++        <SurfaceProvider
++            config={surfaceConfig}
++            flag={enabled}
++            expose={development}
++            webMcp
++            onReady={(handle) => {
++                const options = injectedRelay();
++                if (!options) return;
++                const connection = connectRelay(handle.surface, options);
++                return () => connection.stop();
++            }}
++        >
 +            {children}
 +        </SurfaceProvider>
 +    );
@@ -53,7 +72,7 @@ diff --git a/app/surface.config.ts b/app/surface.config.ts
 new file mode 100644
 --- /dev/null
 +++ b/app/surface.config.ts
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,38 @@
 +// Surface config for this app, written by `axe surface init`. Yours to edit.
 +//
 +// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
@@ -61,6 +80,11 @@ new file mode 100644
 +import type { SurfaceConfig } from "@axe/surface/auto";
 +
 +const surfaceConfig: SurfaceConfig = {
++    profile: {
++        id: "web-app",
++        name: "web-app",
++        authentication: { state: "unknown" },
++    },
 +    // Nothing here is required: autoSurface discovers the page's controls on its own. Run
 +    // `axe surface coverage <url>` and add a rule for each gap it lists, most important first.
 +    // A rule matches by `key` (from coverage), `id` (data-surface-id), `selector`, `route`,

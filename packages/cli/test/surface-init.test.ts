@@ -163,9 +163,8 @@ describe("axe surface init: the diff", () => {
       ].join("\n"),
     );
     const surface = plan.changes.find((c) => c.display === "app/surface.tsx")!.after;
-    expect(surface).toContain(
-      "\n    return (\n        <SurfaceProvider config={surfaceConfig} flag={enabled} expose={development} webMcp>",
-    );
+    expect(surface).toContain("\n    return (\n        <SurfaceProvider\n");
+    expect(surface).toContain("            onReady={(handle) => {");
   });
 });
 
@@ -249,22 +248,41 @@ describe("axe surface init: flags and the relay", () => {
   const surfaceOf = (plan: ReturnType<typeof planInit>) =>
     plan.changes.find((c) => /surface\.(tsx|jsx|js)$/.test(c.display))!.after;
 
-  it("gates on a build-time variable by default, on in development and off in production", () => {
-    expect(surfaceOf(planInit({ dir: copy("react-router") }))).toContain(
-      'const enabled = development || import.meta.env.VITE_SURFACE === "1";',
-    );
+  it("is enabled by default and exposes browser diagnostics only in development", () => {
+    expect(surfaceOf(planInit({ dir: copy("react-router") }))).toContain("const enabled = true;");
     const next = surfaceOf(planInit({ dir: copy("next") }));
     expect(next.startsWith('"use client";\n')).toBe(true);
     expect(next).toContain('const development = process.env.NODE_ENV === "development";');
-    expect(next).toContain('process.env.NEXT_PUBLIC_SURFACE === "1"');
+    expect(next).toContain("const enabled = true;");
     const plain = surfaceOf(planInit({ dir: copy("plain") }));
     expect(plain).toContain('["localhost", "127.0.0.1"].includes(location.hostname)');
     expect(plain).toContain("surfaceConfig, expose: development });");
-    expect(plain).toContain("const enabled = development;");
+    expect(plain).toContain("const enabled = true;");
     expect(plain).toContain('import { exposeWebMcp } from "@axe/surface/webmcp";');
     expect(plain).toContain("  exposeWebMcp(handle.surface);");
     // expose follows development, not the flag.
     expect(surfaceOf(planInit({ dir: copy("vite-react") }))).toContain("expose={development}");
+  });
+
+  it("writes the connector-matched application profile", async () => {
+    const plan = planInit({
+      dir: copy("react-router"),
+      appId: "acme-analytics",
+      appName: "Acme Analytics",
+    });
+    const config = plan.changes.find((change) => change.display === "app/surface.config.ts")!.after;
+    expect(config).toContain('id: "acme-analytics"');
+    expect(config).toContain('name: "Acme Analytics"');
+    expect(config).toContain('authentication: { state: "unknown" }');
+    const invalid = await cli([
+      "surface",
+      "init",
+      "--dir",
+      copy("react-router"),
+      "--app-id",
+      "Not Valid",
+    ]);
+    expect(invalid.err).toContain("--app-id must be at most 80 lowercase letters");
   });
 
   it("takes a named variable or a named check", async () => {
@@ -275,7 +293,9 @@ describe("axe surface init: flags and the relay", () => {
       planInit({ dir: copy("react-router"), flag: "~/flags#useAgentSurface" }),
     );
     expect(hook).toContain('import { useAgentSurface } from "~/flags";');
-    expect(hook).toContain("  const enabled = useAgentSurface();\n  return (");
+    expect(hook).toContain(
+      "  const enabled = useAgentSurface() || injectedRelay() !== null;\n  return (",
+    );
     const bad = await cli([
       "surface",
       "init",
@@ -300,11 +320,8 @@ describe("axe surface init: flags and the relay", () => {
     );
   });
 
-  it("is browser-native by default; --remote and relay options add the out-of-browser adapter", async () => {
-    const plain = surfaceOf(planInit({ dir: copy("react-router") }));
-    expect(plain).not.toContain("@axe/relay/client");
-    expect(plain).toContain("webMcp");
-    const remote = surfaceOf(planInit({ dir: copy("react-router"), remote: true }));
+  it("is provider-ready by default; --browser-only opts out and relay options add attended fallback", async () => {
+    const remote = surfaceOf(planInit({ dir: copy("react-router") }));
     expect(remote).toContain('import { connectRelay, injectedRelay } from "@axe/relay/client";');
     expect(remote).toContain(
       [
@@ -317,6 +334,10 @@ describe("axe surface init: flags and the relay", () => {
       ].join("\n"),
     );
     expect(remote).not.toContain("devToken");
+    expect(remote).toContain("webMcp");
+    const browserOnly = surfaceOf(planInit({ dir: copy("react-router"), remote: false }));
+    expect(browserOnly).not.toContain("@axe/relay/client");
+    expect(browserOnly).toContain("webMcp");
     const dev = surfaceOf(planInit({ dir: copy("react-router"), relay: DEV_RELAY_URL }));
     expect(dev).toContain(
       'import { connectRelay, localMcpService, injectedRelay } from "@axe/relay/client";',
@@ -393,7 +414,9 @@ describe("axe surface init: choosing the mount", () => {
       "app/surface.tsx",
     ]);
     expect(plan.diff).toContain('+import { AgentSurface } from "../surface";');
-    expect(plan.diff).toContain('+    const enabled = useFeatureFlag("ui_axe_surface");');
+    expect(plan.diff).toContain(
+      '+    const enabled = useFeatureFlag("ui_axe_surface") || injectedRelay() !== null;',
+    );
     expect(plan.diff).not.toContain("app/root.tsx");
     const bad = await cli(["surface", "init", "--dir", dir, "--mount", "app/nope.tsx"]);
     expect(bad.err).toContain("--mount app/nope.tsx: no such file");
@@ -557,33 +580,15 @@ describe("axe surface: help and the prompt pack", () => {
     expect(help.out).toContain("axe surface coverage <url>");
     const prompt = await cli(["surface", "prompt"]);
     expect(prompt.code).toBe(0);
-    expect(prompt.out).toContain("# Integrate Surface into this application");
+    expect(prompt.out).toContain("# Add Agent Experience Surface to this application");
     expect((await cli(["surface", "nope"])).err).toContain('Unknown subcommand "nope"');
   });
 
-  it("names only llms.txt sections that exist, and the commands and options that exist", () => {
+  it("states the architecture boundary and names current commands and options", () => {
     const prompt = readFileSync(join(__dirname, "../templates/integrate-surface.md"), "utf8");
-    const sections = new Set(
-      readFileSync(join(repo, "llms.txt"), "utf8")
-        .split("\n")
-        .filter((l) => l.startsWith("## "))
-        .map((l) => l.slice(3).trim()),
-    );
-    const quoted = [...prompt.matchAll(/"([A-Z][^"]+)"/g)].map((m) => m[1]!);
-    const named = quoted.filter((q) => !q.includes("Lock") && !q.includes("Cookie"));
-    expect(named.length).toBeGreaterThanOrEqual(6);
-    for (const n of named) expect(sections, n).toContain(n);
-    for (const option of [
-      "--dry-run",
-      "--yes",
-      "--mount",
-      "--flag-hook",
-      "--flag-import",
-      "--relay-dev",
-      "--routes",
-      "--auth",
-      "--out",
-    ])
+    expect(prompt).toContain("The provider registry says where an application is");
+    expect(prompt).toContain("The MCP contains no application-specific behavior");
+    for (const option of ["--dry-run", "--yes", "--mount", "--app-id", "--app-name", "--out"])
       expect(prompt).toContain(option);
   });
 });

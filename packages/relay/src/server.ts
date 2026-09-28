@@ -23,7 +23,7 @@ import type { WebSocket as NodeWebSocket, RawData } from "ws";
 import { action, createAXE, z } from "@axe/core";
 import type { AdapterContext, AXE, Identity } from "@axe/core";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
-import { createSurface } from "@axe/surface";
+import { checkSurfaceProfile, createSurface } from "@axe/surface";
 import type {
   ActRequest,
   ActResult,
@@ -32,6 +32,7 @@ import type {
   ObservedEntry,
   RecordRequest,
   Surface,
+  SurfaceProfile,
 } from "@axe/surface";
 import { domainActions } from "@axe/surface/axe";
 import type { DomainSpec, SurfaceContext } from "@axe/surface/axe";
@@ -168,6 +169,11 @@ export interface RelayHandoffOptions {
 
 export interface RelayOptions {
   /**
+   * Trusted provider-registry identity for this application. A Surface that reports another id
+   * is refused. Profiles are optional for compatibility with older application packages.
+   */
+  application?: { id: string; name?: string };
+  /**
    * The HMAC secret relay tokens are signed with (`mintRelayToken`), at least 32 characters.
    * Required unless `authenticateTab` is given or `devPairing` is on (which uses a random
    * per-process secret for its development tokens).
@@ -264,6 +270,8 @@ export interface RelayTabInfo {
   connectedAt: string;
   lastActiveAt: string;
   rev: number;
+  /** Structured identity and live context reported by the application's Surface. */
+  application?: SurfaceProfile;
 }
 
 export interface RelayListenOptions {
@@ -432,6 +440,7 @@ class TabRecord implements TabLink {
   toldActive = false;
   mode: RelayMode = "attended";
   approvals: RelayApprovalChannel = "page";
+  application: SurfaceProfile | undefined;
   readonly mirror: TabMirror;
   /** The state now (read after an await, where TypeScript would keep an earlier narrowing). */
   now(): TabState {
@@ -528,6 +537,23 @@ class TabRecord implements TabLink {
   adopt(observation: Observation, ledger: LedgerEntry[]): void {
     if (!observation || typeof observation.rev !== "number" || !Array.isArray(observation.entries))
       return;
+    if (observation.profile && checkSurfaceProfile(observation.profile).length) {
+      const ws = this.ws;
+      this.stop();
+      ws?.close(CLOSE.forbidden, "the Surface application profile is invalid");
+      return;
+    }
+    if (
+      this.relay.applicationId &&
+      observation.profile &&
+      observation.profile.id !== this.relay.applicationId
+    ) {
+      const ws = this.ws;
+      this.stop();
+      ws?.close(CLOSE.forbidden, "the Surface application id does not match this connector");
+      return;
+    }
+    this.application = observation.profile;
     this.mirror.beginInstance(this.instance, observation.rev);
     this.syncedInstance = this.instance;
     this.mirror.apply(observation, Array.isArray(ledger) ? ledger : []);
@@ -783,6 +809,7 @@ class TabRecord implements TabLink {
       connectedAt: new Date(this.connectedAt).toISOString(),
       lastActiveAt: new Date(this.lastActive).toISOString(),
       rev: this.mirror.rev(),
+      ...(this.application ? { application: this.application } : {}),
     };
   }
 }
@@ -805,6 +832,7 @@ interface RelayCore {
   readonly reconnectGraceMs: number;
   readonly syncTimeoutMs: number;
   readonly actTimeoutMs: number;
+  readonly applicationId?: string;
   frame(direction: "in" | "out", tabId: string | null, data: string): void;
   /** An act the tab holds for approval: ask the person through the agent, and return the outcome. */
   askPerson(tab: TabRecord, forwarded: ActRequest, reply: ActReply): Promise<ActReply>;
@@ -857,6 +885,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
     reconnectGraceMs: options.reconnectGraceMs ?? 10_000,
     syncTimeoutMs: options.syncTimeoutMs ?? 5000,
     actTimeoutMs: options.actTimeoutMs ?? 30_000,
+    ...(options.application ? { applicationId: options.application.id } : {}),
     frame: (direction, tabId, data) => options.onFrame?.(direction, tabId, data),
     askPerson: (tab, forwarded, reply) => askPerson(tab, forwarded, reply),
   };
@@ -1471,7 +1500,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
   const UNPAIRED =
     "This agent is not paired with a tab yet. Ask the person for the pairing code shown in their tab, then call relay_pair with it.";
   const LOGIN_REQUIRED =
-    "This MCP session has not connected a Summation account yet. Call relay_tabs when the person asks to use Summation; its contextual sign-in handoff continues automatically.";
+    "This MCP session has not connected an application account yet. Call relay_tabs only when the person's request concerns a connected application; its contextual sign-in handoff continues automatically.";
 
   const resolver = async (ctx: SurfaceContext): Promise<Surface | null> => {
     const caller = callerOf(ctx.identity);
@@ -1529,6 +1558,19 @@ export function createRelay(options: RelayOptions = {}): Relay {
     connectedAt: z.string(),
     lastActiveAt: z.string(),
     rev: z.number(),
+    application: z
+      .object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string().optional(),
+        context: z
+          .object({ kind: z.string(), id: z.string().optional(), name: z.string().optional() })
+          .optional(),
+        authentication: z
+          .object({ state: z.enum(["unknown", "signed-out", "signed-in"]) })
+          .optional(),
+      })
+      .optional(),
   });
 
   const listFor = (caller: AgentCaller): RelayTabInfo[] => {
@@ -1565,6 +1607,10 @@ export function createRelay(options: RelayOptions = {}): Relay {
       handler: async ({ identity, fail, handoff: offer }) => {
         const caller = callerOf(identity);
         if (!caller) return fail("unauthorized", "The relay could not identify this agent.");
+        // A profile arrives in the Surface observation, not in the tab handshake. Synchronize
+        // before discovery so callers see the live application identity and a connector/profile
+        // mismatch is rejected before the tab can be selected.
+        if (caller.who) await Promise.all(tabsOf(caller.who).map(async (tab) => tab.sync()));
         const list = listFor(caller);
         const out: { principal: string | null; tabs: RelayTabInfo[]; hint?: string } = {
           principal: caller.who?.principal ?? null,
@@ -1576,11 +1622,11 @@ export function createRelay(options: RelayOptions = {}): Relay {
             reason: "application_login_required",
             instructions:
               login.instructions ??
-              "Open the Agent Experience page to connect Summation. Sign in there if asked; the local application opens and connects automatically afterward.",
+              "Open the Agent Experience page to connect the application. Sign in there if asked; the application opens and connects automatically afterward.",
             url: login.url,
             whatAgentShouldSayToUser:
               login.whatAgentShouldSayToUser ??
-              "To use Summation, I need to open a secure Agent Experience connection page. After you sign in, I’ll continue automatically.",
+              "To use the application, I need to open a secure Agent Experience connection page. After you sign in, I’ll continue automatically.",
             state: {},
             ttlSeconds: login.ttlSeconds ?? 10 * 60,
           });

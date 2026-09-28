@@ -27,6 +27,8 @@ export interface TemplateOptions {
   remote?: boolean;
   /** Relay URL when `--relay` or `--relay-dev` was given. */
   relay?: string;
+  appId: string;
+  appName: string;
 }
 
 /** Environment access per framework: how the generated code reads a build-time variable. */
@@ -110,6 +112,13 @@ function gate(o: TemplateOptions): Gate {
   const hosted = o.remote ? ` || ${HOSTED}` : "";
   const hostedSays = o.remote ? ` ${HOSTED_SAYS}` : "";
   const devLine = env ? `const development = ${dev};` : `const development =\n  ${dev};`;
+  if (o.flag.kind === "default")
+    return {
+      imports: [],
+      module: [devLine, "const enabled = true;"],
+      body: [],
+      says: `Always on: Surface is a browser-local description of controls, not a separately deployed service.${hostedSays}`,
+    };
   if (o.flag.kind === "call") {
     const hook = /^use[A-Z0-9]/.test(o.flag.name);
     return {
@@ -126,7 +135,7 @@ function gate(o: TemplateOptions): Gate {
       body: [],
       says: `On when the page is served from localhost; off everywhere else.${hostedSays} Replace \`development\` in \`enabled\` with your feature-flag check to turn it on elsewhere.`,
     };
-  const name = o.flag.kind === "env" ? o.flag.name : `${env.prefix}SURFACE`;
+  const name = o.flag.name;
   return {
     imports: [],
     module: [devLine, `const enabled = development || ${env.read(name)} === "1"${hosted};`],
@@ -338,6 +347,11 @@ export function configFile(o: TemplateOptions): string {
         `import type { ${NAMES.config} } from "${MODULES.auto}";`,
         "",
         `const surfaceConfig: ${NAMES.config} = {`,
+        "  profile: {",
+        `    id: ${JSON.stringify(o.appId)},`,
+        `    name: ${JSON.stringify(o.appName)},`,
+        '    authentication: { state: "unknown" },',
+        "  },",
         ...EXAMPLES,
         "};",
         "",
@@ -349,6 +363,11 @@ export function configFile(o: TemplateOptions): string {
         "",
         `/** @type {import("${MODULES.auto}").${NAMES.config}} */`,
         "const surfaceConfig = {",
+        "  profile: {",
+        `    id: ${JSON.stringify(o.appId)},`,
+        `    name: ${JSON.stringify(o.appName)},`,
+        '    authentication: { state: "unknown" },',
+        "  },",
         ...EXAMPLES,
         "};",
         "",

@@ -70,6 +70,8 @@ export interface HostDevOptions {
 }
 
 export interface HostOptions {
+  /** Trusted connector identity; the page's Surface profile is checked against its id. */
+  application?: { id: string; name?: string };
   /** The application: its origin is the one origin the hosted pages run on by default. */
   appUrl: string;
   /** The path each session opens first, relative to `appUrl`. Default: `appUrl` itself. */
@@ -195,7 +197,10 @@ export interface Host {
   /** The running sessions. */
   sessions(): HostSessionInfo[];
   /** A PNG of the identity's page, starting the session if needed. */
-  screenshot(who: HostIdentity, options?: { fullPage?: boolean }): Promise<Buffer>;
+  screenshot(
+    who: HostIdentity,
+    options?: { fullPage?: boolean; authInfo?: AuthInfo | null },
+  ): Promise<Buffer>;
   /** Close the identity's session; the next tool call starts a new one. Resolves false when none was running. */
   closeSession(who: HostIdentity): Promise<boolean>;
   /**
@@ -209,6 +214,19 @@ export interface Host {
   relayEvent(event: RelayEvent): void;
   /** The Playwright page of a running session, for diagnostics and tests; null when none runs. */
   page(who: HostIdentity): Page | null;
+  /**
+   * Serve one AXE request for a caller through this host. Provider registries use this to route a
+   * stable MCP endpoint to the selected connector without exposing a per-application MCP server.
+   */
+  handleAgent(
+    request: Request,
+    options: {
+      who: HostIdentity;
+      agent: string;
+      authInfo?: AuthInfo | null;
+      call?: ToolCallContext;
+    },
+  ): Promise<Response>;
   /** The HTTP routes (`/mcp`, protected-resource metadata, `/health`, and in development the watch page) as a fetch handler. */
   handle(request: Request, context?: { remoteAddress?: string }): Promise<Response>;
   /** Serve the HTTP routes on a new server. */
@@ -448,6 +466,7 @@ export function createHost(options: HostOptions): Host {
       name: options.name ?? "Hosted application",
       description: options.description ?? DEFAULT_DESCRIPTION,
       ...rest,
+      ...(options.application ? { application: options.application } : {}),
       secret: relaySecret,
       origins: given.origins ?? [appOrigin],
       onEvent: (event) => {
@@ -1143,7 +1162,7 @@ export function createHost(options: HostOptions): Host {
     },
     sessions: () => [...sessions.values()].map(info),
     async screenshot(who, opts = {}) {
-      const s = await ensure(who, null);
+      const s = await ensure(who, opts.authInfo ?? null);
       return s.page!.screenshot({ type: "png", fullPage: opts.fullPage === true });
     },
     closeSession: (who) => closeKey(keyOf(who), "closed"),
@@ -1153,6 +1172,28 @@ export function createHost(options: HostOptions): Host {
     page(who) {
       const s = sessions.get(keyOf(who));
       return s?.page && !s.page.isClosed() ? s.page : null;
+    },
+    async handleAgent(request, agentOptions) {
+      const ctx = relayAgentContext(agentOptions.agent, agentOptions.who);
+      if (ctx.identity && agentOptions.authInfo) authOf.set(ctx.identity, agentOptions.authInfo);
+      const resumed = await loginResume(
+        request,
+        agentOptions.who,
+        agentOptions.authInfo ?? null,
+        ctx,
+        agentOptions.call,
+      );
+      if (resumed) return resumed;
+      try {
+        await ensure(agentOptions.who, agentOptions.authInfo ?? null);
+      } catch (error) {
+        if (error instanceof SessionLoginRequired)
+          return loginHandoff(agentOptions.who, request.clone(), error);
+        return error instanceof HostError
+          ? envelope(error.message, error.reason)
+          : envelope("The hosted session could not start.", "host_session_unavailable");
+      }
+      return relay.handleAgent(request, ctx, agentOptions.call);
     },
     handle,
     async listen(opts = {}) {

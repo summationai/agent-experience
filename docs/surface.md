@@ -12,6 +12,25 @@ Three rules are the whole design:
 2. **Same door.** An act runs the control's own handler, so authorization, validation, and persistence stay where they are.
 3. **One revision.** Every observation carries it, every act presents it, and a stale act applies nothing.
 
+## Application profile
+
+A Surface may publish structured live identity and context beside its controls:
+
+```ts
+const surface = createSurface({
+  profile: () => ({
+    id: "example-app",
+    name: "Example App",
+    authentication: { state: signedIn ? "signed-in" : "signed-out" },
+    context: workspace
+      ? { kind: "workspace", id: workspace.id, name: workspace.name }
+      : { kind: "workspace" },
+  }),
+});
+```
+
+The provider connector’s expected `surfaceId` must match `profile.id`. Authentication and context are facts from the running page and may change between observations. The profile contains no URLs, origins, OAuth, session policy, secrets, or agent-instruction field; those are provider-registry concerns. `setProfile` replaces or clears it, and `configure({ profile })` does the same for adapters.
+
 ## Registering controls
 
 Every control that matters registers one entry: a stable `id`, a `kind` (`action`, `field`, or `collection`), a `role`, a `name` that states the outcome, the `object` it belongs to, its `state`, its `effect`, and the handler the control itself calls.

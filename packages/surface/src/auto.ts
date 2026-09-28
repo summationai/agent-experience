@@ -358,8 +358,17 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     );
   const win = windowOf(rootEl);
   let config: SurfaceConfig = options.config ?? {};
-  const surface = options.surface ?? createSurface(config.app ? { app: config.app } : {});
-  if (config.app) surface.configure({ app: config.app });
+  const surface =
+    options.surface ??
+    createSurface({
+      ...(config.app ? { app: config.app } : {}),
+      ...(config.profile ? { profile: config.profile } : {}),
+    });
+  if (config.app || config.profile)
+    surface.configure({
+      ...(config.app ? { app: config.app } : {}),
+      ...(config.profile ? { profile: config.profile } : {}),
+    });
   const now = options.now ?? (() => new Date());
   const routeFn = options.route ?? ((loc: Location) => defaultRoute(loc));
   const layout = options.layout ?? !/jsdom/i.test(win.navigator?.userAgent ?? "");
@@ -1377,7 +1386,10 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     policy = { ...DEFAULT_POLICY, ...(config.policy ?? {}) };
     configErrors = checkConfig(config);
     ruleHitsEver = rules().map(() => 0);
-    if (config.app) surface.configure({ app: config.app });
+    surface.configure({
+      ...(config.app ? { app: config.app } : {}),
+      profile: config.profile ?? null,
+    });
     for (const e of config.declare ?? []) {
       surface.register({ ...e, tier: "declared" } as Entry);
       declared.add(e.id);

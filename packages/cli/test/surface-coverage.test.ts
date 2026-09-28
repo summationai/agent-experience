@@ -217,7 +217,7 @@ describe("axe surface coverage: in headless Chromium", () => {
     ]);
     expect(none.code).toBe(1);
     expect(none.err).toContain("No page had a surface.");
-    expect(none.err).toContain("its flag is off");
+    expect(none.err).toContain("an explicitly configured --flag check is false");
   }, 60_000);
 
   it("names what to install when Playwright is missing", () => {

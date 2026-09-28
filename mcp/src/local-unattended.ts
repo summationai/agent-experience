@@ -9,6 +9,9 @@ export interface LocalUnattendedEnvironmentConfig {
   host: string;
   port: number;
   appUrl: string;
+  connectorId: string;
+  connectorName: string;
+  surfaceId: string;
   startPath?: string;
   agentKey: string;
   principal: string;
@@ -79,6 +82,10 @@ export function localUnattendedEnvironmentConfig(
     host,
     port: port(env["PORT"]),
     appUrl: appUrl(required(env, "AXE_HOST_APP_URL")),
+    connectorId: env["AXE_CONNECTOR_ID"]?.trim() || "application",
+    connectorName: env["AXE_CONNECTOR_NAME"]?.trim() || "Connected application",
+    surfaceId:
+      env["AXE_CONNECTOR_SURFACE_ID"]?.trim() || env["AXE_CONNECTOR_ID"]?.trim() || "application",
     ...(startPath ? { startPath } : {}),
     agentKey: env["AXE_MCP_AGENT_KEY"]?.trim() || DEFAULT_AGENT_KEY,
     principal: env["AXE_HOST_DEV_PRINCIPAL"]?.trim() || "local-user",
@@ -96,6 +103,7 @@ export function localUnattendedHostOptions(
 ): HostOptions {
   const identity = { principal: config.principal, tenant: config.tenant };
   return {
+    application: { id: config.surfaceId, name: config.connectorName },
     appUrl: config.appUrl,
     ...(config.startPath ? { startPath: config.startPath } : {}),
     ...(config.statePath ? { sessionFor: storageStateSession(config.statePath) } : {}),
@@ -118,7 +126,7 @@ export function localUnattendedHostOptions(
     ...(config.allowedOrigins ? { allowedOrigins: config.allowedOrigins } : {}),
     name: "Agent Experience — local unattended",
     description:
-      "This is the loopback-only local-unattended development service. Use Summation entirely in its private hidden browser session. Never ask for a pairing code; never open a generic browser or browser pane; never ask the person to sign in in another tab, because another browser context cannot authenticate this session. Start with relay_tabs, then surface_read and surface_observe. If the hidden page is signed out and the person deliberately provided local development credentials, enter them through the reported Surface fields and submit the form on their behalf. A password field is sensitive: set it only from the person's exact value and never read, repeat, display, log, or persist it. If no credential was provided, ask once for the local development email and password; do not redirect them to a visible browser. When an organization or tenant chooser appears, select the tenant explicitly named in the request; ask one concise question only if the request did not identify it. Continue the original task after login and tenant selection. If an action returns approvalUrl, present that ordinary clickable link to the person immediately; never say this client cannot show an approval. Do not open or approve the link yourself. After the person approves, retry the exact same call with the same arguments and expectedRev. Use only Surface tools for actions; host_screenshot is diagnostic, not the primary interface.",
+      "This is a loopback-only local-unattended development service. Use the connected application entirely in its private hidden browser session. Never ask for a pairing code; never open a generic browser or browser pane; never ask the person to sign in in another tab, because another browser context cannot authenticate this session. Start with relay_tabs, then surface_read and surface_observe. If the hidden page is signed out and the person deliberately provided local development credentials, enter them through the reported Surface fields and submit the reported login control. A password field is sensitive: set it only from the person's exact value and never read, repeat, display, log, or persist it. If no credential was provided, ask once for the local development credentials required by the reported fields. When the Surface reports a workspace, organization, account, tenant, project, or other context chooser, select the exact context named in the request; ask one concise question only when it is ambiguous. Continue the original task afterward. If an action returns approvalUrl, present that ordinary clickable link immediately; never say the client cannot show an approval. Do not open or approve the link yourself. After approval, retry the exact same call with the same arguments and expectedRev. Use only Surface tools for actions; host_screenshot is diagnostic, not the primary interface.",
     ...(dependencies.onEvent ? { onEvent: dependencies.onEvent } : {}),
   };
 }

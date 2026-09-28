@@ -247,7 +247,7 @@ export function explainMissing(
   if (p.attrs > 0)
     return `The page carries Surface attributes (${p.attrs} element(s) with data-surface-id) but no window.${PAGE_GLOBAL}: expose is off. Expose it in development: the AgentSurface that axe surface init writes passes expose={development}; a hand-written setup calls surface.expose(window) in development only.${redirected}`;
   return (
-    `No window.${PAGE_GLOBAL} after ${Math.round(waitMs / 1000)} s and no Surface attributes on the page. One of: Surface is not mounted on this page (run ${WIRE.cli.surfaceInit}); its flag is off (development is on; a build needs VITE_SURFACE=1 or NEXT_PUBLIC_SURFACE=1, or your --flag check true); this is a production build, where expose stays off; or the app did not finish loading.` +
+    `No window.${PAGE_GLOBAL} after ${Math.round(waitMs / 1000)} s and no Surface attributes on the page. One of: Surface is not mounted on this page (run ${WIRE.cli.surfaceInit}); an explicitly configured --flag check is false; this is a production build, where the diagnostic global stays hidden; or the app did not finish loading.` +
     redirected
   );
 }

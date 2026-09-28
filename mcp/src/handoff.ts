@@ -14,6 +14,9 @@ export interface HandoffEnvironmentConfig {
   host: string;
   port: number;
   appUrl: string;
+  connectorId: string;
+  connectorName: string;
+  surfaceId: string;
   publicMcpUrl: string;
   authMode: "oauth" | "local";
   authorizationServers: string[];
@@ -139,6 +142,10 @@ export function handoffEnvironmentConfig(
     host,
     port: port(env["PORT"]),
     appUrl,
+    connectorId: env["AXE_CONNECTOR_ID"]?.trim() || "application",
+    connectorName: env["AXE_CONNECTOR_NAME"]?.trim() || "Connected application",
+    surfaceId:
+      env["AXE_CONNECTOR_SURFACE_ID"]?.trim() || env["AXE_CONNECTOR_ID"]?.trim() || "application",
     publicMcpUrl,
     authMode,
     authorizationServers,
@@ -266,7 +273,7 @@ export async function startHandoffMcpServiceFromEnv(
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
-          client_name: "Agent Experience for Summation",
+          client_name: `Agent Experience for ${config.connectorName}`,
           redirect_uris: [callbackUrl],
           token_endpoint_auth_method: "none",
           grant_types: ["authorization_code"],
@@ -303,13 +310,14 @@ export async function startHandoffMcpServiceFromEnv(
   };
 
   const relay = createRelay({
+    application: { id: config.surfaceId, name: config.connectorName },
     origins: config.allowedOrigins,
     baseUrl: publicOrigin,
     name: "Agent Experience",
     description:
       config.authMode === "local"
-        ? "Use this server only when the person asks to work with Summation. Start with relay_tabs. It opens the local Summation sign-in page and connects its installed Surface automatically. Use the client's URL flow and continue the pending handoff; never ask for a pairing code. Then use surface_read, surface_observe, surface_wait, and the Surface action tools instead of generic browser automation or a nested agent."
-        : "Use this server only when the person asks to work with Summation. Start with relay_tabs. It may offer a contextual Agent Experience sign-in page, then open Summation and connect its installed Surface automatically. Use the client's URL flow and continue the pending handoff; never ask for a pairing code. Then use surface_read, surface_observe, surface_wait, and the Surface action tools instead of generic browser automation or a nested agent.",
+        ? "Use this server only when the person's request concerns the connected application. Start with relay_tabs. It opens the application's local sign-in page and connects its installed Surface automatically. Use the client's URL flow and continue the pending handoff; never ask for a pairing code. Then use surface_read, surface_observe, surface_wait, and the Surface action tools instead of generic browser automation or a nested agent."
+        : "Use this server only when the person's request concerns the connected application. Start with relay_tabs. It may offer a contextual Agent Experience sign-in page, then open the application and connect its installed Surface automatically. Use the client's URL flow and continue the pending handoff; never ask for a pairing code. Then use surface_read, surface_observe, surface_wait, and the Surface action tools instead of generic browser automation or a nested agent.",
     handoff: { appUrl: config.appUrl, pageUrl: publicOrigin },
     deferredAgentAuth: {
       identify: (sessionId) => {
@@ -325,23 +333,22 @@ export async function startHandoffMcpServiceFromEnv(
           return {
             url,
             instructions:
-              "Open the local Summation application and sign in on its normal page if asked. Its installed Surface connects this session automatically afterward.",
-            whatAgentShouldSayToUser:
-              "You asked me to use Summation. I need to open your local Summation sign-in page.",
+              "Open the local application and sign in on its normal page if asked. Its installed Surface connects this session automatically afterward.",
+            whatAgentShouldSayToUser: `You asked me to use ${config.connectorName}. I need to open its local sign-in page.`,
             ttlSeconds: 10 * 60,
           };
         }
         return {
           url: beginLogin(sessionId),
           instructions:
-            "Open the Agent Experience connection page. It explains why Summation authorization is needed before offering a Continue to Summation button. After approval, Summation opens and its installed Surface connects automatically.",
-          whatAgentShouldSayToUser:
-            "You asked me to use Summation. I need to open a secure connection page so you can sign in and approve access.",
+            "Open the Agent Experience connection page. It explains why application authorization is needed before offering a Continue button. After approval, the application opens and its installed Surface connects automatically.",
+          whatAgentShouldSayToUser: `You asked me to use ${config.connectorName}. I need to open a secure connection page so you can sign in and approve access.`,
           ttlSeconds: 10 * 60,
         };
       },
     },
   });
+  const connectorName = escapeHtml(config.connectorName);
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", publicOrigin);
@@ -355,15 +362,15 @@ export async function startHandoffMcpServiceFromEnv(
           response,
           410,
           "Connection expired",
-          "<h1>This connection link has expired.</h1><p>Return to your agent and ask it to use Summation again.</p>",
+          `<h1>This connection link has expired.</h1><p>Return to your agent and ask it to use ${connectorName} again.</p>`,
         );
         return;
       }
       html(
         response,
         200,
-        "Connect to Summation",
-        `<h1>Connect your agent to Summation</h1><p>You asked your agent to use Summation. Continue to Summation’s secure sign-in to approve this connection. Afterward, your local Summation page will open and connect automatically.</p><p>Your password and any pairing code are never shared with the agent.</p><a href="/login/${state}/start">Continue to Summation</a>`,
+        `Connect to ${connectorName}`,
+        `<h1>Connect your agent to ${connectorName}</h1><p>You asked your agent to use ${connectorName}. Continue to its secure sign-in to approve this connection. Afterward, the application page will open and connect automatically.</p><p>Your password and any pairing code are never shared with the agent.</p><a href="/login/${state}/start">Continue to ${connectorName}</a>`,
       );
       return;
     }
@@ -378,7 +385,7 @@ export async function startHandoffMcpServiceFromEnv(
           response,
           410,
           "Connection expired",
-          "<h1>This connection link has expired.</h1><p>Return to your agent and ask it to use Summation again.</p>",
+          `<h1>This connection link has expired.</h1><p>Return to your agent and ask it to use ${connectorName} again.</p>`,
         );
         return;
       }
@@ -402,8 +409,8 @@ export async function startHandoffMcpServiceFromEnv(
           html(
             response,
             502,
-            "Summation unavailable",
-            "<h1>Summation sign-in is temporarily unavailable.</h1><p>Return to your agent and try again.</p>",
+            `${connectorName} unavailable`,
+            `<h1>${connectorName} sign-in is temporarily unavailable.</h1><p>Return to your agent and try again.</p>`,
           ),
         );
       return;
@@ -419,7 +426,7 @@ export async function startHandoffMcpServiceFromEnv(
           response,
           400,
           "Connection failed",
-          "<h1>The Summation connection could not be completed.</h1><p>Return to your agent and try again.</p>",
+          `<h1>The ${connectorName} connection could not be completed.</h1><p>Return to your agent and try again.</p>`,
         );
         return;
       }
@@ -452,7 +459,7 @@ export async function startHandoffMcpServiceFromEnv(
           const principal = claim(authInfo.extra, config.principalClaim);
           const tenant = claim(authInfo.extra, config.tenantClaim) ?? config.defaultTenant;
           if (typeof principal !== "string" || typeof tenant !== "string")
-            throw new Error("Summation did not return a usable account identity.");
+            throw new Error("The application did not return a usable account identity.");
           const who = { principal, tenant };
           identities.set(login.agent, {
             who,
@@ -470,7 +477,7 @@ export async function startHandoffMcpServiceFromEnv(
             response,
             502,
             "Connection failed",
-            `<h1>The Summation connection could not be completed.</h1><p>${escapeHtml(error instanceof Error ? error.message : "Return to your agent and try again.")}</p>`,
+            `<h1>The ${connectorName} connection could not be completed.</h1><p>${escapeHtml(error instanceof Error ? error.message : "Return to your agent and try again.")}</p>`,
           ),
         );
       return;

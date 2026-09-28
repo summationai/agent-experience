@@ -24,7 +24,9 @@ flowchart LR
 
 The business logic is yours and does not change. The AXE layer is a manifest plus a set of actions that call into it. Agents talk to the AXE layer; humans keep talking to the UI; when an action needs the human, the AXE layer sends them to the UI and lets the agent resume afterward.
 
-**The recommended consumer path:** [ChatGPT plugin](chatgpt-plugin.md). A person installs Agent Experience from ChatGPT's plugin directory and connects their account through OAuth; the provider-operated service opens a one-time handoff into the integrated app's ordinary browser sign-in and the installed package connects that page automatically. They do not configure MCP, copy a pairing code, or use developer tooling.
+**The recommended consumer path:** [ChatGPT plugin](chatgpt-plugin.md). A person installs Agent Experience from ChatGPT's plugin directory; only a relevant request starts account connection and an identity-isolated hidden application session. They receive data and approvals inside the agent interface and do not configure MCP, copy a pairing code, watch browser automation, or use developer tooling.
+
+**The application/provider boundary:** [Architecture](architecture.md). Connector metadata is trusted provider configuration, live application behavior is page-owned Surface data, and the MCP runtime stays application-neutral.
 
 **The recommended local integration path:** [Relay](relay.md). The package keeps the Surface in the person's open tab and connects it to the separately operated Agent Experience MCP service; the customer application does not run an MCP server. Configure the desktop client once, then the service's instructions lead the agent through tab discovery, pairing, reading, waiting, and acting. [Unattended mode](host.md) is the runtime underneath the consumer path, and WebMCP is a direct additional path in compatible browser hosts.
 

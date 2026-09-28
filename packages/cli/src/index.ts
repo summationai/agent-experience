@@ -43,7 +43,7 @@ Usage:
   ${WIRE.cli.generate} <openapi.json> [--base-url <url>] [--out <axe.json>] [--code <axe.ts>] [--json]
   ${WIRE.cli.relay} --dev [--stdio] [--port <n>] [--origin <url>]... (see ${WIRE.cli.relay} --help)
   ${WIRE.cli.host} --dev --app <url> [--start <path>] [--state <file>] [--stdio] | ${WIRE.cli.host} login <url> (see ${WIRE.cli.host} --help)
-  ${WIRE.cli.surfaceInit} [--dir <app>] [--framework auto|react-router|next|vite-react|react|plain] [--flag <name>] [--remote] [--relay <url>|--relay-dev] [--dry-run] [--yes] [--install] [--vendor <dir>]
+  ${WIRE.cli.surfaceInit} [--dir <app>] [--framework auto|react-router|next|vite-react|react|plain] [--app-id <id>] [--app-name <name>] [--flag <name>] [--browser-only] [--relay <url>|--relay-dev] [--dry-run] [--yes] [--install] [--vendor <dir>]
   ${WIRE.cli.surfaceCoverage} <url> [--auth <header|cookies>] [--routes a,b,c] [--max-pages <n>] [--json] [--out <report.md>]
   ${WIRE.cli.surface} prompt
 

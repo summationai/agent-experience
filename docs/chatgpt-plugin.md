@@ -2,14 +2,14 @@
 
 The seamless path for a nontechnical person is an ordinary public ChatGPT plugin backed by the provider-operated Agent Experience service. “No MCP setup” and “no visible browser automation” are achievable for the user; “no MCP transport” is not, because ChatGPT needs a registered, authenticated way to call code outside the conversation.
 
-The product should never ask the user to understand that distinction. Its language is: **Install Agent Experience**, then, only when their request needs it, **Connect to Summation**.
+The product should never ask the user to understand that distinction. Its language is: **Install Agent Experience**, then, only when their request needs it, **Connect to Acme Analytics** (using the application's actual name).
 
 ## What happens
 
 1. The application developer installs `@axe/surface` and the browser-only part of `@axe/relay`, mounts `SurfaceProvider`, and enables the injected-host path. Their application does not run or deploy MCP.
 2. The provider deploys [`mcp/`](../mcp/README.md) at one stable public HTTPS `/mcp` URL and publishes [`plugins/agent-experience`](../plugins/agent-experience/README.md) against it.
 3. The person installs the plugin from ChatGPT's directory. MCP initialization is anonymous and silent; opening ChatGPT does not start OAuth or open a browser.
-4. After the person asks to use Summation, the plugin instructions make the model call `relay_tabs`. The provider authenticates the agent identity and starts or resumes its isolated hidden application session.
+4. After the person asks to use an application, the plugin searches the trusted connector registry, selects the match, and calls `relay_tabs`. The provider authenticates the agent identity and starts or resumes an isolated hidden session for that connector.
 5. The provider's account/session service supplies a short-lived application session. The checked-in hosted runtime currently represents this as the `sessionFor` broker contract; completing the provider-owned implementation is the remaining production service work.
 6. The host injects an identity-bound relay before application code runs. The root-mounted Surface connects on login, organization selection, tenant selection, and authenticated routes without opening a browser on the user's device.
 7. The model calls `surface_read` and `surface_observe`, advances any chooser, and completes the task with Surface tools. Consequential controls use ChatGPT's approval flow.
@@ -23,7 +23,9 @@ ChatGPT on phone
                  └─ installed package + page-held Surface
 ```
 
-The page remains authoritative for live controls, revisions, handlers, and its ledger. The provider owns transport, agent identity, hidden-browser lifetime, and the application account/session boundary. The application keeps its existing login and user authorization unchanged.
+The page remains authoritative for its live profile, authentication and context state, controls, revisions, handlers, and ledger. The provider registry owns trusted discovery and bootstrap facts: application URL, allowed origins, identity mapping, and session strategy. The generic MCP runtime owns transport, agent identity, routing, and hidden-browser lifetime; it contains no application workflows or selectors. The application keeps its existing login and user authorization unchanged.
+
+> The provider registry says where an application is and how it may be connected securely. The application's Surface says what the application currently is and what the agent can do there. The MCP contains no application-specific behavior.
 
 ## The application contract
 

@@ -320,6 +320,7 @@ export class TabMirror {
         return () => void this.subscribers.delete(fn);
       },
       setObjects: () => undefined,
+      setProfile: () => undefined,
       observe: () => {
         const v = this.view ?? empty();
         return { ...v, entries: v.entries.map((r) => ({ ...r })) };

@@ -1,6 +1,6 @@
 # Unattended mode: the agent uses the app for you
 
-The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the optional unattended adapter. The primary desktop-agent development path uses the person's own tab through the separately operated [Agent Experience MCP service](relay.md); browser-native WebMCP is an additional direct path where supported.
+The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the provider's default desktop/mobile adapter; browser-native WebMCP is an additional direct path where supported, and an attended relay remains a diagnostic fallback.
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,7 @@ flowchart LR
 
 ## What the application needs
 
-Initialize the application with `axe surface init --remote`. That opt-in adds the relay browser client and makes the generated provider connect with the connection a host injected (`window.__AXE_RELAY__`); without `--remote`, init installs only the package-held browser-native surface:
+Initialize the application with `axe surface init`. The default adds the relay browser client and makes the generated provider connect only when a host injects a scoped connection (`window.__AXE_RELAY__`). Pass `--browser-only` only when this application will never support a desktop/mobile provider session:
 
 <!-- include: examples/host/page.ts#page -->
 ```ts

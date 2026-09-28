@@ -3,6 +3,10 @@ import { createHost, SessionLoginRequired } from "@axe/host";
 import type { AppSession, Host, HostAddress, HostEvent, HostOptions, SessionFor } from "@axe/host";
 import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import { connectorRegistryFromFile, createConnectorRegistry } from "./connectors";
+import type { ConnectorDescriptor, ConnectorRegistry } from "./connectors";
+import { startProviderService } from "./provider";
+import type { ProviderAddress, ProviderService } from "./provider";
 
 const DEFAULT_PORT = 8080;
 const DEFAULT_SCOPE = "surface:act";
@@ -10,7 +14,13 @@ const DEFAULT_SCOPE = "surface:act";
 export interface HostedEnvironmentConfig {
   host: string;
   port: number;
-  appUrl: string;
+  connectorFile?: string;
+  connectorId: string;
+  connectorName: string;
+  connectorAliases: string[];
+  connectorDescription?: string;
+  surfaceId: string;
+  appUrl?: string;
   startPath?: string;
   publicMcpUrl: string;
   authorizationServers: string[];
@@ -19,7 +29,7 @@ export interface HostedEnvironmentConfig {
   oauthClientId?: string;
   oauthClientSecret?: string;
   userInfoUrl?: string;
-  sessionBrokerUrl: string;
+  sessionBrokerUrl?: string;
   sessionBrokerToken?: string;
   sessionBrokerAuth: "service" | "caller";
   principalClaim: string;
@@ -31,8 +41,10 @@ export interface HostedEnvironmentConfig {
 }
 
 export interface HostedMcpService {
-  readonly host: Host;
-  readonly address: HostAddress;
+  readonly host?: Host;
+  readonly hosts?: ReadonlyMap<string, Host>;
+  readonly registry?: ConnectorRegistry;
+  readonly address: HostAddress | ProviderAddress;
   close(): Promise<void>;
 }
 
@@ -123,12 +135,26 @@ export function hostedEnvironmentConfig(
   if (sessionBrokerAuth !== "service" && sessionBrokerAuth !== "caller")
     throw new Error('AXE_HOST_SESSION_BROKER_AUTH must be "service" or "caller".');
   const sessionBrokerToken = env["AXE_HOST_SESSION_BROKER_TOKEN"]?.trim();
-  if (sessionBrokerAuth === "service" && !sessionBrokerToken)
+  const connectorFile = env["AXE_CONNECTORS_FILE"]?.trim();
+  if (!connectorFile && sessionBrokerAuth === "service" && !sessionBrokerToken)
     throw new Error("AXE_HOST_SESSION_BROKER_TOKEN is required with service broker auth.");
+  const connectorId = env["AXE_CONNECTOR_ID"]?.trim() || "application";
+  const connectorName = env["AXE_CONNECTOR_NAME"]?.trim() || "Connected application";
+  const surfaceId = env["AXE_CONNECTOR_SURFACE_ID"]?.trim() || connectorId;
   return {
     host: env["HOST"]?.trim() || "0.0.0.0",
     port: listenPort(env["PORT"]),
-    appUrl: url(required(env, "AXE_HOST_APP_URL"), "AXE_HOST_APP_URL"),
+    ...(connectorFile ? { connectorFile } : {}),
+    connectorId,
+    connectorName,
+    connectorAliases: list(env["AXE_CONNECTOR_ALIASES"]),
+    ...(env["AXE_CONNECTOR_DESCRIPTION"]?.trim()
+      ? { connectorDescription: env["AXE_CONNECTOR_DESCRIPTION"]!.trim() }
+      : {}),
+    surfaceId,
+    ...(!connectorFile
+      ? { appUrl: url(required(env, "AXE_HOST_APP_URL"), "AXE_HOST_APP_URL") }
+      : {}),
     ...(startPath ? { startPath } : {}),
     publicMcpUrl,
     authorizationServers,
@@ -140,10 +166,14 @@ export function hostedEnvironmentConfig(
           oauthClientId: required(env, "AXE_HOST_OAUTH_CLIENT_ID"),
           oauthClientSecret: required(env, "AXE_HOST_OAUTH_CLIENT_SECRET"),
         }),
-    sessionBrokerUrl: url(
-      required(env, "AXE_HOST_SESSION_BROKER_URL"),
-      "AXE_HOST_SESSION_BROKER_URL",
-    ),
+    ...(!connectorFile
+      ? {
+          sessionBrokerUrl: url(
+            required(env, "AXE_HOST_SESSION_BROKER_URL"),
+            "AXE_HOST_SESSION_BROKER_URL",
+          ),
+        }
+      : {}),
     ...(sessionBrokerToken ? { sessionBrokerToken } : {}),
     sessionBrokerAuth,
     principalClaim: env["AXE_HOST_PRINCIPAL_CLAIM"]?.trim() || "sub",
@@ -218,8 +248,8 @@ export function introspectionVerifier(
 }
 
 /**
- * Verifies an opaque OAuth token through an authenticated identity endpoint such as Summation's
- * `/v1/me`. This is useful when the authorization server issues application-session credentials
+ * Verifies an opaque OAuth token through an authenticated identity endpoint such as `/v1/me`.
+ * This is useful when the authorization server issues application-session credentials
  * rather than RFC 7662 introspection-friendly access tokens.
  */
 export function userInfoVerifier(
@@ -293,6 +323,9 @@ export function brokeredSessionFor(
   >,
   fetcher: Fetch = fetch,
 ): SessionFor {
+  if (!config.sessionBrokerUrl)
+    throw new Error("The broker session strategy requires a session broker URL.");
+  const sessionBrokerUrl = config.sessionBrokerUrl;
   return async ({ principal, tenant, authInfo }) => {
     if (config.sessionBrokerAuth === "caller" && !authInfo)
       throw new Error("The caller-authenticated session broker requires MCP authentication.");
@@ -300,7 +333,7 @@ export function brokeredSessionFor(
       config.sessionBrokerAuth === "caller"
         ? `Bearer ${authInfo!.token}`
         : `Bearer ${config.sessionBrokerToken}`;
-    const response = await fetcher(config.sessionBrokerUrl, {
+    const response = await fetcher(sessionBrokerUrl, {
       method: "POST",
       headers: {
         Authorization: authorization,
@@ -347,6 +380,49 @@ export async function startHostedMcpService(
   }
 }
 
+function hostedRegistry(
+  config: HostedEnvironmentConfig,
+  env: Record<string, string | undefined>,
+  fetcher: Fetch = fetch,
+): ConnectorRegistry {
+  const sessionFor = (connector: ConnectorDescriptor, token: string | undefined): SessionFor =>
+    brokeredSessionFor(
+      {
+        sessionBrokerUrl: connector.session.brokerUrl!,
+        sessionBrokerAuth: connector.session.brokerAuth ?? "service",
+        ...(token ? { sessionBrokerToken: token } : {}),
+      },
+      fetcher,
+    );
+  if (config.connectorFile) return connectorRegistryFromFile(config.connectorFile, env, sessionFor);
+  const connector: ConnectorDescriptor = {
+    id: config.connectorId,
+    displayName: config.connectorName,
+    aliases: config.connectorAliases,
+    ...(config.connectorDescription ? { description: config.connectorDescription } : {}),
+    appUrl: config.appUrl!,
+    ...(config.startPath ? { startPath: config.startPath } : {}),
+    allowedOrigins: config.allowedOrigins ?? [new URL(config.appUrl!).origin],
+    surfaceId: config.surfaceId,
+    identity: {
+      principalClaim: config.principalClaim,
+      contextClaim: config.tenantClaim,
+      ...(config.defaultTenant ? { defaultContext: config.defaultTenant } : {}),
+    },
+    session: {
+      strategy: "broker",
+      brokerUrl: config.sessionBrokerUrl!,
+      brokerAuth: config.sessionBrokerAuth,
+    },
+  };
+  return createConnectorRegistry([
+    {
+      ...connector,
+      sessionFor: brokeredSessionFor(config, fetcher),
+    },
+  ]);
+}
+
 /** Build and start the provider-operated service from deployment environment variables. */
 export async function startHostedMcpServiceFromEnv(
   env: Record<string, string | undefined> = process.env,
@@ -372,35 +448,42 @@ export async function startHostedMcpServiceFromEnv(
         },
         dependencies.fetch,
       );
-  const sessionFor = brokeredSessionFor(config, dependencies.fetch);
-  return startHostedMcpService({
-    appUrl: config.appUrl,
-    ...(config.startPath ? { startPath: config.startPath } : {}),
-    sessionFor,
-    agentAuth: {
-      verifier,
-      requiredScopes: config.scopes,
-      resource: config.publicMcpUrl,
-      identify: (authInfo) => {
-        const principal = claim(authInfo.extra, config.principalClaim);
-        const tenant = claim(authInfo.extra, config.tenantClaim) ?? config.defaultTenant;
-        return typeof principal === "string" && typeof tenant === "string"
-          ? { principal, tenant }
-          : null;
-      },
-    },
+  const registry = hostedRegistry(config, env, dependencies.fetch);
+  const service: ProviderService = await startProviderService({
+    registry,
+    verifier,
+    requiredScopes: config.scopes,
+    resource: config.publicMcpUrl,
     protectedResource: {
       resource: config.publicMcpUrl,
       authorizationServers: config.authorizationServers,
       scopesSupported: config.scopes,
     },
-    ...(config.allowedOrigins ? { allowedOrigins: config.allowedOrigins } : {}),
+    principal: (authInfo) => {
+      const principal = claim(authInfo.extra, config.principalClaim);
+      return typeof principal === "string" ? principal : null;
+    },
+    identify: (connector, authInfo) => {
+      const principal = claim(authInfo.extra, connector.identity.principalClaim);
+      const context =
+        claim(authInfo.extra, connector.identity.contextClaim) ?? connector.identity.defaultContext;
+      return typeof principal === "string" && typeof context === "string"
+        ? { principal, tenant: context }
+        : null;
+    },
     ...(config.maxSessions ? { maxSessions: config.maxSessions } : {}),
     ...(config.idleMs ? { idleMs: config.idleMs } : {}),
     name: "Agent Experience",
-    description:
-      "Use the connected application's real interface in a private hosted browser session. Start with relay_tabs. This hosted service never uses pairing codes: never ask for one and never look for relay_pair. If an application_login_required handoff appears, immediately use the client's URL-opening flow when available; otherwise give the person the clickable application URL. Never ask for their password. Resume with the same axe_resume token after sign-in, retrying a pending resume without requiring the person to announce completion. Then use surface_read and surface_observe. Act only with Surface tools; do not use generic browser automation or a nested CLI agent.",
-    ...(dependencies.onEvent ? { onEvent: dependencies.onEvent } : {}),
-    listen: { host: config.host, port: config.port },
+    ...(dependencies.onEvent
+      ? { onEvent: (_connectorId: string, event: HostEvent) => dependencies.onEvent!(event) }
+      : {}),
+    host: config.host,
+    port: config.port,
   });
+  return {
+    hosts: service.hosts,
+    registry: service.registry,
+    address: service.address,
+    close: () => service.close(),
+  };
 }

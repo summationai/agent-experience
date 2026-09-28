@@ -795,6 +795,19 @@ function bridgeCore(
   // ---------------------------------------------------------------------------------------------
   const ObserveOutput = z.object({
     protocol: z.string(),
+    profile: z
+      .object({
+        id: z.string(),
+        name: z.string(),
+        description: z.string().optional(),
+        context: z
+          .object({ id: z.string().optional(), name: z.string().optional(), kind: z.string() })
+          .optional(),
+        authentication: z
+          .object({ state: z.enum(["unknown", "signed-out", "signed-in"]) })
+          .optional(),
+      })
+      .optional(),
     app: z.string(),
     rev: z.number().int(),
     at: z.string(),

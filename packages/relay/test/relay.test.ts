@@ -52,6 +52,42 @@ async function connected(r: Running, p: Page, principal = "alice", tenant = "acm
 }
 
 describe.skipIf(noJsdom)("relay: list, observe, act", () => {
+  it("reports the live Surface profile and refuses a connector/profile mismatch", async () => {
+    const matching = await relay({ application: { id: "plan-app", name: "Plan App" } });
+    const matchingPage = await page();
+    matchingPage.surface.setProfile({
+      id: "plan-app",
+      name: "Plan App",
+      authentication: { state: "signed-in" },
+      context: { kind: "workspace", id: "acme", name: "Acme" },
+    });
+    await connected(matching, matchingPage);
+    const a = await agent(matching, "agent-alice");
+    const listed = await a.call("relay_tabs");
+    expect((listed.result.output?.["tabs"] as Record<string, unknown>[])[0]).toMatchObject({
+      application: {
+        id: "plan-app",
+        name: "Plan App",
+        authentication: { state: "signed-in" },
+        context: { kind: "workspace", id: "acme", name: "Acme" },
+      },
+    });
+
+    const mismatching = await relay({ application: { id: "expected-app" } });
+    const wrongPage = await page();
+    wrongPage.surface.setProfile({ id: "wrong-app", name: "Wrong App" });
+    wrongPage.connect({
+      url: mismatching.address.tabUrl,
+      getToken: () => tokenFor("bob", "acme"),
+    });
+    await until(
+      () => mismatching.relay.tabs({ principal: "bob", tenant: "acme" })[0]?.state === "stopped",
+    );
+    expect(mismatching.relay.tabs({ principal: "bob", tenant: "acme" })[0]).toMatchObject({
+      state: "stopped",
+    });
+  });
+
   it("an agent lists the person's tab, observes it, and acts; the page's own handler runs and the ledger names the agent", async () => {
     const r = await relay();
     const p = await page();

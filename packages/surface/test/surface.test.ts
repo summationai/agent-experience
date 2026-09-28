@@ -9,6 +9,40 @@ const okOf = (r: ActResult) => (r.status === "ok" ? r.output : undefined);
 const codeOf = (r: ActResult) => (r.status === "error" ? r.error.code : r.status);
 
 describe("registry and observe", () => {
+  it("publishes a structured live application profile without connection instructions", () => {
+    let signedIn = false;
+    const s = createSurface({
+      app: "legacy-label",
+      profile: () => ({
+        id: "acme-analytics",
+        name: "Acme Analytics",
+        authentication: { state: signedIn ? "signed-in" : "signed-out" },
+        ...(signedIn ? { context: { kind: "workspace", id: "finance", name: "Finance" } } : {}),
+      }),
+    });
+
+    expect(s.observe()).toMatchObject({
+      app: "Acme Analytics",
+      profile: {
+        id: "acme-analytics",
+        name: "Acme Analytics",
+        authentication: { state: "signed-out" },
+      },
+    });
+    signedIn = true;
+    expect(s.observe().profile).toEqual({
+      id: "acme-analytics",
+      name: "Acme Analytics",
+      authentication: { state: "signed-in" },
+      context: { kind: "workspace", id: "finance", name: "Finance" },
+    });
+
+    s.setProfile({ id: "other-app", name: "Other App" });
+    expect(s.observe().profile).toEqual({ id: "other-app", name: "Other App" });
+    expect(() => s.setProfile({ id: "Not Valid", name: "Broken" })).not.toThrow();
+    expect(() => s.observe()).toThrow(/profile\.id/);
+  });
+
   it("indexes only what can be acted on and keeps the rest with a reason [S-OBS-1] [S-OBS-2]", () => {
     const s = createSurface({ app: "fantasy-draft", now: () => new Date("2026-10-01T00:00:00Z") });
     s.register({

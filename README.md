@@ -43,22 +43,24 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 
 Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
-For a consumer using ChatGPT on mobile or desktop, the target production path is the public plugin plus a provider-operated hidden browser. The person installs **Agent Experience** once; startup stays silent, and a relevant request starts an identity-isolated application session whose Surface is used entirely inside the agent conversation. There is no pairing code, visible application browser, customer MCP server, or developer tooling on the user's device. The current hosted implementation has this interaction shape but still requires an application-session broker; moving that boundary into the provider's account/session service is the remaining product-service work, not a change to the customer's browser package. The attended browser handoff remains a fallback. See [ChatGPT consumer path](docs/chatgpt-plugin.md).
+For a consumer using ChatGPT on mobile or desktop, the production path is the public plugin plus a provider-operated hidden browser. The person installs **Agent Experience** once; startup stays silent, and a relevant request starts an identity-isolated application session whose Surface is used entirely inside the agent conversation. There is no pairing code, visible application browser, customer MCP server, or developer tooling on the user's device. A trusted connector registry supplies each application's URL, origins, identity mapping, and session adapter; the running Surface supplies its controls and live context. See [the application/provider boundary](docs/architecture.md) and [ChatGPT consumer path](docs/chatgpt-plugin.md).
 
 For a product-shaped local demo of an existing web app's page-held Surface:
 
 ```sh
 npm install @axe/surface @axe/relay
-npx axe surface init --remote --yes
+npx axe surface init --app-id example-app --app-name "Example App" --yes
 # In the Agent Experience checkout, not the consuming app:
-AXE_HOST_APP_URL=http://localhost:5173/login pnpm mcp:unattended-dev
+AXE_CONNECTOR_ID=example-app AXE_CONNECTOR_SURFACE_ID=example-app \
+  AXE_HOST_APP_URL=http://localhost:5173/login pnpm mcp:unattended-dev
 ```
 
 The package keeps the authoritative controls, revision, ledger, approval boundary, and handlers in the page. In unattended modes, `@axe/host` opens that page in a hidden browser and injects the relay before application code runs. It exposes `relay_tabs`, `surface_read`, `surface_observe`, `surface_wait`, and Surface action tools; the customer application never runs an MCP server. The older attended and pairing modes remain available for diagnostics. See [Agent Experience MCP service](mcp/README.md), [ChatGPT consumer path](docs/chatgpt-plugin.md), and [Relay](docs/relay.md).
 
-WebMCP remains available as a direct browser-native path where the host supports and delivers site tools. `axe surface init --remote` remains the optional injected-host path. All paths present the same package-held Surface without moving application authority out of the page.
+The generated integration supports both WebMCP and the provider-injected host path by default. An ordinary page load makes no remote connection; the relay starts only when a trusted host supplies a scoped connection. All paths present the same package-held Surface without moving application authority out of the page.
 
 - **[Getting started](docs/getting-started.md)** — Surface in an existing app in four steps, and from `npm install` to a passing AXE conformance check in 15 minutes.
+- **[Application/provider boundary](docs/architecture.md)** — what belongs in the trusted connector registry, the live Surface, and the generic MCP runtime.
 - **[Concepts](docs/concepts.md)** — manifest, actions, display and affordances, the result envelope, the escalation ladder.
 - **[Protocol spec](spec/AXE-PROTOCOL.md)** — normative, with [well-known kinds](spec/KINDS.md), [events](spec/EVENTS.md), and the [vocabulary](spec/VOCABULARY.md).
 - **[All docs](docs/README.md)** — designing actions, presenting results, requirements and kinds, human handoff, auth, integrations, MCP, agent builders, testing, security, audit, analytics, platforms, deploying, API reference, FAQ.

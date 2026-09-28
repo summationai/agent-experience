@@ -12,12 +12,12 @@ Out of the box Surface discovers the page's controls and keeps their authoritati
 npm install @axe/surface @axe/relay
 ```
 
-While the packages are unpublished, `axe surface init --relay-dev --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the Agent Experience service.
+While the packages are unpublished, `axe surface init --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the provider-operated Agent Experience service.
 
 ### 2. Run `axe surface init`
 
 ```sh
-npx axe surface init --relay-dev --dry-run
+npx axe surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-run
 ```
 
 `axe surface init` detects the framework, the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root component, and prints the diff it would make. For a React Router 7 app it is two lines in `app/root.tsx` plus two new files:
@@ -36,35 +36,38 @@ npx axe surface init --relay-dev --dry-run
  }
 ```
 
-`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` with WebMCP enabled and an `onReady` connection to the local service through `@axe/relay/client`. In a person's browser it is on in development and off in a production build unless `VITE_SURFACE=1` was set at build time. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
+`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` with WebMCP enabled and an injected provider connection through `@axe/relay/client`. It is enabled by default; add an explicit `--flag` only when product rollout requires one. The generated structured profile publishes the stable application id and name plus live authentication/context facts. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
 
 ```sh
-npx axe surface init --relay-dev --yes
+npx axe surface init --app-id acme-analytics --app-name "Acme Analytics" --yes
 ```
 
 Options that matter on a real app:
 
-- `--mount <file>`: mount in a layout instead of the root, when the root also renders pages before sign-in. `init` lists the layout routes it found.
-- `--flag <NAME>` for a different build-time variable (`NEXT_PUBLIC_SURFACE` is the Next.js default), or `--flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import '~/feature-flags'` to gate on your feature-flag client.
-- `--relay-dev`: connect the page to the separately run local service at `http://127.0.0.1:4717`; it implies the browser relay client.
-- `--relay <url>`: connect to the company-operated deployed service when one is available.
-- `--remote`: the older injected unattended-host path.
+- `--mount <file>`: mount in the highest application shell, including login and account/workspace selection routes. `init` lists the layouts it found.
+- `--app-id` and `--app-name`: set the identity expected by the provider connector. Defaults are inferred from `package.json`; review them before applying.
+- `--flag <NAME>`, `--flag <module>#<export>`, or `--flag-hook … --flag-import …`: deliberately gate Surface for a staged rollout. There is no flag by default.
+- `--relay <url>`: connect a person's visible page to a company-operated relay when deliberately using the attended-tab shape.
+- `--relay-dev`: connect a visible page to the loopback development relay and use code pairing as a diagnostic.
+- `--browser-only`: omit the injected relay client and provide only browser-native WebMCP.
 
-### 3. Run the service and connect a desktop agent
+### 3. Register the application with the provider
 
-In the Agent Experience checkout, not the consuming application, start the standalone service:
+The application team stops here. The provider adds a connector to its trusted registry with the application URL, allowed origins, identity claim mapping, and session strategy. It does not copy selectors, login steps, account names, or workflow instructions into MCP code. Those remain live Surface state.
+
+For local provider development, set `AXE_CONNECTORS_FILE` and start the standalone service in the Agent Experience checkout—not in the consuming application:
 
 ```sh
-pnpm mcp:dev
+AXE_CONNECTORS_FILE=./mcp/connectors.local.json pnpm mcp:hosted-dev
 ```
 
-Run the app and open it normally. The page shows a pairing code. Configure the desktop agent with `http://127.0.0.1:4717/mcp` and the `AXE_MCP_AGENT_KEY` printed by the service, then start a fresh conversation. Its MCP instructions tell it to call `relay_tabs`, pair with the code, and use `surface_read`, `surface_observe`, `surface_wait`, and the Surface action tools. See the exact client command in [`mcp/README.md`](../mcp/README.md).
+The public plugin names one stable provider `/mcp` endpoint. When a request names an application, the agent uses `apps_search` and `app_connect` when needed, then `relay_tabs`, `surface_read`, `surface_observe`, `surface_wait`, and the Surface action tools. One registered application is selected automatically. There is no application-owned MCP deployment or pairing step. See [`mcp/README.md`](../mcp/README.md).
 
-Controls classified as high risk, controls that declare confirmation, and controls waiting on `approval_required` wait for the person in the page indicator. An agent tool argument is never approval.
+Controls classified as high risk, controls that declare confirmation, and controls waiting on `approval_required` wait for the person through the active transport’s trusted approval channel: the agent client or a one-time approval page when unattended, and the page indicator when attended. An agent tool argument is never approval.
 
 In a compatible browser, WebMCP also registers the same page-held Surface directly; use the [host preflight](webmcp.md#host-compatibility-and-preflight) when testing that optional path. In development, `window.__surface` remains available for diagnosis.
 
-For the production Agent Experience service, initialize with `--remote` instead of `--relay-dev`. When an authenticated agent has no tab, the provider sends the person through a one-time browser handoff to the application's ordinary page; `injectedRelay()` recognizes it and connects automatically after sign-in. The application adds no MCP server, token endpoint, session broker, or shared secret. See [ChatGPT consumer path](chatgpt-plugin.md).
+When an authenticated agent has no application session, the provider uses the selected connector's trusted session strategy or a one-time browser handoff. `injectedRelay()` recognizes the provider capability and connects automatically. The application adds no MCP server, token endpoint, session broker, or shared secret. See [ChatGPT consumer path](chatgpt-plugin.md).
 
 ### 4. Measure and refine
 
@@ -77,17 +80,17 @@ npx axe surface prompt > integrate-surface.md
 
 The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page, and lists what the page could not say with the rule to paste for each. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout.
 
-## Optional: unattended host mode
+## Optional: direct one-application host development
 
-If nobody will keep a browser tab open, use the existing host adapter instead:
+To exercise the lower-level host directly instead of the provider registry:
 
 ```sh
-npx axe surface init --remote --yes --install
+npx axe surface init --yes --install
 npx axe host login http://localhost:5173
 claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
 ```
 
-The host runs the signed-in app in a headless browser and presents the surface over MCP. The authoritative surface and every act remain in the page. See [Unattended mode](host.md).
+The host runs the signed-in app in a headless browser and presents the surface over MCP. The authoritative surface and every act remain in the page. This is useful for SDK development; production uses the provider registry and stable MCP endpoint described above. See [Unattended mode](host.md).
 
 ## Serve actions over AXE
 

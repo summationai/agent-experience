@@ -129,10 +129,12 @@ describe("local unattended MCP service", () => {
       approvals?: { identify?: (request: Request) => unknown };
     };
 
-    expect(await relay.approvals?.identify?.(new Request("http://127.0.0.1/approve/test"))).toEqual({
-      principal: "person-1",
-      tenant: "tenant-1",
-    });
+    expect(await relay.approvals?.identify?.(new Request("http://127.0.0.1/approve/test"))).toEqual(
+      {
+        principal: "person-1",
+        tenant: "tenant-1",
+      },
+    );
     expect(options.description).toContain("present that ordinary clickable link");
     expect(options.description).toContain("Do not open or approve the link yourself");
   });
@@ -151,6 +153,8 @@ describe("provider-operated browser handoff", () => {
     PORT: "0",
   };
   const LOCAL_HANDOFF_ENV = {
+    AXE_CONNECTOR_ID: "example-app",
+    AXE_CONNECTOR_NAME: "Example App",
     AXE_HOST_APP_URL: "http://localhost:5173/login",
     AXE_HOST_PUBLIC_MCP_URL: "http://127.0.0.1:4717/mcp",
     AXE_HOST_AUTH_MODE: "local",
@@ -202,7 +206,7 @@ describe("provider-operated browser handoff", () => {
       status: "needs_human",
       handoff: {
         reason: "application_login_required",
-        whatAgentShouldSayToUser: expect.stringContaining("local Summation sign-in page"),
+        whatAgentShouldSayToUser: expect.stringContaining("use Example App"),
       },
     });
     const publicHandoff = new URL(structured.handoff.url);
@@ -250,7 +254,9 @@ describe("provider-operated browser handoff", () => {
     handoffClient = new Client({ name: "handoff-test", version: "0" });
     await handoffClient.connect(transport as unknown as Transport);
     expect(fetcher).not.toHaveBeenCalled();
-    expect(handoffClient.getInstructions()).toContain("only when the person asks");
+    expect(handoffClient.getInstructions()).toContain(
+      "only when the person's request concerns the connected application",
+    );
 
     const result = await handoffClient.callTool({ name: "relay_tabs", arguments: {} });
     const structured = result.structuredContent as {
@@ -267,7 +273,7 @@ describe("provider-operated browser handoff", () => {
     const localLogin = `${handoffService.address.url}${publicLogin.pathname}`;
     const explanation = await fetch(localLogin);
     expect(explanation.status).toBe(200);
-    expect(await explanation.text()).toContain("You asked your agent to use Summation");
+    expect(await explanation.text()).toContain("You asked your agent to use Connected application");
     expect(fetcher).not.toHaveBeenCalled();
 
     const start = await fetch(`${localLogin}/start`, { redirect: "manual" });

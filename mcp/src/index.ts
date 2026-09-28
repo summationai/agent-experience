@@ -17,6 +17,15 @@ export {
   userInfoVerifier,
 } from "./hosted";
 export type { HostedEnvironmentConfig, HostedMcpService } from "./hosted";
+export { connectorRegistryFromFile, createConnectorRegistry } from "./connectors";
+export type {
+  ConnectorDescriptor,
+  ConnectorRegistry,
+  ConnectorSummary,
+  RegisteredConnector,
+} from "./connectors";
+export { startProviderService } from "./provider";
+export type { ProviderAddress, ProviderOptions, ProviderService } from "./provider";
 export { handoffEnvironmentConfig, startHandoffMcpServiceFromEnv } from "./handoff";
 export type { HandoffEnvironmentConfig, HandoffMcpService } from "./handoff";
 export {
@@ -76,12 +85,13 @@ async function main(): Promise<void> {
     const service = await startHostedMcpServiceFromEnv(process.env, {
       onEvent: (event) => process.stdout.write(`[host] ${JSON.stringify(event)}\n`),
     });
+    const applications = service.registry?.list().map((connector) => connector.displayName) ?? [];
     process.stdout.write(
       [
         `Agent Experience hosted MCP service`,
         `  listening: ${service.address.mcpUrl}`,
         `  public endpoint: ${process.env["AXE_HOST_PUBLIC_MCP_URL"]}`,
-        `  application: ${process.env["AXE_HOST_APP_URL"]}`,
+        `  applications: ${applications.join(", ")}`,
       ].join("\n") + "\n",
     );
     const stop = async () => {

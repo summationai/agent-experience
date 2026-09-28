@@ -38,7 +38,9 @@ describe("wait [S-AUTO-15]", () => {
     document.getElementById("gen")!.addEventListener("click", () => {
       const b = document.getElementById("gen") as HTMLButtonElement;
       b.disabled = true;
-      later(40, () => {
+      // Longer than this fixture's 50 ms post-act settle window, so the change belongs to wait
+      // even when the full repository suite is running under timer contention.
+      later(100, () => {
         document.getElementById("out")!.innerHTML = "<h2>Q3 report</h2><p>Revenue grew 4%.</p>";
         document.body.insertAdjacentHTML("beforeend", '<div class="toast">Report ready</div>');
         b.disabled = false;

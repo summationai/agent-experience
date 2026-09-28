@@ -7,7 +7,15 @@
  * needs the person's approval, the domain action it belongs to, or a real application function to
  * run in place of the page's events ([S-CFG-1] to [S-CFG-8]).
  */
-import type { Effect, Entry, HandlerReport, MaybePromise, Risk } from "./index";
+import { checkSurfaceProfile } from "./index";
+import type {
+  Effect,
+  Entry,
+  HandlerReport,
+  MaybePromise,
+  Risk,
+  SurfaceProfileSource,
+} from "./index";
 import type { RiskLexicon } from "./auto-risk";
 import { norm } from "./auto-dom";
 
@@ -105,8 +113,10 @@ export interface SurfacePolicy {
 }
 
 export interface SurfaceConfig {
-  /** The application name `observe()` reports. */
+  /** Legacy application label. Prefer `profile`, which has a stable connector id. */
   app?: string;
+  /** Structured application identity and live context reported by `observe()`. */
+  profile?: SurfaceProfileSource;
   /** Routes to derive on (globs on the route); the rest derive nothing. Default: every route. */
   routes?: { include?: string[]; exclude?: string[] };
   /** Rules, applied in order; a later rule's fields win. */
@@ -238,6 +248,8 @@ export function ruleMatches(match: SurfaceMatch, s: MatchSubject): boolean {
 /** The validation problems of a configuration, as plain sentences; empty when it is sound. */
 export function checkConfig(config: SurfaceConfig): string[] {
   const out: string[] = [];
+  if (config.profile && typeof config.profile !== "function")
+    out.push(...checkSurfaceProfile(config.profile));
   (config.rules ?? []).forEach((r, i) => {
     const where = `rules[${i}]`;
     if (!r || typeof r !== "object" || !r.match || typeof r.match !== "object") {
