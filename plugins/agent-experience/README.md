@@ -14,16 +14,16 @@ The output contains both the portable Agent Plugins manifests (`plugin.json`, `m
 
 ## User experience
 
-After public submission, a person finds **Agent Experience** in ChatGPT's plugin directory and taps Install. On first use ChatGPT follows the service's OAuth metadata and shows the account connection screen. After consent, the user can ask ordinary questions such as “prepare my weekly report”; the plugin instructions select the Surface tools, and the provider service starts the private hosted browser session. There is no pairing code, open website tab, local process, MCP URL, or developer-mode step in this consumer flow.
+After public submission, a person finds **Agent Experience** in ChatGPT's plugin directory and taps Install. On first use ChatGPT follows the service's OAuth metadata and shows the account connection screen. After consent, the user can ask ordinary questions such as “prepare my weekly report”; when the site is needed, ChatGPT opens its normal page through a one-time Agent Experience handoff. The installed browser package connects it automatically after sign-in. There is no pairing code, manually pre-opened tab, local process, MCP URL, or developer-mode step in this consumer flow.
 
 Installation and account consent cannot be silently bypassed by a website package. They are the platform's trust boundary. A product can make this feel ordinary with a deep link or “Use in ChatGPT” entry point after the plugin is published, but it cannot pre-authorize itself inside a user's ChatGPT account.
 
 ## Release checklist
 
-1. Deploy the hosted service at a stable public HTTPS `/mcp` URL and configure OAuth plus the application's session broker.
+1. Deploy the browser-handoff service at a stable public HTTPS `/mcp` URL and configure its OAuth identity boundary. The consuming application needs no session broker or backend route.
 2. Generate the configured plugin directory with `scripts/configure.mjs`.
 3. Register and test the MCP endpoint in ChatGPT developer mode, including fresh login, expired/revoked tokens, read-only work, writes, approval, and slow operations.
 4. Validate the configured plugin and evaluate prompts that do and do not belong to the connected application.
 5. Submit the endpoint and plugin to the universal plugin directory. Use a universal URL; the service resolves the signed-in principal and tenant from OAuth.
 
-For local desktop development, continue to use `pnpm mcp:dev` and the attended browser relay. The public plugin is intentionally tied to hosted mode because a phone cannot reach a service on the developer's laptop or keep an unrelated website tab reliably alive.
+For local desktop validation of the consumer experience, use `pnpm mcp:handoff-dev` and connect the desktop client through OAuth as documented in [`mcp/README.md`](../../mcp/README.md). Use `pnpm mcp:dev` only when deliberately testing the older code-pairing flow. The public plugin points at the provider's hosted relay; the consuming site still installs only the browser package.

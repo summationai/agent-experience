@@ -18,6 +18,9 @@ export type WireWaitCondition = Omit<WaitCondition, "text" | "gone" | "any" | "a
 /** The WebSocket subprotocol and message version. */
 export const RELAY_PROTOCOL = "axe-relay.v1";
 
+/** Prefix used in `window.name` by the relay's cross-origin connection handoff page. */
+export const RELAY_HANDOFF_WINDOW_PREFIX = "axe-relay-handoff:";
+
 /** WebSocket close codes the relay uses (4000 to 4999 are application codes). */
 export const CLOSE = {
   /** A message the relay could not read, or the wrong order of messages. */

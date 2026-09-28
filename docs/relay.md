@@ -11,13 +11,13 @@ flowchart LR
 
 Desktop agents need the service path on this page. The customer application installs only `@axe/surface` and the browser-only `@axe/relay/client`; the separately operated service owns the MCP SDK, WebSocket server, agent authentication, and relay records. Browser-native WebMCP remains an additional direct path where the browser supports it.
 
-Two modes. **Attended** is the current company-service development path: the person has the tab open, sees the pairing and activity indicator, and approves in the page. **Unattended** ([Unattended mode](host.md)) is the optional no-tab path: the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI.
+There are three connection shapes. **Browser handoff** is the recommended provider path: the agent's OAuth identity mints a one-time URL, the client opens the application's ordinary sign-in/page flow, and the installed package connects that attended tab automatically with no pairing code or application backend endpoint. **Development pairing** is the local diagnostic path: the person opens the tab and copies its temporary code. **Unattended host** ([Unattended mode](host.md)) is optional: a host runs a hidden browser session and therefore requires the application to provide a browser-session boundary.
 
 The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-14] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
 
-## Attended mode in four steps
+## Self-hosted attended mode in four steps
 
-For the person's own tab (unattended needs none of this; see [Unattended mode](host.md)):
+For an application operating its own relay and identity boundary. The provider-operated browser-handoff path below removes steps 2 and 3 from the consuming application's installation.
 
 1. Add the packages: `pnpm add @axe/surface @axe/relay`.
 2. In the page, register the controls on a surface (or let `@axe/surface/auto` do it) and connect it:
@@ -57,6 +57,12 @@ app.post("/api/relay-token", async (req, res) => {
 <!-- /include -->
 
 4. Run the company-side service and connect the agent to it (below: local development now, production with OAuth later).
+
+## Provider browser handoff: no application backend
+
+The Agent Experience service can bind the browser tab directly to the already-authenticated MCP caller. With `RelayOptions.handoff`, an empty `relay_tabs` call returns a short-lived `needs_human` URL. A URL-capable MCP client opens the relay's `/connect/<token>` page; it places a bootstrap in `window.name` and redirects immediately to the configured application URL. After the normal application login completes, `injectedRelay()` recognizes that bootstrap, exchanges it once with `/connect/exchange`, and `connectRelay` attaches the page.
+
+The one-time value is an Agent Experience relay capability, not an application session or API credential. It never appears in the application URL, is exchangeable only from the configured application origin, and is bound to the principal and tenant whose OAuth-authenticated tool call created it. The consuming application installs `@axe/surface` and `@axe/relay/client` but adds no token route, session broker, secret, or MCP service. See [`mcp/README.md`](../mcp/README.md#run-the-browser-handoff-service).
 
 ## Local development
 

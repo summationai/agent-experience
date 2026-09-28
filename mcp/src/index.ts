@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url";
+import { startHandoffMcpServiceFromEnv } from "./handoff";
 import { startHostedMcpServiceFromEnv } from "./hosted";
 import { startMcpService } from "./service";
 
@@ -12,10 +13,33 @@ export {
   introspectionVerifier,
   startHostedMcpService,
   startHostedMcpServiceFromEnv,
+  userInfoVerifier,
 } from "./hosted";
 export type { HostedEnvironmentConfig, HostedMcpService } from "./hosted";
+export { handoffEnvironmentConfig, startHandoffMcpServiceFromEnv } from "./handoff";
+export type { HandoffEnvironmentConfig, HandoffMcpService } from "./handoff";
 
 async function main(): Promise<void> {
+  if (process.env["AXE_MCP_MODE"] === "handoff") {
+    const service = await startHandoffMcpServiceFromEnv(process.env);
+    process.stdout.write(
+      [
+        `Agent Experience browser-handoff MCP service`,
+        `  listening: ${service.address.mcpUrl}`,
+        `  public endpoint: ${process.env["AXE_HOST_PUBLIC_MCP_URL"]}`,
+        `  application: ${process.env["AXE_HOST_APP_URL"]}`,
+        `  pairing: disabled`,
+      ].join("\n") + "\n",
+    );
+    const stop = async () => {
+      process.off("SIGINT", stop);
+      process.off("SIGTERM", stop);
+      await service.close();
+    };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+    return;
+  }
   if (process.env["AXE_MCP_MODE"] === "hosted") {
     const service = await startHostedMcpServiceFromEnv(process.env, {
       onEvent: (event) => process.stdout.write(`[host] ${JSON.stringify(event)}\n`),

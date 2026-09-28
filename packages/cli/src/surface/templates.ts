@@ -99,10 +99,10 @@ interface Gate {
   says: string;
 }
 
-/** With the optional remote adapter, always on in a session a host runs for an agent. */
+/** With the optional remote adapter, always on when the provider supplied a scoped connection. */
 const HOSTED = `${NAMES.injectedRelay}() !== null`;
 const HOSTED_SAYS =
-  "Always on in a session a host runs for an agent (`axe host`, which injects window.__AXE_RELAY__).";
+  "Always on after a provider browser handoff or in an optional `axe host` session (both are read by `injectedRelay()`).";
 
 function gate(o: TemplateOptions): Gate {
   const env = envOf(o.framework);
@@ -143,8 +143,8 @@ interface RelayLines {
 }
 
 /**
- * The relay connection. Always the one a host injected (unattended: `axe host` runs the app for an
- * agent, and nobody pairs); with `--relay-dev`, the development relay in development otherwise
+ * The relay connection. Always a scoped connection the provider supplied (browser handoff, or an
+ * optional unattended `axe host` session); with `--relay-dev`, the development relay otherwise
  * (attended: the person's own tab, with pairing); with `--relay <url>`, the company-side service.
  */
 function relayLines(o: TemplateOptions): RelayLines {
@@ -155,8 +155,8 @@ function relayLines(o: TemplateOptions): RelayLines {
   ];
   const intro = [
     "",
-    "// The relay carries the page's surface to an agent outside the browser (an MCP client). A host",
-    "// that runs this app for an agent (unattended mode, `axe host`) injects the connection;",
+    "// The relay carries the page's surface to an agent outside the browser (an MCP client). The",
+    "// provider supplies a scoped connection through its browser handoff or optional host;",
   ];
   if (!o.relay)
     return {

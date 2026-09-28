@@ -2,8 +2,7 @@ FROM node:22-bookworm-slim
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-ENV AXE_MCP_MODE=hosted
+ENV AXE_MCP_MODE=handoff
 
 RUN corepack enable
 
@@ -12,7 +11,6 @@ COPY . .
 
 RUN pnpm install --frozen-lockfile \
   && pnpm --filter @axe/mcp-service... build \
-  && pnpm exec playwright install chromium --with-deps \
   && pnpm store prune
 
 ENV NODE_ENV=production

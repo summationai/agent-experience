@@ -9,6 +9,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx watch src/index.ts",
+    "dev:handoff": "AXE_MCP_MODE=handoff HOST=127.0.0.1 PORT=4717 tsx watch src/index.ts",
+    "dev:hosted": "AXE_MCP_MODE=hosted HOST=127.0.0.1 PORT=4717 tsx watch src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",

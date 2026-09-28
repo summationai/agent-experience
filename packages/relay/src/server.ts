@@ -48,7 +48,7 @@ import type {
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { TabMirror } from "./mirror";
 import type { TabLink } from "./mirror";
-import { CLOSE, ID_PATTERN, RELAY_PROTOCOL } from "./protocol";
+import { CLOSE, ID_PATTERN, RELAY_HANDOFF_WINDOW_PREFIX, RELAY_PROTOCOL } from "./protocol";
 import type {
   RelayApprovalChannel,
   RelayMessage,
@@ -143,6 +143,17 @@ export interface RelayApprovalOptions {
   sensitive?: (row: ObservedEntry, request: ActRequest) => boolean;
 }
 
+export interface RelayHandoffOptions {
+  /** The application page the MCP client opens. Sign-in redirects may happen before Surface loads. */
+  appUrl: string;
+  /** Public origin serving `/connect/*`. Default: `baseUrl`'s origin. */
+  pageUrl?: string;
+  /** How long an unopened connection link works. Default: ten minutes. */
+  linkTtlMs?: number;
+  /** Lifetime of the tab credential issued after the link opens. Default: twelve hours. */
+  sessionTtlMs?: number;
+}
+
 export interface RelayOptions {
   /**
    * The HMAC secret relay tokens are signed with (`mintRelayToken`), at least 32 characters.
@@ -210,6 +221,12 @@ export interface RelayOptions {
   tabRetentionMs?: number;
   /** Approvals asked through the agent's MCP client (elicitation) and the relay's approval page. */
   approvals?: RelayApprovalOptions;
+  /**
+   * Zero-backend tab connection. When an authenticated agent has no tab, `relay_tabs` hands the
+   * person a short-lived URL. That page opens `appUrl`; the installed browser package exchanges
+   * the one-time handoff for a tab credential and connects without a pairing code.
+   */
+  handoff?: RelayHandoffOptions;
   /** Every frame in and out of a tab connection, for debugging and tests. */
   onFrame?: (direction: "in" | "out", tabId: string | null, data: string) => void;
   /** The relay's audit stream. */
@@ -793,8 +810,10 @@ const principalKey = (who: RelayPrincipal): string => JSON.stringify([who.tenant
 export function createRelay(options: RelayOptions = {}): Relay {
   const dev = options.devPairing === true;
   const devSecret = randomBytes(32).toString("hex");
-  if (!options.secret && !options.authenticateTab && !dev)
-    throw new Error("createRelay: pass secret (for mintRelayToken tokens) or authenticateTab.");
+  if (!options.secret && !options.authenticateTab && !dev && !options.handoff)
+    throw new Error(
+      "createRelay: pass secret (for mintRelayToken tokens), authenticateTab, or handoff.",
+    );
   if (options.secret !== undefined && options.secret.length < 32)
     throw new Error("createRelay: secret must be at least 32 characters.");
   if (
@@ -836,11 +855,46 @@ export function createRelay(options: RelayOptions = {}): Relay {
     if (originRule) return originRule(origin);
     return dev && DEV_ORIGIN.test(origin);
   };
+  const handoff = (() => {
+    if (!options.handoff) return null;
+    let appUrl: URL;
+    let pageUrl: URL;
+    try {
+      appUrl = new URL(options.handoff.appUrl);
+      pageUrl = new URL(options.handoff.pageUrl ?? options.baseUrl ?? "http://localhost");
+    } catch {
+      throw new Error("createRelay: handoff appUrl and pageUrl must be absolute http(s) URLs.");
+    }
+    if (
+      !["http:", "https:"].includes(appUrl.protocol) ||
+      !["http:", "https:"].includes(pageUrl.protocol)
+    )
+      throw new Error("createRelay: handoff appUrl and pageUrl must be absolute http(s) URLs.");
+    if (!originAllowed(appUrl.origin))
+      throw new Error("createRelay: the handoff appUrl origin must be allowed by origins.");
+    const linkTtlMs = options.handoff.linkTtlMs ?? 10 * 60_000;
+    const sessionTtlMs = options.handoff.sessionTtlMs ?? 12 * 60 * 60_000;
+    if (!Number.isFinite(linkTtlMs) || linkTtlMs < 60_000 || linkTtlMs > 60 * 60_000)
+      throw new Error("createRelay: handoff linkTtlMs must be from one minute to one hour.");
+    if (!Number.isFinite(sessionTtlMs) || sessionTtlMs < 60_000 || sessionTtlMs > 24 * 60 * 60_000)
+      throw new Error("createRelay: handoff sessionTtlMs must be from one minute to 24 hours.");
+    return {
+      appUrl,
+      pageUrl: pageUrl.origin,
+      linkTtlMs,
+      sessionTtlMs,
+    };
+  })();
+  const handoffSecret = randomBytes(32).toString("hex");
 
   // ---------------------------------------------------------------------------------------------
   // Tabs, pairing, and selection.
   // ---------------------------------------------------------------------------------------------
   const tabs = new Map<string, TabRecord>();
+  const handoffs = new Map<
+    string,
+    { principal: string; tenant: string; appOrigin: string; expiresAt: number }
+  >();
   const revoked = new Map<string, number>(); // jti -> expiry (ms)
   const paired = new Map<string, RelayPrincipal>(); // agent -> principal (development)
   const selection = new Map<string, string>(); // agent -> tab key
@@ -851,6 +905,23 @@ export function createRelay(options: RelayOptions = {}): Relay {
     [...tabs.values()]
       .filter((t) => t.principal === who.principal && t.tenant === who.tenant)
       .sort((a, b) => b.lastActive - a.lastActive);
+
+  const handoffLink = (who: RelayPrincipal): string | null => {
+    if (!handoff) return null;
+    const now = Date.now();
+    for (const [key, record] of handoffs) if (record.expiresAt <= now) handoffs.delete(key);
+    for (const [key, record] of handoffs)
+      if (record.principal === who.principal && record.tenant === who.tenant) handoffs.delete(key);
+    if (handoffs.size >= 10_000) handoffs.delete(handoffs.keys().next().value!);
+    const token = randomBytes(32).toString("base64url");
+    const digest = createHash("sha256").update(token).digest("base64url");
+    handoffs.set(digest, {
+      ...who,
+      appOrigin: handoff.appUrl.origin,
+      expiresAt: Date.now() + handoff.linkTtlMs,
+    });
+    return new URL(`/connect/${token}`, handoff.pageUrl).href;
+  };
 
   const agentPaired = (who: RelayPrincipal): boolean => {
     if (!dev) return true;
@@ -1400,10 +1471,11 @@ export function createRelay(options: RelayOptions = {}): Relay {
     action("relay.tabs", {
       title: "List your open tabs",
       description:
-        "Lists the browser tabs of this application that are connected for you, most recently active first, and which one the surface tools act on (selected). A tab that is reconnecting may be reloading; a stopped tab was stopped by the person.",
+        "Lists the browser tabs of this application that are connected for you, most recently active first, and which one the surface tools act on (selected). When none is connected and this relay offers a browser handoff, the MCP client opens the application so its installed Surface can connect automatically; no pairing code is used. A tab that is reconnecting may be reloading; a stopped tab was stopped by the person.",
       readOnly: true,
       risk: "none",
       auth: "user",
+      ...(handoff ? { humanHandoff: { reasons: ["application_tab_required"] } } : {}),
       input: z.object({}).strict(),
       output: z.object({
         principal: z.string().nullable(),
@@ -1411,7 +1483,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
         hint: z.string().optional(),
       }),
       examples: [{ input: {}, output: { principal: "dev", tabs: [] } }],
-      handler: ({ identity, fail }) => {
+      handler: ({ identity, fail, handoff: offer }) => {
         const caller = callerOf(identity);
         if (!caller) return fail("unauthorized", "The relay could not identify this agent.");
         const list = listFor(caller);
@@ -1420,9 +1492,45 @@ export function createRelay(options: RelayOptions = {}): Relay {
           tabs: list,
         };
         if (!caller.who) out.hint = UNPAIRED;
-        else if (list.length === 0) out.hint = NO_TAB;
+        else if (list.length === 0) {
+          const url = handoffLink(caller.who);
+          if (url)
+            return offer({
+              reason: "application_tab_required",
+              instructions:
+                "Sign in on the application page if asked. Keep that tab open; Agent Experience connects it automatically, with no code to copy.",
+              url,
+              whatAgentShouldSayToUser:
+                "I need to open the application so you can sign in securely; then I’ll continue here automatically.",
+              state: {},
+              ttlSeconds: Math.max(60, Math.ceil(handoff!.linkTtlMs / 1000)),
+            });
+          out.hint = NO_TAB;
+        }
         return out;
       },
+      ...(handoff
+        ? {
+            onResume: ({ identity, fail, pending }) => {
+              const caller = callerOf(identity);
+              if (!caller?.who)
+                return fail("forbidden", "The relay could not identify this agent.");
+              const list = listFor(caller);
+              return list.length
+                ? { principal: caller.who.principal, tabs: list }
+                : pending({ retryAfter: 1, state: {}, ttlSeconds: 10 * 60 });
+            },
+            onPoll: ({ identity, fail, pending }) => {
+              const caller = callerOf(identity);
+              if (!caller?.who)
+                return fail("forbidden", "The relay could not identify this agent.");
+              const list = listFor(caller);
+              return list.length
+                ? { principal: caller.who.principal, tabs: list }
+                : pending({ retryAfter: 1, state: {}, ttlSeconds: 10 * 60 });
+            },
+          }
+        : {}),
     }),
   );
 
@@ -1691,7 +1799,11 @@ export function createRelay(options: RelayOptions = {}): Relay {
         jti: createHash("sha256").update(token).digest("base64url"),
       };
     }
-    const secrets = [options.secret, dev ? devSecret : undefined].filter((s): s is string => !!s);
+    const secrets = [
+      options.secret,
+      dev ? devSecret : undefined,
+      handoff ? handoffSecret : undefined,
+    ].filter((s): s is string => !!s);
     for (const secret of secrets) {
       const claims = await verifyRelayToken(
         token,
@@ -1918,6 +2030,42 @@ export function createRelay(options: RelayOptions = {}): Relay {
       headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers },
     });
 
+  const handoffRecord = (
+    token: string,
+  ): { key: string; record: typeof handoffs extends Map<string, infer V> ? V : never } | null => {
+    if (!/^[A-Za-z0-9_-]{32,64}$/.test(token)) return null;
+    const key = createHash("sha256").update(token).digest("base64url");
+    const record = handoffs.get(key);
+    if (!record || record.expiresAt <= Date.now()) {
+      if (record) handoffs.delete(key);
+      return null;
+    }
+    return { key, record };
+  };
+
+  const connectPage = (token: string): Response => {
+    const found = handoffRecord(token);
+    if (!handoff || !found)
+      return new Response("This Agent Experience connection link is invalid or expired.", {
+        status: 410,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    const bootstrap =
+      RELAY_HANDOFF_WINDOW_PREFIX +
+      JSON.stringify({ service: handoff.pageUrl, handoffToken: token });
+    const js = (value: string) => JSON.stringify(value).replace(/</g, "\\u003c");
+    const html = `<!doctype html><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Opening application…</title><p>Opening the application securely…</p><script>window.name=${js(bootstrap)};location.replace(${js(handoff.appUrl.href)});</script>`;
+    return new Response(html, {
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "Content-Security-Policy":
+          "default-src 'none'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
+      },
+    });
+  };
+
   const handle = async (
     request: Request,
     context: { remoteAddress?: string } = {},
@@ -1926,6 +2074,44 @@ export function createRelay(options: RelayOptions = {}): Relay {
     const devWhy = devRefusal(context.remoteAddress, request.headers.get("host") ?? url.host);
     if (devWhy) return json(403, { error: devWhy });
     if (url.pathname === "/health") return json(200, { ok: true });
+    const connect = /^\/connect\/([A-Za-z0-9_-]{32,64})$/.exec(url.pathname);
+    if (connect && request.method === "GET") return connectPage(connect[1]!);
+    if (url.pathname === "/connect/exchange") {
+      if (!handoff) return json(404, { error: "not found" });
+      const origin = request.headers.get("origin") ?? "";
+      const cors =
+        origin === handoff.appUrl.origin
+          ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" }
+          : {};
+      if (request.method === "OPTIONS")
+        return new Response(null, {
+          status: 204,
+          headers: {
+            ...cors,
+            "Access-Control-Allow-Methods": "POST",
+            "Access-Control-Allow-Headers": "Content-Type",
+          },
+        });
+      if (request.method !== "POST") return json(405, { error: "POST" }, cors);
+      const length = Number(request.headers.get("content-length") ?? "0");
+      if (Number.isFinite(length) && length > 256)
+        return json(413, { error: "connection handoff is too large" }, cors);
+      const token = (await request.text()).trim();
+      if (token.length > 128) return json(413, { error: "connection handoff is too large" }, cors);
+      const found = handoffRecord(token);
+      if (!found || origin !== found.record.appOrigin || !originAllowed(origin))
+        return json(403, { error: "connection handoff refused" }, cors);
+      handoffs.delete(found.key);
+      const session = await mintRelayToken(
+        {
+          principal: found.record.principal,
+          tenant: found.record.tenant,
+          ttl: Math.max(60, Math.ceil(handoff.sessionTtlMs / 1000)),
+        },
+        handoffSecret,
+      );
+      return json(200, { token: session }, cors);
+    }
     if (url.pathname === "/dev/token") {
       if (!dev) return json(404, { error: "not found" });
       const origin = request.headers.get("origin") ?? undefined;
@@ -1968,6 +2154,8 @@ export function createRelay(options: RelayOptions = {}): Relay {
         path !== "/mcp" &&
         path !== "/dev/token" &&
         path !== "/health" &&
+        path !== "/connect/exchange" &&
+        !path?.startsWith("/connect/") &&
         !path?.startsWith("/approve/")
       )
         return;

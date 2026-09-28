@@ -7,8 +7,9 @@ description: Use when the user asks to read, inspect, operate, or complete a tas
 
 Use the `agent_experience` tools whenever the user's request concerns a supported or connected website, even when they do not mention Agent Experience, Surface, a plugin, or MCP.
 
-1. Call `relay_tabs` first. In unattended mode this also starts the user's private application session; allow it time to load.
-   - If this returns an `application_login_required` handoff, never ask for or accept the user's password in chat. Offer the application URL through the client's URL flow when available, otherwise give the link to the user. After the user says sign-in is complete, call `axe_resume` with the supplied resume token; do not restart the original operation yourself.
+1. Call `relay_tabs` first.
+   - This connection never uses pairing codes. Never ask for one and never call `relay_pair`.
+   - If it returns an `application_tab_required` handoff, immediately open the URL through the client's URL flow when available; otherwise give the user its clickable link. The URL redirects to the application's ordinary page, where the installed package connects automatically after any normal sign-in. Never ask for or accept a password in chat. Call `axe_resume` with the supplied token; if the tab is still loading, follow its pending poll until it connects without requiring the user to announce completion.
 2. Call `surface_read` for page content and `surface_observe` for available controls and their revision.
 3. Use `surface_set-field`, `surface_run-control`, and `surface_load-more` to act through the application's own controls. Pass the observed revision as `expectedRev`.
 4. When the page says work is preparing or still running, call `surface_wait` for the visible result or status. Do not repeat the initiating action.

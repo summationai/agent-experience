@@ -9,29 +9,30 @@ The product should never ask the user to understand that distinction. Its langua
 1. The application developer installs `@axe/surface` and the browser-only part of `@axe/relay`, mounts `SurfaceProvider`, and enables the injected-host path. Their application does not run or deploy MCP.
 2. The provider deploys [`mcp/`](../mcp/README.md) at one stable public HTTPS `/mcp` URL and publishes [`plugins/agent-experience`](../plugins/agent-experience/README.md) against it.
 3. The person installs the plugin from ChatGPT's directory. On first use, ChatGPT discovers the service's OAuth metadata and asks the person to connect their account.
-4. A tool call reaches the provider service with that person's access token. The service verifies it, maps its claims to one principal and tenant, and asks the integrated application's session broker for a short-lived app session. If the account is not connected yet, ChatGPT offers the broker's application login page; the person enters credentials there, returns to ChatGPT, and the original call resumes.
-5. `@axe/host` starts one isolated browser context for that identity, opens the real application, and injects its private relay before the page loads. The already-installed Surface package registers the application's controls.
-6. The plugin instructions make the model call `relay_tabs`, `surface_read`, and `surface_observe`, then act with Surface tools. Consequential controls use ChatGPT's approval/elicitation UI. The person never needs an open browser tab or pairing code.
+4. A tool call reaches the provider service with that person's access token. The service verifies it and maps its claims to one principal and tenant. When no application tab is connected, `relay_tabs` returns an identity-bound, short-lived handoff URL.
+5. ChatGPT's URL flow opens the handoff. The relay places a one-time bootstrap in the new tab's `window.name` and redirects to the application's ordinary page. The person signs in there if necessary; the browser never sends the bootstrap to the application server.
+6. The already-installed `@axe/relay/client` consumes the bootstrap, exchanges it directly with the provider relay, and connects the page-held Surface. No pairing code or customer backend endpoint is involved.
+7. The plugin instructions make the model call `surface_read` and `surface_observe`, then act with Surface tools. Consequential controls use the page or ChatGPT approval flow.
 
 ```text
 ChatGPT on phone
   └─ installed Agent Experience plugin + OAuth consent
        └─ provider HTTPS /mcp
             ├─ verify access token
-            ├─ exchange identity → short-lived app session
-            └─ isolated hosted browser
-                 └─ application page + package-held Surface
+            ├─ issue identity-bound one-time browser handoff
+            └─ signed-in application tab
+                 └─ installed package + page-held Surface
 ```
 
-The page remains authoritative for live controls, revisions, handlers, and its ledger. The provider owns transport, OAuth verification, browser isolation, and session lifetime. The application owns user authorization and the short-lived application credential.
+The page remains authoritative for live controls, revisions, handlers, and its ledger. The provider owns transport, OAuth verification, the one-time handoff, and relay-session lifetime. The application keeps its existing login and user authorization unchanged.
 
-## The one additional application contract
+## The application contract
 
-A remote browser cannot inherit cookies from Safari on the user's phone. The integrated application must therefore expose a private session-broker endpoint to the provider, or offer an equivalent identity-provider token exchange. This is the unavoidable difference between controlling an already open tab and running unattended.
+The developer installs the browser packages and mounts the generated Surface provider. That is the whole integration boundary: there is no application MCP server, relay-token endpoint, browser-session broker, OAuth-token exchange, or shared secret.
 
-The broker receives an authenticated provider request containing only the verified `principal`, `tenant`, and scopes. It returns a short-lived cookie, scoped header, or storage state accepted by the application. If the account is not connected, it instead returns a trusted one-time login URL. The person enters credentials on that application page—not into ChatGPT—and the service retries the broker after the handoff. The broker never receives the ChatGPT/MCP access token, and it may refuse any identity or scope. See the exact request and response in [`mcp/README.md`](../mcp/README.md#run-the-hosted-service).
+The handoff is a capability from the provider relay, not an application credential. It is bound to the authenticated agent identity, expires quickly, is consumed once, and is transferred through `window.name` so it does not enter application URLs, request logs, or referrers. Its exchange succeeds only from the configured application origin. The resulting relay token reaches only the Surface in that tab and grants no direct application API access.
 
-This keeps the install burden where it belongs: one small backend integration for the developer who adopts the package, not MCP setup for every end user.
+The person enters credentials only on the application's normal page. The provider and model never receive them.
 
 ## What the user must still approve
 
@@ -41,10 +42,10 @@ Use a clear “Use in ChatGPT” entry point from the product after publication,
 
 ## Fallbacks
 
-- The attended relay remains the best local development loop and an option for expert desktop use. It proves the page Surface without production identity work.
+- Development pairing remains a diagnostic-only local loop. Production browser handoff replaces the code with the client-opened, identity-bound link.
 - Browser-native WebMCP can remove the remote transport when the agent actually runs in a compatible browser host. It does not currently provide a general ChatGPT iOS path to another app's authenticated session.
-- Generic cloud browser automation can open public pages, but it does not guarantee Surface discovery, authenticated state, approval semantics, or the structured tool contract.
+- The optional `@axe/host` path can still run a cloud browser for applications that deliberately provide a session broker. It is not the default installation contract.
 
 ## Operational boundary
 
-Hosted browser and MCP sessions are currently process memory. Run Chromium in a sandboxed service, cap sessions and idle time, apply egress controls, keep session credentials out of logs, and route a person's requests to the process that owns their session. Revoking the OAuth grant ends agent access; short-lived application sessions limit the remaining credential window.
+Handoffs and relay records are currently process memory. Keep the service behind TLS, apply origin checks and rate limits, avoid request-path logging for `/connect/*`, and use sticky routing or shared state before running multiple instances. Revoking the OAuth grant ends new agent access; the person can end a connected tab with Stop or by closing it.

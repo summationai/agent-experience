@@ -18,7 +18,7 @@
  */
 import type { ActRequest, ActResult, LedgerEntry, ObservedEntry, Surface } from "@axe/surface";
 import type { ErrorResult, JsonValue } from "@axe/core/types";
-import { CLOSE, ID_PATTERN, RELAY_PROTOCOL } from "./protocol";
+import { CLOSE, ID_PATTERN, RELAY_HANDOFF_WINDOW_PREFIX, RELAY_PROTOCOL } from "./protocol";
 import type { RelayApprovalChannel, RelayMessage, RelayMode, TabMessage } from "./protocol";
 
 export { RELAY_PROTOCOL };
@@ -192,11 +192,9 @@ export function localMcpService(serviceUrl = LOCAL_MCP_SERVICE_URL): ConnectRela
   return { url: serviceUrl, getToken: devToken(serviceUrl) };
 }
 
-/**
- * The global a host (`@axe/host`) sets with an init script, before any page script runs, when it
- * opens the application in a hidden browser session for a person: `window.__AXE_RELAY__`.
- */
+/** The global an optional host sets before page code runs: `window.__AXE_RELAY__`. */
 export const INJECTED_RELAY_GLOBAL = "__AXE_RELAY__";
+const HANDOFF_STORAGE_KEY = "axe-relay:handoff";
 
 /** What a host puts in `window.__AXE_RELAY__`. */
 export interface InjectedRelayConfig {
@@ -211,14 +209,93 @@ export interface InjectedRelayConfig {
   getToken?: () => string | Promise<string>;
 }
 
+interface HandoffBootstrap {
+  service: string;
+  handoffToken?: string;
+  sessionToken?: string;
+}
+
+function handoffBootstrap(): HandoffBootstrap | null {
+  let storage: Storage | null = null;
+  try {
+    storage = typeof sessionStorage === "undefined" ? null : sessionStorage;
+  } catch {
+    storage = null;
+  }
+  try {
+    const named = typeof window === "undefined" ? "" : window.name;
+    if (named.startsWith(RELAY_HANDOFF_WINDOW_PREFIX)) {
+      const value = JSON.parse(named.slice(RELAY_HANDOFF_WINDOW_PREFIX.length)) as HandoffBootstrap;
+      if (typeof value.service === "string" && typeof value.handoffToken === "string") {
+        storage?.setItem(HANDOFF_STORAGE_KEY, JSON.stringify(value));
+        window.name = "";
+      }
+    }
+  } catch {
+    // A malformed or inaccessible window name is not a relay instruction.
+  }
+  try {
+    const raw = storage?.getItem(HANDOFF_STORAGE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as HandoffBootstrap;
+    const service = new URL(value.service);
+    if (service.protocol !== "https:" && service.protocol !== "http:") return null;
+    if (
+      (typeof value.handoffToken !== "string" || !value.handoffToken) &&
+      (typeof value.sessionToken !== "string" || !value.sessionToken)
+    )
+      return null;
+    return { ...value, service: service.origin };
+  } catch {
+    return null;
+  }
+}
+
+function handoffRelay(): ConnectRelayOptions | null {
+  const bootstrap = handoffBootstrap();
+  if (!bootstrap) return null;
+  let sessionToken = bootstrap.sessionToken;
+  const handoffToken = bootstrap.handoffToken;
+  if (!sessionToken && !handoffToken) return null;
+  return {
+    url: bootstrap.service,
+    mode: "attended",
+    indicator: true,
+    getToken: async () => {
+      if (sessionToken) return sessionToken;
+      const response = await fetch(new URL("/connect/exchange", bootstrap.service), {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: handoffToken!,
+        credentials: "omit",
+      });
+      if (!response.ok)
+        throw new Error(`The relay connection handoff was refused (${response.status}).`);
+      const body = (await response.json()) as { token?: unknown };
+      if (typeof body.token !== "string" || !body.token)
+        throw new Error("The relay connection handoff returned no token.");
+      sessionToken = body.token;
+      try {
+        sessionStorage.setItem(
+          HANDOFF_STORAGE_KEY,
+          JSON.stringify({ service: bootstrap.service, sessionToken }),
+        );
+      } catch {
+        // The live page can still use the in-memory token when storage is unavailable.
+      }
+      return sessionToken;
+    },
+  };
+}
+
 /**
- * The connection a host injected into this page (`window.__AXE_RELAY__`), as `connectRelay`
- * options, or null in a normal browser (and on the server). Reads the global when called, never
- * at import. No pairing: the host minted the token for the person the session is for.
+ * A scoped provider connection as `connectRelay` options: either `window.__AXE_RELAY__` from an
+ * optional host, or a one-time browser handoff persisted in this tab's session storage. Reads at
+ * call time, never at import. Neither path uses pairing.
  */
 export function injectedRelay(): ConnectRelayOptions | null {
   const raw = (globalThis as Record<string, unknown>)[INJECTED_RELAY_GLOBAL];
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") return handoffRelay();
   const c = raw as Partial<InjectedRelayConfig>;
   if (typeof c.url !== "string" || !c.url) return null;
   const hasToken = typeof c.token === "string" && c.token.length > 0;

@@ -64,6 +64,8 @@ Controls classified as high risk, controls that declare confirmation, and contro
 
 In a compatible browser, WebMCP also registers the same page-held Surface directly; use the [host preflight](webmcp.md#host-compatibility-and-preflight) when testing that optional path. In development, `window.__surface` remains available for diagnosis.
 
+For the production Agent Experience service, initialize with `--remote` instead of `--relay-dev`. When an authenticated agent has no tab, the provider sends the person through a one-time browser handoff to the application's ordinary page; `injectedRelay()` recognizes it and connects automatically after sign-in. The application adds no MCP server, token endpoint, session broker, or shared secret. See [ChatGPT consumer path](chatgpt-plugin.md).
+
 ### 4. Measure and refine
 
 Run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:

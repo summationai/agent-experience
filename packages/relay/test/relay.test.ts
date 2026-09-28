@@ -141,6 +141,83 @@ describe.skipIf(noJsdom)("relay: list, observe, act", () => {
   });
 });
 
+describe.skipIf(noJsdom)("relay: zero-backend browser handoff", () => {
+  it("opens the app and exchanges a one-time agent-bound link for a tab session", async () => {
+    const r = await relay({
+      handoff: {
+        appUrl: `${APP_ORIGIN}/plan`,
+        pageUrl: "https://relay.example",
+        linkTtlMs: 60_000,
+      },
+    });
+    const a = await agent(r, "agent-alice");
+
+    const offered = await a.call("relay_tabs");
+    expect(offered.result.status).toBe("needs_human");
+    const handoff = (offered.result as unknown as { handoff: { url: string } }).handoff;
+    const path = new URL(handoff.url).pathname;
+    expect(path).toMatch(/^\/connect\/[A-Za-z0-9_-]+$/);
+
+    const landing = await fetch(new URL(path, r.address.url));
+    expect(landing.status).toBe(200);
+    const html = await landing.text();
+    expect(html).toContain("axe-relay-handoff:");
+    expect(html).toContain(`${APP_ORIGIN}/plan`);
+    const token = path.split("/").at(-1)!;
+
+    const exchange = await fetch(new URL("/connect/exchange", r.address.url), {
+      method: "POST",
+      headers: { Origin: APP_ORIGIN, "Content-Type": "text/plain;charset=UTF-8" },
+      body: token,
+    });
+    expect(exchange.status).toBe(200);
+    const session = (await exchange.json()) as { token: string };
+    expect(session.token).toBeTruthy();
+    expect(
+      (
+        await fetch(new URL("/connect/exchange", r.address.url), {
+          method: "POST",
+          headers: { Origin: APP_ORIGIN, "Content-Type": "text/plain;charset=UTF-8" },
+          body: token,
+        })
+      ).status,
+    ).toBe(403);
+
+    const p = await page();
+    p.connect({ url: r.address.tabUrl, token: session.token });
+    await p.status((status) => status.state === "connected");
+    const tabs = await a.call("relay_tabs");
+    expect(tabs.result.status).toBe("ok");
+    expect(tabs.result.output!["tabs"]).toHaveLength(1);
+  });
+
+  it("lets the installed browser helper consume a handoff without application backend code", async () => {
+    const r = await relay({
+      handoff: { appUrl: `${APP_ORIGIN}/plan`, pageUrl: "https://relay.example" },
+    });
+    const a = await agent(r, "agent-alice");
+    const offered = await a.call("relay_tabs");
+    const path = new URL((offered.result as unknown as { handoff: { url: string } }).handoff.url)
+      .pathname;
+    const handoffToken = path.split("/").at(-1)!;
+    const p = await page({
+      storage: {
+        "axe-relay:handoff": JSON.stringify({ service: r.address.url, handoffToken }),
+      },
+    });
+    (p.window as unknown as { fetch: typeof fetch }).fetch = (input, init) =>
+      fetch(input, {
+        ...init,
+        headers: { ...Object.fromEntries(new Headers(init?.headers)), Origin: APP_ORIGIN },
+      });
+    const options = p.api.injectedRelay();
+    expect(options).not.toBeNull();
+    p.connect(options!);
+    await p.status((status) => status.state === "connected");
+    expect((await a.call("relay_tabs")).result.status).toBe("ok");
+  });
+});
+
 async function observe(a: Agent): Promise<{
   rev: number;
   entries: { id: string; name: string }[];

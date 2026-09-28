@@ -43,7 +43,7 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 
 Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
-For a consumer using ChatGPT on mobile or desktop, the intended production path is the public plugin plus the provider-operated hosted service. The person installs **Agent Experience** once and connects their account in ChatGPT's normal OAuth UI; the service runs the integrated application in an isolated browser session for them. They do not open the website, enter a pairing code, configure an MCP server, or install developer tooling. See [ChatGPT consumer path](docs/chatgpt-plugin.md).
+For a consumer using ChatGPT on mobile or desktop, the intended production path is the public plugin plus the provider-operated relay. The person installs **Agent Experience** once and connects it in ChatGPT's normal OAuth UI. When the agent needs a website, ChatGPT opens an identity-bound handoff page; after ordinary website sign-in, the already-installed browser package connects that tab automatically. There is no pairing code, customer MCP server, customer backend endpoint, or developer tooling on the user's device. See [ChatGPT consumer path](docs/chatgpt-plugin.md).
 
 For local development of an existing web app's page-held Surface:
 

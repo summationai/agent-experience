@@ -343,11 +343,13 @@ describe("axe surface init: flags and the relay", () => {
       'process.env.NEXT_PUBLIC_SURFACE_RELAY_URL ?? "wss://relay.example.com"',
     );
     expect(r.out).toContain("pack-for-consumer.sh vendor core surface relay");
-    // With a remote option, next steps include the optional host.
-    const login = r.out.indexOf("npx axe host login http://localhost:3000");
-    const add = r.out.indexOf(
-      "claude mcp add next-fixture -- npx axe host --dev --stdio --app http://localhost:3000",
+    // With a remote option, next steps explain the provider handoff and keep
+    // the checkout-local host only as an isolated fallback.
+    expect(r.out).toContain(
+      "The provider browser handoff supplies the relay connection automatically after normal application sign-in",
     );
+    const login = r.out.indexOf("npx axe host login http://localhost:3000");
+    const add = r.out.indexOf("npx axe host --dev --stdio --app http://localhost:3000");
     expect(login, r.out).toBeGreaterThan(0);
     expect(add).toBeGreaterThan(login);
     expect(r.out.indexOf("npx axe surface coverage")).toBeGreaterThan(add);

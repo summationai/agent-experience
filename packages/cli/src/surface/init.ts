@@ -364,24 +364,6 @@ function declares(dir: string, names: string[]): boolean {
   }
 }
 
-/** A name for the MCP server: the app's package name, as a word. */
-function serverName(d: Detection): string {
-  let name = "";
-  try {
-    name = String(
-      (JSON.parse(readFileSync(join(d.dir, "package.json"), "utf8")) as { name?: unknown }).name ??
-        "",
-    );
-  } catch {
-    // no package.json: the directory's name
-  }
-  const word = (name.split("/").pop() || basename(d.dir))
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return word || "app";
-}
-
 function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
   const d = plan.detection;
   const remote = o.remote === true || o.relay !== undefined;
@@ -397,7 +379,6 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
   const config = posix(
     relative(d.dir, join(d.outDir, `surface.config.${d.typescript ? "ts" : "js"}`)),
   );
-  const name = serverName(d);
   const steps: { text: string; more?: string[] }[] = [];
   const required = [PACKAGES.surface, ...(remote ? [PACKAGES.relay] : [])];
   if (!installed && !declares(d.dir, required))
@@ -427,14 +408,10 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     ...(remote
       ? [
           {
-            text: "Sign in once for the optional unattended host (the session is saved to .axe/host-state.json; keep .axe/ out of git):",
-            more: [`npx ${WIRE.cli.host} login ${devUrl}`],
-          },
-          {
-            text: "Connect Claude through the optional remote adapter: the host runs the app headless for you and serves its tools over MCP:",
+            text: "The provider browser handoff supplies the relay connection automatically after normal application sign-in; this application needs no token endpoint or MCP server. For an isolated local host test only:",
             more: [
-              `claude mcp add ${name} -- npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
-              `Claude Desktop and absolute paths: run npx ${WIRE.cli.host} --dev --app ${devUrl} --name ${name}, which prints both.`,
+              `npx ${WIRE.cli.host} login ${devUrl}`,
+              `npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
             ],
           },
         ]
