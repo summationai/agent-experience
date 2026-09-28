@@ -15,6 +15,7 @@ import type { Surface } from "@axe/surface";
 import type {
   connectRelay,
   devToken,
+  localMcpService,
   injectedRelay,
   relayOptions,
   RelayConnection,
@@ -58,6 +59,7 @@ export interface PageApi {
   autoSurface: typeof autoSurface;
   connectRelay: typeof connectRelay;
   devToken: typeof devToken;
+  localMcpService: typeof localMcpService;
   injectedRelay: typeof injectedRelay;
   relayOptions: typeof relayOptions;
 }

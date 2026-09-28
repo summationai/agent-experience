@@ -499,6 +499,7 @@ const EXTERNAL_ALLOW = [
   "https://webmachinelearning.github.io/webmcp",
   "https://github.com/webmachinelearning/webmcp",
   "https://developer.chrome.com/docs/ai/",
+  "https://learn.chatgpt.com/docs/",
   "https://modelcontextprotocol.io/specification/",
   "https://apps.extensions.modelcontextprotocol.io/",
   "https://github.com/modelcontextprotocol/",

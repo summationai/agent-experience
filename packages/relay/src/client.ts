@@ -161,9 +161,10 @@ export function tabEndpoint(url: string): string {
 }
 
 /**
- * A `getToken` for local development: asks a relay started with `axe relay --dev` for a
- * development token. The relay serves it on loopback only, to allowed origins only; never use
- * this in production, where your backend mints the token for the signed-in person.
+ * A `getToken` for local development: asks the local MCP service (or the lower-level
+ * `axe relay --dev` process) for a development token. The relay serves it on loopback only, to
+ * allowed origins only; never use this in production, where an authenticated service issues a
+ * token for the signed-in person.
  */
 export function devToken(relayUrl: string): () => Promise<string> {
   const u = new URL(relayUrl);
@@ -177,6 +178,18 @@ export function devToken(relayUrl: string): () => Promise<string> {
     if (typeof body.token !== "string") throw new Error("The relay sent no token.");
     return body.token;
   };
+}
+
+/** Default origin of the company-side MCP service while it is run locally. */
+export const LOCAL_MCP_SERVICE_URL = "http://127.0.0.1:4717";
+
+/**
+ * Connection options for the local Agent Experience MCP service. The website receives a
+ * short-lived development tab token from the service; desktop agents authenticate separately at
+ * its `/mcp` endpoint and pair with the code shown in the page.
+ */
+export function localMcpService(serviceUrl = LOCAL_MCP_SERVICE_URL): ConnectRelayOptions {
+  return { url: serviceUrl, getToken: devToken(serviceUrl) };
 }
 
 /**

@@ -1,6 +1,6 @@
 # Unattended mode: the agent uses the app for you
 
-The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is an optional adapter for an agent outside the browser; the package-only default is browser-native WebMCP, and the person's own tab ([Relay](relay.md), attended mode) is the other remote option.
+The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the optional unattended adapter. The primary desktop-agent development path uses the person's own tab through the separately operated [Agent Experience MCP service](relay.md); browser-native WebMCP is an additional direct path where supported.
 
 ```mermaid
 flowchart LR

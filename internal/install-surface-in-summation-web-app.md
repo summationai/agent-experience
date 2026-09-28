@@ -1,23 +1,23 @@
-# Install browser-native Surface in the Summation web app (internal)
+# Connect the Summation web app to the Agent Experience MCP service (internal)
 
-This is a prompt for a coding agent working in the Summation monorepo (`summationai/code`). Give it this whole file. It adds the package-only Surface integration to `js/apps/web-app`: the live controls, revision, ledger, and handlers stay in the page, and `<SurfaceProvider webMcp>` offers them directly to a browser-native agent when the browser supports WebMCP.
+This is a prompt for a coding agent working in the Summation monorepo (`summationai/code`). Give it this whole file. It adds the Surface integration to `js/apps/web-app`: the live controls, revision, ledger, and handlers stay in the page, and the lightweight browser client connects that page to the separately operated Agent Experience MCP service. The Summation application does not run an MCP server.
 
 This is a local experiment. Work in the current checkout and leave the finished changes uncommitted in the working tree. Do not create a branch or worktree, commit, or push.
 
 ## Goal
 
-Make the smallest local change that lets a browser-native agent use the signed-in Summation web app through the controls people already use.
+Make the smallest local change that lets a desktop MCP agent use the signed-in Summation web app through the controls people already use, without running an MCP server in the Summation repository.
 
 Done means:
 
-- only `@axe/surface` is added to the web app;
+- only the browser packages `@axe/surface` and `@axe/relay` are added to the web app;
 - the Surface provider is mounted inside the authenticated shell and behind `ui_axe_surface`;
-- the generated provider has `webMcp` enabled and has no remote connection code;
+- the generated provider has `webMcp` enabled and connects its Surface to the local Agent Experience service at `http://127.0.0.1:4717` in development;
 - the Addison agent UI is excluded from the derived surface;
 - the app's normal checks pass; and
-- a WebMCP-capable browser can observe the registered controls and perform one ordinary action, with the result checked in the app itself.
+- a desktop MCP agent can pair with the open tab, observe the registered controls, read the page, wait for slow work, and perform one ordinary action, with the result checked in the app itself.
 
-Do not build remote transport, hosted-browser, token, pairing, or production-authentication infrastructure. Do not add a trusted approval UI in this pass; approval-sensitive acts should remain safely refused.
+Do not add an MCP server, hosted browser, or production-authentication infrastructure to Summation. The service under `agent-experience/mcp` owns the MCP endpoint and development pairing. Do not add a trusted approval UI in this pass; approval-sensitive acts use the relay's existing attended approval flow.
 
 ## Ground rules
 
@@ -27,7 +27,7 @@ Do not build remote transport, hosted-browser, token, pairing, or production-aut
 - Keep the diff small: the authenticated-layout mount, `app/surface.tsx`, `app/surface.config.ts`, one flag key, package/lockfile/Dockerfile changes, the vendored tarballs, and at most a few targeted config or `data-surface-ignore` edits.
 - Do not add user-facing strings. Summation requires UI text through `useText()`.
 - Never make approval reachable from an agent. In particular, do not expose `handle.approve`, and do not implement `requestApproval` with a WebMCP tool, an agent-visible control, an agent-supplied message, or automatic acceptance.
-- `@axe/core` is a transitive package pin while the SDK is unpublished. Do not add it to the web app's dependencies; knip will treat it as unused.
+- `@axe/core` is a transitive package pin while the SDK is unpublished. Do not add it to the web app's dependencies; knip will treat it as unused. The root resolutions also pin `@axe/surface` so the vendored relay uses the same browser registry instance.
 
 ## Summation-specific facts to verify
 
@@ -37,7 +37,7 @@ These were true when this prompt was written. Inspect the current code before re
 - **SSR:** `react-router.config.ts` has SSR enabled. `SurfaceProvider` starts only in an effect; do not add module-scope browser work or side-effect imports.
 - **Flag:** feature flags use `useFeatureFlag("<key>")` from `~/feature-flags`, with keys declared in `app/feature-flags/gen/defaultFlags.json`. The local URL override `?ui_axe_surface=true` enables the flag for the session.
 - **Packaging:** Yarn 4's registry age gate means the unpublished SDK must be consumed as local tarballs. The vendor directory must exist before `yarn install`, including in the Dockerfile.
-- **Addison:** the Addison pane and composer are a different agent's UI. Its outermost element should carry `data-surface-ignore` so the browser-native agent does not drive Addison through Surface.
+- **Addison:** the Addison pane and composer are a different agent's UI. Its outermost element should carry `data-surface-ignore` so the desktop agent does not drive Addison through Surface.
 - **Likely coverage gaps:** collapsed icon navigation, unnamed Tiptap/ProseMirror editors, `div role="button"` rows, missing landmarks, non-live toasts, Highcharts with accessibility disabled, SpreadJS canvas content, and virtualized grids. Treat coverage as evidence; do not preemptively rewrite all of these.
 
 ## Steps
@@ -48,7 +48,10 @@ In the Summation checkout, record the starting state for yourself:
 
 ```sh
 git status --short
+rg -n '^\[mcp_servers\.summation\]' .codex/config.toml 2>/dev/null || true
 ```
+
+The second command must find nothing. A project-local `mcp_servers.summation` entry that launches `axe host` is legacy configuration: it starts a customer-checkout-specific MCP server and defeats the service boundary. Remove only that stale Summation server block (and its `[mcp_servers.summation.tools.*]` blocks), preserving unrelated project configuration. Configure the separately running `agent-experience` HTTP MCP service in the desktop agent instead; do not add a project-local command server.
 
 Use the existing Agent Experience checkout at `~/code/agent-experience`. Do not switch branches or pull over local work. Confirm it contains the package-first implementation, then build it:
 
@@ -58,7 +61,9 @@ git status --short
 pnpm install
 pnpm --filter @axe/core build
 pnpm --filter @axe/surface build
+pnpm --filter @axe/relay build
 pnpm --filter axe build
+pnpm --filter @axe/mcp-service build
 ```
 
 If the checkout is elsewhere, use its absolute path consistently below.
@@ -68,25 +73,26 @@ If the checkout is elsewhere, use its absolute path consistently below.
 From `js/apps/web-app` in the Summation checkout:
 
 ```sh
-~/code/agent-experience/scripts/pack-for-consumer.sh vendor/axe core surface
+~/code/agent-experience/scripts/pack-for-consumer.sh vendor/axe core surface relay
 ```
 
 This should produce:
 
 - `vendor/axe/axe-core-0.1.0.tgz`
 - `vendor/axe/axe-surface-0.1.0.tgz`
+- `vendor/axe/axe-relay-0.1.0.tgz`
 - `vendor/axe/SOURCE`
 
-Do not pack or install relay or host packages.
+Do not pack or install `@axe/mcp`, `@modelcontextprotocol/sdk`, `ws`, or `@axe/host`; those are service-side dependencies and remain outside Summation.
 
 ### 3. Add the local package dependency
 
 Make these local package changes:
 
-- In `js/apps/web-app/package.json`, add only:
-  `"@axe/surface": "file:./vendor/axe/axe-surface-0.1.0.tgz"`.
-- In the root `package.json` `resolutions`, add:
-  `"@axe/core": "file:./js/apps/web-app/vendor/axe/axe-core-0.1.0.tgz"`.
+- In `js/apps/web-app/package.json`, add only the browser packages:
+  `"@axe/surface": "file:./vendor/axe/axe-surface-0.1.0.tgz"` and
+  `"@axe/relay": "file:./vendor/axe/axe-relay-0.1.0.tgz"`.
+- In the root `package.json` `resolutions`, add `@axe/core` and `@axe/surface`, both pointing at their tarballs under `js/apps/web-app/vendor/axe/`.
 - Do not add `@axe/core` to the app's dependencies.
 - In `js/apps/web-app/Dockerfile`, copy `js/apps/web-app/vendor/axe/` before the `RUN yarn install` layer, beside the existing local-tarball copy.
 - Run `yarn install` at the Summation repo root. Re-run it whenever the tarballs change so `yarn.lock` has their current checksums.
@@ -97,7 +103,7 @@ Add `"ui_axe_surface": false` to `app/feature-flags/gen/defaultFlags.json`.
 
 Do not create or change remote Statsig configuration. The URL override is enough for this local experiment.
 
-### 5. Mount the package-only provider
+### 5. Mount the provider and browser relay client
 
 Preview the generated change first:
 
@@ -105,18 +111,19 @@ Preview the generated change first:
 node ~/code/agent-experience/packages/cli/dist/index.js surface init \
   --mount "app/routes/_main+/_layout.tsx" \
   --flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import "~/feature-flags" \
+  --relay-dev \
   --dry-run
 ```
 
-Do not pass `--remote`, `--relay`, or `--relay-dev`.
+`--relay-dev` points the generated browser client at the separately run local service. Do not replace it with `--remote`, which is the older injected-host path, and do not add server code to this checkout.
 
 Confirm the preview has this shape:
 
 - `_layout.tsx` imports `AgentSurface` and wraps the authenticated `<Outlet />` inside `<AppLayoutV2>`.
 - `app/surface.tsx` imports `SurfaceProvider` from `@axe/surface/react`.
 - The provider includes `config={surfaceConfig}`, `flag={enabled}`, `expose={development}`, and `webMcp`.
-- `enabled` is exactly the Summation feature-flag result; it has no injected-connection clause.
-- There are no imports from `@axe/relay`, no `onReady`, and no connection setup.
+- In a normal Summation tab, `enabled` follows the Summation feature flag. The generated `|| injectedRelay() !== null` clause remains only for the older unattended-host fallback; it does not enable the local service in an ordinary production tab.
+- `app/surface.tsx` imports `connectRelay`, `localMcpService`, and `injectedRelay` from `@axe/relay/client`; its `onReady` connects the page-held Surface to the local service only while development is enabled.
 - `app/surface.config.ts` is the reviewable overlay. Set `app: "Summation"` so observations and diagnostics identify the application rather than the SDK's generic fallback name.
 
 If the diff is correct, run the same command with `--yes`. Do not pass `--install`, because the unpublished tarballs were installed manually. Run it once more and confirm it reports nothing to change. Prefer the `~/surface` import alias in `_layout.tsx` if that is the local convention.
@@ -127,7 +134,15 @@ Find the single outer element that owns the Addison pane and composer under `app
 
 Do not scatter the attribute over several descendants. If there is no clear owning element, leave the code alone and report that uncertainty in the final local summary.
 
-### 7. Run the app and inspect the surface
+### 7. Run the service and app, then inspect the surface
+
+From the Agent Experience checkout, run the company-side service in its own process:
+
+```sh
+pnpm mcp:dev
+```
+
+It must report the website endpoint `ws://127.0.0.1:4717/tab`, the desktop-agent endpoint `http://127.0.0.1:4717/mcp`, and a local bearer key. This service is not part of the Summation process.
 
 Start the web app normally from `js/apps/web-app`, with its usual environment and VPN:
 
@@ -149,31 +164,31 @@ window.__surface?.observe();
 
 The observation should identify the current app, have a numeric revision, list controls with useful names, omit sensitive values, and contain no Addison controls. Check at least two routes. If this is absent, verify the flag override, provider mount, and development build before changing code.
 
-### 8. Verify with a browser-native agent
+The page should also show the relay indicator with a pairing code. If it remains at “connecting,” check the service process and `http://127.0.0.1:4717/health` before changing application code.
 
-Use a browser host that implements the current imperative WebMCP API and delivers its registered tools to the current agent task. For ChatGPT desktop, use its built-in browser, turn on Site tools under Settings > Browser > Permissions, and select a model that currently supports Site tools. Do not use an external Chrome tab, a nested CLI agent, or a generic/headless computer-use task as the acceptance test: those may expose only click/type browser automation even though the page package is installed.
+### 8. Verify with a desktop MCP agent
 
-For local Chrome API testing, enable `chrome://flags/#enable-webmcp-testing` and restart the browser if necessary. This proves registration against Chrome's API, not delivery to a ChatGPT task.
+Connect the desktop agent directly to the service's Streamable HTTP MCP endpoint. For Codex, configure it once outside the Summation checkout:
 
-On the app page, run this preflight in development:
-
-```js
-typeof document.modelContext?.registerTool === "function";
-await window.__surface?.webMcp?.();
+```sh
+export AXE_MCP_AGENT_KEY=axd_agent_experience_local
+codex mcp add agent-experience \
+  --url http://127.0.0.1:4717/mcp \
+  --bearer-token-env-var AXE_MCP_AGENT_KEY
 ```
 
-The first expression must be `true`. The diagnostic must settle at `state: "ready"` and list `surface_observe`, `surface_read`, and `surface_wait`; `degraded` or `error` includes the refused registrations. Finally, inspect the browser's Site tools UI and confirm it lists the same tools. These are three separate checks: browser API support, successful page registration, and delivery to the agent.
+Other MCP clients use the same URL and bearer key. Start a fresh agent conversation after configuring it. The service's own MCP instructions tell the agent to call `relay_tabs` first; do not launch a nested `codex exec` process or tell it to use a checkout-specific “Summation MCP.”
 
-In the browser's agent UI:
+In the desktop agent:
 
-1. Confirm it calls `surface_observe` before acting and describes several controls using their application-owned names and unavailable reasons.
-2. Confirm `surface_read` reports the current page status. For a slow operation, confirm `surface_wait` follows the visible status instead of repeatedly clicking or guessing from elapsed time.
-3. Ask it to perform one ordinary, reversible action such as opening a menu, changing a tab, or applying a harmless filter.
-4. Check the visible application state yourself; do not accept the agent's narration as proof.
-5. Change the page after an observation and confirm an act using the old revision is refused without applying anything, if the browser UI lets you provide `expectedRev`.
-6. Try one high-risk or approval-gated control only in disposable local state. Because this integration has no trusted `requestApproval` callback, it must be refused with no handler run. That refusal is the expected safe behavior.
-
-If registration is ready but the current task exposes only generic browser controls, record a host-delivery limitation. The page cannot promote its JavaScript tools into that task. Use the compatible built-in-browser Site tools path for this package-only experiment; a truly browser-independent/headless agent requires the separate hosted transport discussed after this experiment.
+1. Call `relay_tabs`. Before pairing it should explain that the agent needs the code shown in the open tab.
+2. Give the agent that code and confirm it calls `relay_pair`; never put the code in source or configuration.
+3. Confirm it calls `surface_read` and `surface_observe`, and describes several controls using their application-owned names and unavailable reasons.
+4. For a slow operation, confirm `surface_wait` follows the visible status instead of repeatedly clicking or guessing from elapsed time.
+5. Ask it to perform one ordinary, reversible action through `surface_set-field`, `surface_run-control`, or `surface_load-more`.
+6. Check the visible application state yourself; do not accept the agent's narration as proof.
+7. Change the page after an observation and confirm an act using the old revision is refused without applying anything.
+8. Try one high-risk or approval-gated control only in disposable local state. It must wait for approval in the page indicator and run only after the person approves.
 
 ### 9. Measure and make only high-value refinements
 
@@ -197,7 +212,7 @@ Run the checks that match the current Summation repository scripts, including at
 Finish by reporting:
 
 - every file changed locally;
-- the generated provider shape and confirmation that it imports no remote adapter;
+- the generated provider shape and confirmation that it imports only the browser relay client, never server dependencies;
 - the routes and controls observed;
 - the ordinary action tried and the application state that proved it worked;
 - the approval-sensitive refusal, if tested;
@@ -209,6 +224,6 @@ Leave the changes uncommitted in the working tree for the user to inspect.
 
 ## What this experiment proves—and does not
 
-This path proves that the JavaScript package can own Surface state inside the consuming site and communicate directly with a browser-native agent. No separate runtime is involved: the page owns the registry, revision, ledger, approval boundary, and handlers.
+This path proves that the JavaScript package can own Surface state inside the consuming site while a separately operated service presents it to desktop agents over MCP. The service transports requests and keeps an in-memory mirror, but the page remains authoritative for the registry, revision, ledger, approval boundary, and handlers.
 
-It does not make a browser-local surface reachable from a separate process, persist the in-memory ledger across reloads, or turn a derived click into a server-side conditional write. Those are separate transport, durability, and application-consistency concerns. It also does not make an agent's confirmation count as a person's approval; consequential actions remain refused until Summation deliberately supplies trusted, person-operated approval UI.
+It does not persist the in-memory ledger across reloads, turn a derived click into a server-side conditional write, or provide production identity. Those remain durability, application-consistency, and authentication concerns. It also does not make an agent's confirmation count as a person's approval; consequential actions run only after the person approves through the relay indicator.

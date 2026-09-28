@@ -24,14 +24,16 @@ flowchart LR
 
 The business logic is yours and does not change. The AXE layer is a manifest plus a set of actions that call into it. Agents talk to the AXE layer; humans keep talking to the UI; when an action needs the human, the AXE layer sends them to the UI and lets the agent resume afterward.
 
-**The default way an agent uses your application:** [Unattended mode](host.md). The person signs in once, in the agent's own UI; the SDK runs your application in a headless browser for them, and the agent acts through the application's real UI. No pairing, no tab of their own. Locally: `axe host login`, then `axe host --dev`.
+**The recommended consumer path:** [ChatGPT plugin](chatgpt-plugin.md). A person installs Agent Experience from ChatGPT's plugin directory and connects their account through OAuth; the provider-operated service runs the integrated app in a private hosted browser session. They do not configure MCP, keep a website tab open, or use a desktop development client.
+
+**The recommended local integration path:** [Relay](relay.md). The package keeps the Surface in the person's open tab and connects it to the separately operated Agent Experience MCP service; the customer application does not run an MCP server. Configure the desktop client once, then the service's instructions lead the agent through tab discovery, pairing, reading, waiting, and acting. [Unattended mode](host.md) is the runtime underneath the consumer path, and WebMCP is a direct additional path in compatible browser hosts.
 
 ## Pages
 
 Start at the top and read down. Each page ends with next steps.
 
 1. [Why AXE](why-axe.md) — the problem, the SEO analogy mapped once, why headless browsing does not scale, why this is not "just an API", and when not to use it yet.
-2. [Getting started](getting-started.md) — a 15-minute tutorial: install, one read-only action, mount, `axe inspect`, `axe conformance`, connect Claude Desktop.
+2. [Getting started](getting-started.md) — add Surface to an existing app through the company-side MCP service, or build one read-only AXE action and connect it to an agent.
 3. [Concepts](concepts.md) — manifest, actions, display and affordances, the result envelope, the escalation ladder, requirements and kinds, handoff and resume, idempotency, auth, flows, risk.
 4. [Surface](surface.md) — live state for agents: an application's registry of its own controls, with reasons and one revision, served as AXE actions.
 5. [Easy mode: derive, then refine](auto-surface.md) — `@axe/surface/auto`: a surface read from the rendered page, the three guarantee tiers, safety defaults and approval, the configuration overlay, coverage, and generic tools.
@@ -51,18 +53,19 @@ Start at the top and read down. Each page ends with next steps.
 19. [MCP](mcp.md) — the derived MCP server, the mapping table, elicitation and the Apps view, connecting clients, limits.
 20. [Relay](relay.md) — an agent outside the browser (Claude Code over MCP) driving a signed-in person's live tab: the page connects its surface, the relay serves it; development pairing in one command, production with relay tokens and OAuth, Stop, approvals, and the security model.
 21. [Unattended mode](host.md) — the optional remote path for an agent outside the browser: the agent signs in, the SDK runs the application in a headless browser for that person (`@axe/host`), and the agent drives the real UI with no pairing; development in two commands (`axe host login`, `axe host --dev`), production with OAuth and the application's `sessionFor`, the security model, and limits.
-22. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
-23. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
-24. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
-25. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
-26. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
-27. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
-28. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
-29. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
-30. [API reference](api/README.md) — generated from the source for every package.
-31. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
-32. [Glossary](glossary.md).
-33. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
+22. [ChatGPT consumer path](chatgpt-plugin.md) — the installable plugin, hosted MCP service, OAuth and application-session exchange, the phone experience, deployment boundary, and what cannot be made zero-consent.
+23. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
+24. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+25. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
+26. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
+27. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
+28. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
+29. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
+30. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
+31. [API reference](api/README.md) — generated from the source for every package.
+32. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
+33. [Glossary](glossary.md).
+34. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 

@@ -623,6 +623,18 @@ opens the application in a hidden browser session for a person: `window.__AXE_RE
 
 ***
 
+<a id="local_mcp_service_url"></a>
+
+### LOCAL\_MCP\_SERVICE\_URL
+
+```ts
+const LOCAL_MCP_SERVICE_URL: "http://127.0.0.1:4717" = "http://127.0.0.1:4717";
+```
+
+Default origin of the company-side MCP service while it is run locally.
+
+***
+
 <a id="relay_protocol"></a>
 
 ### RELAY\_PROTOCOL
@@ -670,9 +682,10 @@ Returns at once; the connection opens, authenticates, and reconnects in the back
 function devToken(relayUrl): () => Promise<string>;
 ```
 
-A `getToken` for local development: asks a relay started with `axe relay --dev` for a
-development token. The relay serves it on loopback only, to allowed origins only; never use
-this in production, where your backend mints the token for the signed-in person.
+A `getToken` for local development: asks the local MCP service (or the lower-level
+`axe relay --dev` process) for a development token. The relay serves it on loopback only, to
+allowed origins only; never use this in production, where an authenticated service issues a
+token for the signed-in person.
 
 #### Parameters
 
@@ -701,6 +714,30 @@ at import. No pairing: the host minted the token for the person the session is f
 #### Returns
 
 [`ConnectRelayOptions`](#connectrelayoptions) \| `null`
+
+***
+
+<a id="localmcpservice"></a>
+
+### localMcpService()
+
+```ts
+function localMcpService(serviceUrl?): ConnectRelayOptions;
+```
+
+Connection options for the local Agent Experience MCP service. The website receives a
+short-lived development tab token from the service; desktop agents authenticate separately at
+its `/mcp` endpoint and pair with the code shown in the page.
+
+#### Parameters
+
+##### serviceUrl?
+
+`string` = `LOCAL_MCP_SERVICE_URL`
+
+#### Returns
+
+[`ConnectRelayOptions`](#connectrelayoptions)
 
 ***
 

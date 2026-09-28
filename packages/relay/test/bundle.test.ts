@@ -9,7 +9,7 @@ describe("browser bundle", () => {
   it("@axe/relay/client bundles for the browser without Node built-ins, Zod, or ws, under 16 kB minified", async () => {
     const result = await build({
       stdin: {
-        contents: `export { connectRelay, devToken, injectedRelay, relayOptions } from "${join(__dirname, "../src/client.ts").replace(/\\/g, "/")}";`,
+        contents: `export { connectRelay, devToken, localMcpService, injectedRelay, relayOptions } from "${join(__dirname, "../src/client.ts").replace(/\\/g, "/")}";`,
         resolveDir: __dirname,
         loader: "ts",
       },
@@ -87,5 +87,13 @@ describe("browser bundle", () => {
     } finally {
       delete g["__AXE_RELAY__"];
     }
+  });
+
+  it("points a website at the local company-side MCP service", async () => {
+    const mod = await import(pathToFileURL(join(__dirname, "../src/client.ts")).href);
+    const local = mod.localMcpService();
+    expect(local.url).toBe("http://127.0.0.1:4717");
+    expect(typeof local.getToken).toBe("function");
+    expect(mod.tabEndpoint(local.url)).toBe("ws://127.0.0.1:4717/tab");
   });
 });

@@ -13,7 +13,7 @@ export const MODULES = {
   auto: "@axe/surface/auto",
   /** `exposeWebMcp` for plain-HTML setup; React uses the provider prop. */
   webMcp: "@axe/surface/webmcp",
-  /** `connectRelay`, `injectedRelay`, `devToken`. */
+  /** `connectRelay`, `injectedRelay`, `devToken`, `localMcpService`. */
   relayClient: "@axe/relay/client",
 } as const;
 
@@ -25,6 +25,7 @@ export const NAMES = {
   formatCoverage: "formatCoverage",
   exposeWebMcp: "exposeWebMcp",
   connectRelay: "connectRelay",
+  localMcpService: "localMcpService",
   /** The connection a host injected (`window.__AXE_RELAY__`), read when called; null elsewhere. */
   injectedRelay: "injectedRelay",
 } as const;
@@ -49,8 +50,8 @@ export const PROVIDER_PROPS = {
  */
 export const AUTO_OPTIONS = { root: "root", config: "config" } as const;
 
-/** The tab endpoint of the development relay `axe relay --dev` (port 4717, path `/tab`). */
-export const DEV_RELAY_URL = "ws://127.0.0.1:4717/tab";
+/** The local company-side MCP service; it serves browser tabs at `/tab` and agents at `/mcp`. */
+export const DEV_RELAY_URL = "http://127.0.0.1:4717";
 
 /** Packages `--install` adds. */
 export const PACKAGES = {

@@ -319,9 +319,11 @@ describe("axe surface init: flags and the relay", () => {
     expect(remote).not.toContain("devToken");
     const dev = surfaceOf(planInit({ dir: copy("react-router"), relay: DEV_RELAY_URL }));
     expect(dev).toContain(
-      'import { connectRelay, devToken, injectedRelay } from "@axe/relay/client";',
+      'import { connectRelay, localMcpService, injectedRelay } from "@axe/relay/client";',
     );
-    expect(dev).toContain(`url: import.meta.env.VITE_SURFACE_RELAY_URL ?? "${DEV_RELAY_URL}",`);
+    expect(dev).toContain(
+      `...localMcpService(import.meta.env.VITE_SURFACE_RELAY_URL ?? "${DEV_RELAY_URL}"),`,
+    );
     // The injected connection wins; the development relay only in development (attended).
     expect(dev).toContain("const options = injectedRelay() ?? (development ? relay : null);");
     const prod = surfaceOf(
@@ -349,7 +351,7 @@ describe("axe surface init: flags and the relay", () => {
     expect(login, r.out).toBeGreaterThan(0);
     expect(add).toBeGreaterThan(login);
     expect(r.out.indexOf("npx axe surface coverage")).toBeGreaterThan(add);
-    expect(r.out).toContain("Fallback, the person's own tab (attended)");
+    expect(r.out).toContain("The person's own tab connects to the company-side service");
     // An app that already depends on both packages is not told to install them.
     const has = copy("vite-react");
     const pkgPath = join(has, "package.json");

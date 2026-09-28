@@ -2,7 +2,7 @@
 
 WebMCP is a browser API through which a page registers tools for an agent built into the browser. `@axe/surface/webmcp` offers a [Surface](surface.md) through it: the page's controls become tools the browser's agent can call, each one running through the page's own surface with its revision guard, availability, and ledger. This page covers the status of the API, what the adapter registers, what it never registers, and what to use where the browser has no WebMCP.
 
-For React easy mode, `axe surface init` enables this directly with `<SurfaceProvider webMcp>`. The application installs only `@axe/surface`; no standalone MCP server or relay participates.
+For React easy mode, `<SurfaceProvider webMcp>` enables this direct route. It needs only `@axe/surface`; no MCP server or relay participates in that route. The recommended desktop-agent integration also installs `@axe/relay` and connects the same page-held Surface to the separately operated [Agent Experience MCP service](../mcp/README.md), because a generic desktop or headless-browser session does not receive a page's WebMCP tools automatically.
 
 ## Status
 
@@ -82,6 +82,8 @@ Before asking an agent to act, verify all three layers:
 3. The browser's Site tools UI lists `surface_observe`, and, for an auto surface, `surface_read` and `surface_wait` — the host actually delivered them to the agent.
 
 If step 1 fails, choose a compatible browser host. If step 2 fails, fix the reported registration errors. If step 3 fails while step 2 says ready, the browser host did not make the registered tools available to that task; changing tool descriptions or prompting the model cannot repair that transport boundary.
+
+Use a fresh agent conversation for a clean acceptance test after installing or updating the page integration. A previous conversation may retain its earlier diagnosis and fallback plan. Also inspect project-local agent configuration: a leftover MCP server for the same application is a separate transport and can cause a nested CLI agent to choose that server even when browser-native Surface is installed.
 
 ## What is never registered
 

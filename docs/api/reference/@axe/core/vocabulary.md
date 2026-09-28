@@ -216,6 +216,8 @@ type WireApi =
   | "idleReason"
   | "maxPageSize"
   | "connectRelay"
+  | "localMcpService"
+  | "LOCAL_MCP_SERVICE_URL"
   | "getToken"
   | "onStatus"
   | "requireApproval"
@@ -263,6 +265,7 @@ type WireApi =
   | "useAutoSurface"
   | "useAutoSurfaceHandle"
   | "webMcp"
+  | "onReady"
   | "elementFor"
   | "metaFor"
   | "debounceMs"
@@ -1073,6 +1076,8 @@ const api: Readonly<{
   lintAction: "lintAction";
   lintAgentText: "lintAgentText";
   lintManifest: "lintManifest";
+  localMcpService: "localMcpService";
+  localMcpServiceUrl: "LOCAL_MCP_SERVICE_URL";
   localStorage: "localStorage";
   manifest: "manifest";
   manifestCacheSeconds: "manifestCacheSeconds";
@@ -1104,6 +1109,7 @@ const api: Readonly<{
   onEvict: "onEvict";
   onManifestChange: "onManifestChange";
   onPoll: "onPoll";
+  onReady: "onReady";
   onRequest: "onRequest";
   onResult: "onResult";
   onResume: "onResume";
@@ -2070,6 +2076,8 @@ const WIRE: Readonly<{
      lintAction: "lintAction";
      lintAgentText: "lintAgentText";
      lintManifest: "lintManifest";
+     localMcpService: "localMcpService";
+     localMcpServiceUrl: "LOCAL_MCP_SERVICE_URL";
      localStorage: "localStorage";
      manifest: "manifest";
      manifestCacheSeconds: "manifestCacheSeconds";
@@ -2101,6 +2109,7 @@ const WIRE: Readonly<{
      onEvict: "onEvict";
      onManifestChange: "onManifestChange";
      onPoll: "onPoll";
+     onReady: "onReady";
      onRequest: "onRequest";
      onResult: "onResult";
      onResume: "onResume";

@@ -2,7 +2,7 @@
 // browser, after the controls are registered.
 import { createSurface } from "@axe/surface";
 import type { Surface } from "@axe/surface";
-import { connectRelay, devToken, relayOptions } from "@axe/relay/client";
+import { connectRelay, localMcpService, relayOptions } from "@axe/relay/client";
 import type { RelayConnection, RelayStatus } from "@axe/relay/client";
 
 const surface = createSurface({ app: "studio-schedule" });
@@ -61,23 +61,17 @@ export function connectWithOwnIndicator(
 // With server-side rendering, load the client in an effect: importing it touches no window,
 // document, or WebSocket, and connecting happens only in the browser.
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
-  const { connectRelay: connect, devToken: dev } = await import("@axe/relay/client");
-  const connection = connect(s, {
-    url: "ws://127.0.0.1:4717/tab",
-    getToken: dev("http://127.0.0.1:4717"),
-  });
+  const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
+  const connection = connect(s, local());
   return () => connection.stop();
 }
 // #endregion dynamic
 
 // #region dev
-// Local development against `npx axe relay --dev`: the relay hands out development tokens on
-// loopback, and the tab shows a pairing code for the agent.
+// Local development against the company-side service (`pnpm mcp:dev` in the SDK checkout): the
+// service hands out development tab tokens on loopback and shows an agent pairing code in the tab.
 if (location.hostname === "localhost") {
-  connectRelay(surface, {
-    url: "ws://127.0.0.1:4717/tab",
-    getToken: devToken("http://127.0.0.1:4717"),
-  });
+  connectRelay(surface, localMcpService());
 }
 // #endregion dev
 
@@ -86,10 +80,7 @@ if (location.hostname === "localhost") {
 // the connection (`window.__AXE_RELAY__`: no pairing, no indicator, approvals in the agent's
 // client); in a normal browser, the attended development relay below.
 export function connectEitherWay(s: Surface): RelayConnection {
-  return connectRelay(
-    s,
-    relayOptions({ url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") }),
-  );
+  return connectRelay(s, relayOptions(localMcpService()));
 }
 // #endregion unattended
 

@@ -74,6 +74,7 @@ declare module "@axe/relay/client" {
     options: ConnectRelayOptions,
   ): { stop(): void; rekey(token?: string): void };
   export function devToken(relayUrl: string): () => Promise<string>;
+  export function localMcpService(serviceUrl?: string): ConnectRelayOptions;
   export function injectedRelay(): ConnectRelayOptions | null;
   export function relayOptions(fallback: ConnectRelayOptions): ConnectRelayOptions;
 }

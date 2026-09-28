@@ -23,7 +23,7 @@ export interface TemplateOptions {
   typescript: boolean;
   style: Style;
   flag: FlagSpec;
-  /** Include the optional out-of-browser relay/host adapter. */
+  /** Include the out-of-browser relay/service or injected-host adapter. */
   remote?: boolean;
   /** Relay URL when `--relay` or `--relay-dev` was given. */
   relay?: string;
@@ -145,7 +145,7 @@ interface RelayLines {
 /**
  * The relay connection. Always the one a host injected (unattended: `axe host` runs the app for an
  * agent, and nobody pairs); with `--relay-dev`, the development relay in development otherwise
- * (attended: the person's own tab, with pairing); with `--relay <url>`, the app's own relay.
+ * (attended: the person's own tab, with pairing); with `--relay <url>`, the company-side service.
  */
 function relayLines(o: TemplateOptions): RelayLines {
   if (!o.remote) return { imports: [], module: [], options: "null" };
@@ -172,24 +172,27 @@ function relayLines(o: TemplateOptions): RelayLines {
   const url = env
     ? `${env.read(`${env.prefix}SURFACE_RELAY_URL`)} ?? "${o.relay}"`
     : `"${o.relay}"`;
-  // A development relay (`axe relay --dev`) hands the page a token for its dev principal; a real
-  // deployment replaces getToken with a call to the app's own endpoint that mints a relay token.
-  const dev = /^wss?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/.test(o.relay);
+  // The local MCP service hands the page a token for its development principal; a production
+  // deployment replaces this with its authenticated company-side endpoint.
+  const dev = /^(?:https?|wss?):\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/.test(o.relay);
   const httpBase = o.relay.replace(/^ws(s?):/, "http$1:").replace(/\/tab$/, "");
+  const localUrl = env
+    ? `${env.read(`${env.prefix}SURFACE_RELAY_URL`)} ?? "${httpBase}"`
+    : `"${httpBase}"`;
   const tokenLine = dev
-    ? `  getToken: devToken("${httpBase}"), // development only; outside it, fetch a token from the app`
+    ? `  ...${NAMES.localMcpService}(${localUrl}), // local service; production uses its authenticated endpoint`
     : `  getToken: () => fetch("/api/relay-token", { method: "POST" }).then((r) => r.json()).then((b) => b.token), // your endpoint that mints a relay token for the signed-in user`;
   return {
-    imports: imports(dev ? ["devToken"] : []),
+    imports: imports(dev ? [NAMES.localMcpService] : []),
     module: [
       ...intro,
       dev
-        ? "// otherwise, in development, the person's own tab connects to the development relay"
-        : "// otherwise the person's own tab connects to the app's relay (attended mode).",
-      ...(dev ? ["// (`axe relay --dev`, attended mode, with pairing)."] : []),
+        ? "// otherwise, in development, the person's own tab connects to the local MCP service"
+        : "// otherwise the person's own tab connects to the company-side service (attended mode).",
+      ...(dev ? ["// (`pnpm mcp:dev` in the SDK checkout, attended mode, with pairing)."] : []),
       ...(env ? [`// Override the URL with ${env.prefix}SURFACE_RELAY_URL.`] : []),
       "const relay = {",
-      `  url: ${url},`,
+      ...(dev ? [] : [`  url: ${url},`]),
       tokenLine,
       "  // indicator: false, // hides the relay's on-page indicator, whose text is not translated",
       "};",

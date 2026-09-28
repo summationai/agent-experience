@@ -1,24 +1,27 @@
 # Body Spray SDK: AXE and Surface
 
-> The Body Spray SDK lets an agent drive an existing web application through the controls people already use, with the same availability, reasons, and handlers. The integration path is four steps: (1) install `@axe/surface` and `@axe/relay`; (2) run `axe surface init` (and hand a coding agent the prompt from `axe surface prompt`) for a small diff that mounts `<SurfaceProvider>` from `@axe/surface/react`, which connects whenever a host injected a connection and is always on inside such a hosted session; (3) sign in once for the agent and connect Claude to the host (`axe host login <url>`, then `claude mcp add <name> -- npx axe host --dev --stdio --app <url>`), which runs the application headless as that person, with no pairing and no tab of their own (unattended mode, the default); (4) ask: the agent reads the page (`surface_read`), observes it as one table under one revision (`surface_observe`), acts through the page's own events and handlers, waits for slow work (`surface_wait`), and consequential acts are approved by the person in the agent's own UI (MCP elicitation). The person's own open tab through a relay, with pairing, is the attended fallback. This is easy mode: `@axe/surface/auto` derives the surface from the page's accessibility semantics, every entry states its guarantee tier (`derived`, `annotated`, or `declared`, in the entry field `tier`), a reviewed `SurfaceConfig` (`rules: [{ match, ... }]`) refines it, and `axe surface coverage` shows what the page could not say and suggests the config. Deeper tiers stay available: declared registration (`useSurface`, `register`) for exact controls, and server-side AXE actions (`createAXE`, `action()`) served over MCP (`@axe/mcp`), WebMCP (`@axe/surface/webmcp`), or HTTP (`axe/0.1`, whose manifest does not by itself make agents discover a site). Every result uses one envelope with five statuses (`ok`, `needs_input`, `needs_human`, `pending`, `error`), approvals bound to the exact call, and retries that replay a completed operation. This file is for an agent about to integrate the SDK into an existing application. Every name below exists in this repository; each link points at the source of the claim.
+> The Body Spray SDK lets an agent drive an existing web application through the controls people already use, with the same availability, reasons, and handlers. For ordinary ChatGPT users, the production path is `plugins/agent-experience` plus the provider-operated `mcp/` service in hosted mode: the person installs one public plugin and connects their account through OAuth, while `@axe/host` runs the integrated page in an isolated browser context using a short-lived application session. The consuming application never runs an MCP server. For local desktop development, install the browser packages `@axe/surface` and `@axe/relay`, run `axe surface init --relay-dev`, and connect the generated page client to that service's local attended mode. The generated `<SurfaceProvider webMcp>` keeps the authoritative live state in the page, while the service transports `relay_*` and `surface_*` tools. `@axe/surface/auto` derives the surface from the page's accessibility semantics, every entry states its guarantee tier (`derived`, `annotated`, or `declared`, in the entry field `tier`), a reviewed `SurfaceConfig` (`rules: [{ match, ... }]`) refines it, and `axe surface coverage` shows what the page could not say and suggests the config. Browser-native WebMCP remains an additional direct path where the host supports it. Deeper tiers stay available: declared registration (`useSurface`, `register`) for exact controls, and server-side AXE actions (`createAXE`, `action()`) served over MCP (`@axe/mcp`), WebMCP (`@axe/surface/webmcp`), or HTTP (`axe/0.1`, whose manifest does not by itself make agents discover a site). Every result uses one envelope with five statuses (`ok`, `needs_input`, `needs_human`, `pending`, `error`), approvals bound to the exact call, and retries that replay a completed operation. This file is for an agent about to integrate the SDK into an existing application. Every name below exists in this repository; each link points at the source of the claim.
 
 AXE is outside-in. A site declares actions with `createAXE` and `action()`, wrapping functions it already has; clients discover `/.well-known/axe.json`, call `POST /axe/actions/{name}`, continue at `/axe/continue`, resume at `/axe/resume`, and read what can be done right now at `/axe/state`; `@axe/mcp` derives an MCP server from the same manifest. Surface is inside-out. The application registers each control that matters (an `action`, a `field`, or a `collection`) with a stable `id`, a `name` that states the outcome, its `state` with a `reason`, its `effect`, and the very handler the control runs; `observe()` is an indexed snapshot at a revision and `act()` runs one control under a revision guard. Surface has three rules ([spec/SURFACE.md](spec/SURFACE.md) section 2): Surface reports, it never decides ([S-RULE-1]); same door, an act runs the control's own handler ([S-RULE-2]); one revision, every observation carries it and every act presents it ([S-RULE-3]). The seam is `@axe/surface/axe`: `surfaceActions(surface, { namespace, auth })` is an `ActionProvider` for `axe.addProvider` whose set is `<ns>.observe`, `<ns>.ledger`, and one action per entry, with the entry's live `state` as the action's `availability` and its refusals mapped onto the ladder; `domainActions(surface, { namespace, domains })` serves the same surface as a fixed set of parameterized actions. Every action either bridge generates requires `auth: "user"` unless the integrator writes otherwise. Discovery, MCP, kinds, conformance, and the audit then apply unchanged.
 
-## Add Surface in four steps
+## Add Surface with the company-side MCP service
 
-The default path, and the one `axe surface prompt` runs. It is `docs/getting-started.md` ("Add Surface to an existing app in four steps"), with the contracts in [spec/SURFACE.md](spec/SURFACE.md) §9.1 ([S-RELAY-1] to [S-RELAY-14]), §9.2 ([S-HOST-1] to [S-HOST-8]), and §10 ([S-AUTO-1] to [S-AUTO-16], [S-CFG-1] to [S-CFG-8]).
+The default desktop-agent path keeps state and execution inside the consuming page and uses the provider-operated service only as transport. It is `docs/getting-started.md` ("Add Surface to an existing app"), with relay contracts in [spec/SURFACE.md](spec/SURFACE.md) §9, the browser-agent contract in §8, and derivation contracts in §10. The service entry point is `mcp/`; no service dependency is installed in the consuming application.
 
-- Step 1, install: `@axe/surface` (entries `.`, `/react`, `/auto`, `/axe`, `/webmcp`) and `@axe/relay` (entries `/client`, `/token`, `/server`, `/cli`; a browser app imports only `/client`, and the relay server's dependencies are optional peers). Nothing is on npm yet; install the tarballs as in "Packaging". `@axe/host` (with `playwright-core`) is the host's, never the app's.
-- Step 2, one small diff: `npx axe surface init --dry-run` detects the framework (React Router 7 framework mode, the Next App Router, Vite React, React under another bundler, plain HTML), the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root, and prints the diff: one import and one wrapping element in the root (or the layout named with `--mount`), plus a generated `surface.tsx` and an empty `surface.config` overlay. The generated `SurfaceProvider` gets `config`, `flag`, `expose`, and an `onReady` that always connects the connection a host injected: `const options = injectedRelay(); if (!options) return; const connection = connectRelay(handle.surface, options); return () => connection.stop();` (`injectedRelay()` from `@axe/relay/client` reads `window.__AXE_RELAY__` when called and is null on the server and in a person's own browser). The gate is `enabled = <flag> || injectedRelay() !== null`, so a hosted session is on whatever the app's own flag says there; the flag is a build-time variable by default (`VITE_SURFACE`, `NEXT_PUBLIC_SURFACE`: on in development, off in a production build), or `--flag <NAME>`, `--flag <module>#<export>`, or `--flag-hook '<call>' --flag-import <module>` for a feature-flag client; `expose` (which publishes `window.__surface`) is on only in development. `--relay-dev` adds the attended fallback (`injectedRelay() ?? (development ? relay : null)`, the development relay with pairing), `--relay <url>` your own relay (`injectedRelay() ?? relay`). `--yes` applies it, a second run changes nothing, `--install` runs the package manager, `--vendor <dir>` installs from tarballs with the matching `overrides`, `pnpm.overrides`, or root `resolutions`. Then `npx axe surface prompt > integrate-surface.md` gives a coding agent the judgment part (`packages/cli/templates/integrate-surface.md`): review and apply, measure, write config for the top gaps, verify by driving the app.
+- Install `@axe/surface` (entries `.`, `/react`, `/auto`, `/axe`, `/webmcp`) and the browser-only `@axe/relay/client`. Nothing is on npm yet; install the `core surface relay` tarballs as in "Packaging". Do not install `@axe/mcp`, the MCP SDK, or `ws` in the application.
+- Run `npx axe surface init --relay-dev --dry-run`. It detects the framework (React Router 7 framework mode, the Next App Router, Vite React, React under another bundler, plain HTML), package manager, and root, then prints one root wrapper plus a generated `surface.tsx` and empty `surface.config` overlay. The generated React provider gets `config`, `flag`, `expose`, `webMcp`, and an `onReady` connection using `localMcpService()`; a plain page makes the same connection after `autoSurface`. The flag is a build-time variable by default (`VITE_SURFACE`, `NEXT_PUBLIC_SURFACE`: on in development, off in a production build), or `--flag <NAME>`, `--flag <module>#<export>`, or `--flag-hook '<call>' --flag-import <module>` for a feature-flag client. `--yes` applies it, a second run changes nothing, `--install` runs the package manager, and `--vendor <dir>` installs from tarballs with the matching override. Then `npx axe surface prompt > integrate-surface.md` gives a coding agent the judgment part.
+- Run `pnpm mcp:dev` in the Agent Experience checkout, not in the consuming application. It serves website tabs at `ws://127.0.0.1:4717/tab` and desktop agents at `http://127.0.0.1:4717/mcp`. Configure the desktop client once with that Streamable HTTP URL and `AXE_MCP_AGENT_KEY`; its MCP instructions lead with `relay_tabs`, pairing, `surface_read`, `surface_observe`, and `surface_wait`. `--relay <url>` points the generated browser client at a deployed company-side service. The older `--remote` option is the injected-host path.
 - What easy mode derives ([S-AUTO-2] to [S-AUTO-6]): `SurfaceProvider` (or `useAutoSurface`, or `autoSurface()` outside React) starts in an effect, reads roles, accessible names, disabled states and their descriptions, values, and the dialogs, landmarks, and headings controls sit in, and registers one entry per control on the module-level `surface`, so declared entries share the table. Keys are `<route>#<containers>/<role>:<name>` (numeric and UUID segments become `:id`); pin one that must never move with `data-surface-id` or a rule's `id`. A click is the pointer, mouse, and focus sequence plus `click()`; typing uses the native value setter plus `input` and `change`, so React's `onChange` runs. After an act the surface waits for the page to settle, re-scans, and reports `changed` and `notices`. Every observe row that is not declared carries `tier`: `derived` (from the page), `annotated` (refined by a rule or `data-surface-*`), and declared (absent: `register`, `useSurface`, a config `declare`, or a rule's `handler`). A derived act cannot put `expectedRev` into your server's write, because a click has nowhere to carry it; the surface still refuses a stale act within the tab, and a write that must be checked on the server belongs in the declared tier.
 - Refine with config ([S-CFG-1] to [S-CFG-8]): a `SurfaceConfig` is a plain object reviewed in a diff: `rules: [{ match: { key, id, selector, route, role, name }, name, object, id, role, reason, state, effect, sensitive, editable, hide, approval, group, handler }]`, plus `app`, `routes`, `lexicon`, `policy` (`allow`, `approve`, `deny` per risk level), `groups`, `sensitive` and `exclude` selectors, `declare`, `landmarks`, and `navigate`. Every matching rule applies in order and later fields win. A rule's `handler` runs the application's own function instead of the page's events, which makes that control declared without touching its component. `checkConfig` returns a config's problems as sentences; `handle.configure(next)` swaps it in and re-scans.
 - Measure: `npx axe surface coverage <dev-url> [--routes /a,/b] [--auth ...] [--out coverage.md] [--json]` opens the app in headless Chromium through Playwright (installed by the app), calls `window.__surface.coverage()` on each page, and prints one Markdown report: counts by kind, tier, and name confidence, the entries waiting on approval, stale rules (`staleConfig`), and gaps (unnamed and icon-only controls, weak or duplicate names, clickable elements with no role, canvas charts, cross-origin frames, virtualized grids, file inputs, closed shadow roots, unrecognized effects), each with the markup fix and a rule to paste. In the page, `handle.coverage()` and `formatCoverage` give the same. Coverage is not a score; each gap is the next edit.
-- Step 3, sign in once and connect Claude to the host ([S-HOST-1] to [S-HOST-8]; [docs/host.md](docs/host.md)). Locally: `npx axe host login <app-url>` opens a visible browser once and saves the signed-in session (a Playwright storage state, mode 0600) to `.axe/host-state.json`; then `claude mcp add <name> -- npx axe host --dev --stdio --app <app-url> [--start <path>] [--state <file>]` lets Claude Code start the host, which runs the app in headless Chromium with that session, injects `window.__AXE_RELAY__` (a relay token minted for the same identity) before any page script, and serves the relay's tools plus `host_screenshot` over MCP. `npx axe host --dev --app <url> --name <name>` serves it over HTTP on loopback (port 4718, a printed development key) and prints the Claude Code and Claude Desktop (`claude_desktop_config.json`, absolute paths) configuration and a watch page. Production: `createHost({ appUrl, startPath, sessionFor, agentAuth: { verifier, identify, requiredScopes, resource }, protectedResource, allowedOrigins, maxSessions, idleMs })` from `@axe/host`, an OAuth resource server whose tokens your authorization server issues, with your `sessionFor` returning the application session (cookies, headers, storage state) for the verified principal and tenant; `storageStateSession(path)` and `cookieSession(fn)` are helpers. One browser context per identity, started on the agent's first tool call; navigation to other origins refused. The attended fallback, the person's own tab: `axe surface init --relay-dev`, `npx axe relay --dev` (loopback port 4717, pairing with `relay_pair`), or `createRelay({ secret, origins, agentAuth, tenants, domains })` with a relay token your backend mints (`mintRelayToken({ principal, tenant, ttl, claims }, secret)`); [docs/relay.md](docs/relay.md).
-- Step 4, ask: `relay_tabs` shows the hosted tab (the first call starts it), `surface_read` returns what the page shows (sections by heading with fields, tables, and lists, redacted and bounded), `surface_observe` returns the controls under one revision with reasons and values, `surface_set-field`, `surface_run-control`, and `surface_load-more` act through the page's own `surface.act`, `surface_wait` waits for a condition (text shown or gone, an entry available, the revision moved, idle, a route; at most two minutes), `surface_ledger` is the history, `host_screenshot` is a PNG of the page, and `axe_state`, `axe_continue`, and `axe_resume` climb the ladder. A control the default policy holds for approval (high risk, or unrecognized) is asked of the person through MCP elicitation in the same tool call and runs once after they accept; a client without elicitation gets `approval_required`. A click that navigates the page is answered `ok` with `navigated: true`; an act whose page went away otherwise is `unavailable` with `details.reason: "outcome_unknown"`, not retryable ([S-RELAY-14]): observe before acting again. Browser-driving agents use `window.__surface` and the DOM mirror directly; server-side, `autoActions(handle)` from `@axe/surface/axe` serves a derived surface as the same fixed tool set.
+- In the browser-native path, the agent uses the WebMCP tools registered by the page. `surface_observe` returns the live table and revision; an auto surface also registers `surface_read` for bounded/redacted visible content and `surface_wait` for slow page work; one tool per eligible control calls the page's own `surface.act`. High-risk, explicitly confirmed, and approval-gated acts require `requestApproval`; the application records the person's approve or deny decision and opens the one-use derived approval gate only after approval. Without that trusted callback the call returns `approval_channel_missing` and does not act. The browser host must implement `document.modelContext.registerTool` and deliver those tools to the current task: a generic headless/browser-automation session with only click/type primitives is not a WebMCP host and cannot be repaired by prompting. In development, a provider with `expose` publishes `window.__surface.webMcp()` to distinguish unavailable, registering, ready, degraded, registration error, and closed states.
+- In the desktop-agent path, the standalone `mcp/` service exposes `relay_tabs`, `relay_select-tab`, `relay_pair` in development, `relay_stop`, `surface_read`, `surface_observe`, `surface_set-field`, `surface_run-control`, `surface_load-more`, `surface_wait`, and `surface_ledger`; the page remains the state owner and the service transports snapshots, acts, and decisions.
 - [docs/auto-surface.md](docs/auto-surface.md): easy mode: the three tiers, what is derived, safety defaults, configuration, coverage, tools, what is not derived.
-- [docs/host.md](docs/host.md): unattended mode, the default: what the application needs, local development (`axe host login`, `axe host --dev`), what the agent sees, production (`createHost`, `sessionFor`, OAuth), the security model, limits.
-- [docs/relay.md](docs/relay.md): the relay underneath, and the attended fallback: attended mode in four steps, local development, unattended mode, what the agent sees, approvals and Stop, tenant switches and server rendering, production, the security model, limits.
-- [docs/getting-started.md](docs/getting-started.md): "Add Surface to an existing app in four steps", then "Serve actions over AXE".
+- [docs/host.md](docs/host.md): the optional unattended remote adapter: what the application needs, local development (`axe host login`, `axe host --dev`), production (`createHost`, `sessionFor`, OAuth), security, and limits.
+- [docs/chatgpt-plugin.md](docs/chatgpt-plugin.md): the consumer phone/desktop path: public plugin, OAuth connection, provider-hosted browser, application session broker, and the consent boundary.
+- [mcp/README.md](mcp/README.md): run and configure the standalone company-side service for desktop agents.
+- [docs/relay.md](docs/relay.md): the service's browser-to-agent transport: attended and unattended modes, approvals and Stop, tenant switches, production, security, and limits.
+- [docs/getting-started.md](docs/getting-started.md): "Add Surface to an existing app", the optional remote path, then "Serve actions over AXE".
 - [packages/cli/src/surface/detect.ts](packages/cli/src/surface/detect.ts) and [packages/cli/src/surface/init.ts](packages/cli/src/surface/init.ts): framework, root, and package-manager detection; the diff and the install forms; [packages/cli/src/surface/api.ts](packages/cli/src/surface/api.ts) lists every SDK name the generated code uses.
 - [docs/examples/auto/provider.ts](docs/examples/auto/provider.ts), [docs/examples/auto/config.ts](docs/examples/auto/config.ts), [docs/examples/auto/handler.ts](docs/examples/auto/handler.ts), [docs/examples/auto/serve.ts](docs/examples/auto/serve.ts): the provider, a config, a rule's handler, the generic tools.
 - [docs/examples/host/page.ts](docs/examples/host/page.ts), [docs/examples/host/dev.ts](docs/examples/host/dev.ts), [docs/examples/host/production.ts](docs/examples/host/production.ts): the page side of unattended mode, a development host, a production host with `sessionFor`.
@@ -28,7 +31,7 @@ The default path, and the one `axe surface prompt` runs. It is `docs/getting-sta
 
 Start with easy mode and go deeper only where a control needs it. Easy mode is the default for any web application; the deeper tiers are declared registration for controls whose truth the page cannot show, and server-side actions for operations with no control and for writes several people or agents share. Most applications end with a derived surface, a few declared entries, and some server actions. Pick the deeper tier by where the truth of "can this be done right now" lives, and by where the code that changes state runs. Before deciding, run the two local demos: `pnpm demo` (one file, [docs/examples/demo/plan-board.ts](docs/examples/demo/plan-board.ts): a person and an agent on one plan, one revision, a conflict, a handoff; quick) and `pnpm example:dev` (the Next.js reference application: sessions, two tenants, conditional writes, approvals, browser-local controls).
 
-- How an agent outside the browser reaches it, the first decision: unattended (the default) has the SDK run the application headless for the signed-in person (`@axe/host`: the agent authenticates in its own UI, the host starts a browser context with the session your `sessionFor` returns, the page connects with no pairing, approvals come by MCP elicitation, and everything goes through the page's own UI); attended (the fallback) is the person's own open tab connected through a relay, with pairing in development, when the person wants to watch or the application cannot issue a session for an agent. The page code is the same either way: what `axe surface init` writes connects whichever the host injected.
+- How the agent reaches it, the first decision: for a desktop MCP agent, use `axe surface init --relay-dev`; the browser package connects the person's open tab to the separately operated Agent Experience MCP service, which supplies `relay_*` and `surface_*` tools. A browser agent can additionally use WebMCP directly when its host delivers page tools. If nobody keeps a tab open, `axe surface init --remote` enables the older unattended host path. Every route transports the page-owned surface rather than replacing it.
 - Easy mode, the default: `SurfaceProvider` from `@axe/surface/react` near the root (what `axe surface init` writes), or `autoSurface({ root, config, expose })` from `@axe/surface/auto` on a page without React. The page's accessibility semantics are the source, so a control with a good accessible name and a real `disabled` state (with `aria-describedby` for its reason) needs nothing else; a `SurfaceConfig` rule fixes what the page cannot say (a name that states the outcome, the application's reason, a risk, `sensitive`, `hide`, `approval`, a `group`), and coverage lists what is left. Improving the page's markup improves the surface and the page's accessibility at once. Easy mode gives within-tab staleness, not a server-checked write: move a control to the declared tier (a rule's `handler`, or the hooks below) when its write must carry `expectedRev` to the server or when its truth lives off the page.
 - Declared, in React (the deeper tier): the hooks and the derived scan share the module-level surface; coverage reports a derived entry that likely duplicates a declared one, and a rule with `hide: true` removes it. Where a component owns a control exactly, call `useSurface(entry, deps)` or `useSurfaceProps(entry, deps)` from `@axe/surface/react` once per control, inside the component that already computes the control's disabled state. `deps` names every value the entry reports (availability, reason, name, value), including transient flags (saving, loading, a modal open); left out, the surface keeps reporting a control available while the UI has frozen it ([S-REV-5]). Functions do not belong in `deps`: an act always runs the latest committed render's `handler`, `edit.set`, `more`, and `requires.fulfill`, and a new closure alone does not re-register. The registration belongs to the pair of the entry's `id` and the target surface: changing either unregisters the old pair and registers the new one (at the end of the table), unmount removes it, a refresh with the same id replaces the row in place, and Strict Mode's extra mount leaves the same table ([S-ENT-5]). Give each mounted control its own id; two components registering one id share a row and the first to unmount removes it. Rows rendered from a `.map` get a component that renders nothing and holds the hooks, so a row that leaves the page leaves the table. Spread `useSurfaceProps` onto the element that receives the interaction so the accessible name is the entry name ([S-DOM-1]); it reads the surface through `subscribe`, so a freeze or a registration made outside the component re-renders the control.
 - `subscribe` versus `onChange` ([S-OBS-4]): `surface.subscribe(fn)` fires after every change a reader could see (`register`, a removing `unregister` or `reconcile`, `bump`, `setRev`, an adopting `seedRev`, `freeze`, `thaw`, `reset`), so a mirror outside React that re-applies `attributesFor` subscribes to it, especially under an application-owned revision. `onChange` fires on `bump`, `freeze`, and `thaw` only, never on registration, so a consumer that rebuilds per change of the action set is not woken once per row.
@@ -104,9 +107,9 @@ Each rule below was paid for on a real application, found by the end-to-end tria
 - Durable stores: the in-memory `MemoryTokenStore` and `MemoryIdempotencyStore` are correct for one process, bounded (`maxEntries` 10000, swept on writes every `sweepIntervalMs`), and lose everything on restart. Production with more than one instance needs a shared `tokenStore` (get/set with TTLs is enough) and an `idempotencyStore` whose `claim` is atomic: `SqliteIdempotencyStore` from `@axe/core/node` over a `node:sqlite` connection you supply (one host; call `prune()` on a schedule), the Redis Lua scripts in [docs/deploying.md](docs/deploying.md) ("Secrets and stores"; typechecked, not executed in CI, atomic on one primary), or your database's conditional insert. `createAXE` refuses an idempotency store with only `get` and `set`, because a read followed by a write lets two requests run. Migrating a custom store: implement `get`, `claim`, `complete`, and `release`; the record field is now `fingerprint`; `TokenRecord.onBehalfOf` is now `principal`; tokens minted before the upgrade return `not_found`, so deploy in a quiet period.
 - Body parsers: mount `axeExpress` before `express.json()`. The runtime then reads the raw stream up to `maxBodyBytes` and answers an oversized body with an envelope; a parser in front applies its own limit (100 kB for `express.json()`) and answers with its own error page. Either way the adapters keep the `Content-Type` the client sent, so the request policy judges the real body.
 - npm: releases go through changesets (`pnpm release` runs `pnpm build && changeset publish`, `access: public`, all packages version together as `@axe/*` and `axe`). Version 0.1.0 is unreleased at the time of writing; nothing in this repository shows a published `@axe` scope, so do not `npm install @axe/surface` and expect it to resolve.
-- Vendored tarballs while unpublished: `scripts/pack-for-consumer.sh <out-dir> [package ...]` builds the workspace and packs the named package directories (default `core surface client testing`; the arguments replace the default, they do not add to it), so an easy-mode app with the relay packs `scripts/pack-for-consumer.sh <out> core surface relay`. Each lands in `<out-dir>` as `axe-<name>-<version>.tgz`, beside `<out-dir>/SOURCE` with the repository, branch, commit, and date. The tarball carries the version, not the commit, and 0.1.0 covers every pre-release commit, so that file is the pin; commit it beside the tarballs. pnpm rewrites `"@axe/core": "workspace:*"` to `"@axe/core": "0.1.0"` in the packed manifest (the relay tarball asks for `@axe/core` and `@axe/surface` that way), so the consumer declares each package as a `file:` dependency and points the siblings back at their tarballs: `overrides` (npm), `pnpm.overrides` (pnpm), or, for Yarn, `resolutions` in the workspace root's `package.json` (Yarn Berry honors only the root's) for `@axe/core` and `@axe/surface` with `file:` paths; `axe surface init --vendor <dir>` writes the right one. `@axe/relay`'s server dependencies (`@axe/mcp`, `@modelcontextprotocol/sdk`, `ws`) are optional peers, so a browser application that imports only `@axe/relay/client` installs none of them (verified with Yarn 4 under a seven-day registry age gate). Install them next to `@axe/relay` only where a relay server runs. `npm ci` resolves `file:` tarballs with no registry and no auth, so a Dockerfile copies the vendor directory before the install; the lockfile records each tarball's integrity hash, so refresh the lock and commit it with the tarballs.
+- Vendored tarballs while unpublished: `scripts/pack-for-consumer.sh <out-dir> [package ...]` builds the workspace and packs the named package directories (default `core surface client testing`; the arguments replace the default, they do not add to it). A desktop-agent Surface app packs `scripts/pack-for-consumer.sh <out> core surface relay`; a WebMCP-only app can omit `relay`. Each lands in `<out-dir>` as `axe-<name>-<version>.tgz`, beside `<out-dir>/SOURCE` with the repository, branch, commit, and date. The tarball carries the version, not the commit, and 0.1.0 covers every pre-release commit, so that file is the pin; commit it beside the tarballs. pnpm rewrites `"@axe/core": "workspace:*"` to `"@axe/core": "0.1.0"` in the packed manifest, so the consumer declares each package as a `file:` dependency and points siblings back at their tarballs with its package-manager override; `axe surface init --vendor <dir>` writes the right one. `@axe/relay`'s server dependencies (`@axe/mcp`, `@modelcontextprotocol/sdk`, `ws`) are optional peers, installed only in the provider-operated service. `npm ci` resolves `file:` tarballs with no registry and no auth, so a Dockerfile copies the vendor directory before the install; refresh and commit the lockfile with the tarballs.
 - GitHub Packages: its npm registry serves only the scope that matches the GitHub owner, so a repository under `summationai` can publish `@summationai/*` there and not `@axe/*`; renaming the packages, npm, or tarballs are the options.
-- Browser bundling: `@axe/surface` and `@axe/surface/react` import nothing that carries Zod or a Node built-in (`@axe/core/types`, `@axe/core/kinds`, `@axe/core/json-schema`, `@axe/core/vocabulary`), and `packages/surface/test/bundle.test.ts` bundles both for the browser with esbuild and pins the result under 50 kB minified with no `fs/promises` alias, no Zod, and no WebMCP code. `@axe/surface/webmcp` bundles alone for the browser and adds about 5.6 kB. The derived scan is its own subpath: the hooks alone tree-shake `SurfaceProvider` and `@axe/surface/auto` away, and `/auto` with the surface core is pinned under 100 kB minified and 35 kB gzipped; `@axe/relay/client` is pinned under 16 kB. Measured in the trial app: `@axe/surface/react` plus `/auto` plus `@axe/relay/client` is about 99 KB minified with React external, and every entry imports cleanly in Node, so a server render loads them without a guard. `@axe/surface/axe` carries Zod through `@axe/core`, so keep the bridge on the server. A Zod schema on a field entry needs `createSurface({ toJsonSchema })` with `toJsonSchema` from `@axe/core`, which brings Zod with it; a plain JSON Schema needs nothing. Measure your own bundle with `esbuild --metafile` before and after. `@axe/client` bundles the zod-free parts of `@axe/core` it uses, so agents install one package with no runtime dependencies, and runs in browsers and Node 20.
+- Browser bundling: `@axe/surface` and the hook-only imports from `@axe/surface/react` carry no Zod, Node built-ins, derivation, or WebMCP code. `SurfaceProvider` carries the derived scan and its small WebMCP adapter because it can expose browser-native tools; tree shaking removes both when only hooks are imported. `@axe/surface/webmcp` also bundles alone without React or Zod. The desktop-agent integration adds only `@axe/relay/client`; its MCP SDK, WebSocket server, and Node dependencies remain in the provider-operated service. `@axe/surface/axe` carries Zod through `@axe/core`, so keep the bridge on the server. A Zod schema on a field entry needs `createSurface({ toJsonSchema })` with `toJsonSchema` from `@axe/core`, which brings Zod with it; a plain JSON Schema needs nothing. Measure your own bundle with `esbuild --metafile` before and after.
 - [docs/deploying.md](docs/deploying.md): "Secrets and stores", "Operations, claims, and crashes", "Migrating a store", "Limits and retention", and "Consume from a checkout".
 - [docs/examples/deploying/stores.ts](docs/examples/deploying/stores.ts): the Redis stores and the `operationId` pattern, as code.
 - [docs/integrations/express.md](docs/integrations/express.md): middleware order and body parsing.
@@ -125,7 +128,7 @@ Each rule below was paid for on a real application, found by the end-to-end tria
 
 The same actions and surface reach agents through interfaces those agents already speak. Pick by where the agent runs.
 
-- An MCP client outside the browser (Claude Code, Claude Desktop, any MCP agent), unattended, the default: the host, `@axe/host` (step 3 above; [docs/host.md](docs/host.md)). It runs the application in headless Chromium for the principal and tenant the agent's token names, one isolated browser context each, and serves the relay's tools plus `host_screenshot` over Streamable HTTP (OAuth resource server) or stdio; approvals reach the person through the agent's client (elicitation), and `relay_stop` ends the session.
+- A consumer ChatGPT user, the recommended production integration: install the package under `plugins/agent-experience`, connect the account through OAuth, and use the provider's public `mcp/` endpoint. Hosted mode uses `@axe/host`: it runs the application in headless Chromium for the principal and tenant the verified token names, obtains a short-lived application session from the application's private broker, and serves the relay's tools plus `host_screenshot`; approvals reach the person through ChatGPT, and `relay_stop` ends the session. `<SurfaceProvider webMcp onReady={...}>` keeps the surface in the page and accepts the relay configuration the host injected before page code ran. For local integration, `@axe/relay/client` connects the developer's open tab to the same service in attended mode; the desktop client is configured once at `/mcp`, calls `relay_tabs`, pairs in development, and uses the `surface_*` tools.
 - The same client driving the person's own live tab, attended, the fallback: the relay, `@axe/relay` ([docs/relay.md](docs/relay.md)). The page connects with `connectRelay(surface, { url, getToken, onStatus, indicator, requireApproval })`; the relay serves each tab through `domainActions` on a `createAXE` server and `@axe/mcp` derives the tools, over Streamable HTTP (sessions, OAuth `agentAuth`) or stdio. The indicator in the page shows that an agent is connected and offers Stop and the approvals; `indicator: false` means your UI renders them from `onStatus` and calls `connection.stop()`, `approve(id)`, and `deny(id)`. Stop revokes the token and refuses every later act on that tab with `forbidden`; a reload is not Stop, and an act sent during it waits for the new page. Revisions presented through the relay are the tab's plus an offset, so one read before a reload or from another tab never passes ([S-RELAY-6]).
 - MCP over stdio: `axe mcp <url>` (or `serveStdio(await createMcpServer(source))`) serves one user, with the credential given on its command line (`axe mcp <url> --auth <token>`) or in `createMcpServer`'s `client` options.
 - MCP over HTTP: `serveHttp(derived, options)` returns a fetch handler for the Streamable HTTP transport. Stateless by default (a fresh MCP server and transport per request, no server-to-client stream, no `tools/list_changed`), or `sessions: true | { idleTimeoutMs, maxSessions }` (one server per `Mcp-Session-Id`, bound to the principal that opened it, 404 after `DELETE` or 30 minutes idle, held in one process's memory, so behind a load balancer use session affinity or stateless mode). `auth: { verifier, requiredScopes, resource, resourceMetadataUrl, principal }` makes the endpoint an OAuth 2.1 resource server: it verifies the bearer token on every request and answers 401 or 403 with `WWW-Authenticate`; `protectedResourceMetadata` serves the RFC 9728 document. It does not issue tokens; your authorization server does. `clientFor(authInfo)` runs for every tool call and returns that caller's AXE identity (`identity` and `tenant` for an in-process `AXE` source, or `client` options with the caller's own credential for a URL source, for example from a token exchange); the MCP token is never passed through to the site. `serveHttp` refuses a `createMcpServer` given shared `client.auth` or `client.headers` without `clientFor`, unless `allowSharedCredentials: true` says the endpoint has one user. `allowedOrigins` guards against DNS rebinding ([P-MCP-1] to [P-MCP-3]).
@@ -133,7 +136,7 @@ The same actions and surface reach agents through interfaces those agents alread
 - Retries through MCP: every tool for a mutating action accepts an optional `idempotencyKey`. A host that retries an uncertain call with the same key and arguments gets the stored envelope, or `in_progress` while the first still runs; without a key each call is a new operation. `axe_continue` and `axe_resume` accept `expectedRev` when the manifest carries `live` ([P-MCP-5]).
 - Elicitation ([P-MCP-6], [P-MCP-7]): with a client that declared `elicitation`, on a connection that can carry a server request (stdio, in-memory, HTTP sessions; not stateless HTTP), a `needs_input` whose first suitable kind is not sensitive and fits MCP's flat form subset is asked in a form and continued; a sensitive kind (`sensitive: true`, every `payment.*` and `identity.*`, credentials) and a `needs_human` other than `login_required` are offered as the site's page in URL mode when the client supports it, else returned as text. `elicitation: false` turns it off.
 - MCP Apps view ([P-MCP-8]), experimental: for a host that negotiated `io.modelcontextprotocol/ui`, tools for `display` actions carry a `ui://axe/presentation` view that renders the escaped `toHTML` output with scripts removed. `apps: false` turns it off. Tested under jsdom with a stand-in host, not in a shipping host.
-- WebMCP, the browser's own agent ([S-WEB-1] to [S-WEB-5]): `exposeWebMcp(surface, { prefix, actor, unavailable, run })` from `@axe/surface/webmcp` registers an observe tool and one tool per action, non-sensitive field, and loadable collection with `document.modelContext.registerTool`, re-registers when a tool's text or schema changes, and runs each call through `surface.act` with the call's `expectedRev` or the current revision (ledger actor `webmcp`). WebMCP is a draft API (W3C community group report of 17 September 2026) behind a flag and a Chrome origin trial from Chrome 149 as of September 2026; the adapter is feature-detected, registers nothing where it is absent (`supported: false` with the reason), and the fallback is `expose(window)` and the DOM mirror. Call it next to `expose(window)` in the one module that owns the page surface.
+- WebMCP, the browser's own agent ([S-WEB-1] to [S-WEB-5]): `<SurfaceProvider webMcp>` or `exposeWebMcp(surface, { prefix, actor, unavailable, observe, content, run, requestApproval })` registers `surface_observe`, `surface_read` and `surface_wait` when derived page content exists, and one tool per action, non-sensitive field, and loadable collection with `document.modelContext.registerTool`; it re-registers when a tool's text or schema changes and runs each permitted control call through `surface.act`. Consequential calls require the trusted application callback `requestApproval(request)`; absent or denied approval is returned as an error and never reaches the handler. The adapter records the person's decision and may grant the internal one-use auto-surface gate. WebMCP is a draft API, so the adapter is feature-detected, registers nothing where absent (`supported: false` with the reason), reports registration health through `diagnostic()`, and the fallback is `expose(window)` and the DOM mirror. That fallback is browser-local JavaScript/DOM, not a promise that a generic headless browser task receives Surface tools.
 - Browser-driving agents: the DOM mirror (`aria-label`, `data-surface-*`, `aria-disabled` with `data-surface-reason`) and `window.__surface` after `expose(window)` (a derived surface adds `coverage()` there). Both are browser-local and add no reader the page did not have; neither reaches a server.
 - AXE clients: `@axe/client` directly ([docs/for-agent-builders.md](docs/for-agent-builders.md)), under the credential rules in Rules that are scars.
 - [docs/mcp.md](docs/mcp.md): the mapping table, "HTTP: requests, sessions, and cleanup", "Authentication over HTTP", elicitation, the Apps view, freshness, retries, limits.
@@ -147,7 +150,7 @@ The same actions and surface reach agents through interfaces those agents alread
 ## Ship behind a flag, staging first
 
 - Grow the manifest one action at a time behind a flag: a read-only action always on, a mutating action registered only when its flag is on; flip the flag in one environment, run `axe conformance` there, then flip it everywhere ([docs/deploying.md](docs/deploying.md), "Rolling out one action at a time"). Agents read the manifest and act on it, so an action that appears in production is in production.
-- Easy mode ships gated already: `axe surface init` wraps the root in a provider whose `flag` is off in a person's browser in a production build unless the build-time variable (or your flag hook) turns it on, and `expose` is on only in development; with the flag off the provider renders its children and nothing else. Inside a session a host runs for an agent (`window.__AXE_RELAY__` set), it is on whatever the flag says, so who can use the agent is decided where the host runs and by `sessionFor`, not by the page's flag. Flip the flag per environment for people, run the host only where its authorization server and `sessionFor` exist, and connect an attended relay only where its `origins` and token endpoint exist.
+- Easy mode ships gated already: `axe surface init` wraps the root in a provider whose `flag` is off in a production build unless the build-time variable (or your flag hook) turns it on, and `expose` is on only in development; with the flag off the provider renders its children and nothing else. Default mode exposes WebMCP only while the provider is enabled. Remote mode additionally enables an injected host connection and should run only where the host or relay's authentication and origin policy exist.
 - Gate a hand-written Surface adapter the same way: one runtime flag (the planning grid reads its runtime profile) checked at the top of the sync function and the mirror, so with the flag off nothing registers, no attribute is set, no provider is added, and the page is byte-identical to before. Have the same runtime profile report the Surface contract version (v0.9 at the time of writing; read it from the header of `spec/SURFACE.md` at the pinned commit), the SDK name, and the pinned SDK commit from the vendor pin file, so a deploy can be matched to an SDK commit when a trial finds something.
 - Upgrading an integration made against an earlier contract: a public bridge now needs `auth: "none"` or fails its first request with an auth-mode error; posts to mutating actions need `Content-Type: application/json`; a custom idempotency store needs `claim`; clients that relied on a cross-origin `baseUrl`, `live.url`, or `pollUrl` list it in `trust.origins`; `serveHttp` with shared credentials needs `clientFor` or `allowSharedCredentials`; server-state handlers should adopt `ActContext` and `SurfaceConflict`. The CHANGELOG's review sections carry each migration note.
 - `axe conformance` calls mutating actions: it replays for idempotency, continues a `needs_input` with a sample payload, resumes a fallback handoff, and streams an oversized body. Run it against staging or a local instance with a disposable database; `--no-mutate` for an environment you cannot reset; never production with credentials.
@@ -210,7 +213,7 @@ Each kind of evidence, kept apart. None is evidence of production readiness, age
 
 Repository paths below map to the published site as `docs/<name>.md` to `site/dist/docs/<name>.html`, `spec/<NAME>.md` to `site/dist/docs/spec/<NAME>.html`, and root Markdown files to `site/dist/docs/repo/<NAME>.html`.
 
-- [docs/getting-started.md](docs/getting-started.md): start here: "Add Surface to an existing app in four steps" (`axe surface init`, the prompt, the relay, an agent driving the app), then "Serve actions over AXE".
+- [docs/getting-started.md](docs/getting-started.md): start here: add the browser-native package with `axe surface init`, optionally add `--remote`, then "Serve actions over AXE".
 - [docs/auto-surface.md](docs/auto-surface.md): easy mode: the three tiers, what is derived, safety defaults, `SurfaceConfig`, coverage, the generic tools.
 - [docs/relay.md](docs/relay.md): an agent outside the browser in a person's live tab: local development, approvals and Stop, tenant switches, production with OAuth, the security model.
 - [docs/surface.md](docs/surface.md): the model under both tiers, and the declared tier: registration, observe and act, preconditions, granularity, authorization, the DOM mirror, React, where a surface runs.
@@ -248,11 +251,11 @@ Exact exported names, checked against `packages/*/src`. Wire names are spelled a
 
 - `@axe/core`: `createAXE`, `action`, `ok`, `needsInput`, `handoff`, `pending`, `fail`, `unavailable`, `requestApproval`, `APPROVAL_REQUIRED`, `APPROVAL_TTL_SECONDS`, `kinds`, `accept`, `customKind`, `withMimeTypes`, `lintAgentText`, `lintAction`, `lintManifest`, `resolveDisplay`, `consoleSink`, `otelSink`, `combineSinks`, `MemoryTokenStore`, `MemoryIdempotencyStore`, `validateJsonSchema`, `toJsonSchema`, `isZodSchema`, `evaluateRequestPolicy`, `isAcceptedOrigin`, `isJsonContentType`, `WIRE`, `z`; from `@axe/core/node`: `jsonlFileSink`, `SqliteIdempotencyStore` (`prune`); from `@axe/core/json-schema`: `schemaProblems`, `isBacktrackingPattern`, `SUPPORTED_SCHEMA_KEYWORDS`. On the `AXE` instance: `register`, `addProvider` (an `ActionProvider` may declare `onResult(ctx: ProviderResultContext, result)`, called with the results of its own actions), `onActionsChanged`, `describe`, `describeLive`, `fetchHandler`, `handle`, `completeHandoff`, `getHandoff`, `approveHandoff`, `cancelHandoff`, `maxBodyBytes`. `createAXE` options that matter here: `revision`, `secret`, `tokenStore`, `idempotencyStore` (`get`, `claim`, `complete`, `release`), `idempotencyTtlSeconds`, `operationLeaseSeconds`, `maxBodyBytes`, `requireIdempotencyKey`, `requestPolicy` (`requireJsonContentType`, `trustedOrigins`, `originCheck`), `cors`, `tenant`, `manifestCacheSeconds`, `onRequest`, `onResult`, `onError`, `onEvent`, `onActionEvent`; `auth: { modes, userLoginUrl, authenticate, verifySiteKey }`, optional, default `{ modes: ["none"] }`. `action()` takes `availability` and `approvalState` beside `input`, `output`, `handler`, `onContinue`, `onResume`, `onPoll`; handler contexts carry `operationId`, `expectedRev`, and `siteKey`, and `onResume` receives `approval`. Memory stores take `now`, `maxEntries`, `sweepIntervalMs` and have `sweep()` and `close()`. Types include `IdempotencyStore`, `TokenStore`, `SiteKeyContext`, `HandoffView`, `HandoffDecision`, `ApprovalGrant`, `RequestPolicyConfig`.
 - `@axe/surface`: `createSurface({ app, now, ledger: { max, text, redact }, revision, toJsonSchema })`; on a surface: `configure`, `register`, `unregister`, `reconcile`, `freeze`, `seedRev`, `setRev`, `currentRev`, `bump`, `onChange`, `setObjects`, `observe`, `act`, `ledger`, `record`, `expose`, `subscribe`, `get`, `entries`, `registryVersion`, `availability`, `revisionMode`, `attributesFor`, `reset`; the module-level `surface` with the first sixteen of those bound; `SurfaceConflict`, `surfaceAttributes`, `surfaceSelector`, `describeEntry`, `SURFACE_ATTRIBUTES`. Types: `Entry`, `ActionEntry`, `FieldEntry` (with `sensitive`), `CollectionEntry`, `Effect`, `Availability`, `HandoffSpec`, `Observation`, `ObservedEntry`, `ActRequest`, `ActResult`, `ActOutput`, `ActContext`, `HandlerReport` (`changed`, `rev`, `conflict`), `RevisionMode`, `SchemaLike`, `SchemaConverter`, `SurfaceAttributeUpdate`, `LedgerEntry` (with `textHash`, `ignoredRev`, `source`, `expectedRev`), `LedgerSource`, `EntryTier` (an entry's and observe row's `tier`), `RecordRequest`, `LedgerQuery`, `LedgerOptions`, `LedgerTextPolicy`, `Op`, `EntryKind`, `Thaw`.
-- `@axe/surface/react`: `SurfaceProvider` (props `config`, `flag`, `enabled`, `expose`, `root`, `surface`, `location`, `onReady(handle)` returning an optional cleanup, and the `autoSurface` options `observe`, `route`, `hidden`, `revision`, `layout`, `now`), `useAutoSurface(options)` (returns the handle or null), `useAutoSurfaceHandle()` (the nearest provider's handle, null before start and on the server), `useSurface(entry, deps, target?)`, `useSurfaceProps(entry, deps, target?)`, `toSurfaceProps`; types `SurfaceProviderProps`, `UseAutoSurfaceOptions`, `SurfaceProps`.
+- `@axe/surface/react`: `SurfaceProvider` (props `config`, `flag`, `enabled`, `expose`, `webMcp`, `root`, `surface`, `location`, `onReady(handle)` returning an optional cleanup, and the `autoSurface` options `observe`, `route`, `hidden`, `revision`, `layout`, `now`), `useAutoSurface(options)` (returns the handle or null), `useAutoSurfaceHandle()` (the nearest provider's handle, null before start and on the server), `useSurface(entry, deps, target?)`, `useSurfaceProps(entry, deps, target?)`, `toSurfaceProps`; types `SurfaceProviderProps`, `UseAutoSurfaceOptions`, `SurfaceProps`.
 - `@axe/surface/auto`: `autoSurface({ root, surface, config, observe: { debounceMs, settle: { quietMs, timeoutMs } }, expose, route, hidden, revision, layout, now })` returning an `AutoSurfaceHandle` (`surface`, `refresh`, `coverage`, `configure`, `config`, `approve(id, { uses, ttlMs })`, `elementFor`, `metaFor`, `route`, `expose`, `stop`); `formatCoverage`, `checkConfig`, `autoDomains`, `autoMarkOf`, `globMatch`, `accessibleName`, `roleOf`, `defaultRoute`, `DEFAULT_LEXICON`, `NAVIGATE_ENTRY_ID`, `IGNORE_ATTRIBUTE` (`data-surface-ignore`), `AUTO_META`. `APPROVER` is exported but not for applications: it is the shared symbol (`Symbol.for("axe.surface.approver")`) through which a trusted in-page channel, the relay's panel, grants a derived approval gate; it is not in the vocabulary, and wiring it to anything an agent can reach defeats the gate. Types `SurfaceConfig`, `SurfaceRule`, `SurfaceMatch`, `SurfaceGroup`, `SurfacePolicy`, `PolicyDecision`, `AutoHandler`, `AutoHandlerContext`, `AutoSurfaceOptions`, `AutoEntryMeta`, `Coverage`, `CoverageEntry`, `CoverageGap`, `GapKind`, `StaleRule`, `RiskLexicon`, `Confidence`, `NameFrom`.
 - `@axe/surface/axe`: `surfaceActions(source, { namespace, auth, read, authFor, template, actor, run, fields, onError, redactEvent, observe })` returning a `SurfaceBridge` (`actions`, `get`, `onChange`, `onResult`, `actionNameFor`, `entryIdFor`); `domainActions(source, { namespace, domains, auth, read, template, observe, ... })` returning a `DomainBridge` (`actions`, `get`, `onChange`, `onResult`, `actionFor`, `covered`), with `DomainActionSpec`; `scopedSurfaces({ create, key, max, idleMs, now, onEvict })` returning `{ resolve, keyFor, get, delete, size }`; `entrySlug`; `SURFACE_ACT_EVENT` (the string `surface.act`); `autoActions(handleOrSurface, options)`, `domainActions` over `autoDomains()` with the handle's config groups. `source` is a surface or a resolver `(context: SurfaceContext) => Surface | null`.
-- `@axe/surface/webmcp`: `exposeWebMcp(surface, { modelContext, prefix, actor, unavailable, observe, run, onError })` returning a `WebMcpHandle` (`supported`, `reason`, `ready`); `webMcpToolNames`.
-- `@axe/relay/client`: `connectRelay(surface, { url, token, getToken, onStatus, indicator, requireApproval, approvalTtlMs, backoff, WebSocket, storage, describe })` returning a `RelayConnection` (`tabId`, `status()`, `stop()`, `approve(id)`, `deny(id)`, `rekey(token?)`); `devToken(relayUrl)`, `tabEndpoint`; types `RelayStatus` (`state`, `tabId`, `principal`, `pairingCode`, `approvals`, `reason`), `RelayState`, `RelayApproval`, `ConnectRelayOptions`.
+- `@axe/surface/webmcp`: `exposeWebMcp(surface, { modelContext, prefix, actor, unavailable, observe, run, requestApproval, onError })` returning a `WebMcpHandle` (`supported`, `reason`, `ready`); `webMcpToolNames`; types `WebMcpApprovalRequest`, `WebMcpApprovalDecision`.
+- `@axe/relay/client`: `connectRelay(surface, { url, token, getToken, onStatus, indicator, requireApproval, approvalTtlMs, backoff, WebSocket, storage, describe })` returning a `RelayConnection` (`tabId`, `status()`, `stop()`, `approve(id)`, `deny(id)`, `rekey(token?)`); `localMcpService(serviceUrl?)`, `LOCAL_MCP_SERVICE_URL`, `devToken(relayUrl)`, `tabEndpoint`; types `RelayStatus` (`state`, `tabId`, `principal`, `pairingCode`, `approvals`, `reason`), `RelayState`, `RelayApproval`, `ConnectRelayOptions`.
 - `@axe/relay/token`: `mintRelayToken({ principal, tenant, ttl, audience, claims }, secret)`, `verifyRelayToken(token, secret, { audience })` (claims or null), `MAX_RELAY_TOKEN_TTL`, `RELAY_AUDIENCE` (`axe-relay`).
 - `@axe/relay/server`: `createRelay({ secret, authenticateTab, origins, audience, tenants, agentAuth: { verifier, identify, requiredScopes, resource, resourceMetadataUrl }, devPairing, devPrincipal, devAgentKey, namespace, domains, baseUrl, name, description, actTimeoutMs, syncTimeoutMs, reconnectGraceMs, tabRetentionMs, onFrame, onEvent })` returning a `Relay` (`axe`, `devAgentKey`, `listen({ host, port })`, `attach(server)`, `handle(request)`, `serveStdio({ as })`, `tabs(who)`, `close()`); also `relayActor`, `originMatcher`, `isLoopbackAddress`, and the token functions. MCP tools `relay_tabs`, `relay_select-tab`, `relay_pair` (development), then `<namespace>_observe`, `_set-field`, `_run-control`, `_load-more`, `_ledger` (namespace `surface` by default). `@axe/relay/cli`: `runRelayCli`.
 - `@axe/generate`: `fromOpenAPI`, `fromFunctions`, `fromTRPCRouter`, `generate`, `registerGenerated`, `formatWarnings`, `jsonSchemaToZod`.
@@ -260,7 +263,7 @@ Exact exported names, checked against `packages/*/src`. Wire names are spelled a
 - `@axe/client`: `discover`, `AXEClient` (`discover`, `invoke`, `continue`, `resume`, `poll`, `run`, `state`, `live`, `allowed`, `manifest`, `action`, `checkDestination`, `refresh`, `ensureFresh`, `isManifestStale`, `onManifestChange`), `isOk`, `isNeedsInput`, `isNeedsHuman`, `isPending`, `isError`, `AXEClientError`, `AXETrustError`; options `auth`, `headers`, `trust` (`origins`, `allowCrossOrigin`, `allowHttp`, `destinationPolicy`), `manifestMaxAgeMs`, `timeoutMs`, `maxResponseBytes`, `retries`, `maxRetryAfterMs`, and per poll `maxWaitMs`, `maxPollAttempts`; `@axe/client/present`: `present`, `toMarkdown`, `toHTML`, `stateToMarkdown`.
 - `@axe/mcp`: `createMcpServer(source, { client, pollBudgetMs, elicitation, apps })` (`refresh()` on the result), `serveStdio`, `serveHttp(derived, { sessions, auth, clientFor, allowedOrigins, allowSharedCredentials })` (`close()`, `sessionCount`), `protectedResourceMetadata`, `toolNameFor`, `formatResult`, `isSensitiveAccept`, `toFormSchema`.
 - `@axe/testing`: `runConformance`, `formatConformanceTable`, `runAudit`, `formatAuditTable`, `formatAuditHtml`, `checkVocabularyDrift`, `formatDriftReport`, `createTestClient`, `invokeAction`, `samplePayload`, `REQUIREMENTS`, `WEIGHTS`.
-- CLI `axe`: `axe surface init [--dir] [--framework] [--mount] [--flag] [--flag-hook --flag-import] [--relay <url>|--relay-dev] [--dry-run] [--yes] [--install] [--vendor]`, `axe surface coverage <url> [--auth] [--routes] [--max-pages] [--wait] [--playwright-from] [--json] [--out]`, `axe surface prompt`, `axe relay --dev [--stdio] [--port] [--origin]` (or `--stdio --principal --tenant --origin` with `AXE_RELAY_SECRET`; `--host`, `--dev-key`), `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`.
+- CLI `axe`: `axe surface init [--dir] [--framework] [--mount] [--flag] [--flag-hook --flag-import] [--remote] [--relay <url>|--relay-dev] [--dry-run] [--yes] [--install] [--vendor]`, `axe surface coverage <url> [--auth] [--routes] [--max-pages] [--wait] [--playwright-from] [--json] [--out]`, `axe surface prompt`, `axe relay --dev [--stdio] [--port] [--origin]` (or `--stdio --principal --tenant --origin` with `AXE_RELAY_SECRET`; `--host`, `--dev-key`), `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`.
 - Wire: paths `/.well-known/axe.json`, `/axe/manifest`, `/axe/actions`, `/axe/continue`, `/axe/resume`, `/axe/poll`, `/axe/state`; headers `AXE-Protocol`, `Retry-After`; statuses `ok`, `needs_input`, `needs_human`, `pending`, `error`; error codes `invalid_input`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `rate_limited`, `unavailable`, `internal`, `unsupported`; reasons include `approval_required`, `json_required`, `cross_origin_refused`, `payload_too_large`; `details` fields `operationStatus`, `handoffStatus`; MCP tools `axe_continue`, `axe_resume`, `axe_poll`, `axe_state`, `axe_manifest`; Surface ops `CLICK`, `TOGGLE`, `TYPE_TEXT`, `SCROLL_DOWN`; DOM attributes `data-surface-id`, `data-surface-kind`, `data-surface-object`, `data-surface-reason`, `aria-label`, `aria-disabled`, `aria-readonly`.
 - [packages/core/src/index.ts](packages/core/src/index.ts): the `@axe/core` export list.
 - [packages/surface/src/index.ts](packages/surface/src/index.ts): the `Surface` interface and the entry types.
@@ -291,7 +294,7 @@ Exact exported names, checked against `packages/*/src`. Wire names are spelled a
 - WebMCP and MCP Apps are untested in real hosts: the WebMCP adapter is tested against a fake that implements the draft's documented shape, not in a real browser, and the MCP Apps view under jsdom with a stand-in host, not in a shipping host.
 - No pilot has run and no model-driven evaluation has run (of easy mode or of anything else); [docs/pilot-plan.md](docs/pilot-plan.md) is a plan and every commercial hypothesis in [ROADMAP.md](ROADMAP.md) is untested.
 - No browser-driving agent ships here. `expose(window)` publishes the surface; the code that drives a page from `window.__surface` is the agent's.
-- No OAuth 2.1 authorization server (`@axe/mcp` is a resource server that verifies tokens yours issued), no manifest signing, no agent attestation, no webhooks or push, no streaming results, no server-side flow state machine, no hosted registry, no platform plugins; each has its reason and its v0 substitute in [ROADMAP.md](ROADMAP.md).
+- No OAuth 2.1 authorization server (`@axe/mcp` and the hosted service are resource servers that verify tokens yours issued), no manifest signing, no agent attestation, no webhooks or push, no streaming results, no server-side flow state machine, and no hosted app registry. The repository now includes a portable ChatGPT/Codex plugin package, but it is a source template until configured with a real deployed HTTPS endpoint and submitted through the platform review flow; each remaining gap has its reason and v0 substitute in [ROADMAP.md](ROADMAP.md).
 - The honesty lints are regular expressions over known phrasings and the parity check is a spot-check ([docs/security.md](docs/security.md#known-gaps), "Known gaps").
 - `axe generate` reads JSON only (no YAML), converts a deliberate subset of JSON Schema with a warning naming each dropped constraint, and skips cookie parameters and non-JSON request bodies with a warning.
 
@@ -341,14 +344,16 @@ flowchart LR
 
 The business logic is yours and does not change. The AXE layer is a manifest plus a set of actions that call into it. Agents talk to the AXE layer; humans keep talking to the UI; when an action needs the human, the AXE layer sends them to the UI and lets the agent resume afterward.
 
-**The default way an agent uses your application:** [Unattended mode](host.md). The person signs in once, in the agent's own UI; the SDK runs your application in a headless browser for them, and the agent acts through the application's real UI. No pairing, no tab of their own. Locally: `axe host login`, then `axe host --dev`.
+**The recommended consumer path:** [ChatGPT plugin](chatgpt-plugin.md). A person installs Agent Experience from ChatGPT's plugin directory and connects their account through OAuth; the provider-operated service runs the integrated app in a private hosted browser session. They do not configure MCP, keep a website tab open, or use a desktop development client.
+
+**The recommended local integration path:** [Relay](relay.md). The package keeps the Surface in the person's open tab and connects it to the separately operated Agent Experience MCP service; the customer application does not run an MCP server. Configure the desktop client once, then the service's instructions lead the agent through tab discovery, pairing, reading, waiting, and acting. [Unattended mode](host.md) is the runtime underneath the consumer path, and WebMCP is a direct additional path in compatible browser hosts.
 
 ## Pages
 
 Start at the top and read down. Each page ends with next steps.
 
 1. [Why AXE](why-axe.md) — the problem, the SEO analogy mapped once, why headless browsing does not scale, why this is not "just an API", and when not to use it yet.
-2. [Getting started](getting-started.md) — a 15-minute tutorial: install, one read-only action, mount, `axe inspect`, `axe conformance`, connect Claude Desktop.
+2. [Getting started](getting-started.md) — add Surface to an existing app through the company-side MCP service, or build one read-only AXE action and connect it to an agent.
 3. [Concepts](concepts.md) — manifest, actions, display and affordances, the result envelope, the escalation ladder, requirements and kinds, handoff and resume, idempotency, auth, flows, risk.
 4. [Surface](surface.md) — live state for agents: an application's registry of its own controls, with reasons and one revision, served as AXE actions.
 5. [Easy mode: derive, then refine](auto-surface.md) — `@axe/surface/auto`: a surface read from the rendered page, the three guarantee tiers, safety defaults and approval, the configuration overlay, coverage, and generic tools.
@@ -367,19 +372,20 @@ Start at the top and read down. Each page ends with next steps.
 18. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
 19. [MCP](mcp.md) — the derived MCP server, the mapping table, elicitation and the Apps view, connecting clients, limits.
 20. [Relay](relay.md) — an agent outside the browser (Claude Code over MCP) driving a signed-in person's live tab: the page connects its surface, the relay serves it; development pairing in one command, production with relay tokens and OAuth, Stop, approvals, and the security model.
-21. [Unattended mode](host.md) — the default: the agent signs in, the SDK runs the application in a headless browser for that person (`@axe/host`), and the agent drives the real UI with no pairing; development in two commands (`axe host login`, `axe host --dev`), production with OAuth and the application's `sessionFor`, the security model, and limits.
-22. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
-23. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
-24. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
-25. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
-26. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
-27. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
-28. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
-29. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
-30. [API reference](api/README.md) — generated from the source for every package.
-31. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
-32. [Glossary](glossary.md).
-33. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
+21. [Unattended mode](host.md) — the optional remote path for an agent outside the browser: the agent signs in, the SDK runs the application in a headless browser for that person (`@axe/host`), and the agent drives the real UI with no pairing; development in two commands (`axe host login`, `axe host --dev`), production with OAuth and the application's `sessionFor`, the security model, and limits.
+22. [ChatGPT consumer path](chatgpt-plugin.md) — the installable plugin, hosted MCP service, OAuth and application-session exchange, the phone experience, deployment boundary, and what cannot be made zero-consent.
+23. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
+24. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+25. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
+26. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
+27. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
+28. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
+29. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
+30. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
+31. [API reference](api/README.md) — generated from the source for every package.
+32. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
+33. [Glossary](glossary.md).
+34. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 
@@ -503,11 +509,11 @@ Each of these is a precondition, not a permanent judgment about your site.
 
 # Getting started
 
-There are two ways in. If you have a web application and want an agent to drive it through the controls people already use, start with the four steps below: install, `axe surface init`, sign in once and connect Claude, and ask. If you want to declare server operations as typed actions an agent calls over HTTP, skip to [Serve actions over AXE](#serve-actions-over-axe). Most applications end up with both.
+There are two ways in. If you have a web application and want a desktop agent to drive it through the controls people already use, start with the Surface and MCP-service steps below. If you want to declare server operations as typed actions an agent calls over HTTP, skip to [Serve actions over AXE](#serve-actions-over-axe).
 
 ## Add Surface to an existing app in four steps
 
-Out of the box this gets most of the way: Surface discovers the page's controls, and the agent uses the app through them in a headless browser the SDK runs for it, signed in as you. You never open the site; approvals come to you in the agent's own UI. It works with React Router 7 (framework mode), the Next.js App Router, Vite with React, React under any other bundler, and plain HTML pages.
+Out of the box Surface discovers the page's controls and keeps their authoritative live state, revision, ledger, and handlers in the page. The browser relay client connects that Surface to the separately operated Agent Experience MCP service, so the consuming application does not run a server. WebMCP remains an additional direct path where supported, and development publishes `window.__surface`. It works with React Router 7 (framework mode), the Next.js App Router, Vite with React, React under any other bundler, and plain HTML pages.
 
 ### 1. Install
 
@@ -515,12 +521,12 @@ Out of the box this gets most of the way: Surface discovers the page's controls,
 npm install @axe/surface @axe/relay
 ```
 
-`@axe/relay/client` is the small browser client the page connects through; the relay server, MCP, and WebSocket dependencies are optional peers that only the host installs. While the packages are unpublished, `axe surface init --vendor <dir> --install` installs from tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout).
+While the packages are unpublished, `axe surface init --relay-dev --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the Agent Experience service.
 
 ### 2. Run `axe surface init`
 
 ```sh
-npx axe surface init --dry-run
+npx axe surface init --relay-dev --dry-run
 ```
 
 `axe surface init` detects the framework, the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root component, and prints the diff it would make. For a React Router 7 app it is two lines in `app/root.tsx` plus two new files:
@@ -539,41 +545,56 @@ npx axe surface init --dry-run
  }
 ```
 
-`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` that connects the page to the agent whenever the host injected a connection (`injectedRelay()`), and is always on in such a hosted session. In a person's own browser it is on in development and off in a production build unless `VITE_SURFACE=1` was set at build time. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
+`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` with WebMCP enabled and an `onReady` connection to the local service through `@axe/relay/client`. In a person's browser it is on in development and off in a production build unless `VITE_SURFACE=1` was set at build time. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
 
 ```sh
-npx axe surface init --yes
+npx axe surface init --relay-dev --yes
 ```
 
 Options that matter on a real app:
 
 - `--mount <file>`: mount in a layout instead of the root, when the root also renders pages before sign-in. `init` lists the layout routes it found.
-- `--flag <NAME>` for a different build-time variable (`NEXT_PUBLIC_SURFACE` is the Next.js default), or `--flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import '~/feature-flags'` to gate on your feature-flag client. A hosted session is on whatever the flag says.
-- `--relay-dev` (or `--relay <url>`): the attended fallback, where the agent acts in your own open tab through a relay and pairs with it ([Relay](relay.md)).
+- `--flag <NAME>` for a different build-time variable (`NEXT_PUBLIC_SURFACE` is the Next.js default), or `--flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import '~/feature-flags'` to gate on your feature-flag client.
+- `--relay-dev`: connect the page to the separately run local service at `http://127.0.0.1:4717`; it implies the browser relay client.
+- `--relay <url>`: connect to the company-operated deployed service when one is available.
+- `--remote`: the older injected unattended-host path.
 
-### 3. Sign in once and connect Claude
+### 3. Run the service and connect a desktop agent
 
-Start the app in development, then sign in once, in a browser the host opens for you, and connect Claude Code:
+In the Agent Experience checkout, not the consuming application, start the standalone service:
 
 ```sh
-npx axe host login http://localhost:5173
-claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
+pnpm mcp:dev
 ```
 
-The first saves your signed-in session to `.axe/host-state.json` (keep `.axe/` out of version control). The second lets Claude Code start the host, which runs your app in headless Chromium with that session and serves its tools over MCP. For Claude Desktop, run `npx axe host --dev --app http://localhost:5173 --name myapp` once: it prints the `claude_desktop_config.json` entry with absolute paths. See [Unattended mode](host.md).
+Run the app and open it normally. The page shows a pairing code. Configure the desktop agent with `http://127.0.0.1:4717/mcp` and the `AXE_MCP_AGENT_KEY` printed by the service, then start a fresh conversation. Its MCP instructions tell it to call `relay_tabs`, pair with the code, and use `surface_read`, `surface_observe`, `surface_wait`, and the Surface action tools. See the exact client command in [`mcp/README.md`](../mcp/README.md).
 
-### 4. Ask
+Controls classified as high risk, controls that declare confirmation, and controls waiting on `approval_required` wait for the person in the page indicator. An agent tool argument is never approval.
 
-Ask the agent to do something in the app ("raise Widgets for March to 1500 and submit the plan"). It reads the page (`surface_read`), observes the controls with their live availability and reasons (`surface_observe`), acts through the same handlers a click runs, waits for slow work (`surface_wait`), and presents the revision it observed, so a stale act is a conflict instead of a surprise. A consequential act asks you in Claude first. `host_screenshot` shows the page.
+In a compatible browser, WebMCP also registers the same page-held Surface directly; use the [host preflight](webmcp.md#host-compatibility-and-preflight) when testing that optional path. In development, `window.__surface` remains available for diagnosis.
 
-To make it better, run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
+### 4. Measure and refine
+
+Run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
 
 ```sh
 npx axe surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
 npx axe surface prompt > integrate-surface.md
 ```
 
-The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page (published in development by `expose`), and lists what the page could not say (unnamed controls, missing reasons, destructive actions, private fields) with the rule to paste for each; `--json` is for machines, `--auth` passes a session cookie or an `Authorization` header. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout. For server operations with no control on the page, the AXE path below derives an MCP server from typed actions; see [MCP](mcp.md).
+The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page, and lists what the page could not say with the rule to paste for each. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout.
+
+## Optional: unattended host mode
+
+If nobody will keep a browser tab open, use the existing host adapter instead:
+
+```sh
+npx axe surface init --remote --yes --install
+npx axe host login http://localhost:5173
+claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
+```
+
+The host runs the signed-in app in a headless browser and presents the surface over MCP. The authoritative surface and every act remain in the page. See [Unattended mode](host.md).
 
 ## Serve actions over AXE
 
@@ -1344,7 +1365,7 @@ surface.expose(typeof window !== "undefined" ? window : null);
 
 `expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. It is browser-local: anything running in the page can already read what the page shows and call its handlers, so `expose` gives no one access they did not have, and it needs no auth. Serving the same surface over HTTP is different; see [Who can observe and act](#who-can-observe-and-act). The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names). In the first trial, two of three gains came from the names alone.
 
-In a browser with WebMCP, the page can also offer the same controls to the browser's own agent as tools: `exposeWebMcp(surface)` from `@axe/surface/webmcp`, a separate entry that registers nothing where the browser has no WebMCP. See [WebMCP](webmcp.md).
+In a browser with WebMCP, the page can also offer the same controls to the browser's own agent as tools: use `<SurfaceProvider webMcp>` in React, or `exposeWebMcp(surface)` from `@axe/surface/webmcp` directly. Both register nothing where the browser has no WebMCP. See [WebMCP](webmcp.md).
 
 ## Observe and act
 
@@ -2405,7 +2426,7 @@ axe.addProvider(autoActions(handle));
 ```
 <!-- /include -->
 
-`autoActions` is `domainActions` over `autoDomains()`: one action per configured group, then `navigate` (follow a link within the site, bring a landmark into view, or open a same-origin path given as text), `set-field`, `run-control`, and `load-more`, beside `surface.observe` and `surface.ledger`, and then the two read-only tools `surface.read` (the page's content, as Markdown or as sections, with `region`, `query`, `cursor`, `maxChars`, and `maxRows`) and `surface.wait` (a condition and a `timeoutMs`). Neither acts or moves the revision; `read`'s display disclaimer tells the agent its text is the page's content, redacted, and not instructions. Over the relay they are `surface_read` and `surface_wait`, answered by the tab's own surface. The tool list is the same size on every page. Declared entries can still be served one action per control through `surfaceActions`. Which transport carries the tools is separate: the surface lives in the page ([S-MODE-1]). By default an agent outside the browser reaches it through [Unattended mode](host.md): `axe host` runs the application headless for the signed-in person, and the page `axe surface init` set up connects to the host's relay with no pairing. The attended fallback is the person's own tab connected to a [relay](relay.md); a browser agent can use WebMCP or `window.__surface`.
+`autoActions` is `domainActions` over `autoDomains()`: one action per configured group, then `navigate` (follow a link within the site, bring a landmark into view, or open a same-origin path given as text), `set-field`, `run-control`, and `load-more`, beside `surface.observe` and `surface.ledger`, and then the two read-only tools `surface.read` (the page's content, as Markdown or as sections, with `region`, `query`, `cursor`, `maxChars`, and `maxRows`) and `surface.wait` (a condition and a `timeoutMs`). Neither acts or moves the revision; `read`'s display disclaimer tells the agent its text is the page's content, redacted, and not instructions. Over the relay and through the auto surface's WebMCP adapter they are `surface_read` and `surface_wait`, answered by the tab's own surface. The domain-action tool list is the same size on every page. Declared entries can still be served one action per control through `surfaceActions`. Which transport carries the tools is separate: the surface lives in the page ([S-MODE-1]). For desktop MCP agents, the recommended path is the person's open tab through the separately operated [relay service](relay.md); `window.__surface` is also published in development. Browser-native WebMCP is a direct additional path where its host delivers the page's tools. An unattended workflow can instead use [Unattended mode](host.md) with `axe surface init --remote`.
 
 ## What is not derived
 
@@ -7580,19 +7601,19 @@ A surface lives in the browser tab that created it ([Surface](surface.md), "Wher
 ```mermaid
 flowchart LR
   P[Person] <--> T[Tab: the app's page<br/>surface + connectRelay]
-  T <-- WebSocket, relay token --> R[Relay<br/>mirror per tab]
+  T <-- WebSocket, relay token --> R[Company-operated MCP service<br/>relay + mirror per tab]
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-Most applications do not need this page: `axe surface init` connects the page to the relay a host runs, and [Unattended mode](host.md) is how an agent outside the browser reaches the application by default. This page is the relay underneath it, and the attended fallback: the agent in the person's own open tab, with pairing in development.
+Desktop agents need the service path on this page. The customer application installs only `@axe/surface` and the browser-only `@axe/relay/client`; the separately operated service owns the MCP SDK, WebSocket server, agent authentication, and relay records. Browser-native WebMCP remains an additional direct path where the browser supports it.
 
-Two modes. **Unattended** (the default for agents, [Unattended mode](host.md)): the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI. **Attended**: the person has the tab open, sees the indicator, and approves in the page.
+Two modes. **Attended** is the current company-service development path: the person has the tab open, sees the pairing and activity indicator, and approves in the page. **Unattended** ([Unattended mode](host.md)) is the optional no-tab path: the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI.
 
 The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-14] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
 
 ## Attended mode in four steps
 
-For the person's own tab (the fallback; unattended needs none of this, see [Unattended mode](host.md)):
+For the person's own tab (unattended needs none of this; see [Unattended mode](host.md)):
 
 1. Add the packages: `pnpm add @axe/surface @axe/relay`.
 2. In the page, register the controls on a surface (or let `@axe/surface/auto` do it) and connect it:
@@ -7631,57 +7652,53 @@ app.post("/api/relay-token", async (req, res) => {
 ```
 <!-- /include -->
 
-4. Run a relay and connect the agent to it (below: development in one command, production with OAuth).
+4. Run the company-side service and connect the agent to it (below: local development now, production with OAuth later).
 
 ## Local development
 
-Start the relay on loopback:
+Start the standalone service under this repository's `mcp/` directory:
 
 ```sh
-npx axe relay --dev
+pnpm mcp:dev
 ```
 
-It prints the three things to do, with the port filled in:
+It serves the website and agent sides separately:
 
 ```text
-axe relay: listening for tabs on ws://127.0.0.1:4717/tab
-
-1. In your page (development builds only):
-     import { connectRelay, devToken } from "@axe/relay/client";
-     connectRelay(surface, { url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") });
-
-2. Connect Claude Code to this relay (HTTP):
-     claude mcp add --transport http surface http://127.0.0.1:4717/mcp --header "Authorization: Bearer axd_…"
-   Or let Claude Code start the relay itself (stop this one first):
-     claude mcp add surface -- npx axe relay --dev --stdio
-
-3. Open the page. The tab shows a pairing code; tell the agent: "pair with code XXXX-XXXX".
+Agent Experience MCP service
+  website tabs: ws://127.0.0.1:4717/tab
+  desktop agents: http://127.0.0.1:4717/mcp
+  service metadata: http://127.0.0.1:4717/.well-known/agent-experience.json
+  local bearer key: axd_agent_experience_local
 ```
 
-In the page, connect with the development token helper:
+In the page, connect with the local-service helper:
 
 <!-- include: examples/relay/page.ts#dev -->
 ```ts
-// Local development against `npx axe relay --dev`: the relay hands out development tokens on
-// loopback, and the tab shows a pairing code for the agent.
+// Local development against the company-side service (`pnpm mcp:dev` in the SDK checkout): the
+// service hands out development tab tokens on loopback and shows an agent pairing code in the tab.
 if (location.hostname === "localhost") {
-  connectRelay(surface, {
-    url: "ws://127.0.0.1:4717/tab",
-    getToken: devToken("http://127.0.0.1:4717"),
-  });
+  connectRelay(surface, localMcpService());
 }
 ```
 <!-- /include -->
 
-Then, in Claude Code, say "pair with code 7K2M-Q9XD" (the code your tab shows). The agent calls `relay_pair`, and from then on `surface_observe` and the other tools act on your tab. The indicator changes from the code to "An agent can act in this tab", and to "An agent is acting in this tab" once it has.
+Connect a desktop agent to `http://127.0.0.1:4717/mcp` with the bearer key (see [`mcp/README.md`](../mcp/README.md)). Open the website, then tell the agent the code shown in its Surface indicator. The MCP server instructions tell it to call `relay_tabs`, `relay_pair`, `surface_read`, and `surface_observe`; subsequent Surface tools act on that tab. The indicator changes from the code to "An agent can act in this tab", and to "An agent is acting in this tab" once it has.
 
-The stdio form (`claude mcp add surface -- npx axe relay --dev --stdio`) needs no key: Claude Code starts the relay and speaks MCP on its standard input and output. Only one relay can hold port 4717; a second one exits with a message (pass `--port` to both the relay and the page).
+The lower-level `axe relay --dev` CLI remains available for SDK development and stdio clients, but application installation instructions point at the standalone service. Only one process can hold port 4717; override the service with `AXE_MCP_PORT` and pass the same service origin to `localMcpService(url)` when needed.
+
+### How a desktop agent discovers the website
+
+An MCP client does not discover this connection from the website URL. Configure the Agent Experience service once in the desktop client at `/mcp`, then start a fresh agent conversation so that client exposes the service's tools and initialization instructions. Those instructions tell the agent to start with `relay_tabs`; the open website announces itself to the service over `/tab`, and `relay_pair` binds the agent to it in local development. After that, `surface_read`, `surface_observe`, `surface_wait`, and the Surface action tools are the website interface.
+
+`/.well-known/agent-experience.json` is non-standard setup metadata for operators and diagnostics. It does not make an MCP client auto-install the service. This boundary is intentional: the browser package knows the tab endpoint, while the desktop client knows the MCP endpoint and agent credential. Neither the consuming website nor its repository hosts an MCP server.
 
 What development mode does, and does not allow:
 
 - `devPairing` listens on loopback only; `--host 0.0.0.0` is refused. Every request must come from a loopback address with a loopback `Host` header, so a web page cannot reach the relay through DNS rebinding.
 - Tabs connect from any port on `http://localhost`, `http://127.0.0.1`, or `http://[::1]` (`--origin` replaces the list). Development tokens name the principal `dev` in the tenant `dev`.
-- `/mcp` needs the development key the relay printed, or stdio. An agent reaches no tab until it pairs with the code shown in one. Five wrong codes lock that agent out for a minute.
+- `/mcp` needs `AXE_MCP_AGENT_KEY`. An agent reaches no tab until it pairs with the code shown in one. Five wrong codes lock that agent out for a minute.
 - Serve the page over `http://localhost` in development. A page served over `https` that connects to `ws://127.0.0.1` can be blocked as mixed content or stopped by the browser's local network access prompt; use `wss://` for anything that is not local.
 
 ## Unattended mode
@@ -7694,10 +7711,7 @@ A host that opens the application in a hidden browser session for a person sets 
 // the connection (`window.__AXE_RELAY__`: no pairing, no indicator, approvals in the agent's
 // client); in a normal browser, the attended development relay below.
 export function connectEitherWay(s: Surface): RelayConnection {
-  return connectRelay(
-    s,
-    relayOptions({ url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") }),
-  );
+  return connectRelay(s, relayOptions(localMcpService()));
 }
 ```
 <!-- /include -->
@@ -7864,11 +7878,8 @@ Importing `@axe/relay/client` touches no `window`, `document`, or `WebSocket`, s
 // With server-side rendering, load the client in an effect: importing it touches no window,
 // document, or WebSocket, and connecting happens only in the browser.
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
-  const { connectRelay: connect, devToken: dev } = await import("@axe/relay/client");
-  const connection = connect(s, {
-    url: "ws://127.0.0.1:4717/tab",
-    getToken: dev("http://127.0.0.1:4717"),
-  });
+  const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
+  const connection = connect(s, local());
   return () => connection.stop();
 }
 ```
@@ -7876,7 +7887,7 @@ export async function startRelayInBrowser(s: Surface): Promise<() => void> {
 
 ## Production
 
-The browser side needs only `@axe/relay` (its `client` and `token` entries import nothing at runtime). A relay server also needs its optional peer dependencies: install `@axe/mcp`, `@modelcontextprotocol/sdk`, and `ws` next to `@axe/relay` where the server runs. A web application that only connects its tabs installs none of them, which also keeps it clear of registry age gates on those packages.
+The browser side needs only `@axe/relay` (its `client` entry imports nothing at runtime) alongside `@axe/surface`. The standalone service under [`mcp/`](../mcp/README.md) owns `@axe/mcp`, the MCP SDK, `ws`, and the relay server. A web application that only connects its tabs installs none of those server dependencies.
 
 A production relay authenticates both sides: tabs with relay tokens your backend minted, agents with OAuth access tokens.
 
@@ -7919,9 +7930,10 @@ await relay.listen({ host: "0.0.0.0", port: 8080 });
 
 ## Connecting agents
 
-- **Claude Code**, development: `claude mcp add surface -- npx axe relay --dev --stdio`, or `claude mcp add --transport http surface http://127.0.0.1:4717/mcp --header "Authorization: Bearer <key>"` for a relay you started.
+- **Codex**, local service: set `AXE_MCP_AGENT_KEY`, then `codex mcp add agent-experience --url http://127.0.0.1:4717/mcp --bearer-token-env-var AXE_MCP_AGENT_KEY`.
+- **Claude Code**, local service: connect its HTTP MCP configuration to `http://127.0.0.1:4717/mcp` with `Authorization: Bearer <AXE_MCP_AGENT_KEY>`.
 - **Claude Code**, production: `claude mcp add --transport http surface https://relay.yogastudio.example/mcp`; Claude Code finds the authorization server from the protected-resource metadata (see [MCP](mcp.md), "OAuth") and signs the person in.
-- **Other MCP clients**: the same URL over Streamable HTTP with a bearer token, or the stdio command. The server's instructions tell the agent to call `relay_tabs` first.
+- **Other MCP clients**: the same URL over Streamable HTTP with a bearer token. The server's instructions tell the agent to call `relay_tabs` first, pair when needed, and use the Surface tools instead of generic browser automation.
 
 ## Security model
 
@@ -7955,7 +7967,7 @@ The relay puts a live, signed-in page within reach of an agent, so it states wha
 
 # Unattended mode: the agent uses the app for you
 
-The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface `axe surface init` mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the default way an agent outside the browser reaches an application; the person's own tab ([Relay](relay.md), attended mode) stays as the fallback.
+The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the optional unattended adapter. The primary desktop-agent development path uses the person's own tab through the separately operated [Agent Experience MCP service](relay.md); browser-native WebMCP is an additional direct path where supported.
 
 ```mermaid
 flowchart LR
@@ -7969,7 +7981,7 @@ flowchart LR
 
 ## What the application needs
 
-Nothing beyond easy mode. The provider that `axe surface init` writes (with no options) connects with the connection a host injected (`window.__AXE_RELAY__`), and nothing connects in a person's own browser:
+Initialize the application with `axe surface init --remote`. That opt-in adds the relay browser client and makes the generated provider connect with the connection a host injected (`window.__AXE_RELAY__`); without `--remote`, init installs only the package-held browser-native surface:
 
 <!-- include: examples/host/page.ts#page -->
 ```ts
@@ -7991,7 +8003,7 @@ export const surfaceOn = (flag: boolean): boolean => flag || injectedRelay() !==
 ```
 <!-- /include -->
 
-An integration written before this (or by hand) needs the same two things: connect when `injectedRelay()` returns a connection, and do not let a flag that is off for the person keep the provider from mounting in a hosted session. `--start <path>` opens the page the agent starts on (for example `/dashboards`). The attended fallback, where the person's own tab connects to a relay (`axe surface init --relay-dev`, or `--relay <url>`), keeps the injected connection first:
+An integration written by hand needs the same two things: connect when `injectedRelay()` returns a connection, and do not let a flag that is off for the person keep the provider from mounting in a hosted session. `--start <path>` opens the page the agent starts on (for example `/dashboards`). The attended alternative, where the person's own tab connects to a relay (`axe surface init --relay-dev`, or `--relay <url>`), keeps the injected connection first:
 
 <!-- include: examples/host/page.ts#fallback -->
 ```ts
@@ -8220,11 +8232,66 @@ Threats that remain yours: the blast radius of an agent session (narrow what you
 - [MCP](mcp.md): sessions, OAuth, and elicitation.
 - [Security](security.md): the threat model.
 
+# docs/chatgpt-plugin.md
+
+# ChatGPT consumer path
+
+The seamless path for a nontechnical person is an ordinary public ChatGPT plugin backed by the provider-operated Agent Experience service. “No MCP setup” is achievable for the user; “no MCP transport” is not, because ChatGPT needs a registered, authenticated way to call code outside the conversation.
+
+The product should never ask the user to understand that distinction. Its language is: **Install Agent Experience**, then **Connect your account**.
+
+## What happens
+
+1. The application developer installs `@axe/surface` and the browser-only part of `@axe/relay`, mounts `SurfaceProvider`, and enables the injected-host path. Their application does not run or deploy MCP.
+2. The provider deploys [`mcp/`](../mcp/README.md) at one stable public HTTPS `/mcp` URL and publishes [`plugins/agent-experience`](../plugins/agent-experience/README.md) against it.
+3. The person installs the plugin from ChatGPT's directory. On first use, ChatGPT discovers the service's OAuth metadata and asks the person to connect their account.
+4. A tool call reaches the provider service with that person's access token. The service verifies it, maps its claims to one principal and tenant, and asks the integrated application's session broker for a short-lived app session.
+5. `@axe/host` starts one isolated browser context for that identity, opens the real application, and injects its private relay before the page loads. The already-installed Surface package registers the application's controls.
+6. The plugin instructions make the model call `relay_tabs`, `surface_read`, and `surface_observe`, then act with Surface tools. Consequential controls use ChatGPT's approval/elicitation UI. The person never needs an open browser tab or pairing code.
+
+```text
+ChatGPT on phone
+  └─ installed Agent Experience plugin + OAuth consent
+       └─ provider HTTPS /mcp
+            ├─ verify access token
+            ├─ exchange identity → short-lived app session
+            └─ isolated hosted browser
+                 └─ application page + package-held Surface
+```
+
+The page remains authoritative for live controls, revisions, handlers, and its ledger. The provider owns transport, OAuth verification, browser isolation, and session lifetime. The application owns user authorization and the short-lived application credential.
+
+## The one additional application contract
+
+A remote browser cannot inherit cookies from Safari on the user's phone. The integrated application must therefore expose a private session-broker endpoint to the provider, or offer an equivalent identity-provider token exchange. This is the unavoidable difference between controlling an already open tab and running unattended.
+
+The broker receives an authenticated provider request containing only the verified `principal`, `tenant`, and scopes. It returns a short-lived cookie, scoped header, or storage state accepted by the application. It never receives the ChatGPT/MCP access token, and it may refuse any identity or scope. See the exact request and response in [`mcp/README.md`](../mcp/README.md#run-the-hosted-service).
+
+This keeps the install burden where it belongs: one small backend integration for the developer who adopts the package, not MCP setup for every end user.
+
+## What the user must still approve
+
+The website cannot silently enroll itself in a person's ChatGPT account. Plugin installation and OAuth consent are platform trust decisions, just like installing an app and signing in. After public distribution, those are taps in normal ChatGPT UI—not developer mode, a URL, a secret, or a server configuration.
+
+Use a clear “Use in ChatGPT” entry point from the product after publication, but do not imply that opening the website alone grants ChatGPT access. Enterprise administrators may also control plugin availability.
+
+## Fallbacks
+
+- The attended relay remains the best local development loop and an option for expert desktop use. It proves the page Surface without production identity work.
+- Browser-native WebMCP can remove the remote transport when the agent actually runs in a compatible browser host. It does not currently provide a general ChatGPT iOS path to another app's authenticated session.
+- Generic cloud browser automation can open public pages, but it does not guarantee Surface discovery, authenticated state, approval semantics, or the structured tool contract.
+
+## Operational boundary
+
+Hosted browser and MCP sessions are currently process memory. Run Chromium in a sandboxed service, cap sessions and idle time, apply egress controls, keep session credentials out of logs, and route a person's requests to the process that owns their session. Revoking the OAuth grant ends agent access; short-lived application sessions limit the remaining credential window.
+
 # docs/webmcp.md
 
 # WebMCP
 
 WebMCP is a browser API through which a page registers tools for an agent built into the browser. `@axe/surface/webmcp` offers a [Surface](surface.md) through it: the page's controls become tools the browser's agent can call, each one running through the page's own surface with its revision guard, availability, and ledger. This page covers the status of the API, what the adapter registers, what it never registers, and what to use where the browser has no WebMCP.
+
+For React easy mode, `<SurfaceProvider webMcp>` enables this direct route. It needs only `@axe/surface`; no MCP server or relay participates in that route. The recommended desktop-agent integration also installs `@axe/relay` and connects the same page-held Surface to the separately operated [Agent Experience MCP service](../mcp/README.md), because a generic desktop or headless-browser session does not receive a page's WebMCP tools automatically.
 
 ## Status
 
@@ -8246,10 +8313,12 @@ import { surface } from "../surface/board";
 // Browser-driving agents keep reading window.__surface, whatever the browser supports.
 surface.expose(typeof window !== "undefined" ? window : null);
 
-// Registers surface_observe and one tool per control when document.modelContext exists;
-// otherwise registers nothing and says why. The human UI is the same either way.
+// Registers surface_observe, page read/wait tools when this is an auto surface, and one tool per
+// control when document.modelContext exists; otherwise registers nothing and says why. The human
+// UI is the same either way.
 const webmcp = exposeWebMcp(surface, { actor: "browser-agent" });
 if (!webmcp.supported) console.info(`WebMCP not offered: ${webmcp.reason}`);
+else void webmcp.ready().then(() => console.info("WebMCP:", webmcp.diagnostic()));
 
 // A single-page app that tears the board down (a route change) closes it too.
 export function leaveBoard(): void {
@@ -8258,7 +8327,7 @@ export function leaveBoard(): void {
 ```
 <!-- /include -->
 
-`exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; and `close()`, which unregisters everything and stops following the surface.
+`exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; `diagnostic()`, which distinguishes unavailable, registering, ready, degraded, registration error, and closed states; and `close()`, which unregisters everything and stops following the surface. When React's `SurfaceProvider` also has `expose`, the same diagnostic is available at `window.__surface.webMcp()`.
 
 Options:
 
@@ -8267,7 +8336,9 @@ Options:
 - `actor`: the `actor` the ledger records for acts made through these tools. Default `webmcp`.
 - `unavailable`: `describe` (the default) registers an unavailable control with its reason; `omit` leaves it out until it is available.
 - `observe`: register the observe tool. Default true.
+- `content`: register read and wait tools when the surface came from `autoSurface`. Default true.
 - `run`: wraps each handler run, as `surface.act`'s option does.
+- `requestApproval`: trusted application UI for high-risk, confirmation, and `approval_required` controls. It receives the exact observed entry, act, and input and returns a boolean or `{ approved, actor }`. Without it, those calls are refused. It must resolve only from the person's interaction and must never be reachable by the agent.
 - `onError`: called when the browser refuses a registration (another script holds the name, a permissions policy forbids tools).
 
 <!-- include: examples/webmcp/page.ts#options -->
@@ -8281,9 +8352,27 @@ export const quiet = exposeWebMcp(surface, { unavailable: "omit", prefix: "draft
 ## What is registered
 
 - **`surface_observe`.** Read-only. Returns the observation: every entry's id, name, availability with its reason, and effect, under one revision, as text and as structured content. Sensitive field values are not in it ([S-PRV-1](../spec/SURFACE.md#61-authorization-and-privacy)).
+- **`surface_read`.** Read-only, on an auto surface. Returns the headings, text, fields, tables, lists, notices, and named opaque regions that the page shows the person. It is bounded and paginated; private values are withheld and chart values are never guessed.
+- **`surface_wait`.** Read-only, on an auto surface. Waits within a bound for visible text, a control's availability, a moved revision, a matching route, or an idle page, and reports what changed and which notices appeared. It is the direct way to follow work such as a report moving from “Preparing” to ready.
 - **One tool per control that can be acted on.** An action (a click), a field that is not sensitive (typing text), a collection that can load more. The tool's description is the entry's `describeEntry` line, what the tool does, and for an unavailable control what would unblock it or what a person must do. The input schema takes an optional `expectedRev`, `text` for a field (with the field's own schema and `maxLength`), and `confirm` for a control that asks for confirmation. A control that is not reversible carries the `consequentialHint` annotation, which the draft defines for tools whose effect cannot be undone.
 
-Tool names are the prefix and the entry id, with every character other than letters, digits, `_`, and `-` replaced by `_`: `pick:me:gibbs` becomes `surface_pick_me_gibbs`. Two ids that would share a name, or an id that would take the observe tool's name, get an eight-character hash of the id appended. A name is the same for an id every time, so an agent that learned it keeps it.
+Tool names are the prefix and the entry id, with every character other than letters, digits, `_`, and `-` replaced by `_`: `pick:me:gibbs` becomes `surface_pick_me_gibbs`. Two ids that would share a name, or an id that would take the observe, read, or wait tool's name, get an eight-character hash of the id appended. A name is the same for an id every time, so an agent that learned it keeps it.
+
+## Host compatibility and preflight
+
+The browser is the WebMCP host. A package in the page can register tools only when that browser provides `document.modelContext.registerTool`; it cannot make a generic browser-automation or headless-computer-use session forward those tools to its model. Such a session may still click the ordinary UI, but that is not a Surface tool call and does not gain Surface's revision guard or ledger.
+
+For ChatGPT desktop, use its built-in browser with site tools enabled and a model that supports site tools. OpenAI's [site-tools documentation](https://learn.chatgpt.com/docs/webmcp) describes that path; an external browser tab, a generic headless browser task, and a nested CLI agent are separate hosts and must not be assumed to inherit the page's tools.
+
+Before asking an agent to act, verify all three layers:
+
+1. `typeof document.modelContext?.registerTool === "function"` — the browser implements imperative WebMCP.
+2. `await window.__surface?.webMcp?.()` in a development integration — registration settled with `state: "ready"` (or inspect its per-tool errors when `degraded` or `error`).
+3. The browser's Site tools UI lists `surface_observe`, and, for an auto surface, `surface_read` and `surface_wait` — the host actually delivered them to the agent.
+
+If step 1 fails, choose a compatible browser host. If step 2 fails, fix the reported registration errors. If step 3 fails while step 2 says ready, the browser host did not make the registered tools available to that task; changing tool descriptions or prompting the model cannot repair that transport boundary.
+
+Use a fresh agent conversation for a clean acceptance test after installing or updating the page integration. A previous conversation may retain its earlier diagnosis and fallback plan. Also inspect project-local agent configuration: a leftover MCP server for the same application is a separate transport and can cause a nested CLI agent to choose that server even when browser-native Surface is installed.
 
 ## What is never registered
 
@@ -8298,18 +8387,38 @@ A tool call is `surface.act` with the entry's id and op. With `expectedRev`, a p
 
 Every change the surface reports through `subscribe` re-derives the tools. A tool is registered again only when its name, description, schema, or annotations changed, so a revision bump alone costs nothing, and a control that became unavailable is re-registered with its reason (or dropped, with `unavailable: "omit"`).
 
+### Trusted approval
+
+`consequentialHint` is metadata, not an enforcement boundary. The adapter therefore refuses a high-risk action, an action with `confirm`, or an `approval_required` control unless `requestApproval` is configured. When the callback approves an auto-derived gate, the adapter opens that one gate and immediately makes the exact revision-bound act. It records the person's decision before the act in the page's ledger.
+
+```ts
+const webmcp = exposeWebMcp(surface, {
+  requestApproval: async ({ entry, act }) => {
+    // `showApprovalDialog` must resolve only from the person's click.
+    const approved = await showApprovalDialog({
+      title: entry.name,
+      risk: entry.effect?.risk,
+      expectedRev: act.expectedRev,
+    });
+    return { approved, actor: currentMemberName };
+  },
+});
+```
+
+Do not implement this callback with a DOM control included in the surface, a WebMCP tool, a message supplied by the agent, or an automatically accepted browser event.
+
 ## Where there is no WebMCP
 
 Nothing is registered, `supported` is false, and the page works as before. The other ways in stay available:
 
-- **Browser-driving agents** read the page, or `window.__surface` after `surface.expose(window)` ([S-DOM-2](../spec/SURFACE.md#7-browser-agents)).
+- **Browser-driving agents** read and operate the ordinary page, or use `window.__surface` when their browser channel has JavaScript/CDP access and the application called `surface.expose(window)` ([S-DOM-2](../spec/SURFACE.md#7-browser-agents)). Generic browser clicks are not Surface calls.
 - **Server-side agents** reach the same controls through the AXE bridge (`surfaceActions` from `@axe/surface/axe`, see [Surface](surface.md)) and, for MCP hosts, `@axe/mcp` ([MCP](mcp.md)), with the authorization rules those need.
 
 An application that exposes its browser surface from one module with `expose(window)`, as the reference application under `examples/` is built to, adds the WebMCP adapter on the next line, as in the example above.
 
 ## Bundle
 
-`@axe/surface/webmcp` is a separate entry. `@axe/surface` and `@axe/surface/react` do not import it; a test pins that. It adds about 5.6 kB minified to a page that already has `@axe/surface`.
+`@axe/surface/webmcp` remains a separate entry for framework-free use. `SurfaceProvider` imports the small adapter so its `webMcp` prop works without another application dependency; ordinary hooks from `@axe/surface/react` still tree-shake it when the provider is not used.
 
 ## Next steps
 
@@ -13034,17 +13143,17 @@ Browser-driving agents and screen readers read a control's accessible name, not 
 
 ## 8. WebMCP: the browser's own agent
 
-WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft report of 17 September 2026) through which a page registers tools for an agent built into the browser: `document.modelContext.registerTool({ name, description, inputSchema, execute, annotations }, { signal })`, unregistered by aborting the signal. As of September 2026 Chrome offers it behind a flag and in an origin trial (from Chrome 149); other browsers do not ship it. `@axe/surface/webmcp` maps a surface onto it. It is optional and outside the browser core: `@axe/surface` and `@axe/surface/react` never import it.
+WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft report of 17 September 2026) through which a page registers tools for an agent built into the browser: `document.modelContext.registerTool({ name, description, inputSchema, execute, annotations }, { signal })`, unregistered by aborting the signal. As of September 2026 Chrome offers it behind a flag and in an origin trial (from Chrome 149); other browsers do not ship it. `@axe/surface/webmcp` maps a surface onto it. It is optional and feature-detected; `SurfaceProvider` enables it with the `webMcp` prop, while framework-free pages import the subpath directly.
 
-**[S-WEB-1] Feature detection.** `exposeWebMcp(surface, options)` registers nothing unless it finds an object with `registerTool` (by default `document.modelContext`), and then returns a handle with `supported: false` and the reason. The page, its controls, and `expose` ([S-DOM-2]) behave the same with or without it. The adapter reaches the browser API in one place, so a change in the draft changes that place only.
+**[S-WEB-1] Feature detection and diagnosis.** `exposeWebMcp(surface, options)` registers nothing unless it finds an object with `registerTool` (by default `document.modelContext`), and then returns a handle with `supported: false` and the reason. Its `diagnostic()` distinguishes unavailable, registering, ready, degraded, registration error, and closed states and names each refused registration without exposing page data. The page, its controls, and `expose` ([S-DOM-2]) behave the same with or without WebMCP. The adapter reaches the browser API in one place, so a change in the draft changes that place only.
 
-**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content). One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. An action that is not reversible carries the `consequentialHint` annotation. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
+**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. An action that is not reversible carries the `consequentialHint` annotation. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
 
 **[S-WEB-3] Availability follows the surface.** The adapter follows `subscribe` ([S-OBS-4]) and re-registers a tool when its name, description, schema, or annotations changed, and only then. An unavailable entry is registered with its reason, `requires`, and `handoff` in the description (`unavailable: "describe"`, the default) or left out until it is available (`"omit"`). A freeze makes every entry unavailable with the freeze's reason ([S-FRZ-1]).
 
-**[S-WEB-4] Acts go through the surface.** A tool call is `surface.act` with the entry's id, the entry's op, the tool's `text` and `confirm`, and `expectedRev` from the call, or, when the call gives none, the surface's revision at the moment of the call. The surface's revision guard, availability, confirmation, ledger, and handler apply unchanged ([S-ACT-2], [S-LED-1]); the ledger's `actor` is the adapter's (`webmcp` unless set). The result is the act's envelope as structured content with a line of text, and `isError` when it is not `ok`.
+**[S-WEB-4] Acts go through the surface and approval is trusted.** A tool call is `surface.act` with the entry's id, the entry's op, the tool's `text` and `confirm`, and `expectedRev` from the call, or, when the call gives none, the surface's revision at the moment of the call. Before a high-risk action, an action that declares `confirm`, or an entry whose handoff reason is `approval_required`, the adapter requires the application's `requestApproval` callback; without one it refuses and runs nothing. The callback is trusted application UI, receives the exact entry, act, and input, and must resolve only from the person's interaction. An approval opens an auto-surface gate for that exact entry and is recorded before the act; a denial runs nothing. The callback MUST NOT be reachable by an agent. The surface's revision guard, availability, confirmation, ledger, and handler otherwise apply unchanged ([S-ACT-2], [S-LED-1]); the ledger's `actor` is the adapter's (`webmcp` unless set). The result is the act's envelope as structured content with a line of text, and `isError` when it is not `ok`.
 
-**[S-WEB-5] Browser-local.** Like `expose`, WebMCP exposure adds no reader the page did not have: the browser's agent acts in the page with the user's session. It is not a way to reach the surface from a server; server-side agents use the AXE bridge (§6) and its authorization (§6.1).
+**[S-WEB-5] Browser-local and host-delivered.** Like `expose`, WebMCP exposure adds no reader the page did not have: the browser's agent acts in the page with the user's session. The browser host must both implement `document.modelContext.registerTool` and deliver registered tools to that agent task. A generic browser-automation or headless-computer-use session with only click/type primitives is not thereby a WebMCP host; its UI actions do not pass through `surface.act`. WebMCP is not a way to reach the surface from a server; server-side agents use the AXE bridge (§6) and its authorization (§6.1).
 
 ## 9. Execution modes
 
@@ -14219,31 +14328,33 @@ Names of the parameterized bridge mode and of the filtered, paged `<ns>.observe`
 
 Public identifiers of `@axe/relay`, the broker between a signed-in person's live tab and an agent outside the browser (`spec/SURFACE.md` §9.1, [S-RELAY-1] to [S-RELAY-13]; `docs/relay.md`).
 
-| Category | Key                 | Name                  | Where                                          | Meaning                                                                                                                                                            |
-| -------- | ------------------- | --------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| api      | connectRelay        | `connectRelay`        | `@axe/relay/client`                            | Connect a page's surface to a relay for the signed-in person; shows the indicator, answers observes and acts.                                                      |
-| api      | getToken            | `getToken`            | `@axe/relay/client`                            | `connectRelay` option: returns a fresh relay token, on every connection and before the current one expires.                                                        |
-| api      | onStatus            | `onStatus`            | `@axe/relay/client`                            | `connectRelay` option: told after every change of the connection's status, approvals included.                                                                     |
-| api      | requireApproval     | `requireApproval`     | `@axe/relay/client`                            | `connectRelay` option: which rows wait for the person's approval; default high risk or `confirm`.                                                                  |
-| api      | createRelay         | `createRelay`         | `@axe/relay/server`                            | Create a relay: tab connections, a mirror per tab served through `domainActions`, MCP over HTTP and stdio.                                                         |
-| api      | authenticateTab     | `authenticateTab`     | `@axe/relay/server`                            | `createRelay` option: check a tab's token yourself and name its principal and tenant.                                                                              |
-| api      | agentAuth           | `agentAuth`           | `@axe/relay/server`                            | `createRelay` option: the OAuth `verifier` for agents over HTTP and `identify`, the principal a token speaks for.                                                  |
-| api      | devPairing          | `devPairing`          | `@axe/relay/server`                            | `createRelay` option: local development on loopback, with pairing codes and development tokens.                                                                    |
-| api      | syncTimeoutMs       | `syncTimeoutMs`       | `@axe/relay/server`                            | `createRelay` option: how long a read waits for a fresh snapshot before serving the last one.                                                                      |
-| api      | reconnectGraceMs    | `reconnectGraceMs`    | `@axe/relay/server`                            | `createRelay` option: how long an act waits for a reconnecting (reloading) tab.                                                                                    |
-| api      | actTimeoutMs        | `actTimeoutMs`        | `@axe/relay/server`                            | `createRelay` option: how long the relay waits for the tab's answer to an act; past it the outcome is unknown (`outcome_unknown`).                                 |
-| api      | navigated           | `navigated`           | act output                                     | `true` when the act's click navigated the page before it settled ([S-RELAY-14]); observe the new page.                                                             |
-| api      | tabRetentionMs      | `tabRetentionMs`      | `@axe/relay/server`                            | `createRelay` option: how long a disconnected or stopped tab stays listed.                                                                                         |
-| api      | mintRelayToken      | `mintRelayToken`      | `@axe/relay/token`                             | Mint a relay token (HS256 JWT: `sub`, `org`, `aud`, `exp`) for the signed-in person, in the backend.                                                               |
-| api      | verifyRelayToken    | `verifyRelayToken`    | `@axe/relay/token`                             | Check a relay token's signature, audience, and expiry; returns its principal, tenant, and claims or null.                                                          |
-| api      | injectedRelay       | `injectedRelay`       | `@axe/relay/client`                            | The connection a host injected into the page (`window.__AXE_RELAY__`) as `connectRelay` options, or null; read when called, never at import.                       |
-| api      | relayOptions        | `relayOptions`        | `@axe/relay/client`                            | `injectedRelay()` when a host injected a connection, else the fallback options given (the attended relay).                                                         |
-| api      | approvals           | `approvals`           | `connectRelay` and `createRelay` option        | On the page: where the person decides an approval (`page`, `agent`, or `both`). On the relay: the approval page (`identify`, `pageUrl`, `linkTtlMs`, `sensitive`). |
-| api      | linkTtlMs           | `linkTtlMs`           | `createRelay` option `approvals`               | How long a link to the relay's approval page works, in ms; default five minutes.                                                                                   |
-| api      | approvalUrl         | `approvalUrl`         | `approval_required` `details`                  | The relay's single-use approval page, given when the agent's client could not show the request.                                                                    |
-| api      | tabId               | `tabId`               | `relay_tabs`, `relay_select-tab`, `relay_stop` | A browser tab's id at the relay, kept across reloads.                                                                                                              |
-| api      | toolCallContext     | `ToolCallContext`     | `@axe/mcp`                                     | The MCP tool call an in-process AXE request serves (`AxeLike.handle`'s third argument): elicitation modes, `elicit`, `completeElicitation`, `signal`.              |
-| api      | completeElicitation | `completeElicitation` | `@axe/mcp` `ToolCallContext`                   | Tell the client a URL-mode elicitation is finished (`notifications/elicitation/complete`).                                                                         |
+| Category | Key                 | Name                    | Where                                          | Meaning                                                                                                                                                            |
+| -------- | ------------------- | ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| api      | connectRelay        | `connectRelay`          | `@axe/relay/client`                            | Connect a page's surface to a relay for the signed-in person; shows the indicator, answers observes and acts.                                                      |
+| api      | localMcpService     | `localMcpService`       | `@axe/relay/client`                            | Connection options for the local provider-operated MCP service: its tab endpoint and development-token callback.                                                   |
+| api      | localMcpServiceUrl  | `LOCAL_MCP_SERVICE_URL` | `@axe/relay/client`                            | Default local origin of the provider-operated MCP service.                                                                                                         |
+| api      | getToken            | `getToken`              | `@axe/relay/client`                            | `connectRelay` option: returns a fresh relay token, on every connection and before the current one expires.                                                        |
+| api      | onStatus            | `onStatus`              | `@axe/relay/client`                            | `connectRelay` option: told after every change of the connection's status, approvals included.                                                                     |
+| api      | requireApproval     | `requireApproval`       | `@axe/relay/client`                            | `connectRelay` option: which rows wait for the person's approval; default high risk or `confirm`.                                                                  |
+| api      | createRelay         | `createRelay`           | `@axe/relay/server`                            | Create a relay: tab connections, a mirror per tab served through `domainActions`, MCP over HTTP and stdio.                                                         |
+| api      | authenticateTab     | `authenticateTab`       | `@axe/relay/server`                            | `createRelay` option: check a tab's token yourself and name its principal and tenant.                                                                              |
+| api      | agentAuth           | `agentAuth`             | `@axe/relay/server`                            | `createRelay` option: the OAuth `verifier` for agents over HTTP and `identify`, the principal a token speaks for.                                                  |
+| api      | devPairing          | `devPairing`            | `@axe/relay/server`                            | `createRelay` option: local development on loopback, with pairing codes and development tokens.                                                                    |
+| api      | syncTimeoutMs       | `syncTimeoutMs`         | `@axe/relay/server`                            | `createRelay` option: how long a read waits for a fresh snapshot before serving the last one.                                                                      |
+| api      | reconnectGraceMs    | `reconnectGraceMs`      | `@axe/relay/server`                            | `createRelay` option: how long an act waits for a reconnecting (reloading) tab.                                                                                    |
+| api      | actTimeoutMs        | `actTimeoutMs`          | `@axe/relay/server`                            | `createRelay` option: how long the relay waits for the tab's answer to an act; past it the outcome is unknown (`outcome_unknown`).                                 |
+| api      | navigated           | `navigated`             | act output                                     | `true` when the act's click navigated the page before it settled ([S-RELAY-14]); observe the new page.                                                             |
+| api      | tabRetentionMs      | `tabRetentionMs`        | `@axe/relay/server`                            | `createRelay` option: how long a disconnected or stopped tab stays listed.                                                                                         |
+| api      | mintRelayToken      | `mintRelayToken`        | `@axe/relay/token`                             | Mint a relay token (HS256 JWT: `sub`, `org`, `aud`, `exp`) for the signed-in person, in the backend.                                                               |
+| api      | verifyRelayToken    | `verifyRelayToken`      | `@axe/relay/token`                             | Check a relay token's signature, audience, and expiry; returns its principal, tenant, and claims or null.                                                          |
+| api      | injectedRelay       | `injectedRelay`         | `@axe/relay/client`                            | The connection a host injected into the page (`window.__AXE_RELAY__`) as `connectRelay` options, or null; read when called, never at import.                       |
+| api      | relayOptions        | `relayOptions`          | `@axe/relay/client`                            | `injectedRelay()` when a host injected a connection, else the fallback options given (the attended relay).                                                         |
+| api      | approvals           | `approvals`             | `connectRelay` and `createRelay` option        | On the page: where the person decides an approval (`page`, `agent`, or `both`). On the relay: the approval page (`identify`, `pageUrl`, `linkTtlMs`, `sensitive`). |
+| api      | linkTtlMs           | `linkTtlMs`             | `createRelay` option `approvals`               | How long a link to the relay's approval page works, in ms; default five minutes.                                                                                   |
+| api      | approvalUrl         | `approvalUrl`           | `approval_required` `details`                  | The relay's single-use approval page, given when the agent's client could not show the request.                                                                    |
+| api      | tabId               | `tabId`                 | `relay_tabs`, `relay_select-tab`, `relay_stop` | A browser tab's id at the relay, kept across reloads.                                                                                                              |
+| api      | toolCallContext     | `ToolCallContext`       | `@axe/mcp`                                     | The MCP tool call an in-process AXE request serves (`AxeLike.handle`'s third argument): elicitation modes, `elicit`, `completeElicitation`, `signal`.              |
+| api      | completeElicitation | `completeElicitation`   | `@axe/mcp` `ToolCallContext`                   | Tell the client a URL-mode elicitation is finished (`notifications/elicitation/complete`).                                                                         |
 
 ## Host
 
@@ -14282,6 +14393,8 @@ Public identifiers of `@axe/surface/auto`, which derives a surface from the rend
 | api      | autoActions          | `autoActions`          | `@axe/surface/axe`                    | The recommended AXE bridge for an auto surface: `domainActions` over `autoDomains`.                                      |
 | api      | useAutoSurface       | `useAutoSurface`       | `@axe/surface/react`                  | React hook: start `autoSurface` on mount, re-scan on route changes, stop on unmount.                                     |
 | api      | useAutoSurfaceHandle | `useAutoSurfaceHandle` | `@axe/surface/react`                  | The handle of the nearest `SurfaceProvider`, or null before it has started.                                              |
+| api      | webMcp               | `webMcp`               | `@axe/surface/react`                  | Provider option: expose the page-held surface to a browser-native agent through WebMCP when supported.                   |
+| api      | onReady              | `onReady`              | `@axe/surface/react`                  | Provider callback: receives the auto-surface handle after the page scan starts and may return a cleanup.                 |
 | api      | elementFor           | `elementFor`           | `@axe/surface/auto`                   | The element an auto entry was derived from, when it is on the page.                                                      |
 | api      | metaFor              | `metaFor`              | `@axe/surface/auto`                   | What the scan recorded about an entry: its key, source, name source and confidence, risk, and policy.                    |
 | field    | nameFrom             | `nameFrom`             | coverage `entries[].nameFrom`         | Where a derived name came from: `aria-label`, `label`, `text`, `placeholder`, `icon`, `href`, and so on.                 |

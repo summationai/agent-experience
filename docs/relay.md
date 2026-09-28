@@ -5,19 +5,19 @@ A surface lives in the browser tab that created it ([Surface](surface.md), "Wher
 ```mermaid
 flowchart LR
   P[Person] <--> T[Tab: the app's page<br/>surface + connectRelay]
-  T <-- WebSocket, relay token --> R[Relay<br/>mirror per tab]
+  T <-- WebSocket, relay token --> R[Company-operated MCP service<br/>relay + mirror per tab]
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-Most applications do not need this page: the package-only `axe surface init` path uses browser-native WebMCP and no relay. This page covers the optional remote adapter: the relay underneath [Unattended mode](host.md), and attended mode in the person's own open tab, with pairing in development.
+Desktop agents need the service path on this page. The customer application installs only `@axe/surface` and the browser-only `@axe/relay/client`; the separately operated service owns the MCP SDK, WebSocket server, agent authentication, and relay records. Browser-native WebMCP remains an additional direct path where the browser supports it.
 
-Two modes. **Unattended** (the default for agents, [Unattended mode](host.md)): the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI. **Attended**: the person has the tab open, sees the indicator, and approves in the page.
+Two modes. **Attended** is the current company-service development path: the person has the tab open, sees the pairing and activity indicator, and approves in the page. **Unattended** ([Unattended mode](host.md)) is the optional no-tab path: the person signs in to the agent's own UI (MCP OAuth), a host runs a hidden browser session of the application for them (`@axe/host`), the application's real UI runs there with easy mode, and that hidden tab connects to the relay with no pairing. The person never touches the website, so they approve consequential acts in the agent's UI.
 
 The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-14] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
 
 ## Attended mode in four steps
 
-For the person's own tab (the fallback; unattended needs none of this, see [Unattended mode](host.md)):
+For the person's own tab (unattended needs none of this; see [Unattended mode](host.md)):
 
 1. Add the packages: `pnpm add @axe/surface @axe/relay`.
 2. In the page, register the controls on a surface (or let `@axe/surface/auto` do it) and connect it:
@@ -56,57 +56,53 @@ app.post("/api/relay-token", async (req, res) => {
 ```
 <!-- /include -->
 
-4. Run a relay and connect the agent to it (below: development in one command, production with OAuth).
+4. Run the company-side service and connect the agent to it (below: local development now, production with OAuth later).
 
 ## Local development
 
-Start the relay on loopback:
+Start the standalone service under this repository's `mcp/` directory:
 
 ```sh
-npx axe relay --dev
+pnpm mcp:dev
 ```
 
-It prints the three things to do, with the port filled in:
+It serves the website and agent sides separately:
 
 ```text
-axe relay: listening for tabs on ws://127.0.0.1:4717/tab
-
-1. In your page (development builds only):
-     import { connectRelay, devToken } from "@axe/relay/client";
-     connectRelay(surface, { url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") });
-
-2. Connect Claude Code to this relay (HTTP):
-     claude mcp add --transport http surface http://127.0.0.1:4717/mcp --header "Authorization: Bearer axd_…"
-   Or let Claude Code start the relay itself (stop this one first):
-     claude mcp add surface -- npx axe relay --dev --stdio
-
-3. Open the page. The tab shows a pairing code; tell the agent: "pair with code XXXX-XXXX".
+Agent Experience MCP service
+  website tabs: ws://127.0.0.1:4717/tab
+  desktop agents: http://127.0.0.1:4717/mcp
+  service metadata: http://127.0.0.1:4717/.well-known/agent-experience.json
+  local bearer key: axd_agent_experience_local
 ```
 
-In the page, connect with the development token helper:
+In the page, connect with the local-service helper:
 
 <!-- include: examples/relay/page.ts#dev -->
 ```ts
-// Local development against `npx axe relay --dev`: the relay hands out development tokens on
-// loopback, and the tab shows a pairing code for the agent.
+// Local development against the company-side service (`pnpm mcp:dev` in the SDK checkout): the
+// service hands out development tab tokens on loopback and shows an agent pairing code in the tab.
 if (location.hostname === "localhost") {
-  connectRelay(surface, {
-    url: "ws://127.0.0.1:4717/tab",
-    getToken: devToken("http://127.0.0.1:4717"),
-  });
+  connectRelay(surface, localMcpService());
 }
 ```
 <!-- /include -->
 
-Then, in Claude Code, say "pair with code 7K2M-Q9XD" (the code your tab shows). The agent calls `relay_pair`, and from then on `surface_observe` and the other tools act on your tab. The indicator changes from the code to "An agent can act in this tab", and to "An agent is acting in this tab" once it has.
+Connect a desktop agent to `http://127.0.0.1:4717/mcp` with the bearer key (see [`mcp/README.md`](../mcp/README.md)). Open the website, then tell the agent the code shown in its Surface indicator. The MCP server instructions tell it to call `relay_tabs`, `relay_pair`, `surface_read`, and `surface_observe`; subsequent Surface tools act on that tab. The indicator changes from the code to "An agent can act in this tab", and to "An agent is acting in this tab" once it has.
 
-The stdio form (`claude mcp add surface -- npx axe relay --dev --stdio`) needs no key: Claude Code starts the relay and speaks MCP on its standard input and output. Only one relay can hold port 4717; a second one exits with a message (pass `--port` to both the relay and the page).
+The lower-level `axe relay --dev` CLI remains available for SDK development and stdio clients, but application installation instructions point at the standalone service. Only one process can hold port 4717; override the service with `AXE_MCP_PORT` and pass the same service origin to `localMcpService(url)` when needed.
+
+### How a desktop agent discovers the website
+
+An MCP client does not discover this connection from the website URL. Configure the Agent Experience service once in the desktop client at `/mcp`, then start a fresh agent conversation so that client exposes the service's tools and initialization instructions. Those instructions tell the agent to start with `relay_tabs`; the open website announces itself to the service over `/tab`, and `relay_pair` binds the agent to it in local development. After that, `surface_read`, `surface_observe`, `surface_wait`, and the Surface action tools are the website interface.
+
+`/.well-known/agent-experience.json` is non-standard setup metadata for operators and diagnostics. It does not make an MCP client auto-install the service. This boundary is intentional: the browser package knows the tab endpoint, while the desktop client knows the MCP endpoint and agent credential. Neither the consuming website nor its repository hosts an MCP server.
 
 What development mode does, and does not allow:
 
 - `devPairing` listens on loopback only; `--host 0.0.0.0` is refused. Every request must come from a loopback address with a loopback `Host` header, so a web page cannot reach the relay through DNS rebinding.
 - Tabs connect from any port on `http://localhost`, `http://127.0.0.1`, or `http://[::1]` (`--origin` replaces the list). Development tokens name the principal `dev` in the tenant `dev`.
-- `/mcp` needs the development key the relay printed, or stdio. An agent reaches no tab until it pairs with the code shown in one. Five wrong codes lock that agent out for a minute.
+- `/mcp` needs `AXE_MCP_AGENT_KEY`. An agent reaches no tab until it pairs with the code shown in one. Five wrong codes lock that agent out for a minute.
 - Serve the page over `http://localhost` in development. A page served over `https` that connects to `ws://127.0.0.1` can be blocked as mixed content or stopped by the browser's local network access prompt; use `wss://` for anything that is not local.
 
 ## Unattended mode
@@ -119,10 +115,7 @@ A host that opens the application in a hidden browser session for a person sets 
 // the connection (`window.__AXE_RELAY__`: no pairing, no indicator, approvals in the agent's
 // client); in a normal browser, the attended development relay below.
 export function connectEitherWay(s: Surface): RelayConnection {
-  return connectRelay(
-    s,
-    relayOptions({ url: "ws://127.0.0.1:4717/tab", getToken: devToken("http://127.0.0.1:4717") }),
-  );
+  return connectRelay(s, relayOptions(localMcpService()));
 }
 ```
 <!-- /include -->
@@ -289,11 +282,8 @@ Importing `@axe/relay/client` touches no `window`, `document`, or `WebSocket`, s
 // With server-side rendering, load the client in an effect: importing it touches no window,
 // document, or WebSocket, and connecting happens only in the browser.
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
-  const { connectRelay: connect, devToken: dev } = await import("@axe/relay/client");
-  const connection = connect(s, {
-    url: "ws://127.0.0.1:4717/tab",
-    getToken: dev("http://127.0.0.1:4717"),
-  });
+  const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
+  const connection = connect(s, local());
   return () => connection.stop();
 }
 ```
@@ -301,7 +291,7 @@ export async function startRelayInBrowser(s: Surface): Promise<() => void> {
 
 ## Production
 
-The browser side needs only `@axe/relay` (its `client` and `token` entries import nothing at runtime). A relay server also needs its optional peer dependencies: install `@axe/mcp`, `@modelcontextprotocol/sdk`, and `ws` next to `@axe/relay` where the server runs. A web application that only connects its tabs installs none of them, which also keeps it clear of registry age gates on those packages.
+The browser side needs only `@axe/relay` (its `client` entry imports nothing at runtime) alongside `@axe/surface`. The standalone service under [`mcp/`](../mcp/README.md) owns `@axe/mcp`, the MCP SDK, `ws`, and the relay server. A web application that only connects its tabs installs none of those server dependencies.
 
 A production relay authenticates both sides: tabs with relay tokens your backend minted, agents with OAuth access tokens.
 
@@ -344,9 +334,10 @@ await relay.listen({ host: "0.0.0.0", port: 8080 });
 
 ## Connecting agents
 
-- **Claude Code**, development: `claude mcp add surface -- npx axe relay --dev --stdio`, or `claude mcp add --transport http surface http://127.0.0.1:4717/mcp --header "Authorization: Bearer <key>"` for a relay you started.
+- **Codex**, local service: set `AXE_MCP_AGENT_KEY`, then `codex mcp add agent-experience --url http://127.0.0.1:4717/mcp --bearer-token-env-var AXE_MCP_AGENT_KEY`.
+- **Claude Code**, local service: connect its HTTP MCP configuration to `http://127.0.0.1:4717/mcp` with `Authorization: Bearer <AXE_MCP_AGENT_KEY>`.
 - **Claude Code**, production: `claude mcp add --transport http surface https://relay.yogastudio.example/mcp`; Claude Code finds the authorization server from the protected-resource metadata (see [MCP](mcp.md), "OAuth") and signs the person in.
-- **Other MCP clients**: the same URL over Streamable HTTP with a bearer token, or the stdio command. The server's instructions tell the agent to call `relay_tabs` first.
+- **Other MCP clients**: the same URL over Streamable HTTP with a bearer token. The server's instructions tell the agent to call `relay_tabs` first, pair when needed, and use the Surface tools instead of generic browser automation.
 
 ## Security model
 

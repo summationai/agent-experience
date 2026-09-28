@@ -4,7 +4,7 @@
 
 A TypeScript SDK for exposing an application's existing capabilities to people and to agents through the same logic. You wrap functions you already have as typed actions, or register the live controls of a running app. Both get explicit permissions (who may call what, as which principal), availability with a reason, one result shape with five statuses (`ok`, `needs_input`, `needs_human`, `pending`, `error`), human approval bound to the exact call, and retries that replay a completed operation's result instead of running it again ([limits](docs/security.md#known-gaps)).
 
-Agents reach that logic through interfaces they already use: an MCP server (`@axe/mcp`), WebMCP tools in the browser (`@axe/surface/webmcp`), or the page's own controls, which carry the same names in the DOM for browser agents. AXE (`axe/0.1`) is the HTTP representation underneath. It is useful on its own, but you do not need agents to adopt it: publishing a manifest does not make an arbitrary agent find or use your site.
+Agents reach that logic through interfaces they already use: the installable [Agent Experience ChatGPT plugin](plugins/agent-experience/README.md) backed by the company-operated service under [`mcp/`](mcp/README.md), WebMCP tools in compatible browsers (`@axe/surface/webmcp`), or the page's own controls. AXE (`axe/0.1`) is the HTTP representation underneath. It is useful on its own, but you do not need agents to adopt it: publishing a manifest does not make an arbitrary agent find or use your site.
 
 [![CI](https://img.shields.io/badge/ci-github_actions-blue)](.github/workflows/ci.yml) [![Protocol](https://img.shields.io/badge/protocol-axe%2F0.1-informational)](spec/AXE-PROTOCOL.md) [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE) [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
@@ -43,16 +43,20 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 
 Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
-The package-only path for an existing web app, where a browser-native agent uses the app's own UI:
+For a consumer using ChatGPT on mobile or desktop, the intended production path is the public plugin plus the provider-operated hosted service. The person installs **Agent Experience** once and connects their account in ChatGPT's normal OAuth UI; the service runs the integrated application in an isolated browser session for them. They do not open the website, enter a pairing code, configure an MCP server, or install developer tooling. See [ChatGPT consumer path](docs/chatgpt-plugin.md).
+
+For local development of an existing web app's page-held Surface:
 
 ```sh
-npm install @axe/surface
-npx axe surface init --yes
+npm install @axe/surface @axe/relay
+npx axe surface init --relay-dev --yes
+# In the Agent Experience checkout, not the consuming app:
+pnpm mcp:dev
 ```
 
-The package keeps the live controls, revision, ledger, and handlers in the page. In a compatible browser host it registers `surface_observe`, page read/wait tools, and the controls directly with the browser-native agent through WebMCP; it also publishes the same semantics in the DOM and exposes `window.__surface` diagnostics in development. There is no standalone MCP server or relay in this path. A generic headless browser session that offers only click/type automation is not a WebMCP host; see the [host preflight](docs/webmcp.md#host-compatibility-and-preflight).
+The package keeps the authoritative controls, revision, ledger, approval boundary, and handlers in the page. Locally, its browser-only relay client connects the open tab to the separately operated service. In hosted mode, `@axe/host` opens that same page on provider infrastructure and injects the relay before application code runs. Both expose `relay_tabs`, `surface_read`, `surface_observe`, `surface_wait`, and Surface action tools; the customer application never runs an MCP server. See [Agent Experience MCP service](mcp/README.md), [ChatGPT consumer path](docs/chatgpt-plugin.md), and [Relay](docs/relay.md).
 
-An agent outside the browser is optional. `axe surface init --remote` adds the browser client for an injected host connection; `--relay-dev` or `--relay <url>` adds the attended relay. Those adapters can present the same package-held surface over MCP without moving authority out of the page ([Unattended mode](docs/host.md), [Relay](docs/relay.md)).
+WebMCP remains available as a direct browser-native path where the host supports and delivers site tools. `axe surface init --remote` remains the optional injected-host path. All paths present the same package-held Surface without moving application authority out of the page.
 
 - **[Getting started](docs/getting-started.md)** — Surface in an existing app in four steps, and from `npm install` to a passing AXE conformance check in 15 minutes.
 - **[Concepts](docs/concepts.md)** — manifest, actions, display and affordances, the result envelope, the escalation ladder.
@@ -88,11 +92,13 @@ The packages share one set of application logic and differ in how a caller reach
 | `@axe/next`     | Next.js App Router and Pages API adapter.                                                                                 |
 | `@axe/fetch`    | Adapter for Web-standard handlers: Hono, Remix, Workers, Bun, Deno, SvelteKit.                                            |
 | `@axe/surface`  | Live-state registry for a running app: controls with reasons and one revision, served as AXE actions, WebMCP tools, or DOM attributes. |
-| `@axe/relay`    | Optional remote adapter: a broker that lets an agent outside the browser drive a signed-in person's live tab through its surface. |
+| `@axe/relay`    | Browser relay client plus the reusable relay runtime used by the separately operated MCP service. |
 | `@axe/host`     | Optional unattended adapter: runs the app in a headless browser for the signed-in person, with no pairing. |
 | `@axe/generate` | Derive actions from an OpenAPI document, a zod-typed function table, or a tRPC router; refuses to invent.                 |
 | `@axe/testing`  | Conformance suite, AXE audit, drift check, and test helpers.                                                              |
 | `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`, `axe relay`, `axe host`. |
+
+The private `@axe/mcp-service` application under [`mcp/`](mcp/README.md) composes the relay and unattended-host runtimes into the Node service operated by the package provider; it is a deployable application, not a dependency customers install.
 
 ## Developing
 

@@ -37,7 +37,7 @@ export interface InitOptions {
   flagImport?: string;
   /** The file to mount in, relative to `dir` (default: the framework root). */
   mount?: string;
-  /** Include the optional relay/host adapter for an agent outside the browser. */
+  /** Include the relay/service or injected-host adapter for an agent outside the browser. */
   remote?: boolean;
   relay?: string;
   /** Directory holding the packed tarballs, for the unpublished install form. */
@@ -440,7 +440,7 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
         ]
       : [
           {
-            text: "Open the app in an agent browser that implements WebMCP and delivers Site tools to the task. A generic/headless click-and-type session is not a WebMCP host. In development, window.__surface.webMcp() reports registration health.",
+            text: "Open the app in an agent browser that implements WebMCP and delivers Site tools to the task. For desktop MCP agents, re-run with --relay-dev to connect the page to the separately operated local service.",
           },
         ]),
     { text: `See what an agent sees: npx ${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]` },
@@ -451,9 +451,9 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
       text: !remote
         ? "An agent outside the browser is optional: re-run with --remote for an injected host connection, or --relay-dev for an attended relay."
         : o.relay === DEV_RELAY_URL
-          ? "Fallback, the person's own tab (attended): npx axe relay --dev, then pair the agent with the code the tab shows."
+          ? "Start the company-side local service from the SDK checkout with pnpm mcp:dev, connect the desktop agent to http://127.0.0.1:4717/mcp, then pair it with the code the tab shows."
           : o.relay !== undefined
-            ? "Fallback, the person's own tab (attended): the tab connects to your relay; mint its token in /api/relay-token."
+            ? "The person's own tab connects to the company-side service; its authenticated deployment supplies the short-lived tab token."
             : "Fallback, the person's own tab (attended): re-run with --relay-dev, or let a browser agent drive window.__surface.",
     },
   );

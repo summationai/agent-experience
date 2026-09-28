@@ -2,13 +2,20 @@
 // the relay client, bundled for the browser exactly as an application would ship them.
 import { createSurface } from "@axe/surface";
 import { autoSurface } from "@axe/surface/auto";
-import { connectRelay, devToken, injectedRelay, relayOptions } from "../../src/client";
+import {
+  connectRelay,
+  devToken,
+  localMcpService,
+  injectedRelay,
+  relayOptions,
+} from "../../src/client";
 
 (globalThis as unknown as { relayPage: unknown }).relayPage = {
   createSurface,
   autoSurface,
   connectRelay,
   devToken,
+  localMcpService,
   injectedRelay,
   relayOptions,
 };
