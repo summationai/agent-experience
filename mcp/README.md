@@ -84,7 +84,22 @@ Hosted mode uses two standard server-to-server integrations:
 }
 ```
 
-The broker authenticates this service with `Authorization: Bearer <AXE_HOST_SESSION_BROKER_TOKEN>`. It should verify the named user and tenant, issue a narrowly scoped session with a short expiry, and return `401` or `403` to refuse. It may return `cookies`, `headers`, `localStorage`, or `storageState`; those credentials are placed only into that identity's isolated browser context and are never returned through MCP.
+The broker authenticates this service with `Authorization: Bearer <AXE_HOST_SESSION_BROKER_TOKEN>`. It should verify the named user and tenant, issue a narrowly scoped session with a short expiry, and return `403` with no login response to refuse permanently. It may return `cookies`, `headers`, `localStorage`, or `storageState`; those credentials are placed only into that identity's isolated browser context and are never returned through MCP.
+
+When the identity is valid but has not connected an application account, return `401` or `403` with this JSON instead:
+
+```json
+{
+  "loginUrl": "https://app.customer.example/agent-login?request=opaque-one-time-code",
+  "instructions": "Sign in to the application in this window, then return to ChatGPT.",
+  "whatAgentShouldSayToUser": "Please connect your application account so I can continue.",
+  "expiresAt": "2026-09-28T17:30:00.000Z"
+}
+```
+
+`loginUrl` is required; the other fields are optional. It must be an absolute HTTP(S) URL and `expiresAt`, when present, must be in the future. The opaque request in that URL is the application's responsibility: bind it to the broker request's verified `principal` and `tenant`, require the person to authenticate on the application's own page, make it short-lived and single-use, and never put a password in the URL. After successful sign-in, later broker calls for that identity must return the session shape above.
+
+The MCP service turns this response into an `application_login_required` human handoff. A URL-capable agent client can open it in its normal consent UI; otherwise the model relays the same link. When the person returns, `axe_resume` asks the broker again and replays the exact original tool call only if a session is now available. Resume tokens are random, expire with the login request, are bound to the verified MCP principal and tenant, and replay the stored result rather than running the operation twice. The username and password go only to the application login page and never cross MCP, the model, or this service.
 
 Install Chromium in the service image (`npx playwright install chromium --with-deps`). Size `AXE_HOST_MAX_SESSIONS` for the memory cost of one real application page per active user, and use sticky routing if multiple service instances share the public endpoint because MCP and hosted browser sessions are in memory.
 

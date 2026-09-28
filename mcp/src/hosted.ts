@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { createHost } from "@axe/host";
+import { createHost, SessionLoginRequired } from "@axe/host";
 import type { AppSession, Host, HostAddress, HostEvent, HostOptions, SessionFor } from "@axe/host";
 import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
@@ -35,6 +35,13 @@ export interface HostedMcpService {
 }
 
 type Fetch = typeof fetch;
+
+interface BrokerLoginResponse {
+  loginUrl?: unknown;
+  instructions?: unknown;
+  whatAgentShouldSayToUser?: unknown;
+  expiresAt?: unknown;
+}
 
 function required(env: Record<string, string | undefined>, name: string): string {
   const value = env[name]?.trim();
@@ -212,7 +219,24 @@ export function brokeredSessionFor(
       body: JSON.stringify({ principal, tenant, scopes: authInfo?.scopes ?? [] }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (response.status === 401 || response.status === 403) return null;
+    if (response.status === 401 || response.status === 403) {
+      const login = (await response.json().catch(() => null)) as BrokerLoginResponse | null;
+      if (login && typeof login.loginUrl === "string") {
+        const expiresAt =
+          typeof login.expiresAt === "string" || typeof login.expiresAt === "number"
+            ? login.expiresAt
+            : undefined;
+        throw new SessionLoginRequired({
+          url: login.loginUrl,
+          ...(typeof login.instructions === "string" ? { instructions: login.instructions } : {}),
+          ...(typeof login.whatAgentShouldSayToUser === "string"
+            ? { whatAgentShouldSayToUser: login.whatAgentShouldSayToUser }
+            : {}),
+          ...(expiresAt !== undefined ? { expiresAt } : {}),
+        });
+      }
+      return null;
+    }
     if (!response.ok) throw new Error(`The session broker failed with HTTP ${response.status}.`);
     return appSession(await response.json());
   };
@@ -267,7 +291,7 @@ export async function startHostedMcpServiceFromEnv(
     ...(config.idleMs ? { idleMs: config.idleMs } : {}),
     name: "Agent Experience",
     description:
-      "Use the connected application's real interface in a private hosted browser session. Start with relay_tabs, then surface_read and surface_observe. Act only with Surface tools; do not use generic browser automation or a nested CLI agent.",
+      "Use the connected application's real interface in a private hosted browser session. Start with relay_tabs. If it returns an application_login_required handoff, offer its application URL to the person, never ask for their password, and call axe_resume after they finish. Then use surface_read and surface_observe. Act only with Surface tools; do not use generic browser automation or a nested CLI agent.",
     ...(dependencies.onEvent ? { onEvent: dependencies.onEvent } : {}),
     listen: { host: config.host, port: config.port },
   });

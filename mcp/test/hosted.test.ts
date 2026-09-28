@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SessionLoginRequired } from "@axe/host";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import {
   brokeredSessionFor,
@@ -119,6 +120,41 @@ describe("provider-operated hosted MCP service", () => {
     await expect(
       sessionFor({ principal: "person-1", tenant: "team-1", authInfo: null }),
     ).rejects.toThrow(/not a host file path/);
+  });
+
+  it("turns a broker login challenge into a password-free application handoff", async () => {
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          loginUrl: "https://app.example/agent-login?request=opaque-one-time-code",
+          instructions: "Sign in to Summation in this window.",
+          whatAgentShouldSayToUser: "Please connect your Summation account.",
+          expiresAt,
+        }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    const sessionFor = brokeredSessionFor(hostedEnvironmentConfig(ENV), fetcher);
+    let thrown: unknown;
+    try {
+      await sessionFor({ principal: "person-1", tenant: "team-1", authInfo: null });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(SessionLoginRequired);
+    expect(thrown).toMatchObject({
+      url: "https://app.example/agent-login?request=opaque-one-time-code",
+      instructions: "Sign in to Summation in this window.",
+      whatAgentShouldSayToUser: "Please connect your Summation account.",
+      expiresAt: Date.parse(expiresAt),
+    });
+
+    // A refusal without a login page remains a refusal, not a fabricated sign-in flow.
+    fetcher.mockResolvedValueOnce(new Response(null, { status: 403 }));
+    await expect(
+      sessionFor({ principal: "person-1", tenant: "team-1", authInfo: null }),
+    ).resolves.toBeNull();
   });
 
   it("serves OAuth discovery from the same standalone process", async () => {

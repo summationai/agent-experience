@@ -1,5 +1,5 @@
 /**
- * @axe/host: unattended mode (spec/SURFACE.md §9.2, [S-HOST-1] to [S-HOST-8]).
+ * @axe/host: unattended mode (spec/SURFACE.md §9.2, [S-HOST-1] to [S-HOST-9]).
  *
  * The agent signs in (MCP OAuth, in the agent's own UI). For the principal and tenant its token
  * names, the host runs the application in a headless browser: one shared Chromium, one isolated
@@ -16,6 +16,7 @@ import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node
 import type { AddressInfo, Socket } from "node:net";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Browser, BrowserContext, Page, Route, Request as PwRequest } from "playwright-core";
+import { WIRE } from "@axe/core";
 import type { AdapterContext } from "@axe/core";
 import { createMcpServer, protectedResourceMetadata, serveHttp, serveStdio } from "@axe/mcp";
 import type {
@@ -27,6 +28,7 @@ import type {
   McpHttpHandler,
   OAuthTokenVerifier,
   ProtectedResourceOptions,
+  ToolCallContext,
 } from "@axe/mcp";
 import {
   createRelay,
@@ -39,7 +41,7 @@ import type { Relay, RelayAgentAuth, RelayEvent, RelayOptions } from "@axe/relay
 // The browser client's constant: importing it runs nothing (the client module touches no DOM at import).
 import { INJECTED_RELAY_GLOBAL } from "@axe/relay/client";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
-import { contextStorageState } from "./session";
+import { contextStorageState, SessionLoginRequired } from "./session";
 import type { AppSession, HostIdentity, SessionFor } from "./session";
 import { watchPage } from "./watch";
 
@@ -288,6 +290,67 @@ function envelope(message: string, reason: string): Response {
   );
 }
 
+function resultEnvelope(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+}
+
+interface StoredResponse {
+  status: number;
+  headers: [string, string][];
+  body: Uint8Array;
+}
+
+interface StoredRequest {
+  url: string;
+  method: string;
+  headers: [string, string][];
+  body?: Uint8Array;
+}
+
+async function storeRequest(request: Request): Promise<StoredRequest> {
+  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  return {
+    url: request.url,
+    method: request.method,
+    headers: [...request.headers.entries()],
+    ...(hasBody ? { body: new Uint8Array(await request.arrayBuffer()) } : {}),
+  };
+}
+
+function restoreRequest(request: StoredRequest): Request {
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    ...(request.body ? { body: request.body.slice() } : {}),
+  });
+}
+
+async function storeResponse(response: Response): Promise<StoredResponse> {
+  return {
+    status: response.status,
+    headers: [...response.headers.entries()],
+    body: new Uint8Array(await response.arrayBuffer()),
+  };
+}
+
+function restoreResponse(response: StoredResponse): Response {
+  return new Response(response.body.slice(), {
+    status: response.status,
+    headers: response.headers,
+  });
+}
+
+interface LoginHandoffRecord {
+  key: string;
+  request: StoredRequest;
+  expiresAt: number;
+  completed?: StoredResponse;
+  running?: Promise<StoredResponse>;
+}
+
 /**
  * The script the host adds to every document of a session, before the page's own scripts: in the
  * application's origin only, it keeps the relay tab id stable and defines `window.__AXE_RELAY__`.
@@ -422,6 +485,15 @@ export function createHost(options: HostOptions): Host {
   const keyOf = (who: HostIdentity): string => JSON.stringify([who.tenant, who.principal]);
   /** Identities the person or the owner stopped: no session starts for them until `resume`. */
   const held = new Set<string>();
+  /** Pending application-login handoffs, bound to the verified MCP identity that created them. */
+  const loginHandoffs = new Map<string, LoginHandoffRecord>();
+
+  const pruneLoginHandoffs = (): void => {
+    const now = Date.now();
+    for (const [token, handoff] of loginHandoffs)
+      if (handoff.expiresAt <= now) loginHandoffs.delete(token);
+    while (loginHandoffs.size >= 1000) loginHandoffs.delete(loginHandoffs.keys().next().value!);
+  };
 
   const browserNow = (): Promise<Browser> => {
     browser ??= (async () => {
@@ -586,7 +658,18 @@ export function createHost(options: HostOptions): Host {
     if (options.sessionFor) {
       try {
         session = await options.sessionFor({ ...who, authInfo });
-      } catch {
+      } catch (error) {
+        if (error instanceof SessionLoginRequired) {
+          if (sessions.get(key) === s) sessions.delete(key);
+          s.state = "down";
+          emit({
+            type: "session.failed",
+            principal: who.principal,
+            tenant: who.tenant,
+            reason: "application login required",
+          });
+          throw error;
+        }
         // The error may carry a credential; it is neither logged nor returned.
         return fail("sessionFor threw", "The application session for you could not be created.");
       }
@@ -744,14 +827,116 @@ export function createHost(options: HostOptions): Host {
     return id && typeof tenant === "string" ? { principal: id.onBehalfOf, tenant } : null;
   };
 
+  const loginHandoff = async (
+    who: HostIdentity,
+    request: Request,
+    required: SessionLoginRequired,
+  ): Promise<Response> => {
+    pruneLoginHandoffs();
+    const token = `axh_login_${randomBytes(32).toString("base64url")}`;
+    loginHandoffs.set(token, {
+      key: keyOf(who),
+      request: await storeRequest(request),
+      expiresAt: required.expiresAt,
+    });
+    return resultEnvelope({
+      status: WIRE.status.needsHuman,
+      handoff: {
+        reason: "application_login_required",
+        instructions: required.instructions,
+        url: required.url,
+        whatAgentShouldSayToUser: required.whatAgentShouldSayToUser,
+        resumeToken: token,
+        expiresAt: new Date(required.expiresAt).toISOString(),
+      },
+    });
+  };
+
+  const loginResume = async (
+    request: Request,
+    who: HostIdentity,
+    authInfo: AuthInfo | null,
+    ctx: AdapterContext,
+    call: ToolCallContext | undefined,
+  ): Promise<Response | null> => {
+    if (new URL(request.url).pathname !== WIRE.path.resume) return null;
+    const body = (await request
+      .clone()
+      .json()
+      .catch(() => null)) as Record<string, unknown> | null;
+    const token = body?.[WIRE.field.resumeToken];
+    if (typeof token !== "string" || !token.startsWith("axh_login_")) return null;
+    pruneLoginHandoffs();
+    const handoff = loginHandoffs.get(token);
+    // Unknown, expired, and another identity's handoff are deliberately indistinguishable.
+    if (!handoff || handoff.key !== keyOf(who))
+      return resultEnvelope(
+        {
+          status: WIRE.status.error,
+          error: {
+            code: "not_found",
+            message: "That application sign-in handoff is unknown or expired. Start again.",
+            retryable: false,
+          },
+        },
+        404,
+      );
+    if (handoff.completed) return restoreResponse(handoff.completed);
+    if (!handoff.running) {
+      handoff.running = (async () => {
+        try {
+          await ensure(who, authInfo);
+        } catch (error) {
+          if (error instanceof SessionLoginRequired)
+            return storeResponse(
+              resultEnvelope(
+                {
+                  status: WIRE.status.error,
+                  error: {
+                    code: "conflict",
+                    message:
+                      "The application has not completed sign-in yet. Nothing ran; ask the person to finish signing in, then call axe_resume again with the same token.",
+                    retryable: true,
+                    details: {
+                      reason: "application_login_pending",
+                      handoff: { status: "open" },
+                    },
+                  },
+                },
+                409,
+              ),
+            );
+          return storeResponse(
+            error instanceof HostError
+              ? envelope(error.message, error.reason)
+              : envelope("The hosted session could not start.", "host_session_unavailable"),
+          );
+        }
+        const response = await relay.handleAgent(restoreRequest(handoff.request), ctx, call);
+        const stored = await storeResponse(response);
+        handoff.completed = stored;
+        return stored;
+      })();
+    }
+    try {
+      return restoreResponse(await handoff.running);
+    } finally {
+      delete handoff.running;
+    }
+  };
+
   const axeFor = (fallback: AdapterContext | undefined): AxeLike => ({
     async handle(request, adapter, call) {
       const ctx = adapter ?? fallback;
       const who = whoOf(ctx);
       if (who) {
+        const authInfo = (ctx?.identity && authOf.get(ctx.identity)) ?? null;
+        const resumed = await loginResume(request, who, authInfo, ctx ?? {}, call);
+        if (resumed) return resumed;
         try {
-          await ensure(who, (ctx?.identity && authOf.get(ctx.identity)) ?? null);
+          await ensure(who, authInfo);
         } catch (e) {
+          if (e instanceof SessionLoginRequired) return loginHandoff(who, request.clone(), e);
           return e instanceof HostError
             ? envelope(e.message, e.reason)
             : envelope("The hosted session could not start.", "host_session_unavailable");
@@ -817,7 +1002,11 @@ export function createHost(options: HostOptions): Host {
           };
         } catch (e) {
           return toolError(
-            e instanceof HostError ? e.message : "The screenshot could not be taken; try again.",
+            e instanceof SessionLoginRequired
+              ? `${e.whatAgentShouldSayToUser} Open ${e.url}, finish signing in, then call relay_tabs before requesting another screenshot.`
+              : e instanceof HostError
+                ? e.message
+                : "The screenshot could not be taken; try again.",
           );
         }
       },
@@ -934,6 +1123,8 @@ export function createHost(options: HostOptions): Host {
   const stop = async (who: HostIdentity): Promise<void> => {
     const key = keyOf(who);
     held.add(key);
+    for (const [token, handoff] of loginHandoffs)
+      if (handoff.key === key) loginHandoffs.delete(token);
     const s = sessions.get(key);
     // Revoke the tab's token at the relay first, so nothing more runs in the page.
     if (s) relay.stop(who, s.tabId);
@@ -1010,6 +1201,7 @@ export function createHost(options: HostOptions): Host {
     },
     async close() {
       closing = true;
+      loginHandoffs.clear();
       await Promise.all([...sessions.values()].map((s) => dispose(s, "shutdown")));
       const b = browser ? await browser.catch(() => null) : null;
       browser = null;

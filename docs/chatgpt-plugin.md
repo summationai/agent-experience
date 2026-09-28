@@ -9,7 +9,7 @@ The product should never ask the user to understand that distinction. Its langua
 1. The application developer installs `@axe/surface` and the browser-only part of `@axe/relay`, mounts `SurfaceProvider`, and enables the injected-host path. Their application does not run or deploy MCP.
 2. The provider deploys [`mcp/`](../mcp/README.md) at one stable public HTTPS `/mcp` URL and publishes [`plugins/agent-experience`](../plugins/agent-experience/README.md) against it.
 3. The person installs the plugin from ChatGPT's directory. On first use, ChatGPT discovers the service's OAuth metadata and asks the person to connect their account.
-4. A tool call reaches the provider service with that person's access token. The service verifies it, maps its claims to one principal and tenant, and asks the integrated application's session broker for a short-lived app session.
+4. A tool call reaches the provider service with that person's access token. The service verifies it, maps its claims to one principal and tenant, and asks the integrated application's session broker for a short-lived app session. If the account is not connected yet, ChatGPT offers the broker's application login page; the person enters credentials there, returns to ChatGPT, and the original call resumes.
 5. `@axe/host` starts one isolated browser context for that identity, opens the real application, and injects its private relay before the page loads. The already-installed Surface package registers the application's controls.
 6. The plugin instructions make the model call `relay_tabs`, `surface_read`, and `surface_observe`, then act with Surface tools. Consequential controls use ChatGPT's approval/elicitation UI. The person never needs an open browser tab or pairing code.
 
@@ -29,7 +29,7 @@ The page remains authoritative for live controls, revisions, handlers, and its l
 
 A remote browser cannot inherit cookies from Safari on the user's phone. The integrated application must therefore expose a private session-broker endpoint to the provider, or offer an equivalent identity-provider token exchange. This is the unavoidable difference between controlling an already open tab and running unattended.
 
-The broker receives an authenticated provider request containing only the verified `principal`, `tenant`, and scopes. It returns a short-lived cookie, scoped header, or storage state accepted by the application. It never receives the ChatGPT/MCP access token, and it may refuse any identity or scope. See the exact request and response in [`mcp/README.md`](../mcp/README.md#run-the-hosted-service).
+The broker receives an authenticated provider request containing only the verified `principal`, `tenant`, and scopes. It returns a short-lived cookie, scoped header, or storage state accepted by the application. If the account is not connected, it instead returns a trusted one-time login URL. The person enters credentials on that application page—not into ChatGPT—and the service retries the broker after the handoff. The broker never receives the ChatGPT/MCP access token, and it may refuse any identity or scope. See the exact request and response in [`mcp/README.md`](../mcp/README.md#run-the-hosted-service).
 
 This keeps the install burden where it belongs: one small backend integration for the developer who adopts the package, not MCP setup for every end user.
 

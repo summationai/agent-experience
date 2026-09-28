@@ -168,7 +168,7 @@ What remains yours: minting relay tokens only for the signed-in person in a requ
 
 ### A hosted browser acting as the person
 
-In unattended mode `@axe/host` runs the application in a headless browser on your server, signed in as the person the agent authenticated as ([Unattended mode](host.md), [S-HOST-1] to [S-HOST-8]). That browser holds a real session and acts with it, from your network.
+In unattended mode `@axe/host` runs the application in a headless browser on your server, signed in as the person the agent authenticated as ([Unattended mode](host.md), [S-HOST-1] to [S-HOST-9]). That browser holds a real session and acts with it, from your network.
 
 | Threat | Mitigation |
 | --- | --- |

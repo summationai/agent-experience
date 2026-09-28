@@ -68,8 +68,59 @@ export interface AppSession {
 }
 
 /**
+ * A trusted application's session exchange can throw this when the person must sign in before it
+ * can mint a browser session. The host turns it into an identity-bound MCP human handoff; the
+ * password is entered only at `url` and never crosses the agent or this SDK.
+ */
+export class SessionLoginRequired extends Error {
+  readonly url: string;
+  readonly instructions: string;
+  readonly whatAgentShouldSayToUser: string;
+  /** Milliseconds since the epoch. */
+  readonly expiresAt: number;
+
+  constructor(options: {
+    url: string;
+    instructions?: string;
+    whatAgentShouldSayToUser?: string;
+    /** An RFC 3339 timestamp or milliseconds since the epoch. Default: ten minutes from now. */
+    expiresAt?: string | number;
+  }) {
+    let login: URL;
+    try {
+      login = new URL(options.url);
+    } catch {
+      throw new Error("SessionLoginRequired: url must be an absolute http(s) URL.");
+    }
+    if (login.protocol !== "https:" && login.protocol !== "http:")
+      throw new Error("SessionLoginRequired: url must be an absolute http(s) URL.");
+    const expiresAt =
+      options.expiresAt === undefined
+        ? Date.now() + 10 * 60_000
+        : typeof options.expiresAt === "number"
+          ? options.expiresAt
+          : Date.parse(options.expiresAt);
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now())
+      throw new Error("SessionLoginRequired: expiresAt must be a future timestamp.");
+    const whatAgentShouldSayToUser =
+      options.whatAgentShouldSayToUser?.trim() ||
+      "Please sign in to the application so I can continue.";
+    super(whatAgentShouldSayToUser);
+    this.name = "SessionLoginRequired";
+    this.url = login.href;
+    this.instructions =
+      options.instructions?.trim() ||
+      "Sign in on the application's page, then return to your assistant and say you are done.";
+    this.whatAgentShouldSayToUser = whatAgentShouldSayToUser;
+    this.expiresAt = expiresAt;
+  }
+}
+
+/**
  * Turns the agent's identity into the application session its hosted browser starts with. Return
  * null (or throw) to refuse: the agent is told its session could not start, and nothing runs.
+ * Throw `SessionLoginRequired` to give the person a trusted sign-in page and let the agent resume
+ * the original tool call after the session exchange succeeds.
  */
 export type SessionFor = (
   request: SessionRequest,

@@ -10,7 +10,7 @@ flowchart LR
   H -. sessionFor: the app's session .-> B
 ```
 
-`@axe/host` is the host. For each principal and tenant an agent authenticates as, it starts an isolated Playwright browser context on the agent's first tool call, applies the application session your `sessionFor` returns, injects the relay connection before any page script runs, opens the application, and waits until the page's surface is connected. Every tool call then routes to that person's hidden tab. The rules are [S-HOST-1] to [S-HOST-8] in [spec/SURFACE.md](../spec/SURFACE.md) §9.2.
+`@axe/host` is the host. For each principal and tenant an agent authenticates as, it starts an isolated Playwright browser context on the agent's first tool call, applies the application session your `sessionFor` returns, injects the relay connection before any page script runs, opens the application, and waits until the page's surface is connected. Every tool call then routes to that person's hidden tab. The rules are [S-HOST-1] to [S-HOST-9] in [spec/SURFACE.md](../spec/SURFACE.md) §9.2.
 
 ## What the application needs
 
@@ -194,6 +194,28 @@ Connect Claude Code with `claude mcp add --transport http summation https://agen
 
 The SDK does not issue application sessions and never sees a password. `sessionFor` receives the verified identity (`principal`, `tenant`, and `authInfo`, the verified access token) and returns what the browser context starts with: `cookies`, `headers` (sent to the application's origin only), a `storageState`, or `localStorage` entries. Return null to refuse.
 
+If this is a valid identity that still needs to sign in to the application, throw `SessionLoginRequired` with a trusted, short-lived application URL:
+
+```ts
+import { SessionLoginRequired, type SessionFor } from "@axe/host";
+
+const sessionFor: SessionFor = async ({ principal, tenant }) => {
+  const exchange = await appSessions.exchange({ principal, tenant });
+  if (exchange.status === "login_required") {
+    throw new SessionLoginRequired({
+      url: exchange.loginUrl,
+      instructions: "Sign in on the application's page, then return to your assistant.",
+      whatAgentShouldSayToUser: "Please connect your application account so I can continue.",
+      expiresAt: exchange.expiresAt,
+    });
+  }
+  if (exchange.status === "refused") return null;
+  return { cookies: exchange.cookies };
+};
+```
+
+The host returns a native `needs_human` result, never asks the model for credentials, and keeps the original tool request in memory. After the person signs in, `axe_resume` calls `sessionFor` again and replays that request. The resume token is bound to the verified principal and tenant, expires with the login URL, and returns the stored result on duplicate resumes. The login page must bind its opaque request to the same identity and make it single-use; do not put a username, password, or application session in the URL.
+
 <!-- include: examples/host/production.ts#session-for -->
 ```ts
 // The application, not the SDK, issues the session: here a short-lived one minted for the user
@@ -237,12 +259,12 @@ Either way, bind it to the identity the verified token names, keep it short-live
 
 ## Security model
 
-A server-side browser acting as a person is powerful, so the host states what it guarantees ([S-HOST-1] to [S-HOST-8]) and [Security](security.md) lists the threats:
+A server-side browser acting as a person is powerful, so the host states what it guarantees ([S-HOST-1] to [S-HOST-9]) and [Security](security.md) lists the threats:
 
 - **Identity binding.** A session is for exactly the principal and tenant the agent's verified token names. The host mints the page's relay token for that identity only, and the relay serves an agent only its own person's tab ([S-RELAY-3]). A tenant change is another session.
 - **Isolation.** One browser context per identity: no cookie, storage, cache, or permission is shared between two people. They share only the browser process.
 - **No pairing, safely.** Pairing exists to prove that the person at the tab is the person the agent speaks for. Here the host opens the tab itself, for the identity the agent signed in as, so there is nothing to prove. The connection is injected only into frames of the application's origin, and the renewal function mints only for those frames.
-- **Credentials stay put.** What `sessionFor` returns is never logged, put in an event, or returned by a tool; headers go only to the application's origin; relay tokens live ten minutes (`tokenTtlSeconds`) and renew in-band. A `sessionFor` error is not passed on to the agent.
+- **Credentials stay put.** What `sessionFor` returns is never logged, put in an event, or returned by a tool; headers go only to the application's origin; relay tokens live ten minutes (`tokenTtlSeconds`) and renew in-band. An ordinary `sessionFor` error is not passed on to the agent. `SessionLoginRequired` exposes only the application-supplied login URL and safe instructions, never credentials.
 - **Everything through the UI.** The agent changes nothing except through the page's own controls; the host adds no write tool. `host_screenshot` only reads.
 - **Approvals through the agent.** Consequential acts wait for the person in the agent's UI.
 - **Navigation stays on the application** (the request-forgery defense). A navigation to any origin other than the application's and `allowedOrigins` is refused and the page stays where it was; `restrict: "all"` refuses every other request too. Cloud metadata addresses are never reachable, and service workers, which could fetch around these rules, are blocked. Each refusal is an event naming the origin.

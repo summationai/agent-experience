@@ -731,27 +731,28 @@ Public identifiers of `@axe/relay`, the broker between a signed-in person's live
 
 ## Host
 
-Public identifiers of `@axe/host`, unattended mode: the SDK runs the application in a headless browser for the person the agent authenticated as, and the agent drives it through the relay with no pairing (`spec/SURFACE.md` §9.2, [S-HOST-1] to [S-HOST-8]; `docs/host.md`).
+Public identifiers of `@axe/host`, unattended mode: the SDK runs the application in a headless browser for the person the agent authenticated as, and the agent drives it through the relay with no pairing (`spec/SURFACE.md` §9.2, [S-HOST-1] to [S-HOST-9]; `docs/host.md`).
 
-| Category | Key                 | Name                  | Where                         | Meaning                                                                                                                           |
-| -------- | ------------------- | --------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| api      | createHost          | `createHost`          | `@axe/host`                   | Create a session host: one browser context per identity, started on the agent's first tool call, served over MCP.                 |
-| api      | sessionFor          | `sessionFor`          | `createHost` option           | Turn the agent's verified identity into the application session its hosted browser starts with; null refuses.                     |
-| api      | storageStateSession | `storageStateSession` | `@axe/host`                   | Development `sessionFor`: every identity gets the storage state `axe host login` saved.                                           |
-| api      | cookieSession       | `cookieSession`       | `@axe/host`                   | A `sessionFor` from a function that returns the cookies for an identity.                                                          |
-| api      | storageState        | `storageState`        | `sessionFor` result           | A Playwright storage state (a file path or the object): cookies and each origin's `localStorage`.                                 |
-| api      | localStorage        | `localStorage`        | `sessionFor` result           | `localStorage` entries by origin that a hosted session starts with.                                                               |
-| api      | startPath           | `startPath`           | `createHost` option           | The path each hosted session opens first, relative to the application URL.                                                        |
-| api      | navigationTimeoutMs | `navigationTimeoutMs` | `createHost` option           | How long a hosted page may take to load and connect its surface to the relay.                                                     |
-| api      | tokenTtlSeconds     | `tokenTtlSeconds`     | `createHost` option           | Lifetime of each relay token the host mints for a hosted page; the page renews in-band.                                           |
-| api      | executablePath      | `executablePath`      | `createHost` option `browser` | A Chromium or Chrome executable for the hosted sessions, instead of Playwright's download.                                        |
-| api      | relayUrl            | `relayUrl`            | `createHost` option           | With a relay you run: the tab endpoint the hosted pages connect to.                                                               |
-| api      | relaySecret         | `relaySecret`         | `createHost` option           | With a relay you run: the secret the host mints relay tokens with.                                                                |
-| api      | closeSession        | `closeSession`        | `Host`                        | Close an identity's hosted session; the next tool call starts a new one.                                                          |
-| api      | relayEvent          | `relayEvent`          | `Host`                        | With a relay you run: pass its events to the host, so Stop there closes the hosted session.                                       |
-| api      | extraTools          | `extraTools`          | `createMcpServer` option      | Tools answered by the embedding code with any MCP content (an image), beside the derived ones.                                    |
-| api      | handleAgent         | `handleAgent`         | `@axe/relay/server` relay     | Serve one agent tool call's AXE request as the relay's own MCP front does, tool-call context included.                            |
-| api      | relayAgentContext   | `relayAgentContext`   | `@axe/relay/server`           | The adapter context the relay's AXE server expects for an agent acting as a principal and tenant, for a front end such as a host. |
+| Category | Key                  | Name                   | Where                         | Meaning                                                                                                                           |
+| -------- | -------------------- | ---------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| api      | createHost           | `createHost`           | `@axe/host`                   | Create a session host: one browser context per identity, started on the agent's first tool call, served over MCP.                 |
+| api      | sessionFor           | `sessionFor`           | `createHost` option           | Turn the agent's verified identity into the application session its hosted browser starts with; null refuses.                     |
+| api      | sessionLoginRequired | `SessionLoginRequired` | `@axe/host`                   | Require the person to sign in at the application's HTTP(S) page before the original hosted tool call resumes.                     |
+| api      | storageStateSession  | `storageStateSession`  | `@axe/host`                   | Development `sessionFor`: every identity gets the storage state `axe host login` saved.                                           |
+| api      | cookieSession        | `cookieSession`        | `@axe/host`                   | A `sessionFor` from a function that returns the cookies for an identity.                                                          |
+| api      | storageState         | `storageState`         | `sessionFor` result           | A Playwright storage state (a file path or the object): cookies and each origin's `localStorage`.                                 |
+| api      | localStorage         | `localStorage`         | `sessionFor` result           | `localStorage` entries by origin that a hosted session starts with.                                                               |
+| api      | startPath            | `startPath`            | `createHost` option           | The path each hosted session opens first, relative to the application URL.                                                        |
+| api      | navigationTimeoutMs  | `navigationTimeoutMs`  | `createHost` option           | How long a hosted page may take to load and connect its surface to the relay.                                                     |
+| api      | tokenTtlSeconds      | `tokenTtlSeconds`      | `createHost` option           | Lifetime of each relay token the host mints for a hosted page; the page renews in-band.                                           |
+| api      | executablePath       | `executablePath`       | `createHost` option `browser` | A Chromium or Chrome executable for the hosted sessions, instead of Playwright's download.                                        |
+| api      | relayUrl             | `relayUrl`             | `createHost` option           | With a relay you run: the tab endpoint the hosted pages connect to.                                                               |
+| api      | relaySecret          | `relaySecret`          | `createHost` option           | With a relay you run: the secret the host mints relay tokens with.                                                                |
+| api      | closeSession         | `closeSession`         | `Host`                        | Close an identity's hosted session; the next tool call starts a new one.                                                          |
+| api      | relayEvent           | `relayEvent`           | `Host`                        | With a relay you run: pass its events to the host, so Stop there closes the hosted session.                                       |
+| api      | extraTools           | `extraTools`           | `createMcpServer` option      | Tools answered by the embedding code with any MCP content (an image), beside the derived ones.                                    |
+| api      | handleAgent          | `handleAgent`          | `@axe/relay/server` relay     | Serve one agent tool call's AXE request as the relay's own MCP front does, tool-call context included.                            |
+| api      | relayAgentContext    | `relayAgentContext`    | `@axe/relay/server`           | The adapter context the relay's AXE server expects for an agent acting as a principal and tenant, for a front end such as a host. |
 
 ## Derived surfaces
 

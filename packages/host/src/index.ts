@@ -18,7 +18,7 @@ export type {
   HostOptions,
   HostSessionInfo,
 } from "./host";
-export { cookieSession, storageStateSession } from "./session";
+export { cookieSession, SessionLoginRequired, storageStateSession } from "./session";
 export type {
   AppSession,
   HostIdentity,

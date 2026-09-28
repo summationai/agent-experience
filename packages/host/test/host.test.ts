@@ -3,7 +3,7 @@
 // application's own controls through its easy-mode surface. Skipped with a message when no
 // Chromium build is installed (`npx playwright install chromium`).
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { createHost } from "../src/index";
+import { createHost, SessionLoginRequired } from "../src/index";
 import type { Host, HostEvent, HostOptions } from "../src/index";
 import {
   agentAuth,
@@ -72,6 +72,69 @@ async function start(options: Partial<HostOptions> = {}): Promise<Started> {
 }
 
 describe("unattended mode in Chromium", () => {
+  // [S-HOST-9] Login is a person-facing, identity-bound handoff; resume replays exactly once.
+  it("hands application login to the person, then resumes the original tool call", async (ctx) => {
+    if (missing) return ctx.skip();
+    let signedIn = false;
+    const { host, agent: open } = await start({
+      sessionFor: ({ principal, tenant }) => {
+        if (!signedIn)
+          throw new SessionLoginRequired({
+            url: "https://app.example/agent-login?request=one-time",
+            instructions: "Sign in on the application page.",
+            whatAgentShouldSayToUser: "Please sign in to the application.",
+          });
+        return {
+          cookies: [{ name: "session", value: principal }],
+          headers: { "x-app-session": `${principal}@${tenant}` },
+          localStorage: { [fixture.origin]: { greeting: `hello ${principal}` } },
+        };
+      },
+    });
+    const alice = await open("agent-alice");
+    const first = await alice.call("relay_tabs");
+    expect(first.result).toMatchObject({
+      status: "needs_human",
+      handoff: {
+        reason: "application_login_required",
+        url: "https://app.example/agent-login?request=one-time",
+      },
+    });
+    expect(first.text).not.toContain("password");
+    expect(host.sessions()).toEqual([]);
+
+    const resumeToken = (first.result as unknown as { handoff: { resumeToken: string } }).handoff
+      .resumeToken;
+    const bob = await open("agent-bob");
+    const stolen = await bob.call("axe_resume", { resumeToken });
+    expect(stolen.result).toMatchObject({
+      status: "error",
+      error: { code: "not_found", retryable: false },
+    });
+
+    const early = await alice.call("axe_resume", { resumeToken });
+    expect(early.result).toMatchObject({
+      status: "error",
+      error: {
+        code: "conflict",
+        retryable: true,
+        details: { reason: "application_login_pending", handoff: { status: "open" } },
+      },
+    });
+
+    signedIn = true;
+    const resumed = await alice.call("axe_resume", { resumeToken });
+    expect(resumed.result.status, resumed.text).toBe("ok");
+    expect((resumed.result.output as { tabs: { state: string }[] }).tabs).toEqual([
+      expect.objectContaining({ state: "connected" }),
+    ]);
+    expect(host.sessions()).toMatchObject([{ principal: "alice", state: "ready" }]);
+
+    // Resume is replay-safe: it returns the first completed result without rerunning the call.
+    const again = await alice.call("axe_resume", { resumeToken });
+    expect(again.result).toEqual(resumed.result);
+  });
+
   it("the agent's first tool call starts the hidden session, and it acts through the app's own controls", async (ctx) => {
     if (missing) return ctx.skip();
     const { host, agent: open, events } = await start();
