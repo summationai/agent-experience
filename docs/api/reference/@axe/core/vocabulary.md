@@ -242,6 +242,7 @@ type WireApi =
   | "completeElicitation"
   | "createHost"
   | "sessionFor"
+  | "SessionLoginRequired"
   | "storageStateSession"
   | "cookieSession"
   | "storageState"
@@ -1170,6 +1171,7 @@ const api: Readonly<{
   sessionCount: "sessionCount";
   sessionFor: "sessionFor";
   sessionIdGenerator: "sessionIdGenerator";
+  sessionLoginRequired: "SessionLoginRequired";
   setObjects: "setObjects";
   setRev: "setRev";
   siteKey: "siteKey";
@@ -2170,6 +2172,7 @@ const WIRE: Readonly<{
      sessionCount: "sessionCount";
      sessionFor: "sessionFor";
      sessionIdGenerator: "sessionIdGenerator";
+     sessionLoginRequired: "SessionLoginRequired";
      setObjects: "setObjects";
      setRev: "setRev";
      siteKey: "siteKey";

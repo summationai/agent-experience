@@ -53,7 +53,7 @@ new file mode 100644
 +        const options = injectedRelay();
 +        if (!options) return;
 +        const connection = connectRelay(handle.surface, options);
-+        return () => connection.stop();
++        return () => connection.disconnect();
 +      }}
 +    >
 +      {children}
@@ -64,7 +64,7 @@ diff --git a/src/surface.config.js b/src/surface.config.js
 new file mode 100644
 --- /dev/null
 +++ b/src/surface.config.js
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,39 @@
 +// Surface config for this app, written by `axe surface init`. Yours to edit.
 +//
 +// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
@@ -75,6 +75,7 @@ new file mode 100644
 +  profile: {
 +    id: "planning-fixture",
 +    name: "planning-fixture",
++    // Wire this to the app's existing auth source: unknown only while it resolves.
 +    authentication: { state: "unknown" },
 +  },
 +  // Nothing here is required: autoSurface discovers the page's controls on its own. Run

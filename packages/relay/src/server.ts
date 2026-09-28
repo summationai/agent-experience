@@ -307,6 +307,8 @@ export interface Relay {
   serveStdio(options?: { as?: RelayPrincipal }): Promise<DerivedMcpServer>;
   /** The tabs of one principal, most recently active first. */
   tabs(who: RelayPrincipal): RelayTabInfo[];
+  /** Ask one connected tab for a fresh observation, then return its current public metadata. */
+  refresh(who: RelayPrincipal, tabId: string): Promise<RelayTabInfo | null>;
   /** Mint a one-time browser handoff for an already authenticated principal. */
   browserHandoff(who: RelayPrincipal): string | null;
   /**
@@ -594,8 +596,13 @@ class TabRecord implements TabLink {
   }
 
   /** Ask the tab for its current table and ledger; keep the last snapshot if it does not answer. */
-  async sync(): Promise<void> {
-    if (!(await this.connected(this.mirror.hasView() ? 0 : this.relay.reconnectGraceMs))) return;
+  async sync(waitForReconnect = false): Promise<void> {
+    if (
+      !(await this.connected(
+        waitForReconnect || !this.mirror.hasView() ? this.relay.reconnectGraceMs : 0,
+      ))
+    )
+      return;
     try {
       const m = await this.request(
         (id) => ({
@@ -2398,6 +2405,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
     handleAgent: (request, adapter, call) => axeLike().handle(request, adapter, call),
     tabs(who) {
       return tabsOf(who).map((t) => t.info(false));
+    },
+    async refresh(who, tabId) {
+      const tab = tabsOf(who).find((candidate) => candidate.tabId === tabId);
+      if (!tab) return null;
+      await tab.sync(true).catch(() => undefined);
+      return tab.info(false);
     },
     browserHandoff: (who) => handoffLink(who),
     stop(who, tabId) {

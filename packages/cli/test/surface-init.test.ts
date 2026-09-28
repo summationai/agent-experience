@@ -226,8 +226,29 @@ describe("axe surface init: applying", () => {
     const again = planInit({ dir, relay: DEV_RELAY_URL });
     expect(again.changes).toEqual([]);
     expect(again.kept.join("\n")).toContain(
-      "app/surface.tsx exists; left as is (edited, or written with other options",
+      "app/surface.tsx exists; left as is except for safe generated-code upgrades (edited, or written with other options",
     );
+  });
+
+  it("upgrades obsolete generated cleanup without overwriting application edits", () => {
+    const dir = copy("react-router");
+    const first = planInit({ dir });
+    for (const change of first.changes) writeFileSync(change.path, change.after);
+    const path = join(dir, "app/surface.tsx");
+    writeFileSync(
+      path,
+      readFileSync(path, "utf8").replace(
+        "return () => connection.disconnect();",
+        "return () => connection.stop();",
+      ) + "// application edit\n",
+    );
+
+    const upgrade = planInit({ dir });
+    const change = upgrade.changes.find((candidate) => candidate.path === path)!;
+    expect(change.before).toContain("return () => connection.stop();");
+    expect(change.after).toContain("return () => connection.disconnect();");
+    expect(change.after).toContain("// application edit");
+    expect(upgrade.kept.join("\n")).toContain("left as is except for safe generated-code upgrades");
   });
 
   it("names the manual step when the root has no element to wrap", async () => {
@@ -329,7 +350,7 @@ describe("axe surface init: flags and the relay", () => {
         "        const options = injectedRelay();",
         "        if (!options) return;",
         "        const connection = connectRelay(handle.surface, options);",
-        "        return () => connection.stop();",
+        "        return () => connection.disconnect();",
         "      }}",
       ].join("\n"),
     );
@@ -364,10 +385,10 @@ describe("axe surface init: flags and the relay", () => {
       'process.env.NEXT_PUBLIC_SURFACE_RELAY_URL ?? "wss://relay.example.com"',
     );
     expect(r.out).toContain("pack-for-consumer.sh vendor core surface relay");
-    // With a remote option, next steps explain the provider handoff and keep
-    // the checkout-local host only as an isolated fallback.
+    // With a remote option, next steps require live auth state, explain the provider-owned
+    // handoff, and keep the saved-session command only as an optional local fixture.
     expect(r.out).toContain(
-      "The provider browser handoff supplies the relay connection automatically after normal application sign-in",
+      "The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server",
     );
     const login = r.out.indexOf("npx axe host login http://localhost:3000");
     const add = r.out.indexOf("npx axe host --dev --stdio --app http://localhost:3000");

@@ -56,7 +56,12 @@ describe("development mode", () => {
 
   it("/mcp needs the development key; the watch page shows the session and Stop closes it", async (ctx) => {
     if (missing) return ctx.skip();
-    const host = createHost({ appUrl: fixture.url, dev: { agentKey: "axh_test_key_0123456789" } });
+    const host = createHost({
+      appUrl: fixture.url,
+      dev: { agentKey: "axh_test_key_0123456789" },
+      // This test exercises the legacy watch page; authentication handoff has its own browser test.
+      humanHandoff: false,
+    });
     cleanup.push(() => host.close());
     const address = await host.listen();
     const anonymous = await fetch(address.mcpUrl, { method: "POST", body: "{}" });

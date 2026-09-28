@@ -4,4 +4,6 @@ Carries a page-held `@axe/surface` to an authenticated agent outside the browser
 
 Applications normally do not configure a relay URL. The generated integration reads a provider-injected connection when present and otherwise stays browser-local.
 
+Use `connection.disconnect()` for component or route cleanup. `connection.stop()` is reserved for an explicit user decision to revoke the agent's access.
+
 See [Relay](../../docs/relay.md) and the [application/provider boundary](../../docs/architecture.md).

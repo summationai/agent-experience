@@ -3,7 +3,8 @@
  *
  * It detects the framework and the root file, writes a surface component (or a plain setup
  * module) and a starter config beside the root, and wraps the root in one import and one element.
- * It prints the diff, applies it with --yes or after a prompt, and changes nothing on a second run.
+ * It prints the diff, applies it with --yes or after a prompt, and on later runs applies only
+ * known safe migrations to files it generated, preserving application-specific edits.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -130,6 +131,14 @@ function importSpecifier(fromFile: string, toFile: string): string {
   return rel;
 }
 
+/** Narrow, source-preserving upgrades for files carrying init's marker. */
+function migrateGeneratedFile(text: string): string {
+  return text.replaceAll(
+    "return () => connection.stop();",
+    "return () => connection.disconnect();",
+  );
+}
+
 /**
  * The mount edit in a React file, chosen by what the file renders: the element passed to
  * `render()` in an entry, else `<Outlet />` in the default export (a React Router root or layout
@@ -248,10 +257,17 @@ export function planInit(o: InitOptions): InitPlan {
 
   const addFile = (path: string, content: string) => {
     if (!existsSync(path)) changes.push({ path, display: show(path), after: content });
-    else if (readFileSync(path, "utf8") !== content)
-      kept.push(
-        `${show(path)} exists; left as is${readFileSync(path, "utf8").includes(MARKER) ? " (edited, or written with other options: delete it and re-run to regenerate)" : ""}.`,
-      );
+    else {
+      const before = readFileSync(path, "utf8");
+      if (before === content) return;
+      const generated = before.includes(MARKER);
+      const after = generated ? migrateGeneratedFile(before) : before;
+      if (after !== before) changes.push({ path, display: show(path), before, after });
+      if (after !== content)
+        kept.push(
+          `${show(path)} exists; left as is${generated ? " except for safe generated-code upgrades (edited, or written with other options: delete it and re-run to regenerate)" : ""}.`,
+        );
+    }
   };
   addFile(surfacePath, surfaceText);
   addFile(configPath, configFile(t));
@@ -423,7 +439,7 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     ...(remote
       ? [
           {
-            text: "The provider browser handoff supplies the relay connection automatically after normal application sign-in; this application needs no token endpoint or MCP server. For an isolated local host test only:",
+            text: `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward). The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
             more: [
               `npx ${WIRE.cli.host} login ${devUrl}`,
               `npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,

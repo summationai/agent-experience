@@ -1378,6 +1378,17 @@ The latest ledger `seq`, so an agent can ask `ledger({ since })` for what happen
 objects: Record<string, JsonValue>;
 ```
 
+<a id="profile"></a>
+
+##### profile?
+
+```ts
+optional profile?: SurfaceProfile;
+```
+
+Structured application identity and live account/workspace context. This is descriptive
+application data, never agent instructions or connection/security configuration.
+
 <a id="protocol"></a>
 
 ##### protocol
@@ -1900,6 +1911,12 @@ configure(options): void;
 
 `string`
 
+###### profile?
+
+[`SurfaceProfileSource`](#surfaceprofilesource) \| `null`
+
+Set or replace the structured profile; `null` clears it.
+
 ###### toJsonSchema?
 
 [`SchemaConverter`](#schemaconverter)
@@ -2206,6 +2223,26 @@ setObjects(fn): void;
 
 `void`
 
+<a id="setprofile"></a>
+
+##### setProfile()
+
+```ts
+setProfile(profile): void;
+```
+
+Set a static or live structured application profile; `null` clears it.
+
+###### Parameters
+
+###### profile
+
+[`SurfaceProfileSource`](#surfaceprofilesource) \| `null`
+
+###### Returns
+
+`void`
+
 <a id="setrev"></a>
 
 ##### setRev()
@@ -2296,6 +2333,46 @@ set: SurfaceAttributes;
 
 ***
 
+<a id="surfacecontextprofile"></a>
+
+### SurfaceContextProfile
+
+A live account, workspace, organization, project, or other application context.
+
+#### Properties
+
+<a id="id-6"></a>
+
+##### id?
+
+```ts
+optional id?: string;
+```
+
+Stable application identifier, when one is selected.
+
+<a id="kind-5"></a>
+
+##### kind
+
+```ts
+kind: string;
+```
+
+The application's neutral name for this kind of context (`workspace`, `organization`, …).
+
+<a id="name-5"></a>
+
+##### name?
+
+```ts
+optional name?: string;
+```
+
+Human-readable name, when one is selected.
+
+***
+
 <a id="surfaceoptions"></a>
 
 ### SurfaceOptions
@@ -2338,6 +2415,16 @@ Clock for `observe().at`; injectable for deterministic tests and builds.
 
 `Date`
 
+<a id="profile-1"></a>
+
+##### profile?
+
+```ts
+optional profile?: SurfaceProfileSource;
+```
+
+Structured application identity and live context. Prefer this to the legacy `app` label.
+
 <a id="revision"></a>
 
 ##### revision?
@@ -2360,6 +2447,74 @@ optional toJsonSchema?: SchemaConverter;
 Converts a Zod schema to JSON Schema for `observe()`: pass `toJsonSchema` from `@axe/core`.
 Required only when an entry carries a Zod schema (`edit.schema`, `requires.accepts[].schema`);
 the surface does not import Zod itself, so a browser bundle without Zod stays without it.
+
+***
+
+<a id="surfaceprofile"></a>
+
+### SurfaceProfile
+
+Structured facts the application publishes about itself through Surface. It deliberately has
+no free-form instruction field and no URLs, origins, OAuth endpoints, or session policy: those
+are trusted provider-registry concerns.
+
+#### Properties
+
+<a id="authentication"></a>
+
+##### authentication?
+
+```ts
+optional authentication?: object;
+```
+
+Authentication state visible to the application.
+
+###### state
+
+```ts
+state: SurfaceAuthenticationState;
+```
+
+<a id="context"></a>
+
+##### context?
+
+```ts
+optional context?: SurfaceContextProfile;
+```
+
+The context the application currently shows.
+
+<a id="description-1"></a>
+
+##### description?
+
+```ts
+optional description?: string;
+```
+
+Short factual description for people and application discovery, not instructions to agents.
+
+<a id="id-7"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+Stable id agreed with the provider connector (`summation`, `acme-planner`, …).
+
+<a id="name-6"></a>
+
+##### name
+
+```ts
+name: string;
+```
+
+Human-readable application name.
 
 ## Type Aliases
 
@@ -2710,6 +2865,30 @@ Attributes a rendered control carries, as `surfaceAttributes` returns them. Valu
 
 ***
 
+<a id="surfaceauthenticationstate"></a>
+
+### SurfaceAuthenticationState
+
+```ts
+type SurfaceAuthenticationState = "unknown" | "signed-out" | "signed-in";
+```
+
+The signed-in state the application itself currently renders.
+
+***
+
+<a id="surfaceprofilesource"></a>
+
+### SurfaceProfileSource
+
+```ts
+type SurfaceProfileSource =
+  | SurfaceProfile
+  | (() => SurfaceProfile);
+```
+
+***
+
 <a id="thaw"></a>
 
 ### Thaw
@@ -2789,6 +2968,12 @@ configure: (options) => void;
 ###### app?
 
 `string`
+
+###### profile?
+
+[`SurfaceProfileSource`](#surfaceprofilesource) \| `null`
+
+Set or replace the structured profile; `null` clears it.
 
 ###### toJsonSchema?
 
@@ -3042,6 +3227,28 @@ setObjects: (fn) => void;
 
 ***
 
+<a id="setprofile-1"></a>
+
+### setProfile
+
+```ts
+setProfile: (profile) => void;
+```
+
+Set a static or live structured application profile; `null` clears it.
+
+#### Parameters
+
+##### profile
+
+[`SurfaceProfileSource`](#surfaceprofilesource) \| `null`
+
+#### Returns
+
+`void`
+
+***
+
 <a id="setrev-1"></a>
 
 ### setRev
@@ -3107,6 +3314,28 @@ unregister: (id) => void;
 `void`
 
 ## Functions
+
+<a id="checksurfaceprofile"></a>
+
+### checkSurfaceProfile()
+
+```ts
+function checkSurfaceProfile(profile): string[];
+```
+
+Runtime validation for a profile loaded from JavaScript or configuration.
+
+#### Parameters
+
+##### profile
+
+[`SurfaceProfile`](#surfaceprofile)
+
+#### Returns
+
+`string`[]
+
+***
 
 <a id="createsurface"></a>
 

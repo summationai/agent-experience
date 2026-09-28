@@ -1282,6 +1282,30 @@ optional allowSharedCredentials?: boolean;
 Allow `createMcpServer`'s `client.auth` or `client.headers` to act for every HTTP caller.
 Default false: `serveHttp` refuses that configuration unless `clientFor` is given.
 
+<a id="anonymoussessionclientfor"></a>
+
+##### anonymousSessionClientFor?
+
+```ts
+optional anonymousSessionClientFor?: (sessionId) => MaybePromise<CallerContext>;
+```
+
+Give each unauthenticated stateful MCP session its own caller identity. This is for services
+that defer account login until a tool actually needs it: transport initialization stays
+anonymous, while the cryptographically random MCP session id isolates the later login and
+every page it can reach. Requires `sessions` and cannot be combined with transport `auth` or
+`clientFor`.
+
+###### Parameters
+
+###### sessionId
+
+`string`
+
+###### Returns
+
+`MaybePromise`\<[`CallerContext`](#callercontext)\>
+
 <a id="auth"></a>
 
 ##### auth?

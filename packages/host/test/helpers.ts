@@ -65,9 +65,10 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 function page(path: string, user: string | null, foreign: string): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>Board ${esc(path)}</title></head>
-<body><main>
+<body data-signed-in="${user ? "true" : "false"}"><main>
 <h1>Board</h1>
 <p id="who">${user ? `Signed in as ${esc(user)}` : "Signed out"}</p>
+${user ? "" : '<form method="post" action="/login"><label>Email <input name="email" autocomplete="username"></label><label>Password <input name="password" type="password" autocomplete="current-password"></label><button type="submit">Sign in</button></form>'}
 <label>Display name <input id="name" value="${esc(user ?? "")}"></label>
 <label>Greeting <input id="greeting" value=""></label>
 <button id="add" type="button">Add one</button> <output id="count">0</output>
@@ -120,13 +121,20 @@ export async function startFixture(): Promise<Fixture> {
       res.writeHead(200, { "Content-Type": "text/javascript" });
       return void res.end(bundle);
     }
-    if (path === "/login") {
+    if (path === "/login" && req.method === "GET") {
       // What `axe host login` captures: the app sets its session cookie when the person signs in.
       res.writeHead(200, {
         "Content-Type": "text/html",
         "Set-Cookie": "session=operator; Path=/; HttpOnly; SameSite=Lax",
       });
       return void res.end("<!doctype html><title>Signed in</title><p>signed in</p>");
+    }
+    if (path === "/login" && req.method === "POST") {
+      res.writeHead(303, {
+        Location: "/",
+        "Set-Cookie": "session=operator; Path=/; HttpOnly; SameSite=Lax",
+      });
+      return void res.end();
     }
     if (path === "/" || path === "/other" || path === "/submitted") {
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });

@@ -14,6 +14,7 @@ export type {
   HostCloseReason,
   HostDevOptions,
   HostEvent,
+  HostHumanHandoffOptions,
   HostListenOptions,
   HostOptions,
   HostSessionInfo,

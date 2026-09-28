@@ -1721,7 +1721,7 @@ status: "stale" | "unmatched";
 optional app?: string;
 ```
 
-The application name `observe()` reports.
+Legacy application label. Prefer `profile`, which has a stable connector id.
 
 <a id="declare"></a>
 
@@ -1800,6 +1800,16 @@ optional policy?: SurfacePolicy;
 ```
 
 What an agent may do at each risk level. Default: allow `none`, `low`, `medium`; `approve` for `high`.
+
+<a id="profile"></a>
+
+##### profile?
+
+```ts
+optional profile?: SurfaceProfileSource;
+```
+
+Structured application identity and live context reported by `observe()`.
 
 <a id="read-2"></a>
 

@@ -343,6 +343,34 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
     if (view) return verdict("low", "view", `“${view}” in a confirmation dialog`);
     return verdict("high", "app", `confirms the dialog “${input.inDialog.name || "confirmation"}”`);
   }
+  if (role === "menuitem" && input.inDialog) {
+    // A common picker shape (workspace, account, tenant, project, etc.) stages a menu choice in a
+    // dialog and has a separate Continue/Apply/Save control commit it. The choice itself changes
+    // only the form. Destructive names and styling were checked above, so they remain high risk.
+    const dialog = el.closest('[role="dialog"]');
+    const hasSeparateCommit = [
+      ...(dialog?.querySelectorAll<HTMLElement>('button, input[type="submit"], [role="button"]') ??
+        []),
+    ].some((candidate) => {
+      if (candidate === el || candidate.contains(el)) return false;
+      const candidateType = (candidate.getAttribute("type") ?? "").toLowerCase();
+      if (
+        (candidate.localName === "button" &&
+          (candidateType === "submit" || (candidateType === "" && !!candidate.closest("form")))) ||
+        (candidate.localName === "input" && candidateType === "submit")
+      )
+        return true;
+      const candidateName =
+        `${candidate.getAttribute("aria-label") ?? ""} ${candidate.textContent ?? ""} ${candidate.getAttribute("title") ?? ""}`.trim();
+      return !!matchOf(lex.commit, candidateName);
+    });
+    if (hasSeparateCommit)
+      return verdict(
+        "low",
+        "form",
+        "chooses a staged value in a dialog; a separate control commits it",
+      );
+  }
   if (role === "link") {
     if (input.href && input.origin && input.href.origin !== input.origin)
       return verdict("medium", "location", "leaves the site", { reversible: true });

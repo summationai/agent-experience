@@ -28,6 +28,7 @@ export interface HostedEnvironmentConfig {
   introspectionUrl?: string;
   oauthClientId?: string;
   oauthClientSecret?: string;
+  browserOAuthClientId?: string;
   userInfoUrl?: string;
   sessionBrokerUrl?: string;
   sessionBrokerToken?: string;
@@ -115,6 +116,14 @@ export function hostedEnvironmentConfig(
   const publicMcp = new URL(publicMcpUrl);
   if (publicMcp.pathname !== "/mcp" || publicMcp.search || publicMcp.hash)
     throw new Error("AXE_HOST_PUBLIC_MCP_URL must end in /mcp.");
+  if (
+    publicMcp.protocol !== "https:" &&
+    !(
+      publicMcp.protocol === "http:" &&
+      ["localhost", "127.0.0.1", "::1", "[::1]"].includes(publicMcp.hostname)
+    )
+  )
+    throw new Error("AXE_HOST_PUBLIC_MCP_URL must use https (or loopback http).");
   const authorizationServers = list(required(env, "AXE_HOST_AUTHORIZATION_SERVERS")).map((item) =>
     url(item, "AXE_HOST_AUTHORIZATION_SERVERS"),
   );
@@ -135,8 +144,9 @@ export function hostedEnvironmentConfig(
   if (sessionBrokerAuth !== "service" && sessionBrokerAuth !== "caller")
     throw new Error('AXE_HOST_SESSION_BROKER_AUTH must be "service" or "caller".');
   const sessionBrokerToken = env["AXE_HOST_SESSION_BROKER_TOKEN"]?.trim();
+  const sessionBrokerUrl = env["AXE_HOST_SESSION_BROKER_URL"]?.trim();
   const connectorFile = env["AXE_CONNECTORS_FILE"]?.trim();
-  if (!connectorFile && sessionBrokerAuth === "service" && !sessionBrokerToken)
+  if (!connectorFile && sessionBrokerUrl && sessionBrokerAuth === "service" && !sessionBrokerToken)
     throw new Error("AXE_HOST_SESSION_BROKER_TOKEN is required with service broker auth.");
   const connectorId = env["AXE_CONNECTOR_ID"]?.trim() || "application";
   const connectorName = env["AXE_CONNECTOR_NAME"]?.trim() || "Connected application";
@@ -166,13 +176,13 @@ export function hostedEnvironmentConfig(
           oauthClientId: required(env, "AXE_HOST_OAUTH_CLIENT_ID"),
           oauthClientSecret: required(env, "AXE_HOST_OAUTH_CLIENT_SECRET"),
         }),
+    ...(env["AXE_HOST_BROWSER_OAUTH_CLIENT_ID"]?.trim()
+      ? { browserOAuthClientId: env["AXE_HOST_BROWSER_OAUTH_CLIENT_ID"]!.trim() }
+      : {}),
     ...(!connectorFile
-      ? {
-          sessionBrokerUrl: url(
-            required(env, "AXE_HOST_SESSION_BROKER_URL"),
-            "AXE_HOST_SESSION_BROKER_URL",
-          ),
-        }
+      ? sessionBrokerUrl
+        ? { sessionBrokerUrl: url(sessionBrokerUrl, "AXE_HOST_SESSION_BROKER_URL") }
+        : {}
       : {}),
     ...(sessionBrokerToken ? { sessionBrokerToken } : {}),
     sessionBrokerAuth,
@@ -409,17 +419,18 @@ function hostedRegistry(
       contextClaim: config.tenantClaim,
       ...(config.defaultTenant ? { defaultContext: config.defaultTenant } : {}),
     },
-    session: {
-      strategy: "broker",
-      brokerUrl: config.sessionBrokerUrl!,
-      brokerAuth: config.sessionBrokerAuth,
-    },
+    session: config.sessionBrokerUrl
+      ? {
+          strategy: "broker",
+          brokerUrl: config.sessionBrokerUrl,
+          brokerAuth: config.sessionBrokerAuth,
+        }
+      : { strategy: "none" },
   };
   return createConnectorRegistry([
-    {
-      ...connector,
-      sessionFor: brokeredSessionFor(config, fetcher),
-    },
+    config.sessionBrokerUrl
+      ? { ...connector, sessionFor: brokeredSessionFor(config, fetcher) }
+      : connector,
   ]);
 }
 
@@ -471,6 +482,7 @@ export async function startHostedMcpServiceFromEnv(
         ? { principal, tenant: context }
         : null;
     },
+    ...(config.browserOAuthClientId ? { browserOAuthClientId: config.browserOAuthClientId } : {}),
     ...(config.maxSessions ? { maxSessions: config.maxSessions } : {}),
     ...(config.idleMs ? { idleMs: config.idleMs } : {}),
     name: "Agent Experience",

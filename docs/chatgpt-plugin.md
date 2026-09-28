@@ -10,8 +10,8 @@ The product should never ask the user to understand that distinction. Its langua
 2. The provider deploys [`mcp/`](../mcp/README.md) at one stable public HTTPS `/mcp` URL and publishes [`plugins/agent-experience`](../plugins/agent-experience/README.md) against it.
 3. The person installs the plugin from ChatGPT's directory. MCP initialization is anonymous and silent; opening ChatGPT does not start OAuth or open a browser.
 4. After the person asks to use an application, the plugin searches the trusted connector registry, selects the match, and calls `relay_tabs`. The provider authenticates the agent identity and starts or resumes an isolated hidden session for that connector.
-5. The provider's account/session service supplies a short-lived application session. The checked-in hosted runtime currently represents this as the `sessionFor` broker contract; completing the provider-owned implementation is the remaining production service work.
-6. The host injects an identity-bound relay before application code runs. The root-mounted Surface connects on login, organization selection, tenant selection, and authenticated routes without opening a browser on the user's device.
+5. The provider uses a short-lived application session when a connector has one. Otherwise it starts the application signed out; the Surface reports that state and the provider offers a secure, session-bound view of the exact private browser for the person to complete the application's existing login. No application backend change is required.
+6. The host injects an identity-bound relay before application code runs. The root-mounted Surface stays connected on login, organization selection, tenant selection, and authenticated routes. The visible session page closes after the exceptional human step; ordinary agent work remains inside ChatGPT.
 7. The model calls `surface_read` and `surface_observe`, advances any chooser, and completes the task with Surface tools. Consequential controls use ChatGPT's approval flow.
 
 ```text
@@ -29,11 +29,11 @@ The page remains authoritative for its live profile, authentication and context 
 
 ## The application contract
 
-The developer installs the browser packages and mounts the generated Surface provider above tenant resolution. That remains the intended application integration boundary: there is no application MCP server or customer-operated relay. The current hosted service still has a generic application-session broker seam; moving that seam into the provider-owned account service is required before the full production claim is true.
+The developer installs the browser packages, mounts the generated Surface provider above authentication and context resolution, and connects its profile to the application's existing auth state. That remains the complete application integration boundary: there is no application MCP server, customer-operated relay, auth callback, session broker, or remote-browser service. A connector may add a provider-owned session broker later to make sign-in silent, but it is an optimization rather than a prerequisite.
 
 The injected relay token is a capability from the provider host, not an application credential. It is bound to the authenticated agent identity and tenant, expires quickly, and reaches only the Surface in that isolated browser. It grants no direct application API access.
 
-Production credentials belong in the provider's trusted account-connection flow, not in model-visible chat. The loopback-only unattended demo may deliberately set a local test credential through a sensitive Surface field; it is not the production authentication design.
+Credentials are entered only on the application's page inside the provider's secure session view, or through a provider-owned account connection. They are never requested in model-visible chat or set through an agent Surface action.
 
 ## What the user must still approve
 
@@ -45,7 +45,7 @@ Use a clear “Use in ChatGPT” entry point from the product after publication,
 
 - Development pairing remains a diagnostic-only local loop. `local-unattended` validates the hidden-browser interaction shape without claiming a production identity boundary.
 - Browser-native WebMCP can remove the remote transport when the agent actually runs in a compatible browser host. It does not currently provide a general ChatGPT iOS path to another app's authenticated session.
-- The attended browser handoff remains available when no provider-owned application session is available, but it does not meet the no-visible-browser product goal.
+- The secure session-bound browser handoff is available when no provider-owned application session exists. It is visible only for the human-only authentication step; the agent's actual task remains unattended. The older attended relay remains diagnostic-only.
 
 ## Operational boundary
 

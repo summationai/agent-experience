@@ -485,6 +485,26 @@ describe("safety defaults [S-AUTO-7]", () => {
     });
   });
 
+  it("treats a menu choice staged by a separate dialog action as form state", () => {
+    const s = start(`<div role="dialog" aria-modal="true" aria-labelledby="tenant-title">
+      <h2 id="tenant-title">Select a tenant to continue</h2>
+      <button aria-haspopup="menu" aria-expanded="true">Select tenant</button>
+      <div role="menu" aria-label="Available tenants">
+        <div role="menuitem">SummationDotCom</div>
+        <div role="menuitem">Delete tenant</div>
+      </div>
+      <button>Continue</button>
+    </div>`).surface;
+    expect(byName(s, "SummationDotCom", "menuitem").effect).toMatchObject({
+      risk: "low",
+      mutates: "form",
+      reversible: true,
+    });
+    expect(byName(s, "SummationDotCom", "menuitem").state?.available).toBe(true);
+    expect(byName(s, "Delete tenant", "menuitem").effect?.risk).toBe("high");
+    expect(byName(s, "Continue").effect?.risk).toBe("medium");
+  });
+
   it("treats router buttons in a navigation landmark as navigation without weakening destructive controls", () => {
     const h = start(`<main>
       <nav aria-label="Breadcrumb"><button>All Tables</button><button>Delete table</button></nav>

@@ -34,12 +34,7 @@ A connector contains only trusted facts needed before a page exists:
         "principalClaim": "sub",
         "contextClaim": "org"
       },
-      "session": {
-        "strategy": "broker",
-        "brokerUrl": "https://app.example.com/internal/agent-session",
-        "brokerAuth": "service",
-        "brokerTokenEnv": "EXAMPLE_APP_BROKER_TOKEN"
-      }
+      "session": { "strategy": "none" }
     }
   ]
 }
@@ -58,6 +53,8 @@ AXE_CONNECTOR_SURFACE_ID=example-app
 
 Application controls, routes, login fields, account/workspace choices, tables, reports, risks, and approval rules never belong in this registry or in MCP instructions. The application reports them through Surface.
 
+`session.strategy: "none"` is the zero-backend default: the browser starts at `appUrl`, Surface reports `signed-out`, and the provider's secure human-session page handles login. A connector may instead use `strategy: "broker"` with `brokerUrl`, `brokerAuth`, and (for service auth) `brokerTokenEnv` to start silently with a short-lived application session.
+
 ## Production hosted service
 
 Configure the provider-wide MCP authentication boundary and either a connector file or the single-connector variables in [`.env.example`](.env.example), then build and run:
@@ -71,7 +68,9 @@ The public HTTPS URL must end in `/mcp`. It is the OAuth resource identifier, th
 
 OAuth verification is provider-wide. Configure RFC 7662 introspection with `AXE_HOST_OAUTH_INTROSPECTION_URL` and client credentials, or an authenticated JSON identity endpoint with `AXE_HOST_OAUTH_USERINFO_URL`.
 
-Each broker connector receives:
+The secure human-session page authenticates its browser separately because ordinary URL navigation does not carry the MCP bearer token. It uses OAuth authorization code with PKCE against the same authorization server, then checks that identity against the principal and context bound to the hosted session. Dynamic client registration is the default; when the authorization server does not support it, set `AXE_HOST_BROWSER_OAUTH_CLIENT_ID` to a pre-registered public client whose redirect URI is `<provider-origin>/human-auth/callback`.
+
+An optional broker connector receives:
 
 ```json
 {
@@ -112,7 +111,7 @@ export AXE_MCP_AGENT_KEY=axd_agent_experience_local
 pnpm mcp:unattended-dev
 ```
 
-Connect the desktop client to `http://127.0.0.1:4717/mcp` with `Authorization: Bearer axd_agent_experience_local`. Chromium starts lazily on the first `relay_tabs` call and remains hidden. Login and account/workspace selection are normal Surface controls. A password field is settable only when the application deliberately marks that login field sensitive and editable; its value is never observable or ledgered.
+Connect the desktop client to `http://127.0.0.1:4717/mcp` with `Authorization: Bearer axd_agent_experience_local`. Chromium starts lazily on the first `relay_tabs` call and remains private. If the Surface reports `authentication.state: "signed-out"`, that call returns a secure loopback URL showing the exact private browser session so the person can complete the application's normal login. Credentials never pass through the model or MCP. After the page reports completion, `axe_resume` continues the original call. Account/workspace selection remains normal Surface state and controls.
 
 The agent must present any returned approval link to the person and retry the identical Surface call after the decision. It must not open or approve the link itself.
 

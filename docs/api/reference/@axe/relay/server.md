@@ -251,6 +251,26 @@ Serve on an existing Node HTTP server: upgrades on `/tab` and requests on `/mcp`
 
 `void`
 
+<a id="browserhandoff"></a>
+
+##### browserHandoff()
+
+```ts
+browserHandoff(who): string | null;
+```
+
+Mint a one-time browser handoff for an already authenticated principal.
+
+###### Parameters
+
+###### who
+
+[`RelayPrincipal`](#relayprincipal)
+
+###### Returns
+
+`string` \| `null`
+
 <a id="close"></a>
 
 ##### close()
@@ -343,6 +363,30 @@ Start an HTTP server for tabs (`/tab`), agents (`/mcp`), and development tokens.
 ###### Returns
 
 `Promise`\<[`RelayAddress`](#relayaddress)\>
+
+<a id="refresh"></a>
+
+##### refresh()
+
+```ts
+refresh(who, tabId): Promise<RelayTabInfo | null>;
+```
+
+Ask one connected tab for a fresh observation, then return its current public metadata.
+
+###### Parameters
+
+###### who
+
+[`RelayPrincipal`](#relayprincipal)
+
+###### tabId
+
+`string`
+
+###### Returns
+
+`Promise`\<[`RelayTabInfo`](#relaytabinfo) \| `null`\>
 
 <a id="servestdio"></a>
 
@@ -615,6 +659,112 @@ relay serves does not.
 
 ***
 
+<a id="relaydeferredagentauth"></a>
+
+### RelayDeferredAgentAuth
+
+#### Properties
+
+<a id="identify-2"></a>
+
+##### identify
+
+```ts
+identify: (sessionId) => MaybePromise<RelayPrincipal | null>;
+```
+
+Resolve the identity already established for this MCP session, or null before login.
+
+###### Parameters
+
+###### sessionId
+
+`string`
+
+###### Returns
+
+[`MaybePromise`](#maybepromise)\<[`RelayPrincipal`](#relayprincipal) \| `null`\>
+
+<a id="login"></a>
+
+##### login
+
+```ts
+login: (sessionId) => MaybePromise<{
+  instructions?: string;
+  ttlSeconds?: number;
+  url: string;
+  whatAgentShouldSayToUser?: string;
+}>;
+```
+
+Begin contextual login only after this session calls `relay_tabs`.
+
+###### Parameters
+
+###### sessionId
+
+`string`
+
+###### Returns
+
+[`MaybePromise`](#maybepromise)\<\{
+  `instructions?`: `string`;
+  `ttlSeconds?`: `number`;
+  `url`: `string`;
+  `whatAgentShouldSayToUser?`: `string`;
+\}\>
+
+***
+
+<a id="relayhandoffoptions"></a>
+
+### RelayHandoffOptions
+
+#### Properties
+
+<a id="appurl"></a>
+
+##### appUrl
+
+```ts
+appUrl: string;
+```
+
+The application page the MCP client opens. Sign-in redirects may happen before Surface loads.
+
+<a id="linkttlms-1"></a>
+
+##### linkTtlMs?
+
+```ts
+optional linkTtlMs?: number;
+```
+
+How long an unopened connection link works. Default: ten minutes.
+
+<a id="pageurl-1"></a>
+
+##### pageUrl?
+
+```ts
+optional pageUrl?: string;
+```
+
+Public origin serving `/connect/*`. Default: `baseUrl`'s origin.
+
+<a id="sessionttlms"></a>
+
+##### sessionTtlMs?
+
+```ts
+optional sessionTtlMs?: number;
+```
+
+Lifetime of the tab credential issued after the link opens. Default: twelve hours.
+
+***
+
 <a id="relaylistenoptions"></a>
 
 ### RelayListenOptions
@@ -668,6 +818,29 @@ optional agentAuth?: RelayAgentAuth;
 ```
 
 How agents authenticate over HTTP. Without it (and without `devPairing`) `/mcp` is not served.
+
+<a id="application"></a>
+
+##### application?
+
+```ts
+optional application?: object;
+```
+
+Trusted provider-registry identity for this application. A Surface that reports another id
+is refused. Profiles are optional for compatibility with older application packages.
+
+###### id
+
+```ts
+id: string;
+```
+
+###### name?
+
+```ts
+optional name?: string;
+```
 
 <a id="approvals"></a>
 
@@ -737,6 +910,18 @@ Serve `surface_read` and `surface_wait` (the page's content, and waiting for slo
 `domains` does not name them. They answer from a tab running an auto surface and are
 unavailable, with the reason, in any other. Default true.
 
+<a id="deferredagentauth"></a>
+
+##### deferredAgentAuth?
+
+```ts
+optional deferredAgentAuth?: RelayDeferredAgentAuth;
+```
+
+Authenticate after first use instead of at MCP initialization. The anonymous transport session
+is isolated by its random MCP session id; `relay_tabs` offers the contextual login URL, and
+subsequent calls use the identity `identify` established for that same session.
+
 <a id="description"></a>
 
 ##### description?
@@ -787,6 +972,18 @@ optional domains?: DomainSpec[];
 
 The parameterized actions for every tab. Default: `domainActions`' own set (`set-field`,
 `run-control`, `load-more`). `autoDomains()` from `@axe/surface/auto` fits here.
+
+<a id="handoff"></a>
+
+##### handoff?
+
+```ts
+optional handoff?: RelayHandoffOptions;
+```
+
+Zero-backend tab connection. When an authenticated agent has no tab, `relay_tabs` hands the
+person a short-lived URL. That page opens `appUrl`; the installed browser package exchanges
+the one-time handoff for a tab credential and connects without a pairing code.
 
 <a id="name"></a>
 
@@ -961,6 +1158,16 @@ tenant: string;
 A tab as `relay_tabs` and `relay.tabs()` list it.
 
 #### Properties
+
+<a id="application-1"></a>
+
+##### application?
+
+```ts
+optional application?: SurfaceProfile;
+```
+
+Structured identity and live context reported by the application's Surface.
 
 <a id="connectedat"></a>
 

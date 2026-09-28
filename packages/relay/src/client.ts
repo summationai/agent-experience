@@ -28,12 +28,20 @@ export type { RelayApprovalChannel, RelayMode };
  * Where the connection stands. `connecting`: opening the first connection. `pairing`: connected
  * in development mode and waiting for an agent to pair with the code shown. `connected`: an agent
  * may act. `acting`: an agent has read or acted through this tab. `reconnecting`: the connection
- * dropped and the client is retrying. `stopped`: the person pressed Stop (or `stop()` was called),
- * or the page is unloading. `refused`: the relay refused the page (origin, tenant, or token), and
- * the client does not retry.
+ * dropped and the client is retrying. `disconnected`: the application disposed this connection
+ * without revoking the tab (for example, a component unmounted). `stopped`: the person pressed
+ * Stop (or `stop()` was called). `refused`: the relay refused the page (origin, tenant, or token),
+ * and the client does not retry.
  */
 export type RelayState =
-  "connecting" | "pairing" | "connected" | "acting" | "reconnecting" | "stopped" | "refused";
+  | "connecting"
+  | "pairing"
+  | "connected"
+  | "acting"
+  | "reconnecting"
+  | "disconnected"
+  | "stopped"
+  | "refused";
 
 /** An act waiting for the person's decision in the page. */
 export interface RelayApproval {
@@ -117,6 +125,8 @@ export interface ConnectRelayOptions {
 export interface RelayConnection {
   readonly tabId: string;
   status(): RelayStatus;
+  /** Dispose this page connection without revoking access; a later connection may reattach. */
+  disconnect(): void;
   /** Disconnect for good (the Stop button): the relay revokes the token and refuses further acts. */
   stop(): void;
   /** Approve a pending act; the agent's next identical call runs it. Returns false for an unknown id. */
@@ -524,7 +534,7 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
     }
     inflight.clear();
     // Leaving the page is not Stop: the token is not revoked, and a reload reattaches.
-    shutDown(1000, "unload", "stopped", null);
+    shutDown(1000, "unload", "disconnected", null);
   };
   let navigating = false;
   const onBeforeUnload = (): void => {
@@ -930,6 +940,12 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
       return tabId;
     },
     status: () => ({ ...status, approvals: status.approvals.map((a) => ({ ...a })) }),
+    disconnect() {
+      if (stopped) return;
+      // A framework cleanup is not the person's Stop. Close the socket normally so the relay
+      // keeps the tab as reconnecting and a remount can reattach with the same tab id.
+      shutDown(1000, "connection disposed", "disconnected", null);
+    },
     stop() {
       if (stopped) return;
       send({ t: "stop" });

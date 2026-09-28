@@ -80,6 +80,8 @@ profile: () => ({
 });
 ```
 
+Treat authentication state as required whenever the application has sign-in. Find the existing auth/session hook or store and use that source; do not infer it from whether a password field happens to be rendered. Use `unknown` only while that source is genuinely loading. A provider-hosted agent relies on `signed-out` to pause its request and offer the person a secure view of the exact private browser session. No credentials then pass through chat, and the application needs no new auth route or backend.
+
 Use the application’s own noun: workspace, organization, account, project, tenant, or another factual label. Do not add selection instructions—the selectable controls themselves belong on Surface.
 
 Run coverage on the important routes:
@@ -108,7 +110,8 @@ Re-run coverage and stop when remaining gaps are cosmetic or deliberately exclud
 - Confirm a browser-native agent receives WebMCP tools when its browser supports them.
 - In a provider-hosted test, confirm `relay_tabs` starts the scoped private session without pairing, and that its application profile id matches the connector.
 - Use `surface_read` for content and `surface_observe` before acting. Perform one ordinary action, one navigation, one stale-revision refusal, and one approval-gated action.
-- Confirm login and account/workspace selection appear as normal Surface controls rather than MCP-specific instructions.
+- Confirm the profile reports `signed-out` on the login route, `unknown` only while auth resolves, and `signed-in` after login. In a provider-hosted test, `relay_tabs` while signed out must return a secure session-bound login handoff; completing it must resume against the same tab.
+- Confirm account/workspace selection appears as ordinary Surface controls rather than MCP-specific instructions.
 - Confirm an ordinary visit does not contact the provider service or display agent connection UI.
 
 ## Hand-off

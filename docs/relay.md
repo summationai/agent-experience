@@ -239,7 +239,7 @@ export const either = connectRelay(surface, {
 
 ### Stop
 
-Stop disconnects the tab, revokes its token at the relay, and refuses every later act on that tab with `forbidden`; the agent is told the person stopped it. Stop lasts for the page: a reload connects again only if your page calls `connectRelay` again. Leaving or reloading the page is not Stop: the relay keeps the tab for a reconnect, and an act sent while it reloads waits for the new page.
+Stop disconnects the tab, revokes its token at the relay, and refuses every later act on that tab with `forbidden`; the agent is told the person stopped it. Stop lasts for the page: a reload connects again only if your page calls `connectRelay` again. Leaving or reloading the page is not Stop: the relay keeps the tab for a reconnect, and an act sent while it reloads waits for the new page. Framework cleanup calls `connection.disconnect()`, not `connection.stop()`.
 
 To render the indicator with your own design system, turn it off and drive yours from `onStatus`; your UI must then show that an agent is connected and offer Stop, Approve, and Deny:
 
@@ -290,10 +290,14 @@ Importing `@axe/relay/client` touches no `window`, `document`, or `WebSocket`, s
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
   const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
   const connection = connect(s, local());
-  return () => connection.stop();
+  return () => connection.disconnect();
 }
 ```
 <!-- /include -->
+
+Use `disconnect()` for framework and route cleanup. It closes that page connection without
+revoking the tab, so a remount can reattach. Reserve `stop()` for an explicit decision by the
+person to end agent access.
 
 ## Production
 

@@ -15,6 +15,7 @@ import type {
   ProtectedResourceOptions,
 } from "@axe/mcp";
 import type { ConnectorRegistry, RegisteredConnector } from "./connectors";
+import { createBrowserAuth } from "./browser-auth";
 
 type ProviderAdapter = NonNullable<Parameters<AxeLike["handle"]>[1]>;
 
@@ -36,6 +37,8 @@ export interface ProviderOptions {
   name?: string;
   description?: string;
   onEvent?: (connectorId: string, event: HostEvent) => void;
+  /** Pre-registered public OAuth client for human handoff pages; DCR is used when omitted. */
+  browserOAuthClientId?: string;
 }
 
 export interface ProviderAddress {
@@ -108,6 +111,15 @@ async function toRequest(request: IncomingMessage): Promise<Request> {
   );
 }
 
+/** Rebase a buffered Fetch request onto the provider's public origin without reusing its stream. */
+async function atPublicOrigin(request: Request, publicOrigin: string): Promise<Request> {
+  const incoming = new URL(request.url);
+  const init: RequestInit = { method: request.method, headers: request.headers };
+  if (request.method !== "GET" && request.method !== "HEAD")
+    init.body = await request.arrayBuffer();
+  return new Request(new URL(`${incoming.pathname}${incoming.search}`, publicOrigin), init);
+}
+
 async function sendResponse(response: ServerResponse, value: Response): Promise<void> {
   const headers: Record<string, string> = {};
   value.headers.forEach((item, key) => (headers[key] = item));
@@ -130,6 +142,14 @@ async function sendResponse(response: ServerResponse, value: Response): Promise<
 export async function startProviderService(options: ProviderOptions): Promise<ProviderService> {
   const connectors = options.registry.list();
   if (!connectors.length) throw new Error("The provider registry has no connectors.");
+  const browserAuth = createBrowserAuth({
+    publicOrigin: new URL(options.resource).origin,
+    authorizationServers: options.protectedResource.authorizationServers,
+    scopes: options.requiredScopes ?? [],
+    resource: options.resource,
+    verifier: options.verifier,
+    ...(options.browserOAuthClientId ? { clientId: options.browserOAuthClientId } : {}),
+  });
   const hosts = new Map<string, Host>();
   for (const summary of connectors) {
     const connector = options.registry.get(summary.id)!;
@@ -144,6 +164,15 @@ export async function startProviderService(options: ProviderOptions): Promise<Pr
         ...(options.maxSessions ? { maxSessions: options.maxSessions } : {}),
         ...(options.idleMs ? { idleMs: options.idleMs } : {}),
         ...(options.browser ? { browser: options.browser } : {}),
+        humanHandoff: {
+          baseUrl: new URL(options.resource).origin,
+          pathPrefix: `/human-session/${connector.id}`,
+          identify: async (request) => {
+            const authInfo = browserAuth.authInfo(request);
+            return authInfo ? options.identify(connector, authInfo) : null;
+          },
+          signInUrl: browserAuth.signInUrl,
+        },
         name: options.name ?? "Agent Experience",
         description: GENERIC_INSTRUCTIONS,
         ...(options.onEvent ? { onEvent: (event) => options.onEvent!(connector.id, event) } : {}),
@@ -332,6 +361,7 @@ export async function startProviderService(options: ProviderOptions): Promise<Pr
 
   const sockets = new Set<Socket>();
   let origin = "";
+  const publicOrigin = new URL(options.resource).origin;
   const server = createServer((request, response) => {
     void (async () => {
       const req = await toRequest(request);
@@ -345,6 +375,10 @@ export async function startProviderService(options: ProviderOptions): Promise<Pr
         );
       if (path === resourceMetadata.path)
         return sendResponse(response, resourceMetadata.handler(req));
+      if (path.startsWith("/human-auth/")) {
+        const authResponse = await browserAuth.handle(await atPublicOrigin(req, publicOrigin));
+        if (authResponse) return sendResponse(response, authResponse);
+      }
       if (path === "/.well-known/agent-experience.json")
         return sendResponse(
           response,
@@ -352,12 +386,21 @@ export async function startProviderService(options: ProviderOptions): Promise<Pr
             JSON.stringify({
               name: options.name ?? "Agent Experience",
               transport: "streamable-http",
-              mcpUrl: `${origin}/mcp`,
+              mcpUrl: options.resource,
               connectors: options.registry.list(),
             }),
             { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } },
           ),
         );
+      if (path.startsWith("/human-session/")) {
+        const connectorId = path.slice("/human-session/".length).split("/")[0] ?? "";
+        const host = options.registry.get(connectorId) ? hosts.get(connectorId) : undefined;
+        const publicRequest = await atPublicOrigin(req, publicOrigin);
+        return sendResponse(
+          response,
+          host ? await host.handle(publicRequest) : new Response("Not found", { status: 404 }),
+        );
+      }
       if (path === "/mcp") return sendResponse(response, await handler(req));
       return sendResponse(response, new Response("Not found", { status: 404 }));
     })().catch((error) => {

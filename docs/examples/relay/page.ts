@@ -63,7 +63,7 @@ export function connectWithOwnIndicator(
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
   const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
   const connection = connect(s, local());
-  return () => connection.stop();
+  return () => connection.disconnect();
 }
 // #endregion dynamic
 

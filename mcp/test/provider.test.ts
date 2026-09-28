@@ -104,6 +104,12 @@ describe("generic multi-application provider", () => {
     client = new Client({ name: "provider-test", version: "0" });
     await client.connect(transport as unknown as Transport);
 
+    const discovery = await fetch(service.address.discoveryUrl);
+    expect(await discovery.json()).toMatchObject({
+      mcpUrl: "https://agents.example/mcp",
+      connectors: [{ id: "acme-analytics" }, { id: "plan-board" }],
+    });
+
     expect(client.getInstructions()).toContain(GENERIC_INSTRUCTIONS);
     expect(client.getInstructions()).not.toContain("Acme Analytics");
     const tools = (await client.listTools()).tools.map((tool) => tool.name);

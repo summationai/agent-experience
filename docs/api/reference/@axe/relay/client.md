@@ -440,6 +440,20 @@ Deny a pending act; the agent's next identical call is refused. Returns false fo
 
 `boolean`
 
+<a id="disconnect"></a>
+
+##### disconnect()
+
+```ts
+disconnect(): void;
+```
+
+Dispose this page connection without revoking access; a later connection may reattach.
+
+###### Returns
+
+`void`
+
 <a id="rekey"></a>
 
 ##### rekey()
@@ -597,6 +611,7 @@ type RelayState =
   | "connected"
   | "acting"
   | "reconnecting"
+  | "disconnected"
   | "stopped"
   | "refused";
 ```
@@ -604,9 +619,10 @@ type RelayState =
 Where the connection stands. `connecting`: opening the first connection. `pairing`: connected
 in development mode and waiting for an agent to pair with the code shown. `connected`: an agent
 may act. `acting`: an agent has read or acted through this tab. `reconnecting`: the connection
-dropped and the client is retrying. `stopped`: the person pressed Stop (or `stop()` was called),
-or the page is unloading. `refused`: the relay refused the page (origin, tenant, or token), and
-the client does not retry.
+dropped and the client is retrying. `disconnected`: the application disposed this connection
+without revoking the tab (for example, a component unmounted). `stopped`: the person pressed
+Stop (or `stop()` was called). `refused`: the relay refused the page (origin, tenant, or token),
+and the client does not retry.
 
 ## Variables
 
@@ -618,8 +634,7 @@ the client does not retry.
 const INJECTED_RELAY_GLOBAL: "__AXE_RELAY__" = "__AXE_RELAY__";
 ```
 
-The global a host (`@axe/host`) sets with an init script, before any page script runs, when it
-opens the application in a hidden browser session for a person: `window.__AXE_RELAY__`.
+The global an optional host sets before page code runs: `window.__AXE_RELAY__`.
 
 ***
 
@@ -707,9 +722,9 @@ token for the signed-in person.
 function injectedRelay(): ConnectRelayOptions | null;
 ```
 
-The connection a host injected into this page (`window.__AXE_RELAY__`), as `connectRelay`
-options, or null in a normal browser (and on the server). Reads the global when called, never
-at import. No pairing: the host minted the token for the person the session is for.
+A scoped provider connection as `connectRelay` options: either `window.__AXE_RELAY__` from an
+optional host, or a one-time browser handoff persisted in this tab's session storage. Reads at
+call time, never at import. Neither path uses pairing.
 
 #### Returns
 

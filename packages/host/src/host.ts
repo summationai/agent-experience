@@ -43,6 +43,7 @@ import { INJECTED_RELAY_GLOBAL } from "@axe/relay/client";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { contextStorageState, SessionLoginRequired } from "./session";
 import type { AppSession, HostIdentity, SessionFor } from "./session";
+import { humanSessionLoginPage, humanSessionPage } from "./human-session";
 import { watchPage } from "./watch";
 
 /** How the host starts Chromium. */
@@ -59,6 +60,20 @@ export interface HostBrowserOptions {
   executablePath?: string;
   /** Extra Chromium command-line switches. */
   args?: string[];
+}
+
+/** A visible, session-bound view used when the hosted Surface reports that it is signed out. */
+export interface HostHumanHandoffOptions {
+  /** Public origin serving the host. Required behind a proxy; inferred by `listen()` otherwise. */
+  baseUrl?: string;
+  /** Route prefix reserved for these pages. Default `/human-session`. */
+  pathPrefix?: string;
+  /** How long a link may control the page. Default ten minutes. */
+  ttlMs?: number;
+  /** Identify the person opening a production handoff page. Required outside development. */
+  identify?: (request: Request) => HostIdentity | null | Promise<HostIdentity | null>;
+  /** A provider login URL that returns to the given handoff URL after establishing `identify`. */
+  signInUrl?: (returnTo: string) => string;
 }
 
 /** Local development: loopback only, one configured identity, a key for `/mcp`, a watch page. */
@@ -92,6 +107,11 @@ export interface HostOptions {
   /** With a `Relay` instance: the secret it verifies relay tokens with. */
   relaySecret?: string;
   browser?: HostBrowserOptions;
+  /**
+   * Provider-operated, session-bound browser authentication. Enabled automatically in local
+   * development; production providers supply identity verification and a public HTTPS URL.
+   */
+  humanHandoff?: false | HostHumanHandoffOptions;
   /** Sessions running at once; starting one more closes the least recently used. Default 20. */
   maxSessions?: number;
   /** A session with no tool call for this long is closed; the next call starts it again. Default 900000 (15 minutes). */
@@ -369,6 +389,15 @@ interface LoginHandoffRecord {
   running?: Promise<StoredResponse>;
 }
 
+interface HumanSessionRecord extends LoginHandoffRecord {
+  linkToken: string;
+  resumeToken: string;
+  tabId: string;
+  who: HostIdentity;
+  /** Prefix for temporary DOM markers used only by the person's direct-entry overlays. */
+  fieldNonce: string;
+}
+
 /**
  * The script the host adds to every document of a session, before the page's own scripts: in the
  * application's origin only, it keeps the relay tab id stable and defines `window.__AXE_RELAY__`.
@@ -430,6 +459,30 @@ export function createHost(options: HostOptions): Host {
   const idleMs = options.idleMs ?? 900_000;
   const navTimeout = options.navigationTimeoutMs ?? 30_000;
   const tokenTtl = options.tokenTtlSeconds ?? 600;
+  const humanOptions =
+    options.humanHandoff === false ? null : (options.humanHandoff ?? (dev ? {} : null));
+  const humanPath = (() => {
+    const raw = humanOptions?.pathPrefix?.trim() || "/human-session";
+    const path = `/${raw.replace(/^\/+|\/+$/g, "")}`;
+    if (path === "/mcp" || path === "/health" || path.startsWith("/.well-known/"))
+      throw new Error("createHost: humanHandoff.pathPrefix conflicts with a host route.");
+    return path;
+  })();
+  let humanBase = humanOptions?.baseUrl ? new URL(humanOptions.baseUrl) : null;
+  if (
+    humanBase &&
+    humanBase.protocol !== "https:" &&
+    !(humanBase.protocol === "http:" && LOOPBACK_HOSTS.has(humanBase.hostname))
+  )
+    throw new Error("createHost: humanHandoff.baseUrl must use https (or loopback http).");
+  if (humanBase) {
+    humanBase.pathname = "/";
+    humanBase.search = "";
+    humanBase.hash = "";
+  }
+  const humanTtl = humanOptions?.ttlMs ?? 10 * 60_000;
+  if (!Number.isFinite(humanTtl) || humanTtl < 60_000 || humanTtl > 60 * 60_000)
+    throw new Error("createHost: humanHandoff.ttlMs must be between one minute and one hour.");
   const restrictAll = options.restrict === "all";
   const extraOrigins = options.allowedOrigins?.length
     ? originMatcher(options.allowedOrigins)
@@ -506,12 +559,26 @@ export function createHost(options: HostOptions): Host {
   const held = new Set<string>();
   /** Pending application-login handoffs, bound to the verified MCP identity that created them. */
   const loginHandoffs = new Map<string, LoginHandoffRecord>();
+  /** Visible-browser handoffs, indexed separately by their URL and MCP resume capabilities. */
+  const humanByLink = new Map<string, HumanSessionRecord>();
+  const humanByResume = new Map<string, HumanSessionRecord>();
 
   const pruneLoginHandoffs = (): void => {
     const now = Date.now();
     for (const [token, handoff] of loginHandoffs)
       if (handoff.expiresAt <= now) loginHandoffs.delete(token);
     while (loginHandoffs.size >= 1000) loginHandoffs.delete(loginHandoffs.keys().next().value!);
+    for (const [token, handoff] of humanByResume) {
+      if (handoff.expiresAt > now) continue;
+      humanByResume.delete(token);
+      humanByLink.delete(handoff.linkToken);
+    }
+    while (humanByResume.size >= 1000) {
+      const token = humanByResume.keys().next().value!;
+      const handoff = humanByResume.get(token)!;
+      humanByResume.delete(token);
+      humanByLink.delete(handoff.linkToken);
+    }
   };
 
   const browserNow = (): Promise<Browser> => {
@@ -598,6 +665,11 @@ export function createHost(options: HostOptions): Host {
     const context = s.context;
     s.context = null;
     s.page = null;
+    for (const [token, handoff] of humanByResume)
+      if (handoff.key === s.key) {
+        humanByResume.delete(token);
+        humanByLink.delete(handoff.linkToken);
+      }
     await context?.close().catch(() => undefined);
     emit({ type: "session.closed", principal: s.who.principal, tenant: s.who.tenant, reason });
   };
@@ -804,6 +876,15 @@ export function createHost(options: HostOptions): Host {
       const s = sessions.get(key);
       if (s && s.state !== "down" && s.page && !s.page.isClosed()) {
         touch(s);
+        // A human handoff may be visiting an identity provider, where the application's relay is
+        // intentionally absent. Keep that exact page alive instead of interpreting the temporary
+        // disconnect as a crash and reloading it underneath the person.
+        if (
+          [...humanByResume.values()].some(
+            (record) => record.key === key && record.tabId === s.tabId && !record.completed,
+          )
+        )
+          return s;
         if (tabConnected(s)) return s;
         // The page is alive but its tab is not connected (a reload, a lapsed token): wait a
         // moment, then reload the page once.
@@ -871,6 +952,65 @@ export function createHost(options: HostOptions): Host {
     });
   };
 
+  const authenticationState = async (s: Hosted): Promise<string | undefined> =>
+    (await relay.refresh(s.who, s.tabId))?.application?.authentication?.state;
+
+  // Surface exists on the application, not on an external identity provider. Avoid waiting for a
+  // relay reconnect on every status poll while the person is deliberately on the provider page.
+  const currentAuthenticationState = async (s: Hosted): Promise<string | undefined> =>
+    s.page && originOf(s.page.url()) === appOrigin ? authenticationState(s) : "signed-out";
+
+  function humanSessionResult(record: HumanSessionRecord): Response {
+    const page = new URL(`${humanPath}/${record.linkToken}/`, humanBase!).href;
+    return resultEnvelope({
+      status: WIRE.status.needsHuman,
+      handoff: {
+        reason: "application_login_required",
+        instructions:
+          "Open the secure session page and finish signing in there. It controls the exact private browser session already connected to the agent; do not sign in in another tab. When the page confirms sign-in, resume this request.",
+        url: page,
+        whatAgentShouldSayToUser: `Please finish signing in to ${options.application?.name ?? "the application"} in the secure session I opened. Your credentials stay out of this conversation.`,
+        resumeToken: record.resumeToken,
+        expiresAt: new Date(record.expiresAt).toISOString(),
+      },
+    });
+  }
+
+  const humanSessionHandoff = async (s: Hosted, request: Request): Promise<Response | null> => {
+    if (!humanOptions || !humanBase || (await authenticationState(s)) !== "signed-out") return null;
+    pruneLoginHandoffs();
+    const linkToken = randomBytes(32).toString("base64url");
+    const resumeToken = `axh_browser_${randomBytes(32).toString("base64url")}`;
+    const record: HumanSessionRecord = {
+      key: s.key,
+      request: await storeRequest(request),
+      expiresAt: Date.now() + humanTtl,
+      linkToken,
+      resumeToken,
+      tabId: s.tabId,
+      who: s.who,
+      fieldNonce: randomBytes(12).toString("base64url"),
+    };
+    humanByLink.set(linkToken, record);
+    humanByResume.set(resumeToken, record);
+    return humanSessionResult(record);
+  };
+
+  const openHumanSession = (who: HostIdentity): HumanSessionRecord | null => {
+    pruneLoginHandoffs();
+    const key = keyOf(who);
+    const record =
+      [...humanByResume.values()].find(
+        (candidate) => candidate.key === key && !candidate.completed,
+      ) ?? null;
+    if (!record) return null;
+    const session = sessions.get(key);
+    if (session?.page && !session.page.isClosed() && session.tabId === record.tabId) return record;
+    humanByResume.delete(record.resumeToken);
+    humanByLink.delete(record.linkToken);
+    return null;
+  };
+
   const loginResume = async (
     request: Request,
     who: HostIdentity,
@@ -884,8 +1024,73 @@ export function createHost(options: HostOptions): Host {
       .json()
       .catch(() => null)) as Record<string, unknown> | null;
     const token = body?.[WIRE.field.resumeToken];
-    if (typeof token !== "string" || !token.startsWith("axh_login_")) return null;
+    if (typeof token !== "string") return null;
     pruneLoginHandoffs();
+    if (token.startsWith("axh_browser_")) {
+      const handoff = humanByResume.get(token);
+      if (!handoff || handoff.key !== keyOf(who))
+        return resultEnvelope(
+          {
+            status: WIRE.status.error,
+            error: {
+              code: "not_found",
+              message: "That secure sign-in session is unknown or expired. Start again.",
+              retryable: false,
+            },
+          },
+          404,
+        );
+      if (handoff.completed) return restoreResponse(handoff.completed);
+      const session = sessions.get(handoff.key);
+      if (
+        !session ||
+        session.tabId !== handoff.tabId ||
+        (await currentAuthenticationState(session)) !== "signed-in"
+      )
+        return resultEnvelope(
+          {
+            status: WIRE.status.error,
+            error: {
+              code: "conflict",
+              message:
+                "The application still reports that this private session is signed out. Nothing ran; finish signing in on the secure session page, then call axe_resume again with the same token.",
+              retryable: true,
+              details: {
+                reason: "application_login_pending",
+                handoff: { status: "open" },
+              },
+            },
+          },
+          409,
+        );
+      if (!handoff.running)
+        handoff.running = (async () => {
+          await session.page
+            ?.evaluate((nonce) => {
+              document
+                .querySelectorAll<HTMLElement>(`[data-axe-human-field^="${nonce}-"]`)
+                .forEach((element) => element.removeAttribute("data-axe-human-field"));
+              if (
+                document.documentElement
+                  .getAttribute("data-axe-human-document")
+                  ?.startsWith(`${nonce}-`)
+              )
+                document.documentElement.removeAttribute("data-axe-human-document");
+            }, handoff.fieldNonce)
+            .catch(() => undefined);
+          const response = await relay.handleAgent(restoreRequest(handoff.request), ctx, call);
+          const stored = await storeResponse(response);
+          handoff.completed = stored;
+          humanByLink.delete(handoff.linkToken);
+          return stored;
+        })();
+      try {
+        return restoreResponse(await handoff.running);
+      } finally {
+        delete handoff.running;
+      }
+    }
+    if (!token.startsWith("axh_login_")) return null;
     const handoff = loginHandoffs.get(token);
     // Unknown, expired, and another identity's handoff are deliberately indistinguishable.
     if (!handoff || handoff.key !== keyOf(who))
@@ -952,8 +1157,12 @@ export function createHost(options: HostOptions): Host {
         const authInfo = (ctx?.identity && authOf.get(ctx.identity)) ?? null;
         const resumed = await loginResume(request, who, authInfo, ctx ?? {}, call);
         if (resumed) return resumed;
+        const open = openHumanSession(who);
+        if (open) return humanSessionResult(open);
         try {
-          await ensure(who, authInfo);
+          const session = await ensure(who, authInfo);
+          const handoff = await humanSessionHandoff(session, request.clone());
+          if (handoff) return handoff;
         } catch (e) {
           if (e instanceof SessionLoginRequired) return loginHandoff(who, request.clone(), e);
           return e instanceof HostError
@@ -1088,6 +1297,234 @@ export function createHost(options: HostOptions): Host {
     return null;
   };
 
+  const humanHeaders = (type: string): Record<string, string> => ({
+    "Content-Type": type,
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy":
+      "default-src 'none'; img-src 'self' blob:; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",
+  });
+
+  const humanRoute = async (request: Request, url: URL): Promise<Response | null> => {
+    if (!humanOptions || !url.pathname.startsWith(`${humanPath}/`)) return null;
+    pruneLoginHandoffs();
+    const rest = url.pathname.slice(humanPath.length + 1);
+    const [linkToken, operation = ""] = rest.split("/");
+    if (!linkToken || !/^[A-Za-z0-9_-]{40,64}$/.test(linkToken))
+      return json(404, { error: "not found" });
+    const record = humanByLink.get(linkToken);
+    const session = record ? sessions.get(record.key) : null;
+    if (
+      !record ||
+      !session ||
+      session.tabId !== record.tabId ||
+      !session.page ||
+      session.page.isClosed()
+    )
+      return new Response("This secure session is unavailable or expired.", {
+        status: 410,
+        headers: humanHeaders("text/plain; charset=utf-8"),
+      });
+    const identified = dev ? devIdentity : await humanOptions.identify?.(request);
+    const authorized =
+      identified?.principal === record.who.principal && identified.tenant === record.who.tenant;
+    if (!authorized) {
+      if (!operation && request.method === "GET" && humanOptions.signInUrl)
+        return new Response(
+          humanSessionLoginPage(
+            options.application?.name ?? "the application",
+            humanOptions.signInUrl(url.href),
+          ),
+          { status: 401, headers: humanHeaders("text/html; charset=utf-8") },
+        );
+      return json(401, { error: "sign in to the provider to open this secure session" });
+    }
+    touch(session);
+    if (!operation && request.method === "GET")
+      return new Response(humanSessionPage(options.application?.name ?? "the application"), {
+        headers: humanHeaders("text/html; charset=utf-8"),
+      });
+    if (operation === "status" && request.method === "GET") {
+      const state = await currentAuthenticationState(session);
+      return new Response(
+        JSON.stringify({
+          complete: state === "signed-in",
+          authentication: state ?? "unknown",
+          path: pathOf(session.page.url()),
+          title: (await session.page.title().catch(() => "")).slice(0, 200),
+        }),
+        { headers: humanHeaders("application/json") },
+      );
+    }
+    if (operation === "screenshot.png" && request.method === "GET") {
+      try {
+        const png = await session.page.screenshot({ type: "png" });
+        return new Response(new Uint8Array(png), {
+          headers: humanHeaders("image/png"),
+        });
+      } catch {
+        return json(409, { error: "the application page is changing; retry" });
+      }
+    }
+    if (operation === "fields" && request.method === "GET") {
+      const viewport = session.page.viewportSize();
+      if (!viewport) return json(409, { error: "the application viewport is unavailable" });
+      try {
+        const fields = await session.page.evaluate(
+          ([nonce, documentCandidate]) => {
+            const win = window as unknown as Window & Record<string, unknown>;
+            let documentMarker = document.documentElement.getAttribute("data-axe-human-document");
+            if (!documentMarker?.startsWith(`${nonce}-`)) {
+              documentMarker = `${nonce}-${documentCandidate}`;
+              document.documentElement.setAttribute("data-axe-human-document", documentMarker);
+            }
+            const counterKey = `__axe_human_field_${documentMarker}`;
+            let counter = Number(win[counterKey] ?? 0);
+            const visible = [
+              ...document.querySelectorAll<HTMLElement>(
+                'input:not([type="hidden"]), textarea, [contenteditable]:not([contenteditable="false"])',
+              ),
+            ].filter((element) => {
+              const style = getComputedStyle(element);
+              const rect = element.getBoundingClientRect();
+              const input = element instanceof HTMLInputElement ? element : null;
+              return (
+                !element.hasAttribute("disabled") &&
+                !input?.readOnly &&
+                style.visibility !== "hidden" &&
+                style.display !== "none" &&
+                Number(style.opacity) !== 0 &&
+                rect.width >= 12 &&
+                rect.height >= 12 &&
+                rect.right > 0 &&
+                rect.bottom > 0 &&
+                rect.left < innerWidth &&
+                rect.top < innerHeight
+              );
+            });
+            const result = visible.slice(0, 50).map((element) => {
+              let id = element.getAttribute("data-axe-human-field");
+              if (!id?.startsWith(`${documentMarker}-`)) {
+                id = `${documentMarker}-${++counter}`;
+                element.setAttribute("data-axe-human-field", id);
+              }
+              const rect = element.getBoundingClientRect();
+              const left = Math.max(0, rect.left);
+              const top = Math.max(0, rect.top);
+              const right = Math.min(innerWidth, rect.right);
+              const bottom = Math.min(innerHeight, rect.bottom);
+              const input = element instanceof HTMLInputElement ? element : null;
+              const area = element instanceof HTMLTextAreaElement ? element : null;
+              const rawType = input?.type ?? (area ? "textarea" : "text");
+              const type = ["email", "password", "search", "tel", "text", "url"].includes(rawType)
+                ? rawType
+                : "text";
+              const label =
+                element.getAttribute("aria-label") ||
+                input?.labels?.[0]?.innerText ||
+                area?.labels?.[0]?.innerText ||
+                element.getAttribute("placeholder") ||
+                element.getAttribute("name") ||
+                "Sign-in field";
+              return {
+                id,
+                x: left,
+                y: top,
+                width: Math.max(0, right - left),
+                height: Math.max(0, bottom - top),
+                type,
+                multiline: !!area || element.isContentEditable,
+                label: label.trim().slice(0, 200),
+                placeholder: (element.getAttribute("placeholder") ?? "").slice(0, 200),
+                autocomplete: (element.getAttribute("autocomplete") ?? "").slice(0, 100),
+                inputmode: (element.getAttribute("inputmode") ?? "").slice(0, 30),
+              };
+            });
+            win[counterKey] = counter;
+            return result;
+          },
+          [record.fieldNonce, randomBytes(8).toString("base64url")] as const,
+        );
+        return new Response(JSON.stringify({ viewport, fields }), {
+          headers: humanHeaders("application/json"),
+        });
+      } catch {
+        return json(409, { error: "the application fields are changing; retry" });
+      }
+    }
+    if (operation === "input" && request.method === "POST") {
+      if (request.headers.get("origin") !== humanBase?.origin)
+        return json(403, { error: "cross-origin input refused" });
+      const length = Number(request.headers.get("content-length") ?? "0");
+      if (Number.isFinite(length) && length > 8192)
+        return json(413, { error: "input is too large" });
+      const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!body || typeof body["type"] !== "string") return json(400, { error: "invalid input" });
+      const page = session.page;
+      try {
+        switch (body["type"]) {
+          case "field-focus":
+          case "field-text": {
+            const field = body["field"];
+            if (
+              typeof field !== "string" ||
+              !field.startsWith(`${record.fieldNonce}-`) ||
+              !/^[A-Za-z0-9_-]{18,100}$/.test(field)
+            )
+              return json(400, { error: "invalid field" });
+            const target = page.locator(`[data-axe-human-field="${field}"]`).first();
+            if (!(await target.count())) return json(409, { error: "the field changed; retry" });
+            if (body["type"] === "field-focus") await target.focus();
+            else {
+              const value = body["text"];
+              if (typeof value !== "string" || value.length > 4096)
+                return json(400, { error: "invalid text" });
+              await target.fill(value);
+            }
+            break;
+          }
+          case "pointer": {
+            const x = Number(body["x"]);
+            const y = Number(body["y"]);
+            const viewport = page.viewportSize();
+            if (
+              !viewport ||
+              !Number.isFinite(x) ||
+              !Number.isFinite(y) ||
+              x < 0 ||
+              y < 0 ||
+              x > viewport.width ||
+              y > viewport.height
+            )
+              return json(400, { error: "invalid pointer coordinates" });
+            await page.mouse.click(x, y);
+            break;
+          }
+          case "key": {
+            const key = body["key"];
+            if (key !== "Enter") return json(400, { error: "invalid key" });
+            await page.keyboard.press(key);
+            break;
+          }
+          case "wheel": {
+            const y = Number(body["y"]);
+            if (!Number.isFinite(y) || Math.abs(y) > 2000)
+              return json(400, { error: "invalid scroll distance" });
+            await page.mouse.wheel(0, y);
+            break;
+          }
+          default:
+            return json(400, { error: "invalid input type" });
+        }
+      } catch {
+        return json(409, { error: "the application page changed before input arrived; retry" });
+      }
+      return json(200, { ok: true });
+    }
+    return json(404, { error: "not found" });
+  };
+
   const handle = async (
     request: Request,
     context: { remoteAddress?: string } = {},
@@ -1095,6 +1532,8 @@ export function createHost(options: HostOptions): Host {
     const url = new URL(request.url);
     const why = devRefusal(context.remoteAddress, request.headers.get("host") ?? url.host);
     if (why) return json(403, { error: why });
+    const human = await humanRoute(request, url);
+    if (human) return human;
     if (url.pathname === "/health") return json(200, { ok: true });
     if (prm && url.pathname === prm.path) return prm.handler(request);
     if (url.pathname === "/mcp") {
@@ -1144,6 +1583,11 @@ export function createHost(options: HostOptions): Host {
     held.add(key);
     for (const [token, handoff] of loginHandoffs)
       if (handoff.key === key) loginHandoffs.delete(token);
+    for (const [token, handoff] of humanByResume)
+      if (handoff.key === key) {
+        humanByResume.delete(token);
+        humanByLink.delete(handoff.linkToken);
+      }
     const s = sessions.get(key);
     // Revoke the tab's token at the relay first, so nothing more runs in the page.
     if (s) relay.stop(who, s.tabId);
@@ -1184,8 +1628,12 @@ export function createHost(options: HostOptions): Host {
         agentOptions.call,
       );
       if (resumed) return resumed;
+      const open = openHumanSession(agentOptions.who);
+      if (open) return humanSessionResult(open);
       try {
-        await ensure(agentOptions.who, agentOptions.authInfo ?? null);
+        const session = await ensure(agentOptions.who, agentOptions.authInfo ?? null);
+        const handoff = await humanSessionHandoff(session, request.clone());
+        if (handoff) return handoff;
       } catch (error) {
         if (error instanceof SessionLoginRequired)
           return loginHandoff(agentOptions.who, request.clone(), error);
@@ -1218,6 +1666,7 @@ export function createHost(options: HostOptions): Host {
       const port = (server.address() as AddressInfo).port;
       const shown = host.includes(":") ? `[${host}]` : host;
       const base = `http://${shown}:${port}`;
+      humanBase ??= new URL(base);
       return {
         url: base,
         mcpUrl: `${base}/mcp`,
@@ -1243,6 +1692,8 @@ export function createHost(options: HostOptions): Host {
     async close() {
       closing = true;
       loginHandoffs.clear();
+      humanByLink.clear();
+      humanByResume.clear();
       await Promise.all([...sessions.values()].map((s) => dispose(s, "shutdown")));
       const b = browser ? await browser.catch(() => null) : null;
       browser = null;

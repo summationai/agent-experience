@@ -95,8 +95,9 @@ describe("local unattended MCP service", () => {
     expect(handoffClient.getInstructions()).toContain(
       "never ask the person to sign in in another tab",
     );
+    expect(handoffClient.getInstructions()).toContain("secure session-bound sign-in URL");
     expect(handoffClient.getInstructions()).toContain(
-      "enter them through the reported Surface fields",
+      "Never ask for a pairing code or credentials in chat",
     );
     const tools = (await handoffClient.listTools()).tools.map((tool) => tool.name);
     expect(tools).toContain("relay_tabs");
@@ -301,7 +302,7 @@ describe("provider-operated browser handoff", () => {
 });
 
 describe("provider-operated hosted MCP service", () => {
-  it("requires the OAuth and application-session boundary", () => {
+  it("requires provider OAuth but not an application session broker", () => {
     expect(hostedEnvironmentConfig(ENV)).toMatchObject({
       appUrl: "https://app.example/",
       publicMcpUrl: "https://agents.example/mcp",
@@ -314,6 +315,10 @@ describe("provider-operated hosted MCP service", () => {
     expect(() =>
       hostedEnvironmentConfig({ ...ENV, AXE_HOST_PUBLIC_MCP_URL: "https://agents.example/wrong" }),
     ).toThrow(/end in \/mcp/);
+    const withoutBroker = { ...ENV };
+    delete (withoutBroker as Partial<typeof ENV>).AXE_HOST_SESSION_BROKER_URL;
+    delete (withoutBroker as Partial<typeof ENV>).AXE_HOST_SESSION_BROKER_TOKEN;
+    expect(hostedEnvironmentConfig(withoutBroker)).not.toHaveProperty("sessionBrokerUrl");
   });
 
   it("introspects the token, enforces its audience, and retains identity claims", async () => {

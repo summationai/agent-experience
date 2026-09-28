@@ -452,6 +452,29 @@ describe.skipIf(noJsdom)("relay: the page's surface decides", () => {
     expect(s.reason).toContain("invalid or expired");
   });
 
+  it("framework cleanup disconnects without revoking the tab or its token", async () => {
+    const events: string[] = [];
+    const r = await relay({ onEvent: (e) => events.push(e.type) });
+    const p = await page();
+    const token = await tokenFor("alice");
+    const connection = p.connect({ url: r.address.tabUrl, token });
+    await p.status((s) => s.state === "connected");
+    const tabId = connection.tabId;
+
+    connection.disconnect();
+    await p.status((s) => s.state === "disconnected");
+    await until(
+      () => r.relay.tabs({ principal: "alice", tenant: "acme" })[0]?.state === "reconnecting",
+    );
+    expect(events).toContain("tab.disconnected");
+    expect(events).not.toContain("tab.stopped");
+
+    const reconnected = p.connect({ url: r.address.tabUrl, token });
+    await p.status((s) => s.state === "connected");
+    expect(reconnected.tabId).toBe(tabId);
+    expect(r.relay.tabs({ principal: "alice", tenant: "acme" })).toHaveLength(1);
+  });
+
   it("a reloaded page reattaches to the same tab, and a revision observed before the reload is refused", async () => {
     const r = await relay();
     const p = await page();

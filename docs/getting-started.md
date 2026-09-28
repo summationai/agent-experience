@@ -22,6 +22,8 @@ npx axe surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-r
 
 `axe surface init` detects the framework, the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root component, and prints the diff it would make. For a React Router 7 app it is two lines in `app/root.tsx` plus two new files:
 
+It is also the upgrade entry point: rerunning it applies narrowly defined safe migrations to files carrying its generated marker while preserving application-specific edits. Review the printed diff before accepting it.
+
 ```diff
  import "./app.css";
 +import { AgentSurface } from "./surface";
@@ -90,7 +92,7 @@ npx axe host login http://localhost:5173
 claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
 ```
 
-The host runs the signed-in app in a headless browser and presents the surface over MCP. The authoritative surface and every act remain in the page. This is useful for SDK development; production uses the provider registry and stable MCP endpoint described above. See [Unattended mode](host.md).
+The host runs the app in a private browser and presents the surface over MCP. A brokered session may start it signed in; otherwise a `signed-out` Surface produces a secure view of that same browser for the person to authenticate without sending credentials through chat. The authoritative surface and every agent act remain in the page. This is useful for SDK development; production uses the provider registry and stable MCP endpoint described above. See [Unattended mode](host.md).
 
 ## Serve actions over AXE
 

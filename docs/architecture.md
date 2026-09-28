@@ -36,6 +36,8 @@ One provider endpoint may host any number of registered applications. It exposes
 
 The runtime may tell an agent how to use the protocol—observe before acting, preserve revisions, follow login/approval handoffs, never ask for pairing—but it must not contain application names, routes, UI choices, or domain workflows. Those arrive from the connector descriptor or the live Surface.
 
+When a hosted Surface reports `signed-out`, the generic host may expose a short-lived interactive view of that exact private browser context. The provider serves and secures this page. The application adds no route, backend, session exchange, remote-browser code, or MCP behavior; it only reports the authentication state it already owns. A provider-side session broker remains a faster optional strategy, not an installation requirement.
+
 ## Review test
 
 For every application-specific change, ask:

@@ -43,17 +43,21 @@ interface Started {
   agent(token: string, approve?: Approver): Promise<Agent>;
 }
 
-async function start(options: Partial<HostOptions> = {}): Promise<Started> {
+async function start(options: Partial<HostOptions> = {}, withSession = true): Promise<Started> {
   const events: HostEvent[] = [];
   const host = createHost({
     appUrl: fixture.url,
     agentAuth,
     // Each identity's own session cookie, as a production sessionFor would mint it.
-    sessionFor: ({ principal, tenant }) => ({
-      cookies: [{ name: "session", value: principal }],
-      headers: { "x-app-session": `${principal}@${tenant}` },
-      localStorage: { [fixture.origin]: { greeting: `hello ${principal}` } },
-    }),
+    ...(withSession
+      ? {
+          sessionFor: ({ principal, tenant }: typeof ALICE) => ({
+            cookies: [{ name: "session", value: principal }],
+            headers: { "x-app-session": `${principal}@${tenant}` },
+            localStorage: { [fixture.origin]: { greeting: `hello ${principal}` } },
+          }),
+        }
+      : {}),
     onEvent: (e) => events.push(e),
     ...options,
   });
@@ -72,6 +76,134 @@ async function start(options: Partial<HostOptions> = {}): Promise<Started> {
 }
 
 describe("unattended mode in Chromium", () => {
+  it("hands a signed-out Surface to the person in the exact hosted browser session", async (ctx) => {
+    if (missing) return ctx.skip();
+    const { host, agent: open } = await start(
+      {
+        application: { id: "host-fixture", name: "Fixture application" },
+        // Production supplies this identity through the provider's browser OAuth session.
+        humanHandoff: {
+          identify: (request) =>
+            request.headers.get("cookie") === "person=alice"
+              ? ALICE
+              : request.headers.get("cookie") === "person=bob"
+                ? BOB
+                : null,
+          signInUrl: () => "https://agents.example/human-auth/start/opaque",
+        },
+      },
+      false,
+    );
+    const alice = await open("agent-alice");
+    const first = await alice.call("relay_tabs");
+    expect(first.result).toMatchObject({
+      status: "needs_human",
+      handoff: { reason: "application_login_required" },
+    });
+    const handoff = (
+      first.result as unknown as {
+        handoff: { url: string; resumeToken: string };
+      }
+    ).handoff;
+    expect(handoff.url).toContain("/human-session/");
+    expect(first.text).not.toContain("provide your password");
+
+    const anonymous = await fetch(handoff.url);
+    expect(anonymous.status).toBe(401);
+    expect(await anonymous.text()).toContain("Continue securely");
+    expect(
+      await fetch(handoff.url, { headers: { cookie: "person=bob" } }).then(
+        (response) => response.status,
+      ),
+    ).toBe(401);
+    const humanHeaders = { cookie: "person=alice" };
+    const landing = await fetch(handoff.url, { headers: humanHeaders });
+    expect(landing.status).toBe(200);
+    const landingHtml = await landing.text();
+    expect(landingHtml).toContain("private browser session your assistant is using");
+    expect(landingHtml).toContain("Type directly into the fields");
+    expect(landingHtml).toContain("Returning you to your assistant");
+    expect(landingHtml).toContain("window.close()");
+    expect(landingHtml).not.toContain("Fallback text entry");
+    const screenshot = await fetch(new URL("screenshot.png", handoff.url), {
+      headers: humanHeaders,
+    });
+    expect(screenshot.headers.get("content-type")).toBe("image/png");
+
+    const early = await alice.call("axe_resume", { resumeToken: handoff.resumeToken });
+    expect(early.result).toMatchObject({
+      status: "error",
+      error: { code: "conflict", details: { reason: "application_login_pending" } },
+    });
+
+    const page = host.page(ALICE)!;
+    const send = (body: Record<string, unknown>) =>
+      fetch(new URL("input", handoff.url), {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: new URL(handoff.url).origin,
+          ...humanHeaders,
+        },
+        body: JSON.stringify(body),
+      });
+    expect(
+      await fetch(new URL("input", handoff.url), {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://attacker.example",
+          ...humanHeaders,
+        },
+        body: JSON.stringify({ type: "pointer", x: 1, y: 1 }),
+      }).then((response) => response.status),
+    ).toBe(403);
+    const described = (await fetch(new URL("fields", handoff.url), {
+      headers: humanHeaders,
+    }).then((response) => response.json())) as {
+      viewport: { width: number; height: number };
+      fields: { id: string; type: string; label: string; autocomplete: string; value?: string }[];
+    };
+    expect(described.viewport).toMatchObject({
+      width: expect.any(Number),
+      height: expect.any(Number),
+    });
+    expect(described.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ autocomplete: "username" }),
+        expect.objectContaining({ type: "password", autocomplete: "current-password" }),
+      ]),
+    );
+    expect(JSON.stringify(described)).not.toContain("not-sent-through-mcp");
+    const emailField = described.fields.find((field) => field.autocomplete === "username")!;
+    const passwordField = described.fields.find(
+      (field) => field.autocomplete === "current-password",
+    )!;
+    for (const [field, selector, value] of [
+      [emailField, 'input[name="email"]', "alice@example.com"],
+      [passwordField, 'input[name="password"]', "not-sent-through-mcp"],
+    ] as const) {
+      expect((await send({ type: "field-focus", field: field.id })).status).toBe(200);
+      expect((await send({ type: "field-text", field: field.id, text: value })).status).toBe(200);
+      expect(await page.locator(selector).inputValue()).toBe(value);
+    }
+    const button = await page.getByRole("button", { name: "Sign in" }).boundingBox();
+    expect(button).toBeTruthy();
+    expect((await send({ type: "pointer", x: button!.x + 4, y: button!.y + 4 })).status).toBe(200);
+    await until(async () =>
+      host.page(ALICE)?.evaluate(() => document.body.dataset["signedIn"] === "true"),
+    );
+
+    const status = await fetch(new URL("status", handoff.url), { headers: humanHeaders });
+    expect(await status.json()).toMatchObject({ complete: true, authentication: "signed-in" });
+    const resumed = await alice.call("axe_resume", { resumeToken: handoff.resumeToken });
+    expect(resumed.result.status, resumed.text).toBe("ok");
+    expect((resumed.result.output as { tabs: { state: string }[] }).tabs).toEqual([
+      expect.objectContaining({ state: "connected" }),
+    ]);
+    expect(await fetch(handoff.url).then((response) => response.status)).toBe(410);
+  });
+
   // [S-HOST-9] Login is a person-facing, identity-bound handoff; resume replays exactly once.
   it("hands application login to the person, then resumes the original tool call", async (ctx) => {
     if (missing) return ctx.skip();

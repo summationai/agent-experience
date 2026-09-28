@@ -1,6 +1,6 @@
 # Unattended mode: the agent uses the app for you
 
-The person signs in once, in the agent's own UI, and never has to open the website. The SDK runs the application in a headless browser for that person, the application's real UI runs there with the easy-mode surface mounted, and the agent acts through that UI: the same controls, availability, reasons, and handlers a person's click would use. There is no pairing code and no tab of the person's own. This is the provider's default desktop/mobile adapter; browser-native WebMCP is an additional direct path where supported, and an attended relay remains a diagnostic fallback.
+The person signs in once in the agent's own UI. The SDK then runs the application in a private browser for that person, and the agent acts through the application's real controls, availability, reasons, and handlers. There is no pairing code or ordinary application tab to keep open. If the application itself still requires login, the host can briefly show the person a secure interactive view of that exact private browser session; after sign-in it returns to unattended operation. This is the provider's default desktop/mobile adapter; browser-native WebMCP is an additional direct path where supported, and an attended relay remains a diagnostic fallback.
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
   H -. sessionFor: the app's session .-> B
 ```
 
-`@axe/host` is the host. For each principal and tenant an agent authenticates as, it starts an isolated Playwright browser context on the agent's first tool call, applies the application session your `sessionFor` returns, injects the relay connection before any page script runs, opens the application, and waits until the page's surface is connected. Every tool call then routes to that person's hidden tab. The rules are [S-HOST-1] to [S-HOST-9] in [spec/SURFACE.md](../spec/SURFACE.md) §9.2.
+`@axe/host` is the host. For each principal and tenant an agent authenticates as, it starts an isolated Playwright browser context on the agent's first tool call, applies an application session when `sessionFor` returns one, injects the relay connection before any page script runs, opens the application, and waits until the page's surface is connected. Every tool call then routes to that person's private tab. The rules are [S-HOST-1] to [S-HOST-10] in [spec/SURFACE.md](../spec/SURFACE.md) §9.2.
 
 ## What the application needs
 
@@ -251,6 +251,24 @@ Two ways an application implements it:
 
 Either way, bind it to the identity the verified token names, keep it short-lived (the host starts a new context, and asks again, after `idleMs`), and scope it to what the agent is allowed to do. `cookieSession(fn)` is a shorthand for a `sessionFor` that returns cookies.
 
+### Generic sign-in fallback: the same hosted browser
+
+An application does not need a session broker to participate. When its live Surface profile reports `authentication.state: "signed-out"`, the host pauses the agent's request and returns an `application_login_required` handoff. The linked page is served by `@axe/host` and shows a live interactive view of the exact Playwright page and browser context the agent will use. Visible editable fields receive aligned native HTML inputs, so the person types directly into the sign-in form, taps its buttons, and scrolls or swipes normally; there is no separate remote-control toolbar. The person completes the application's existing login, SSO, MFA, or other identity step there. As soon as a fresh Surface observation reports `signed-in`, the remote view is replaced by a completion screen, the opener is focused when available, the handoff attempts to close itself, and `axe_resume` replays the original request once. Browsers that refuse scripted closing leave only the completion screen visible.
+
+This entire fallback is provider infrastructure. The consuming application adds no login endpoint, callback, iframe, session broker, Playwright dependency, or MCP code. Its only contract is an accurate live profile:
+
+```ts
+profile: () => ({
+  id: "example-app",
+  name: "Example App",
+  authentication: { state: auth.loading ? "unknown" : auth.user ? "signed-in" : "signed-out" },
+});
+```
+
+The handoff URL is an expiring capability bound in memory to the verified principal, tenant, hosted tab, and original request. The page accepts input only from its own origin. It exposes screenshots and explicit human pointer/keyboard input, never cookies, storage, relay tokens, or credentials through MCP. Production requires HTTPS. Identity-provider origins used during SSO must still be listed in the connector's `allowedOrigins`; the host's navigation policy remains in force.
+
+`sessionFor` is still preferable when the provider and application can exchange identity silently: it avoids showing a browser and starts already signed in. The session-bound view is the generic fallback that preserves a zero-backend application installation.
+
 ### Deployment
 
 - The host runs one Chromium and one browser context per active person, in one process, with its relay inside on loopback. Each context holds a full page of your application: measure one, size `maxSessions` from it, and route each person to one host process.
@@ -259,12 +277,12 @@ Either way, bind it to the identity the verified token names, keep it short-live
 
 ## Security model
 
-A server-side browser acting as a person is powerful, so the host states what it guarantees ([S-HOST-1] to [S-HOST-9]) and [Security](security.md) lists the threats:
+A server-side browser acting as a person is powerful, so the host states what it guarantees ([S-HOST-1] to [S-HOST-10]) and [Security](security.md) lists the threats:
 
 - **Identity binding.** A session is for exactly the principal and tenant the agent's verified token names. The host mints the page's relay token for that identity only, and the relay serves an agent only its own person's tab ([S-RELAY-3]). A tenant change is another session.
 - **Isolation.** One browser context per identity: no cookie, storage, cache, or permission is shared between two people. They share only the browser process.
 - **No pairing, safely.** Pairing exists to prove that the person at the tab is the person the agent speaks for. Here the host opens the tab itself, for the identity the agent signed in as, so there is nothing to prove. The connection is injected only into frames of the application's origin, and the renewal function mints only for those frames.
-- **Credentials stay put.** What `sessionFor` returns is never logged, put in an event, or returned by a tool; headers go only to the application's origin; relay tokens live ten minutes (`tokenTtlSeconds`) and renew in-band. An ordinary `sessionFor` error is not passed on to the agent. `SessionLoginRequired` exposes only the application-supplied login URL and safe instructions, never credentials.
+- **Credentials stay out of the agent.** What `sessionFor` returns is never logged, put in an event, or returned by a tool; headers go only to the application's origin; relay tokens live ten minutes (`tokenTtlSeconds`) and renew in-band. An ordinary `sessionFor` error is not passed on to the agent. `SessionLoginRequired` exposes only the application-supplied login URL and safe instructions. In the generic fallback, keystrokes travel directly from the short-lived provider page to the bound browser page and are never put in MCP content, Surface observations, or ledgers.
 - **Everything through the UI.** The agent changes nothing except through the page's own controls; the host adds no write tool. `host_screenshot` only reads.
 - **Approvals through the agent.** Consequential acts wait for the person in the agent's UI.
 - **Navigation stays on the application** (the request-forgery defense). A navigation to any origin other than the application's and `allowedOrigins` is refused and the page stays where it was; `restrict: "all"` refuses every other request too. Cloud metadata addresses are never reachable, and service workers, which could fetch around these rules, are blocked. Each refusal is an event naming the origin.
@@ -275,7 +293,7 @@ Threats that remain yours: the blast radius of an agent session (narrow what you
 ## Limits
 
 - Everything is in memory in one process: sessions, the relay's tabs, and Stop holds reset on restart.
-- The hosted page is a real browser page. What the page cannot do headless (a CAPTCHA, a second factor, a hardware key) fails the session, and the agent is told it could not start.
+- The hosted page is a real browser page. The secure human view handles ordinary forms, SSO, and common second-factor flows. Browser features it cannot forward yet—file selection, passkeys, hardware keys, camera/microphone challenges, and some CAPTCHAs—still require a brokered application session or another application-supported authentication method.
 - Watching is screenshots, polled once a second, in development; there is no live stream.
 - An act whose click navigates the page (a link, a form that posts and reloads) is answered `ok` with `navigated: true` just before the page unloads, and the agent is told to observe the new page. An act whose page goes away without a navigation it could see (a crash, a closed page), or does not answer in time, is `unavailable` with `details.reason: "outcome_unknown"` and `retryable: false`: it was sent and may have taken effect, so it is neither retried nor reported as nothing applied ([S-RELAY-14]).
 - The development storage state is one person's cookies. It expires like any session, and anyone who can read the file can use it.
