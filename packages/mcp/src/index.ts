@@ -1206,6 +1206,14 @@ export interface ServeHttpOptions {
    */
   clientFor?: (authInfo: AuthInfo) => MaybePromise<CallerContext>;
   /**
+   * Give each unauthenticated stateful MCP session its own caller identity. This is for services
+   * that defer account login until a tool actually needs it: transport initialization stays
+   * anonymous, while the cryptographically random MCP session id isolates the later login and
+   * every page it can reach. Requires `sessions` and cannot be combined with transport `auth` or
+   * `clientFor`.
+   */
+  anonymousSessionClientFor?: (sessionId: string) => MaybePromise<CallerContext>;
+  /**
    * Browser origins allowed to call the endpoint, besides the endpoint's own. A request whose
    * `Origin` is neither is refused with 403 (DNS rebinding protection).
    */
@@ -1298,8 +1306,17 @@ export function serveHttp(
         : options.sessionIdGenerator
           ? { generateId: options.sessionIdGenerator }
           : undefined;
+  if (options.anonymousSessionClientFor && !sessionOpts) {
+    throw new Error("serveHttp: `anonymousSessionClientFor` requires stateful `sessions`.");
+  }
+  if (options.anonymousSessionClientFor && (options.auth || options.clientFor)) {
+    throw new Error(
+      "serveHttp: `anonymousSessionClientFor` cannot be combined with `auth` or `clientFor`.",
+    );
+  }
   const auth = options.auth;
   const clientFor = options.clientFor;
+  const anonymousSessionClientFor = options.anonymousSessionClientFor;
   const allowedOrigins = new Set(options.allowedOrigins ?? []);
   const pollScopes = new PollScopes();
   const sessions = new Map<string, SessionRecord>();
@@ -1426,14 +1443,24 @@ export function serveHttp(
       return jsonRpcError(503, -32000, "Too many open sessions; try again later.", {
         "Retry-After": "60",
       });
+    let sessionId: string | undefined;
+    const sessionCaller = caller
+      ? caller
+      : anonymousSessionClientFor
+        ? async () => {
+            if (!sessionId) throw new Error("The anonymous MCP session is not initialized.");
+            return anonymousSessionClientFor(sessionId);
+          }
+        : undefined;
     const built = buildServer(bridge, {
       pollUrls: new IssuedPollUrls(),
-      ...(caller ? { caller } : {}),
+      ...(sessionCaller ? { caller: sessionCaller } : {}),
     });
     const transport: WebStandardStreamableHTTPServerTransport =
       new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: generateId,
         onsessioninitialized: (sid) => {
+          sessionId = sid;
           sessions.set(sid, {
             id: sid,
             principal,

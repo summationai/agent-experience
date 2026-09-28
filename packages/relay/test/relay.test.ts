@@ -142,6 +142,53 @@ describe.skipIf(noJsdom)("relay: list, observe, act", () => {
 });
 
 describe.skipIf(noJsdom)("relay: zero-backend browser handoff", () => {
+  it("defers login until relay_tabs and resumes the same session after identity changes", async () => {
+    const identities = new Map<string, { principal: string; tenant: string }>();
+    let loginSession: string | undefined;
+    const r = await relay({
+      deferredAgentAuth: {
+        identify: (sessionId) => identities.get(sessionId) ?? null,
+        login: (sessionId) => {
+          loginSession = sessionId;
+          return { url: "https://relay.example/login" };
+        },
+      },
+      handoff: { appUrl: `${APP_ORIGIN}/plan`, pageUrl: "https://relay.example" },
+    });
+    const a = await httpAgent(r.address.mcpUrl);
+    cleanup.push(() => a.close());
+    expect(loginSession).toBeUndefined();
+
+    const offered = await a.call("relay_tabs");
+    expect(offered.result.status).toBe("needs_human");
+    expect(loginSession).toBeTruthy();
+    const loginHandoff = offered.result as unknown as {
+      handoff: { reason: string; resumeToken: string };
+    };
+    expect(loginHandoff.handoff.reason).toBe("application_login_required");
+
+    const who = { principal: "alice", tenant: "acme" };
+    identities.set(loginSession!, who);
+    const browserUrl = r.relay.browserHandoff(who)!;
+    const handoffToken = new URL(browserUrl).pathname.split("/").at(-1)!;
+    const exchange = await fetch(new URL("/connect/exchange", r.address.url), {
+      method: "POST",
+      headers: { Origin: APP_ORIGIN, "Content-Type": "text/plain;charset=UTF-8" },
+      body: handoffToken,
+    });
+    const session = (await exchange.json()) as { token: string };
+    const p = await page();
+    p.connect({ url: r.address.tabUrl, token: session.token });
+    await p.status((status) => status.state === "connected");
+
+    const resumed = await a.call("axe_resume", {
+      resumeToken: loginHandoff.handoff.resumeToken,
+    });
+    expect(resumed.result.status, resumed.text).toBe("ok");
+    expect(resumed.result.output?.["principal"]).toBe("alice");
+    expect(resumed.result.output?.["tabs"]).toHaveLength(1);
+  });
+
   it("opens the app and exchanges a one-time agent-bound link for a tab session", async () => {
     const r = await relay({
       handoff: {

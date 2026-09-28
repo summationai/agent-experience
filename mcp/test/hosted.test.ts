@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SessionLoginRequired } from "@axe/host";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   brokeredSessionFor,
   hostedEnvironmentConfig,
@@ -11,6 +14,12 @@ import {
 import type { HostedMcpService } from "../src/hosted";
 import { handoffEnvironmentConfig, startHandoffMcpServiceFromEnv } from "../src/handoff";
 import type { HandoffMcpService } from "../src/handoff";
+import {
+  localUnattendedEnvironmentConfig,
+  localUnattendedHostOptions,
+  startLocalUnattendedMcpServiceFromEnv,
+} from "../src/local-unattended";
+import type { LocalUnattendedMcpService } from "../src/local-unattended";
 
 const ENV = {
   AXE_HOST_APP_URL: "https://app.example/",
@@ -29,12 +38,104 @@ const ENV = {
 
 let service: HostedMcpService | undefined;
 let handoffService: HandoffMcpService | undefined;
+let localUnattendedService: LocalUnattendedMcpService | undefined;
+let handoffClient: Client | undefined;
 
 afterEach(async () => {
+  await handoffClient?.close().catch(() => undefined);
   await service?.close();
   await handoffService?.close();
+  await localUnattendedService?.close();
+  handoffClient = undefined;
   service = undefined;
   handoffService = undefined;
+  localUnattendedService = undefined;
+});
+
+describe("local unattended MCP service", () => {
+  const LOCAL_UNATTENDED_ENV = {
+    AXE_HOST_APP_URL: "http://localhost:5173/login",
+    AXE_MCP_AGENT_KEY: "local-test-key",
+    HOST: "127.0.0.1",
+    PORT: "0",
+  };
+
+  it("is loopback-only and needs no OAuth, application broker, or saved session", async () => {
+    expect(localUnattendedEnvironmentConfig(LOCAL_UNATTENDED_ENV)).toMatchObject({
+      appUrl: "http://localhost:5173/login",
+      agentKey: "local-test-key",
+      principal: "local-user",
+      tenant: "unselected",
+      host: "127.0.0.1",
+      port: 0,
+    });
+    expect(localUnattendedEnvironmentConfig(LOCAL_UNATTENDED_ENV)).not.toHaveProperty("statePath");
+    expect(() =>
+      localUnattendedEnvironmentConfig({
+        ...LOCAL_UNATTENDED_ENV,
+        AXE_HOST_APP_URL: "https://app.example/login",
+      }),
+    ).toThrow(/loopback/);
+    expect(() =>
+      localUnattendedEnvironmentConfig({ ...LOCAL_UNATTENDED_ENV, HOST: "0.0.0.0" }),
+    ).toThrow(/loopback/);
+
+    localUnattendedService = await startLocalUnattendedMcpServiceFromEnv(LOCAL_UNATTENDED_ENV);
+    const health = await fetch(`${localUnattendedService.address.url}/health`);
+    expect(health.status).toBe(200);
+    expect(await health.json()).toEqual({ ok: true });
+    // The browser is lazy: starting and probing the service does not open an app page.
+
+    const transport = new StreamableHTTPClientTransport(
+      new URL(localUnattendedService.address.mcpUrl),
+      { requestInit: { headers: { Authorization: "Bearer local-test-key" } } },
+    );
+    handoffClient = new Client({ name: "local-unattended-test", version: "0" });
+    await handoffClient.connect(transport as unknown as Transport);
+    expect(handoffClient.getInstructions()).toContain(
+      "never ask the person to sign in in another tab",
+    );
+    expect(handoffClient.getInstructions()).toContain(
+      "enter them through the reported Surface fields",
+    );
+    const tools = (await handoffClient.listTools()).tools.map((tool) => tool.name);
+    expect(tools).toContain("relay_tabs");
+    expect(tools).not.toContain("relay_pair");
+  });
+
+  it("accepts an optional saved state and explicit browser binary", () => {
+    expect(
+      localUnattendedEnvironmentConfig({
+        ...LOCAL_UNATTENDED_ENV,
+        AXE_HOST_STATE_PATH: ".axe/summation.json",
+        AXE_HOST_BROWSER_EXECUTABLE_PATH: "/Applications/Chromium.app/chromium",
+        AXE_HOST_START_PATH: "/",
+      }),
+    ).toMatchObject({
+      statePath: expect.stringMatching(/\.axe\/summation\.json$/),
+      executablePath: "/Applications/Chromium.app/chromium",
+      startPath: "/",
+    });
+  });
+
+  it("serves one-time approval links as the configured local person", async () => {
+    const config = localUnattendedEnvironmentConfig({
+      ...LOCAL_UNATTENDED_ENV,
+      AXE_HOST_DEV_PRINCIPAL: "person-1",
+      AXE_HOST_DEV_TENANT: "tenant-1",
+    });
+    const options = localUnattendedHostOptions(config);
+    const relay = options.relay as {
+      approvals?: { identify?: (request: Request) => unknown };
+    };
+
+    expect(await relay.approvals?.identify?.(new Request("http://127.0.0.1/approve/test"))).toEqual({
+      principal: "person-1",
+      tenant: "tenant-1",
+    });
+    expect(options.description).toContain("present that ordinary clickable link");
+    expect(options.description).toContain("Do not open or approve the link yourself");
+  });
 });
 
 describe("provider-operated browser handoff", () => {
@@ -49,30 +150,147 @@ describe("provider-operated browser handoff", () => {
     HOST: "127.0.0.1",
     PORT: "0",
   };
+  const LOCAL_HANDOFF_ENV = {
+    AXE_HOST_APP_URL: "http://localhost:5173/login",
+    AXE_HOST_PUBLIC_MCP_URL: "http://127.0.0.1:4717/mcp",
+    AXE_HOST_AUTH_MODE: "local",
+    HOST: "127.0.0.1",
+    PORT: "0",
+  };
 
   it("requires no application session broker", () => {
     expect(handoffEnvironmentConfig(HANDOFF_ENV)).toMatchObject({
       appUrl: "https://app.example/",
       publicMcpUrl: "https://agents.example/mcp",
+      authMode: "oauth",
       allowedOrigins: ["https://app.example"],
       port: 0,
     });
     expect(handoffEnvironmentConfig(HANDOFF_ENV)).not.toHaveProperty("sessionBrokerUrl");
   });
 
-  it("serves OAuth discovery and challenges from the standalone relay", async () => {
-    handoffService = await startHandoffMcpServiceFromEnv(HANDOFF_ENV);
-    const metadata = await fetch(
-      `${handoffService.address.url}/.well-known/oauth-protected-resource/mcp`,
-    );
-    expect(metadata.status).toBe(200);
-    expect(await metadata.json()).toMatchObject({
-      resource: "https://agents.example/mcp",
-      authorization_servers: ["https://auth.example/"],
+  it("opens the local application's own login without OAuth or pairing", async () => {
+    expect(handoffEnvironmentConfig(LOCAL_HANDOFF_ENV)).toMatchObject({
+      appUrl: "http://localhost:5173/login",
+      publicMcpUrl: "http://127.0.0.1:4717/mcp",
+      authMode: "local",
+      authorizationServers: [],
+      allowedOrigins: ["http://localhost:5173"],
     });
-    const challenge = await fetch(handoffService.address.mcpUrl, { method: "POST" });
-    expect(challenge.status).toBe(401);
-    expect(challenge.headers.get("www-authenticate")).toContain("resource_metadata=");
+    expect(() =>
+      handoffEnvironmentConfig({
+        ...LOCAL_HANDOFF_ENV,
+        AXE_HOST_APP_URL: "https://app.example/login",
+      }),
+    ).toThrow(/requires loopback/);
+
+    const fetcher = vi.fn<typeof fetch>(() =>
+      Promise.reject(new Error("local auth must not make an OAuth request")),
+    );
+    handoffService = await startHandoffMcpServiceFromEnv(LOCAL_HANDOFF_ENV, { fetch: fetcher });
+    const transport = new StreamableHTTPClientTransport(new URL(handoffService.address.mcpUrl));
+    handoffClient = new Client({ name: "local-handoff-test", version: "0" });
+    await handoffClient.connect(transport as unknown as Transport);
+    expect(fetcher).not.toHaveBeenCalled();
+
+    const result = await handoffClient.callTool({ name: "relay_tabs", arguments: {} });
+    const structured = result.structuredContent as {
+      status: string;
+      handoff: { reason: string; url: string; whatAgentShouldSayToUser: string };
+    };
+    expect(structured).toMatchObject({
+      status: "needs_human",
+      handoff: {
+        reason: "application_login_required",
+        whatAgentShouldSayToUser: expect.stringContaining("local Summation sign-in page"),
+      },
+    });
+    const publicHandoff = new URL(structured.handoff.url);
+    expect(publicHandoff.pathname).toMatch(/^\/connect\//);
+    const landing = await fetch(`${handoffService.address.url}${publicHandoff.pathname}`);
+    expect(landing.status).toBe(200);
+    expect(await landing.text()).toContain("http://localhost:5173/login");
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("initializes silently and starts contextual OAuth only when relay_tabs is called", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === "https://auth.example/.well-known/oauth-authorization-server")
+        return new Response(
+          JSON.stringify({
+            issuer: "https://auth.example/",
+            authorization_endpoint: "https://auth.example/oauth/authorize",
+            token_endpoint: "https://auth.example/oauth/token",
+            registration_endpoint: "https://auth.example/oauth/register",
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        );
+      if (url === "https://auth.example/oauth/register" && init?.method === "POST")
+        return new Response(JSON.stringify({ client_id: "agent-experience" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      if (url === "https://auth.example/oauth/token" && init?.method === "POST")
+        return new Response(JSON.stringify({ access_token: "summation-token" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      if (url === "https://auth.example/me")
+        return new Response(
+          JSON.stringify({
+            authenticated: true,
+            identity: { user_id: "person-1", org_id: "team-1", scopes: ["surface:act"] },
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        );
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    handoffService = await startHandoffMcpServiceFromEnv(HANDOFF_ENV, { fetch: fetcher });
+
+    const transport = new StreamableHTTPClientTransport(new URL(handoffService.address.mcpUrl));
+    handoffClient = new Client({ name: "handoff-test", version: "0" });
+    await handoffClient.connect(transport as unknown as Transport);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(handoffClient.getInstructions()).toContain("only when the person asks");
+
+    const result = await handoffClient.callTool({ name: "relay_tabs", arguments: {} });
+    const structured = result.structuredContent as {
+      status: string;
+      handoff: { reason: string; url: string };
+    };
+    expect(structured).toMatchObject({
+      status: "needs_human",
+      handoff: { reason: "application_login_required" },
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+
+    const publicLogin = new URL(structured.handoff.url);
+    const localLogin = `${handoffService.address.url}${publicLogin.pathname}`;
+    const explanation = await fetch(localLogin);
+    expect(explanation.status).toBe(200);
+    expect(await explanation.text()).toContain("You asked your agent to use Summation");
+    expect(fetcher).not.toHaveBeenCalled();
+
+    const start = await fetch(`${localLogin}/start`, { redirect: "manual" });
+    expect(start.status).toBe(302);
+    const authorization = new URL(start.headers.get("location")!);
+    expect(authorization.href).toContain("https://auth.example/oauth/authorize?");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    const callback = await fetch(
+      `${handoffService.address.url}/oauth/callback?state=${authorization.searchParams.get("state")}&code=approved`,
+      { redirect: "manual" },
+    );
+    expect(callback.status).toBe(302);
+    expect(new URL(callback.headers.get("location")!).pathname).toMatch(/^\/connect\//);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+
+    const connectedIdentity = await handoffClient.callTool({ name: "relay_tabs", arguments: {} });
+    expect(connectedIdentity.structuredContent).toMatchObject({
+      status: "needs_human",
+      handoff: { reason: "application_tab_required" },
+    });
+
+    expect((await fetch(`${handoffService.address.url}/unknown`)).status).toBe(404);
   });
 });
 

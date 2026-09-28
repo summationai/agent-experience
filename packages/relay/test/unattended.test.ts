@@ -277,14 +277,20 @@ describe.skipIf(noJsdom)("unattended: the relay's approval page (URL mode)", () 
     return { status: res.status, body: await res.text() };
   }
 
-  async function decide(url: string, who: string, body: string, decision: "approve" | "deny") {
+  async function decide(
+    url: string,
+    who: string,
+    body: string,
+    decision: "approve" | "deny",
+    origin = new URL(url).origin,
+  ) {
     const nonce = /name="nonce" value="([^"]+)"/.exec(body)![1]!;
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "x-person": who,
         "content-type": "application/x-www-form-urlencoded",
-        origin: new URL(url).origin,
+        origin,
       },
       body: new URLSearchParams({ nonce, decision }).toString(),
     });
@@ -321,7 +327,9 @@ describe.skipIf(noJsdom)("unattended: the relay's approval page (URL mode)", () 
     expect(p.calls).toEqual([]);
     const page = await openLink(url, "alice");
     expect(page.status).toBe(200);
-    expect(page.body).toContain("Approve “Delete the plan”");
+    expect(page.body).toContain("Allow your agent to “Delete the plan”");
+    expect(page.body).toContain("<dt>Changes</dt><dd>plan</dd>");
+    expect(page.body).toContain("<dt>Risk</dt><dd>high</dd>");
     // A decision posted without the page's nonce is refused.
     const forged = await fetch(url, {
       method: "POST",
@@ -329,7 +337,11 @@ describe.skipIf(noJsdom)("unattended: the relay's approval page (URL mode)", () 
       body: "nonce=wrong&decision=approve",
     });
     expect(forged.status).toBe(400);
-    const approved = await decide(url, "alice", page.body, "approve");
+    // A named foreign site is refused even if it somehow has the nonce. Sandboxed app browsers
+    // use the opaque `null` origin, where the page's unguessable one-time nonce remains the proof.
+    const foreign = await decide(url, "alice", page.body, "approve", "https://evil.example");
+    expect(foreign.status).toBe(403);
+    const approved = await decide(url, "alice", page.body, "approve", "null");
     expect(approved.status, approved.body).toBe(200);
     const res = await call;
     expect(res.result.status, res.text).toBe("ok");

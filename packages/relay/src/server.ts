@@ -92,6 +92,18 @@ export interface RelayAgentAuth {
   resourceMetadataUrl?: string;
 }
 
+export interface RelayDeferredAgentAuth {
+  /** Resolve the identity already established for this MCP session, or null before login. */
+  identify: (sessionId: string) => MaybePromise<RelayPrincipal | null>;
+  /** Begin contextual login only after this session calls `relay_tabs`. */
+  login: (sessionId: string) => MaybePromise<{
+    url: string;
+    instructions?: string;
+    whatAgentShouldSayToUser?: string;
+    ttlSeconds?: number;
+  }>;
+}
+
 /** One line of the relay's own audit stream (connections, refusals, Stop, pairing). */
 export type RelayEvent =
   | { type: "tab.connected"; tabId: string; principal: string; tenant: string; origin: string }
@@ -183,6 +195,12 @@ export interface RelayOptions {
   tenants?: string[];
   /** How agents authenticate over HTTP. Without it (and without `devPairing`) `/mcp` is not served. */
   agentAuth?: RelayAgentAuth;
+  /**
+   * Authenticate after first use instead of at MCP initialization. The anonymous transport session
+   * is isolated by its random MCP session id; `relay_tabs` offers the contextual login URL, and
+   * subsequent calls use the identity `identify` established for that same session.
+   */
+  deferredAgentAuth?: RelayDeferredAgentAuth;
   /**
    * Local development only: agents pair with a tab by typing the code its indicator shows, and
    * the relay serves development tokens at `POST /dev/token`. Refused unless the relay listens on
@@ -281,6 +299,8 @@ export interface Relay {
   serveStdio(options?: { as?: RelayPrincipal }): Promise<DerivedMcpServer>;
   /** The tabs of one principal, most recently active first. */
   tabs(who: RelayPrincipal): RelayTabInfo[];
+  /** Mint a one-time browser handoff for an already authenticated principal. */
+  browserHandoff(who: RelayPrincipal): string | null;
   /**
    * Serve one AXE request of an agent tool call, as the relay's own MCP front does: `adapter`
    * from `relayAgentContext`, and `call` (the `AxeLike.handle` third argument), which carries
@@ -997,6 +1017,9 @@ export function createRelay(options: RelayOptions = {}): Relay {
     name: string;
     app: string;
     summary: string;
+    mutates: string;
+    risk: string;
+    reversible: boolean | null;
     text: string | null;
     expiresAt: number;
     state: "open" | "used";
@@ -1016,7 +1039,14 @@ export function createRelay(options: RelayOptions = {}): Relay {
     name: string,
     observation: Observation | undefined,
     text: string | null,
-  ): { app: string; summary: string; message: string } => {
+  ): {
+    app: string;
+    summary: string;
+    message: string;
+    mutates: string;
+    risk: string;
+    reversible: boolean | null;
+  } => {
     const app =
       observation?.app && observation.app !== "app"
         ? observation.app
@@ -1031,14 +1061,27 @@ export function createRelay(options: RelayOptions = {}): Relay {
     ]
       .filter(Boolean)
       .join(" ");
-    return { app, summary, message };
+    return {
+      app,
+      summary,
+      message,
+      mutates,
+      risk,
+      reversible: row?.effect?.reversible ?? null,
+    };
   };
 
   const mintLink = (
     tab: TabRecord,
     approval: string,
     entryId: string,
-    q: { app: string; summary: string },
+    q: {
+      app: string;
+      summary: string;
+      mutates: string;
+      risk: string;
+      reversible: boolean | null;
+    },
     name: string,
     text: string | null,
     expiresAt: number,
@@ -1056,6 +1099,9 @@ export function createRelay(options: RelayOptions = {}): Relay {
       name,
       app: q.app,
       summary: q.summary,
+      mutates: q.mutates,
+      risk: q.risk,
+      reversible: q.reversible,
       text,
       expiresAt: Math.min(expiresAt, Date.now() + linkTtl),
       state: "open",
@@ -1279,7 +1325,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
   const approvalPage = async (request: Request, token: string): Promise<Response> => {
     const html = (status: number, title: string, body: string): Response =>
       new Response(
-        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem;color:#1c1917;background:#fafaf9}@media(prefers-color-scheme:dark){body{color:#f5f5f4;background:#1c1917}}h1{font-size:1.25rem}.sub{color:#78716c}button{font:inherit;padding:.4rem 1rem;margin-right:.5rem;border-radius:.4rem;border:1px solid #78716c;cursor:pointer}button[value=approve]{background:#1c1917;color:#fafaf9}</style></head><body>${body}</body></html>`,
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>:root{color-scheme:light dark}*{box-sizing:border-box}body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:38rem;margin:0 auto;padding:3rem 1.25rem;color:#1c1917;background:#fafaf9}main{background:#fff;border:1px solid #e7e5e4;border-radius:1rem;padding:1.5rem;box-shadow:0 .5rem 2rem #1c191712}h1{font-size:1.45rem;line-height:1.25;margin:.25rem 0 1rem}.eyebrow{font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#57534e}.summary{font-size:1.05rem}.details{display:grid;grid-template-columns:max-content 1fr;gap:.45rem 1rem;margin:1.25rem 0;padding:1rem;background:#f5f5f4;border-radius:.65rem}.details dt{font-weight:650}.details dd{margin:0;overflow-wrap:anywhere}.sub{color:#57534e;font-size:.92rem}.buttons{display:flex;gap:.65rem;flex-wrap:wrap;margin-top:1.4rem}button{font:inherit;font-weight:650;padding:.65rem 1.1rem;border-radius:.55rem;border:1px solid #78716c;cursor:pointer}button[value=approve]{background:#1c1917;color:#fafaf9;border-color:#1c1917}button[value=deny]{background:transparent}@media(prefers-color-scheme:dark){body{color:#f5f5f4;background:#1c1917}main{background:#292524;border-color:#44403c;box-shadow:none}.details{background:#1c1917}.eyebrow,.sub{color:#d6d3d1}button[value=approve]{background:#fafaf9;color:#1c1917;border-color:#fafaf9}}</style></head><body><main>${body}</main></body></html>`,
         {
           status,
           headers: {
@@ -1329,17 +1375,31 @@ export function createRelay(options: RelayOptions = {}): Relay {
         "<h1>This approval is for someone else.</h1><p>Nothing was changed.</p>",
       );
     if (request.method === "GET") {
+      const minutes = Math.max(1, Math.ceil((link.expiresAt - Date.now()) / 60_000));
+      const page = link.tab.path ? escapeHtml(link.tab.path) : "Current application page";
+      const reversibility =
+        link.reversible === false
+          ? "No — the application says this cannot be undone"
+          : link.reversible === true
+            ? "Yes"
+            : "Not specified by the application";
       return html(
         200,
         "Approve an agent's request",
-        `<h1>Approve “${escapeHtml(link.name)}” on ${escapeHtml(link.app)}?</h1><p>${escapeHtml(link.summary)}</p>${link.text !== null ? `<p>With the text: “${escapeHtml(link.text)}”</p>` : ""}<p class="sub">Your agent asked to do this in your session of the application. Nothing runs unless you approve. This link works once.</p><form method="post"><input type="hidden" name="nonce" value="${escapeHtml(link.nonce)}"><button type="submit" name="decision" value="approve">Approve</button><button type="submit" name="decision" value="deny">Deny</button></form>`,
+        `<div class="eyebrow">Agent approval request</div><h1>Allow your agent to “${escapeHtml(link.name)}”?</h1><p class="summary">This request will act in <strong>${escapeHtml(link.app)}</strong>. Nothing happens unless you approve it here.</p><dl class="details"><dt>Action</dt><dd>${escapeHtml(link.name)}</dd><dt>Changes</dt><dd>${escapeHtml(link.mutates)}</dd><dt>Risk</dt><dd>${escapeHtml(link.risk)}</dd><dt>Can be undone</dt><dd>${reversibility}</dd><dt>Page</dt><dd>${page}</dd>${link.text !== null ? `<dt>Provided text</dt><dd>“${escapeHtml(link.text)}”</dd>` : ""}</dl><p class="sub">This approval is bound to this exact request and your current application session. It can be used once and expires in about ${minutes} minute${minutes === 1 ? "" : "s"}.</p><form method="post"><input type="hidden" name="nonce" value="${escapeHtml(link.nonce)}"><div class="buttons"><button type="submit" name="decision" value="approve">Approve request</button><button type="submit" name="decision" value="deny">Deny</button></div></form>`,
       );
     }
     if (request.method !== "POST") return html(405, "Not allowed", "<h1>Not allowed.</h1>");
-    // A cross-site form cannot post here: the Origin must be this page's own, and the nonce is
-    // only in the page served to the person.
+    // Refuse a named foreign origin. Sandboxed and embedded browser surfaces legitimately send
+    // `Origin: null`; in that case the unguessable, one-time nonce proves that the form came from
+    // the approval page. A cross-site page cannot read that nonce because the GET is not CORS.
     const origin = request.headers.get("origin");
-    if (origin !== null && origin !== new URL(request.url).origin && origin !== pageOrigin())
+    if (
+      origin !== null &&
+      origin !== "null" &&
+      origin !== new URL(request.url).origin &&
+      origin !== pageOrigin()
+    )
       return html(
         403,
         "Refused",
@@ -1388,14 +1448,17 @@ export function createRelay(options: RelayOptions = {}): Relay {
   // The AXE server over the tabs: domainActions on a per-caller resolver, plus the relay's own
   // actions (list and select tabs; pair in development).
   // ---------------------------------------------------------------------------------------------
+  const deferredPrincipals = new Map<string, RelayPrincipal>();
   const callerOf = (identity: Identity | null | undefined): AgentCaller | null => {
     const claims = identity?.claims;
     if (!identity || !claims || typeof claims["relayAgent"] !== "string") return null;
     const agent = claims["relayAgent"];
     if (claims["relayUnpaired"] === true) return { agent, who: null };
     const tenant = claims["relayTenant"];
+    const principal = claims["relayPrincipal"] ?? identity.onBehalfOf;
+    if (typeof principal !== "string") return null;
     if (typeof tenant !== "string") return null;
-    return { agent, who: { principal: identity.onBehalfOf, tenant } };
+    return { agent, who: { principal, tenant } };
   };
 
   const placeholder = (hint: string): Surface => {
@@ -1407,11 +1470,13 @@ export function createRelay(options: RelayOptions = {}): Relay {
     "No browser tab is connected for you. Ask the person to open the application in their browser, signed in, and keep the tab open; then call relay_tabs.";
   const UNPAIRED =
     "This agent is not paired with a tab yet. Ask the person for the pairing code shown in their tab, then call relay_pair with it.";
+  const LOGIN_REQUIRED =
+    "This MCP session has not connected a Summation account yet. Call relay_tabs when the person asks to use Summation; its contextual sign-in handoff continues automatically.";
 
   const resolver = async (ctx: SurfaceContext): Promise<Surface | null> => {
     const caller = callerOf(ctx.identity);
     if (!caller) return null;
-    if (!caller.who) return placeholder(UNPAIRED);
+    if (!caller.who) return placeholder(options.deferredAgentAuth ? LOGIN_REQUIRED : UNPAIRED);
     const tab = pick(caller, true);
     if (!tab) return placeholder(NO_TAB);
     await tab.sync();
@@ -1442,7 +1507,12 @@ export function createRelay(options: RelayOptions = {}): Relay {
   const bridge = domainActions(resolver, {
     namespace: ns,
     template: createSurface(),
-    actor: (ctx) => relayActor(ctx.onBehalfOf ?? "agent"),
+    actor: (ctx) =>
+      relayActor(
+        (ctx.onBehalfOf ? deferredPrincipals.get(ctx.onBehalfOf)?.principal : undefined) ??
+          ctx.onBehalfOf ??
+          "agent",
+      ),
     ...(options.domains ? { domains: options.domains } : {}),
     content: options.content !== false,
   });
@@ -1475,7 +1545,16 @@ export function createRelay(options: RelayOptions = {}): Relay {
       readOnly: true,
       risk: "none",
       auth: "user",
-      ...(handoff ? { humanHandoff: { reasons: ["application_tab_required"] } } : {}),
+      ...(handoff || options.deferredAgentAuth
+        ? {
+            humanHandoff: {
+              reasons: [
+                ...(options.deferredAgentAuth ? ["application_login_required"] : []),
+                ...(handoff ? ["application_tab_required"] : []),
+              ],
+            },
+          }
+        : {}),
       input: z.object({}).strict(),
       output: z.object({
         principal: z.string().nullable(),
@@ -1483,7 +1562,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
         hint: z.string().optional(),
       }),
       examples: [{ input: {}, output: { principal: "dev", tabs: [] } }],
-      handler: ({ identity, fail, handoff: offer }) => {
+      handler: async ({ identity, fail, handoff: offer }) => {
         const caller = callerOf(identity);
         if (!caller) return fail("unauthorized", "The relay could not identify this agent.");
         const list = listFor(caller);
@@ -1491,7 +1570,21 @@ export function createRelay(options: RelayOptions = {}): Relay {
           principal: caller.who?.principal ?? null,
           tabs: list,
         };
-        if (!caller.who) out.hint = UNPAIRED;
+        if (!caller.who && options.deferredAgentAuth) {
+          const login = await options.deferredAgentAuth.login(caller.agent);
+          return offer({
+            reason: "application_login_required",
+            instructions:
+              login.instructions ??
+              "Open the Agent Experience page to connect Summation. Sign in there if asked; the local application opens and connects automatically afterward.",
+            url: login.url,
+            whatAgentShouldSayToUser:
+              login.whatAgentShouldSayToUser ??
+              "To use Summation, I need to open a secure Agent Experience connection page. After you sign in, I’ll continue automatically.",
+            state: {},
+            ttlSeconds: login.ttlSeconds ?? 10 * 60,
+          });
+        } else if (!caller.who) out.hint = UNPAIRED;
         else if (list.length === 0) {
           const url = handoffLink(caller.who);
           if (url)
@@ -1509,12 +1602,15 @@ export function createRelay(options: RelayOptions = {}): Relay {
         }
         return out;
       },
-      ...(handoff
+      ...(handoff || options.deferredAgentAuth
         ? {
             onResume: ({ identity, fail, pending }) => {
               const caller = callerOf(identity);
-              if (!caller?.who)
-                return fail("forbidden", "The relay could not identify this agent.");
+              if (!caller) return fail("forbidden", "The relay could not identify this agent.");
+              if (!caller.who)
+                return options.deferredAgentAuth
+                  ? pending({ retryAfter: 1, state: {}, ttlSeconds: 10 * 60 })
+                  : fail("forbidden", "The relay could not identify this agent.");
               const list = listFor(caller);
               return list.length
                 ? { principal: caller.who.principal, tabs: list }
@@ -1522,8 +1618,11 @@ export function createRelay(options: RelayOptions = {}): Relay {
             },
             onPoll: ({ identity, fail, pending }) => {
               const caller = callerOf(identity);
-              if (!caller?.who)
-                return fail("forbidden", "The relay could not identify this agent.");
+              if (!caller) return fail("forbidden", "The relay could not identify this agent.");
+              if (!caller.who)
+                return options.deferredAgentAuth
+                  ? pending({ retryAfter: 1, state: {}, ttlSeconds: 10 * 60 })
+                  : fail("forbidden", "The relay could not identify this agent.");
               const list = listFor(caller);
               return list.length
                 ? { principal: caller.who.principal, tabs: list }
@@ -1724,6 +1823,26 @@ export function createRelay(options: RelayOptions = {}): Relay {
     return relayAgentContext(agent, resolved, options.baseUrl ?? "http://localhost");
   };
 
+  // A deferred session mints its first resume token before OAuth. Keep the AXE principal and
+  // tenant stable across that transition so the token remains bound to this MCP session; carry
+  // the verified application identity only in relay-owned claims used by `callerOf`.
+  const deferredAdapterFor = (agent: string, who: RelayPrincipal | null): AdapterContext => {
+    const stablePrincipal = `mcp-session:${agent}`;
+    if (who) deferredPrincipals.set(stablePrincipal, who);
+    return {
+      identity: {
+        onBehalfOf: stablePrincipal,
+        claims: who
+          ? {
+              relayAgent: agent,
+              relayPrincipal: who.principal,
+              relayTenant: who.tenant,
+            }
+          : { relayAgent: agent, relayUnpaired: true },
+      },
+    };
+  };
+
   const axeLike = (fallback?: () => AdapterContext): AxeLike => ({
     // A tool call's context reaches the relay's approval code through `calls`.
     handle: (request, adapter, call) =>
@@ -1747,9 +1866,16 @@ export function createRelay(options: RelayOptions = {}): Relay {
   const mcpHandler = (): Promise<McpHttpHandler | null> => {
     if (httpMcp) return httpMcp;
     httpMcp = (async () => {
-      if (!options.agentAuth && !dev) return null;
+      if (!options.agentAuth && !options.deferredAgentAuth && !dev) return null;
       const derived = await createMcpServer(axeLike(), { name: options.name ?? "Surface relay" });
       const agentAuth = options.agentAuth;
+      const deferredAgentAuth = options.deferredAgentAuth;
+      if (deferredAgentAuth)
+        return serveHttp(derived, {
+          sessions: true,
+          anonymousSessionClientFor: async (sessionId) =>
+            deferredAdapterFor(sessionId, await deferredAgentAuth.identify(sessionId)),
+        });
       return serveHttp(derived, {
         sessions: true,
         auth: agentAuth
@@ -2227,6 +2353,7 @@ export function createRelay(options: RelayOptions = {}): Relay {
     tabs(who) {
       return tabsOf(who).map((t) => t.info(false));
     },
+    browserHandoff: (who) => handoffLink(who),
     stop(who, tabId) {
       let n = 0;
       for (const t of tabsOf(who))

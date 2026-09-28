@@ -29,6 +29,7 @@
     "site:dev": "pnpm --filter body-spray-site dev",
     "mcp:dev": "pnpm --filter @axe/mcp-service dev",
     "mcp:handoff-dev": "pnpm --filter @axe/mcp-service dev:handoff",
+    "mcp:unattended-dev": "pnpm --filter @axe/mcp-service dev:local-unattended",
     "mcp:hosted-dev": "pnpm --filter @axe/mcp-service dev:hosted",
     "mcp:start": "pnpm --filter @axe/mcp-service start",
     "demo": "node --import tsx docs/examples/demo/plan-board.ts",

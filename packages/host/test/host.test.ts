@@ -482,6 +482,49 @@ describe("unattended mode in Chromium", () => {
     expect(await deleted()).toBe(true);
   });
 
+  it("a client without elicitation can approve once on the relay page and retry", async (ctx) => {
+    if (missing) return ctx.skip();
+    const { host, agent: open } = await start({
+      relay: { approvals: { identify: () => ALICE } },
+    });
+    const alice = await open("agent-alice");
+    const first = await observe(alice);
+    const args = {
+      entryId: row(first.rows, "Delete everything").id,
+      expectedRev: first.rev,
+    };
+
+    const refused = await alice.call("surface_run-control", args);
+    expect(refused.result.status).not.toBe("ok");
+    const approvalUrl = refused.result.error?.details?.["approvalUrl"];
+    expect(approvalUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/approve\//);
+    expect(await host.page(ALICE)!.evaluate(() => window.location.pathname)).toBe("/");
+
+    const url = new URL(String(approvalUrl));
+    const page = await fetch(url);
+    expect(page.status).toBe(200);
+    const html = await page.text();
+    const nonce = /name="nonce" value="([^"]+)"/.exec(html)?.[1];
+    expect(nonce).toBeTruthy();
+    const decision = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        // Claude's sandboxed browser surface submits forms with an opaque origin.
+        Origin: "null",
+      },
+      body: new URLSearchParams({ nonce: nonce!, decision: "approve" }),
+    });
+    expect(decision.status).toBe(200);
+    expect(await decision.text()).toContain("Approved");
+
+    const done = await alice.call("surface_run-control", args);
+    expect(done.result.status, done.text).toBe("ok");
+    expect(
+      await host.page(ALICE)!.evaluate(() => (window as { deleted?: boolean }).deleted ?? false),
+    ).toBe(true);
+  });
+
   it("Stop: the agent's relay_stop ends the session; the owner's stop holds the identity until resume", async (ctx) => {
     if (missing) return ctx.skip();
     const { host, agent: open, events } = await start();

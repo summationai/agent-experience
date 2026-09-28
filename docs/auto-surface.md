@@ -84,7 +84,7 @@ A subtree marked `data-surface-ignore` is never read: put it on your own agent U
 
 Every derived action gets a risk from its role, words, styling, and surroundings, and the default policy asks the person before anything high risk.
 
-- **Low:** tabs, options, disclosures, menu triggers, links within the site, checkboxes and radios inside a form, row selection, and names that start with a view word (open, show, filter, sort, search, close, cancel, next, export).
+- **Low:** tabs, options, disclosures, menu triggers, links within the site, router buttons inside a `nav`/`role="navigation"` landmark, controls explicitly marked `data-surface-navigation`, checkboxes and radios inside a form, row selection, and names that start with a view word (open, show, filter, sort, search, close, cancel, next, export). Use the marker on the exact custom button that only changes location, not on an ancestor containing other controls. Destructive wording or styling still wins.
 - **Medium:** submit buttons and names that start with a commit word (save, create, update, add, assign, rename), switches and checkboxes outside a form, links that leave the site.
 - **High:** destructive words anywhere in the name (delete, remove, archive, revoke, disconnect, cancel subscription, reset, purge, overwrite, send, publish, pay, purchase, invite, transfer, share, sign out, and more), destructive styling (a `danger` or `destructive` class, `data-variant="destructive"`, a red button), a control that opens an `alertdialog`, the affirmative button of a confirmation dialog, and anything the heuristics do not recognize.
 

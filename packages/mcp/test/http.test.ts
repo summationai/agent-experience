@@ -136,6 +136,32 @@ describe("serveHttp over a real listener", () => {
     expect(res.status).toBe(404);
   });
 
+  it("sessions: deferred login can bind each anonymous session to its own dynamic identity", async () => {
+    const site = notesSite();
+    const identities = new Map<string, string>();
+    const handler = serveHttp(await createMcpServer(site.axe), {
+      sessions: true,
+      anonymousSessionClientFor: (sessionId) => ({
+        identity: { onBehalfOf: identities.get(sessionId) ?? `waiting:${sessionId}` },
+      }),
+    });
+    const l = await mount(handler);
+    const a = await connect(`${l.url}/mcp`);
+    const b = await connect(`${l.url}/mcp`);
+    expect(a.transport.sessionId).toBeTruthy();
+    expect(b.transport.sessionId).toBeTruthy();
+    expect(a.transport.sessionId).not.toBe(b.transport.sessionId);
+
+    identities.set(a.transport.sessionId!, "alice");
+    identities.set(b.transport.sessionId!, "bob");
+    const [alice, bob] = await Promise.all([
+      a.client.callTool({ name: "notes_whoami", arguments: {} }),
+      b.client.callTool({ name: "notes_whoami", arguments: {} }),
+    ]);
+    expect(structured<{ output: { user: string } }>(alice).output.user).toBe("alice");
+    expect(structured<{ output: { user: string } }>(bob).output.user).toBe("bob");
+  });
+
   it("sessions: an idle session expires with 404, and the client re-initializes", async () => {
     let now = 1_000_000;
     const { url, handler } = await notesOverHttp({ clock: () => now, idleTimeoutMs: 60_000 });

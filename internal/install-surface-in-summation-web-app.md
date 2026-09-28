@@ -11,20 +11,20 @@ Make the smallest local change that lets a desktop agent open Summation's ordina
 Done means:
 
 - only the browser packages `@axe/surface` and `@axe/relay` are added to the web app;
-- the Surface provider is mounted inside the authenticated shell and behind `ui_axe_surface`;
-- the generated provider has `webMcp` enabled and accepts the identity-bound browser handoff supplied by the provider-operated relay;
+- one Surface provider is mounted at the application root, remains mounted across login and tenant navigation, and is enabled only for an authenticated page or a provider-injected agent session;
+- the provider exposes WebMCP only for authenticated pages and accepts an identity-bound relay injected by the provider-operated hidden host;
 - the Addison agent UI is excluded from the derived surface;
 - the app's normal checks pass; and
-- connecting the provider relay causes the desktop client to open Summation's OAuth login and then an ordinary Summation tab, after which the installed package connects automatically and the agent can observe, read, wait, and perform one ordinary action without a pairing code.
+- starting the desktop client opens no login page; after the person asks to use Summation, `relay_tabs` starts a hidden local browser and the agent can complete sign-in, organization selection, tenant selection, and the requested task through one continuously connected Surface without a pairing code or visible browser window.
 
-Do not add an MCP server, hosted browser, token-minting route, session broker, or other backend integration to Summation. The service under `agent-experience/mcp` owns OAuth and relay transport; the installed browser package connects the page after the user's normal Summation sign-in. Do not add a second credential store or accept usernames and passwords through MCP or chat.
+Do not add an MCP server, hosted browser, token-minting route, session broker, or other backend integration to Summation. The service under `agent-experience/mcp` owns relay transport and the hidden browser; its loopback-only development mode opens Summation's existing local login without becoming another credential store. A credential supplied deliberately in this local experiment may be written only to a Surface-reported sensitive password field; never read it back, echo it, log it, persist it, or put it in a URL. Production authentication still requires the provider-operated identity/session design described in the Agent Experience repository.
 
 ## Ground rules
 
 - Read the Summation repo's `AGENTS.md` and `js/apps/web-app/AGENTS.md` first and follow them.
 - Preserve all existing local changes. Inspect `git status` before editing and do not overwrite unrelated work.
 - Surface reports and never decides. Do not change application logic to make the agent's job easier; describe the controls and state the app already has.
-- Keep the diff small: the authenticated-layout mount, `app/surface.tsx`, `app/surface.config.ts`, one flag key, package/lockfile/Dockerfile changes, the vendored tarballs, and at most a few targeted config or `data-surface-ignore` edits. Do not change sum-api.
+- Keep the diff small: the root mount, removal of the old authenticated-layout mount, `app/surface.tsx`, `app/surface.config.ts`, package/lockfile/Dockerfile changes, the vendored tarballs, and at most a few targeted config or `data-surface-ignore` edits. Do not change sum-api.
 - Do not add user-facing strings. Summation requires UI text through `useText()`.
 - Never make approval reachable from an agent. In particular, do not expose `handle.approve`, and do not implement `requestApproval` with a WebMCP tool, an agent-visible control, an agent-supplied message, or automatic acceptance.
 - `@axe/core` is a transitive package pin while the SDK is unpublished. Do not add it to the web app's dependencies; knip will treat it as unused. The root resolutions also pin `@axe/surface` so the vendored relay uses the same browser registry instance.
@@ -33,9 +33,8 @@ Do not add an MCP server, hosted browser, token-minting route, session broker, o
 
 These were true when this prompt was written. Inspect the current code before relying on them.
 
-- **Mount point:** `app/root.tsx` also renders pre-auth pages. Mount in `app/routes/_main+/_layout.tsx`, inside the authenticated shell and below `FeatureFlagServiceProvider`, so `useFeatureFlag` is valid.
+- **Mount point:** `app/root.tsx` renders both pre-auth and authenticated pages. Mount once around its `<Outlet />`, but gate normal browser sessions on `root` loader data's authenticated `user`. A provider-injected session is the sole pre-auth exception: it must connect on the login and organization-picker routes so a hidden agent browser can advance. This same root mount must remain alive while `_main` shows `TenantSwitchModal`; mounting inside `AppShell` deadlocks because `AppShell` is not rendered until a tenant already exists. The Surface must not depend on Statsig or another feature-flag provider.
 - **SSR:** `react-router.config.ts` has SSR enabled. `SurfaceProvider` starts only in an effect; do not add module-scope browser work or side-effect imports.
-- **Flag:** feature flags use `useFeatureFlag("<key>")` from `~/feature-flags`, with keys declared in `app/feature-flags/gen/defaultFlags.json`. The local URL override `?ui_axe_surface=true` enables the flag for the session.
 - **Packaging:** Yarn 4's registry age gate means the unpublished SDK must be consumed as local tarballs. The vendor directory must exist before `yarn install`, including in the Dockerfile.
 - **Addison:** the Addison pane and composer are a different agent's UI. Its outermost element should carry `data-surface-ignore` so the desktop agent does not drive Addison through Surface.
 - **Likely coverage gaps:** collapsed icon navigation, unnamed Tiptap/ProseMirror editors, `div role="button"` rows, missing landmarks, non-live toasts, Highcharts with accessibility disabled, SpreadJS canvas content, and virtualized grids. Treat coverage as evidence; do not preemptively rewrite all of these.
@@ -99,7 +98,7 @@ YARN_CHECKSUM_BEHAVIOR=update yarn install
 
 Commit the refreshed files under `js/apps/web-app/vendor/axe/` together with the resulting `yarn.lock` checksum change. The one-command checksum override is needed because Yarn otherwise treats changed bytes at the same package locator as an error. The package versions remain `0.1.0` during local development, so the updated `SOURCE` file and lockfile checksum—not a version-number change—identify the upgrade.
 
-No feature flag, mount, Surface config, sum-api route, database state, login configuration, or user data needs to be recreated. The new handoff behavior is inside `@axe/relay/client` and is picked up by the existing `injectedRelay()` call. Before stopping, verify that `app/surface.tsx` still imports `connectRelay` and `injectedRelay` from `@axe/relay/client`; if it does, do not regenerate the file. Only an older installation without that `--remote` shape needs the narrowly scoped Step 5 generator update.
+Do not recreate the Surface config, sum-api route, database state, login configuration, or user data. Remove the old Surface feature gate in place: delete the `useFeatureFlag` import and call, remove `flag={enabled}` from `SurfaceProvider`, and remove the `ui_axe_surface` default-flag entry if this experiment added it. Do not disturb unrelated feature flags. Move the existing `AgentSurface` mount from `_main+/_layout.tsx` to `app/root.tsx` as described in Step 4; do not leave two providers mounted. The provider-injected connection behavior is inside `@axe/relay/client` and is picked up by `injectedRelay()`. Preserve the existing config instead of regenerating it when possible.
 
 ### 3. Add the local package dependency
 
@@ -113,59 +112,92 @@ Make these local package changes:
 - In `js/apps/web-app/Dockerfile`, copy `js/apps/web-app/vendor/axe/` before the `RUN yarn install` layer, beside the existing local-tarball copy.
 - Run `yarn install` at the Summation repo root. Re-run it whenever the tarballs change so `yarn.lock` has their current checksums.
 
-### 4. Add the local feature flag
-
-Add `"ui_axe_surface": false` to `app/feature-flags/gen/defaultFlags.json`.
-
-Do not create or change remote Statsig configuration. The URL override is enough for this local experiment.
-
-### 5. Mount the provider and browser relay client
+### 4. Mount one authenticated-or-injected provider above tenant resolution
 
 Preview the generated change first:
 
 ```sh
 node ~/code/agent-experience/packages/cli/dist/index.js surface init \
-  --mount "app/routes/_main+/_layout.tsx" \
-  --flag-hook 'useFeatureFlag("ui_axe_surface")' --flag-import "~/feature-flags" \
+  --mount "app/root.tsx" \
   --remote \
   --dry-run
 ```
 
-`--remote` enables provider-supplied connections, including the production browser handoff. It never creates a pairing-code flow. Do not replace it with `--relay-dev` or add server code to this checkout.
+`--remote` enables provider-supplied connections, including the production hidden host and the attended fallback. It never creates a pairing-code flow. Do not replace it with `--relay-dev` or add server code to this checkout.
 
 Confirm the preview has this shape:
 
-- `_layout.tsx` imports `AgentSurface` and wraps the authenticated `<Outlet />` inside `<AppLayoutV2>`.
+- `root.tsx` imports `AgentSurface` and wraps its single `<Outlet />` inside `QueryProvider`. Remove the old `AgentSurface` import and wrapper from `_main+/_layout.tsx`; there must be exactly one provider.
 - `app/surface.tsx` imports `SurfaceProvider` from `@axe/surface/react`.
-- The provider includes `config={surfaceConfig}`, `flag={enabled}`, `expose={development}`, and `webMcp`.
-- In a normal Summation tab, `enabled` follows the Summation feature flag. The generated `|| injectedRelay() !== null` clause enables the provider after a provider handoff even when the end-user flag is off.
-- `app/surface.tsx` imports `connectRelay` and `injectedRelay` from `@axe/relay/client`; its `onReady` connects only when the provider supplied a scoped connection. The helper recognizes the handoff automatically; do not add application-specific token code.
+- `Root` reads `user` from the root loader data and passes `authenticated={user !== null}`. This is application state already available in `root.tsx`; do not add a request or auth endpoint.
+- `AgentSurface` captures `injectedRelay()` once for that document. Its `enabled` value is `authenticated || providerRelay !== null`. It does not fall back to `localMcpService`: ordinary development tabs use the development global and WebMCP, while desktop MCP agents use the injected hidden host. This keeps an ordinary signed-out browser private and removes the pairing path entirely.
+- The provider includes `config={surfaceConfig}`, `expose={development && providerRelay === null}`, and `webMcp={providerRelay === null}`. Those values stay fixed for the lifetime of the document: an injected session never publishes pre-auth controls through WebMCP or the development global, and its relay connection is not torn down and revoked when authentication changes. An ordinary non-injected session starts Surface only after `authenticated` becomes true.
+- `app/surface.tsx` imports only `connectRelay` and `injectedRelay` from `@axe/relay/client`; its `onReady` connects only when the provider supplied a scoped connection. Remove `localMcpService`, the fallback `relay` constant, and any `VITE_SURFACE_RELAY_URL` use. Do not add application-specific token code.
 - `app/surface.config.ts` is the reviewable overlay. Set `app: "Summation"` so observations and diagnostics identify the application rather than the SDK's generic fallback name.
+- Auto Surface deliberately makes passwords read-only. For this loopback-only, injected-session login experiment, add exactly one narrow rule: `{ match: { route: "/login**", selector: 'input[type="password"]' }, sensitive: true, editable: true, note: "Injected agent login; root provider disables ordinary signed-out sessions" }`. Do not make one-time codes, card fields, arbitrary sensitive fields, or passwords outside the login routes editable. The value remains absent from observations, reads, the ledger, and action events.
+- `FileListTable` renders an item row or its direct name cell as a custom button even though it only opens that existing item. Put the package's `data-surface-navigation` marker on the exact clickable row when `isFullRowClickable` and on the exact name control when `isNameClickable`. Do not put it on the row as an ancestor of nested action buttons. The SDK then publishes those controls as low-risk, reversible, idempotent navigation without a selector rule in `surface.config.ts`; destructive wording and styling still win.
+- Give breadcrumb containers standard navigation semantics (`role="navigation"` or `<nav>`, with a localized accessible label). Auto Surface then classifies their non-destructive router buttons as low-risk navigation without an app-specific rule.
 
-If the diff is correct, run the same command with `--yes`. Do not pass `--install`, because the unpublished tarballs were installed manually. Run it once more and confirm it reports nothing to change. Prefer the `~/surface` import alias in `_layout.tsx` if that is the local convention.
+The generator does not know Summation's authenticated root data. Before applying or immediately afterward, make the narrow local edits above: add the `authenticated` prop, capture the injected relay with a `useState` initializer, and use the conditional `enabled`, `expose`, `webMcp`, and fallback behavior. Do not replace them with a Summation feature flag or environment variable.
 
-### 6. Exclude Addison
+The intended `AgentSurface` behavior is equivalent to:
+
+```tsx
+export function AgentSurface({
+  authenticated,
+  children,
+}: {
+  authenticated: boolean;
+  children: ReactNode;
+}) {
+  const [providerRelay] = useState(() => injectedRelay());
+  return (
+    <SurfaceProvider
+      config={surfaceConfig}
+      enabled={authenticated || providerRelay !== null}
+      expose={development && providerRelay === null}
+      webMcp={providerRelay === null}
+      onReady={(handle) => {
+        if (!providerRelay) return;
+        const connection = connectRelay(handle.surface, providerRelay);
+        return () => connection.stop();
+      }}
+    >
+      {children}
+    </SurfaceProvider>
+  );
+}
+```
+
+Use the repository's formatting and existing types/import style. In `Root`, obtain its own loader data with the existing React Router hook, then wrap the outlet:
+
+```tsx
+const { user } = useRouteLoaderData<RootLoaderData>("root")!;
+<AgentSurface authenticated={user !== null}>
+  <Outlet />
+</AgentSurface>;
+```
+
+If the rest of the diff is correct, run the same command with `--yes`. Do not pass `--install`, because the unpublished tarballs were installed manually. Make the conditional root edit, then run the command once more; because the generated file now exists and was deliberately edited, init should preserve it. Prefer the `~/surface` import alias in `root.tsx` if that is the local convention.
+
+### 5. Exclude Addison
 
 Find the single outer element that owns the Addison pane and composer under `app/features/addison*` or the authenticated layout. Add `data-surface-ignore` there.
 
 Do not scatter the attribute over several descendants. If there is no clear owning element, leave the code alone and report that uncertainty in the final local summary.
 
-### 7. Run the browser-handoff service and app, then inspect the surface
+### 6. Run the hidden-browser service and app, then inspect the surface
 
-Run Summation's web app at `http://localhost:5173` and sum-api at `http://localhost:9092`. Enable sum-api's existing OAuth authorization-code routes and set its issuer to the reachable sum-api origin. From the Agent Experience checkout, export the hosted integration and start it:
+Run Summation's web app at `http://localhost:5173`; do not start or change sum-api beyond whatever the web app normally uses. Install Chromium for the host once, then start the laptop-only unattended service from the Agent Experience checkout:
 
 ```sh
-export AXE_HOST_APP_URL=http://localhost:5173
-export AXE_HOST_PUBLIC_MCP_URL=http://127.0.0.1:4717/mcp
-export AXE_HOST_AUTHORIZATION_SERVERS=http://localhost:9092
-export AXE_HOST_SCOPES=agent:read
-export AXE_HOST_OAUTH_USERINFO_URL=http://localhost:9092/v1/me
-export AXE_HOST_PRINCIPAL_CLAIM=identity.user_id
-export AXE_HOST_TENANT_CLAIM=identity.org_id
-pnpm mcp:handoff-dev
+pnpm exec playwright install chromium
+export AXE_HOST_APP_URL=http://localhost:5173/login
+export AXE_MCP_AGENT_KEY=axd_agent_experience_local
+pnpm mcp:unattended-dev
 ```
 
-It must report the desktop-agent endpoint `http://127.0.0.1:4717/mcp`. Its tool list must not contain `relay_pair`. This service is not part of the Summation process.
+It must report the desktop-agent endpoint `http://127.0.0.1:4717/mcp`, `browser: hidden`, and `pairing: disabled`. Its tool list must not contain `relay_pair`. This service is not part of the Summation process. `AXE_HOST_STATE_PATH` may point at a storage-state file captured with `axe host login` for repeat demos; without it, the agent begins on the login page and uses its Surface controls.
 
 Start the web app normally from `js/apps/web-app`, with its usual environment and VPN:
 
@@ -173,10 +205,10 @@ Start the web app normally from `js/apps/web-app`, with its usual environment an
 yarn dev
 ```
 
-Open the signed-in app at:
+For a separate manual verification, open the signed-in app at:
 
 ```text
-http://localhost:5173/?ui_axe_surface=true
+http://localhost:5173/
 ```
 
 In the browser console, confirm:
@@ -185,43 +217,54 @@ In the browser console, confirm:
 window.__surface?.observe();
 ```
 
-The observation should identify the current app, have a numeric revision, list controls with useful names, omit sensitive values, and contain no Addison controls. Check at least two routes. If this is absent, verify the flag override, provider mount, and development build before changing code.
+The observation should identify the current app, have a numeric revision, list controls with useful names, omit sensitive values, and contain no Addison controls. Check at least two routes. On `/login`, confirm the password entry is present, `sensitive: true`, has no `value`, and is editable only in the injected hidden session; an ordinary signed-out tab must have no `window.__surface`. If this is absent, verify the provider mount and development build before changing code; do not add a feature flag as a workaround.
 
-### 8. Verify with a desktop MCP agent
+### 7. Verify with a desktop MCP agent
 
-Connect the desktop client through its OAuth-capable remote-MCP bridge. For Claude Desktop, configure:
+Connect the desktop client through its remote-MCP bridge. For Claude Desktop, configure the local development key (valid only for this loopback-only mode):
 
 ```json
 {
   "mcpServers": {
     "agent-experience": {
       "command": "npx",
-      "args": ["-y", "mcp-remote@latest", "http://127.0.0.1:4717/mcp", "--allow-http"]
+      "args": [
+        "-y",
+        "mcp-remote@latest",
+        "http://127.0.0.1:4717/mcp",
+        "--allow-http",
+        "--header",
+        "Authorization:${AXE_AUTH_HEADER}"
+      ],
+      "env": {
+        "AXE_AUTH_HEADER": "Bearer axd_agent_experience_local"
+      }
     }
   }
 }
 ```
 
-Do not configure an `Authorization` header or bearer-token environment variable: either one suppresses the OAuth browser flow. Restart Claude and start a fresh conversation. The service's own instructions tell the agent to call `relay_tabs` first; do not launch a nested agent or tell it to use a checkout-specific “Summation MCP.”
+Restart Claude and confirm that no browser opens merely because the MCP server initialized. Start a fresh conversation; do not launch a nested agent or tell it to use a checkout-specific “Summation MCP.” The service starts its hidden browser only on the first relevant tool call.
 
 In the desktop agent:
 
-1. Connect the server. Claude should open Summation's OAuth page in the system browser; sign in there, never in chat.
-2. Call `relay_tabs`. Claude should offer and open an Agent Experience connection URL, which immediately redirects to the ordinary Summation page. Sign in there if needed; the installed package should connect that tab without asking for a code. `relay_pair` must not exist.
-3. Confirm it calls `surface_read` and `surface_observe`, and describes several controls using their application-owned names and unavailable reasons.
-4. For a slow operation, confirm `surface_wait` follows the visible status instead of repeatedly clicking or guessing from elapsed time.
-5. Ask it to perform one ordinary, reversible action through `surface_set-field`, `surface_run-control`, or `surface_load-more`.
-6. Check the visible application state yourself; do not accept the agent's narration as proof.
-7. Change the page after an observation and confirm an act using the old revision is refused without applying anything.
-8. Try one high-risk or approval-gated control only in disposable local state. It must wait for approval in the page indicator and run only after the person approves.
+1. Start Claude with the server configured. No browser or sign-in page should appear.
+2. Ask Claude to use Summation for a concrete task. Its first `relay_tabs` call should start the hidden browser and return the login page's connected Surface without opening a visible browser.
+3. If the hidden session is signed out, deliberately provide the local demo credential and ask Claude to enter it through the reported sensitive controls. It must not repeat the password. If an organization picker or `TenantSwitchModal` follows, `surface_observe` must report that chooser before a tenant has been selected; Claude should ask which tenant only when the request does not identify one, select it through Surface, and continue without a new pairing or visible page.
+4. Confirm it calls `surface_read` and `surface_observe`, and describes several controls using their application-owned names and unavailable reasons. No staging page should appear, and `relay_pair` must not exist.
+5. For a slow operation, confirm `surface_wait` follows the visible status instead of repeatedly clicking or guessing from elapsed time.
+6. Ask it to perform one ordinary, reversible action through `surface_set-field`, `surface_run-control`, or `surface_load-more`.
+7. In a separate ordinary browser session, check the resulting application state yourself; do not accept the agent's narration as proof.
+8. Change the page after an observation and confirm an act using the old revision is refused without applying anything.
+9. Try one high-risk or approval-gated control only in disposable local state. If the desktop client has no native elicitation UI, Claude must present the returned one-time `approvalUrl`; open it in an ordinary browser, approve there, and confirm Claude's identical retry runs exactly once. The hidden application browser must remain hidden.
 
-### 9. Measure and make only high-value refinements
+### 8. Measure and make only high-value refinements
 
-Run coverage while the development app and flag are on:
+Run coverage while the development app is running:
 
 ```sh
 node ~/code/agent-experience/packages/cli/dist/index.js surface coverage \
-  "http://localhost:5173/?ui_axe_surface=true" \
+  "http://localhost:5173/" \
   --routes / \
   --out coverage.md
 ```
@@ -230,7 +273,7 @@ Add at most five high-value rules to `app/surface.config.ts`. Prefer a one-attri
 
 Delete `coverage.md` when you are done unless the user explicitly wants the local report kept.
 
-### 10. Run checks and stop with local changes
+### 9. Run checks and stop with local changes
 
 Run the checks that match the current Summation repository scripts, including at least the web app's lint, typecheck, tests, and build, plus root knip and unbarrelify checks when available. Fix failures caused by this change. For an unrelated pre-existing failure, preserve its output and identify it clearly.
 
@@ -249,6 +292,6 @@ Leave the changes uncommitted in the working tree for the user to inspect.
 
 ## What this experiment proves—and does not
 
-This path proves that the JavaScript package can own Surface state inside the consuming site while a separately operated service opens an identity-scoped handoff into the person's ordinary browser and presents that page to desktop agents. The page remains authoritative for the registry, revision, ledger, approval boundary, and handlers; the customer team runs no MCP server and the user performs no pairing step.
+This path proves that the JavaScript package can own Surface state inside the consuming site while a separately operated service runs the site in a hidden browser and presents only its semantic controls and results to desktop agents. The page remains authoritative for the registry, revision, ledger, approval boundary, and handlers; the customer team runs no MCP server and the user performs no pairing step. Root-level conditional mounting is what makes login, organization choice, tenant choice, and the authenticated application one continuous agent session without exposing ordinary signed-out tabs.
 
 It does not persist the in-memory ledger across reloads or turn a derived click into a server-side conditional write. Those remain durability and application-consistency concerns. It also does not make an agent's confirmation count as a person's approval; consequential actions run only after approval through the MCP client's trusted elicitation UI or the relay's one-time approval page.

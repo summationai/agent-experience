@@ -376,6 +376,20 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
   if (view) return verdict("low", "view", `name matches “${view}”`);
   if (el.hasAttribute("aria-haspopup") || el.hasAttribute("aria-expanded"))
     return verdict("low", "view", "opens a menu or panel");
+  // Some client-side routers use buttons for navigation. Inside an actual navigation landmark,
+  // that semantic context is enough to distinguish an otherwise unknown button from an unknown
+  // application mutation. Destructive wording, styling, and confirmation dialogs were checked
+  // above and stay high risk.
+  if (el.hasAttribute("data-surface-navigation"))
+    return verdict("low", "location", "marked as navigation by the application", {
+      reversible: true,
+      idempotent: true,
+    });
+  if (el.closest('nav, [role="navigation"]'))
+    return verdict("low", "location", "a control in a navigation landmark", {
+      reversible: true,
+      idempotent: true,
+    });
   if (el.getAttribute("type") === "reset") return verdict("medium", "form", "resets a form");
   return verdict("high", "app", "not recognized; treated as a high-risk change until configured", {
     unrecognized: true,

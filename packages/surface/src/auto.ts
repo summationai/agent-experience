@@ -898,7 +898,10 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
     const handler = rule.handler;
     const tier: EntryTier = handler
       ? "declared"
-      : hits.length || c.pin || c.el.hasAttribute("data-surface-reason")
+      : hits.length ||
+          c.pin ||
+          c.el.hasAttribute("data-surface-reason") ||
+          c.el.hasAttribute("data-surface-navigation")
         ? "annotated"
         : "derived";
     const meta: AutoEntryMeta = {
@@ -1062,6 +1065,12 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
         kind: "unclassified-risk",
         message: `“${name}” (${c.role}) was not recognized, so it is treated as a high-risk change${decision === "approve" ? " that needs the person's approval" : ""}.`,
         entryId: id,
+        ...(c.role === "button"
+          ? {
+              markup:
+                "if this exact custom button only changes location, add data-surface-navigation; otherwise configure its real effect",
+            }
+          : {}),
         suggestion: {
           match: { key: c.key },
           effect: { mutates: "say what it changes", risk: "medium" },

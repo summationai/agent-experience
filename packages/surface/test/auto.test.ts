@@ -484,6 +484,36 @@ describe("safety defaults [S-AUTO-7]", () => {
       reason: "behind the open dialog “Remove Ada?”; close it first",
     });
   });
+
+  it("treats router buttons in a navigation landmark as navigation without weakening destructive controls", () => {
+    const h = start(`<main>
+      <nav aria-label="Breadcrumb"><button>All Tables</button><button>Delete table</button></nav>
+      <div role="navigation" aria-label="Sections"><button>General ledger</button></div>
+      <button>General ledger</button>
+      <div role="button" tabindex="0" data-surface-navigation>Quarterly report</div>
+      <div role="button" tabindex="0" data-surface-navigation>Delete quarterly report</div>
+    </main>`);
+    const s = h.surface;
+    const entries = s.observe().entries;
+    const named = (name: string) => entries.filter((entry) => entry.name === name);
+    expect(byName(s, "All Tables").effect).toMatchObject({
+      risk: "low",
+      mutates: "location",
+      reversible: true,
+      idempotent: true,
+    });
+    expect(byName(s, "Delete table").effect?.risk).toBe("high");
+    expect(named("General ledger")[0]!.effect?.risk).toBe("low");
+    expect(named("General ledger")[1]!.effect?.risk).toBe("high");
+    expect(byName(s, "Quarterly report")).toMatchObject({
+      tier: "annotated",
+      effect: { risk: "low", mutates: "location", reversible: true, idempotent: true },
+    });
+    expect(byName(s, "Delete quarterly report").effect?.risk).toBe("high");
+    expect(
+      h.coverage().gaps.find((gap) => gap.message.includes("General ledger"))?.markup,
+    ).toContain("data-surface-navigation");
+  });
 });
 
 describe("configuration overlay [S-CFG-*]", () => {

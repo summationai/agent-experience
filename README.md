@@ -43,18 +43,18 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 
 Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
-For a consumer using ChatGPT on mobile or desktop, the intended production path is the public plugin plus the provider-operated relay. The person installs **Agent Experience** once and connects it in ChatGPT's normal OAuth UI. When the agent needs a website, ChatGPT opens an identity-bound handoff page; after ordinary website sign-in, the already-installed browser package connects that tab automatically. There is no pairing code, customer MCP server, customer backend endpoint, or developer tooling on the user's device. See [ChatGPT consumer path](docs/chatgpt-plugin.md).
+For a consumer using ChatGPT on mobile or desktop, the target production path is the public plugin plus a provider-operated hidden browser. The person installs **Agent Experience** once; startup stays silent, and a relevant request starts an identity-isolated application session whose Surface is used entirely inside the agent conversation. There is no pairing code, visible application browser, customer MCP server, or developer tooling on the user's device. The current hosted implementation has this interaction shape but still requires an application-session broker; moving that boundary into the provider's account/session service is the remaining product-service work, not a change to the customer's browser package. The attended browser handoff remains a fallback. See [ChatGPT consumer path](docs/chatgpt-plugin.md).
 
-For local development of an existing web app's page-held Surface:
+For a product-shaped local demo of an existing web app's page-held Surface:
 
 ```sh
 npm install @axe/surface @axe/relay
-npx axe surface init --relay-dev --yes
+npx axe surface init --remote --yes
 # In the Agent Experience checkout, not the consuming app:
-pnpm mcp:dev
+AXE_HOST_APP_URL=http://localhost:5173/login pnpm mcp:unattended-dev
 ```
 
-The package keeps the authoritative controls, revision, ledger, approval boundary, and handlers in the page. Locally, its browser-only relay client connects the open tab to the separately operated service. In hosted mode, `@axe/host` opens that same page on provider infrastructure and injects the relay before application code runs. Both expose `relay_tabs`, `surface_read`, `surface_observe`, `surface_wait`, and Surface action tools; the customer application never runs an MCP server. See [Agent Experience MCP service](mcp/README.md), [ChatGPT consumer path](docs/chatgpt-plugin.md), and [Relay](docs/relay.md).
+The package keeps the authoritative controls, revision, ledger, approval boundary, and handlers in the page. In unattended modes, `@axe/host` opens that page in a hidden browser and injects the relay before application code runs. It exposes `relay_tabs`, `surface_read`, `surface_observe`, `surface_wait`, and Surface action tools; the customer application never runs an MCP server. The older attended and pairing modes remain available for diagnostics. See [Agent Experience MCP service](mcp/README.md), [ChatGPT consumer path](docs/chatgpt-plugin.md), and [Relay](docs/relay.md).
 
 WebMCP remains available as a direct browser-native path where the host supports and delivers site tools. `axe surface init --remote` remains the optional injected-host path. All paths present the same package-held Surface without moving application authority out of the page.
 

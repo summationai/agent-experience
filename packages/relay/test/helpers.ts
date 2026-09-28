@@ -294,7 +294,7 @@ export async function startRelay(options: Partial<RelayOptions> = {}): Promise<R
   const relay = createRelay({
     secret: SECRET,
     origins: [APP_ORIGIN],
-    agentAuth,
+    ...(options.deferredAgentAuth ? {} : { agentAuth }),
     reconnectGraceMs: 3000,
     onFrame: (direction, _tab, data) => frames.push({ direction, data }),
     ...options,
@@ -374,10 +374,10 @@ export function elicitingClient(name: string, elicit?: Elicitor): Client {
   return client;
 }
 
-/** The MCP SDK's client over Streamable HTTP with a bearer token. */
-export async function httpAgent(mcpUrl: string, token: string, elicit?: Elicitor): Promise<Agent> {
+/** The MCP SDK's client over Streamable HTTP, with a bearer token when supplied. */
+export async function httpAgent(mcpUrl: string, token?: string, elicit?: Elicitor): Promise<Agent> {
   const transport = new StreamableHTTPClientTransport(new URL(mcpUrl), {
-    requestInit: { headers: { Authorization: `Bearer ${token}` } },
+    requestInit: token ? { headers: { Authorization: `Bearer ${token}` } } : {},
   });
   const client = elicitingClient("relay-test-agent", elicit);
   await client.connect(transport as unknown as Transport);

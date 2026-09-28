@@ -1,14 +1,51 @@
 # Agent Experience MCP service
 
-This directory is the company-side service for agents. It is a standalone Node process with three modes:
+This directory is the company-side service for agents. It is a standalone Node process with four modes:
 
 - **Local attended mode (the default):** a website's open tab connects its page-held Surface to `/tab`; a desktop agent connects to `/mcp` and pairs with that tab.
-- **Browser-handoff mode (`AXE_MCP_MODE=handoff`, recommended):** ChatGPT connects to the public `/mcp` endpoint with OAuth. When no tab is connected, the client opens an identity-bound one-time URL; after ordinary application sign-in, the installed browser package connects the tab automatically. There is no pairing code or customer backend endpoint.
-- **Hosted unattended mode (`AXE_MCP_MODE=hosted`, optional):** this service runs an isolated headless browser. It is only for applications that deliberately provide a short-lived application-session broker.
+- **Local unattended mode (`AXE_MCP_MODE=local-unattended`, recommended for the Summation demo):** the first relevant tool call starts a hidden browser on this laptop. Login, organization selection, tenant selection, and application work all happen through Surface; no browser window or pairing code appears.
+- **Hosted unattended mode (`AXE_MCP_MODE=hosted`, production target):** this service runs an isolated headless browser for each verified person. The current implementation gets its initial application session from a broker; a provider-owned account/session service can own that boundary later without changing the browser package installation.
+- **Browser-handoff mode (`AXE_MCP_MODE=handoff`, attended fallback):** the provider opens the application in the person's ordinary browser and the installed package connects that tab after sign-in. It needs no application session broker, but the browser is visible.
 
-Customer applications never run an MCP server. Browser-handoff mode installs only the browser client: it needs no relay-token route, session exchange, shared secret, or other backend integration. The optional unattended path has a different tradeoff and is not the default developer contract.
+Customer applications never run an MCP server. All modes install only the browser client in the customer app. Local unattended mode is loopback-only and intended to validate the interaction model; production hosted mode still needs a provider-owned answer for acquiring an application session.
 
-The default configuration is deliberately local-development only. It binds to loopback, uses a development bearer key, and pairs an agent with a website tab using the code displayed in that tab. Hosted mode is the production service shape: OAuth for the agent and a short-lived, application-issued browser session. The relay protocol and tools stay the same.
+The default mode remains the older pairing diagnostic. For the product-shaped local demo, use local unattended mode below. Hosted mode is the production service shape: OAuth for the agent and a short-lived application session. The relay protocol and tools stay the same.
+
+## Run the hidden Summation demo
+
+Install Chromium once, run the local Summation web app, and start the provider service:
+
+```sh
+pnpm exec playwright install chromium
+export AXE_HOST_APP_URL=http://localhost:5173/login
+export AXE_MCP_AGENT_KEY=axd_agent_experience_local
+pnpm mcp:unattended-dev
+```
+
+The service binds to `http://127.0.0.1:4717/mcp`. It does not start Chromium until the first tool call, and Chromium remains headless. Configure the desktop client with `Authorization: Bearer axd_agent_experience_local`. For Claude Desktop through `mcp-remote`, pass the header value through an environment variable because some desktop releases split arguments containing spaces:
+
+```json
+{
+  "command": "npx",
+  "args": [
+    "-y",
+    "mcp-remote@latest",
+    "http://127.0.0.1:4717/mcp",
+    "--allow-http",
+    "--header",
+    "Authorization:${AXE_AUTH_HEADER}"
+  ],
+  "env": {
+    "AXE_AUTH_HEADER": "Bearer axd_agent_experience_local"
+  }
+}
+```
+
+Ask for a concrete Summation task. The agent starts with `relay_tabs`, then uses the login, organization, and tenant controls reported by `surface_observe` before continuing to the requested data. A password control is sensitive: the agent may set a credential deliberately supplied for this local demo, but must never read, repeat, log, or persist it. Set `AXE_HOST_STATE_PATH` to a private Playwright storage-state file if you prefer to capture login once with `axe host login`.
+
+When a consequential action needs a person's approval, a client with MCP elicitation shows it directly. A client without elicitation receives a one-time loopback `approvalUrl`; the agent must show that ordinary clickable link in chat. The person approves or denies on the small relay-owned page, never in the hidden application browser, and the agent retries the identical call. The local page trusts the one configured loopback identity; a deployed service must identify the person from the provider's authenticated web session.
+
+The Summation package must mount one conditional provider above tenant resolution. An ordinary signed-out tab stays unexposed; an injected hidden session connects on `/login`, `/login/organizations`, and `TenantSwitchModal`, then remains connected into the authenticated app. Because sensitive fields are correctly read-only by default, the local experiment also needs the narrowly scoped `/login** input[type="password"]` editable rule documented in the install prompt; its value remains redacted everywhere. See [`internal/install-surface-in-summation-web-app.md`](../internal/install-surface-in-summation-web-app.md).
 
 ## Run locally
 
@@ -55,18 +92,18 @@ The build output is `mcp/dist/`. The service depends on workspace packages durin
 
 ## Run the browser-handoff service
 
-Set `AXE_MCP_MODE=handoff`, the application's normal URL, the public MCP URL, and the provider OAuth variables documented in [`.env.example`](.env.example):
+Set `AXE_MCP_MODE=handoff`, the application's normal URL, the public MCP URL, and the provider OAuth variables documented in [`.env.example`](.env.example). For a laptop-only demo, the loopback-restricted `AXE_HOST_AUTH_MODE=local` alternative below opens the application's own login instead:
 
 ```sh
 pnpm --filter @axe/mcp-service build
 AXE_MCP_MODE=handoff node mcp/dist/index.js
 ```
 
-`relay_tabs` returns a standard `needs_human` handoff when the authenticated person has no connected tab. An MCP client with URL elicitation opens the relay's short-lived `/connect/<token>` page. That page transfers the bootstrap through `window.name` and immediately redirects to `AXE_HOST_APP_URL`; after any normal sign-in redirect, `@axe/relay/client` exchanges the handoff directly with this service and connects the page-held Surface.
+The MCP transport initializes anonymously, so merely starting ChatGPT or Claude does not open a browser. When the person asks to use the application, the agent calls `relay_tabs`. Its first `needs_human` handoff opens a contextual Agent Experience page explaining the connection; only the person's **Continue to Summation** action starts provider OAuth. The OAuth callback binds that account to the requesting MCP session and redirects through a short-lived `/connect/<token>` page to `AXE_HOST_APP_URL`. After any normal application sign-in redirect, `@axe/relay/client` exchanges the handoff directly with this service and connects the page-held Surface.
 
 The token is not an application credential, never enters the application URL, and can be exchanged only once from the configured application origin. The application adds no API route. Keep `/connect/*` out of access logs, terminate TLS at the public endpoint, and use shared handoff state or sticky routing before adding multiple service instances.
 
-## Optional: run the unattended browser host
+## Run the production unattended browser host
 
 Set `AXE_MCP_MODE=hosted` and the `AXE_HOST_*` variables documented in [`.env.example`](.env.example), then run the same built entry point:
 
@@ -130,16 +167,13 @@ Put a TLS terminator in front of port 8080 and keep OAuth verifier secrets in th
 
 This path exercises the production browser-handoff architecture from Claude Desktop. Unlike `pnpm mcp:dev`, it does not expose `relay_pair`, and unlike unattended host mode it needs no Summation session broker.
 
-Run Summation's web app at `http://localhost:5173` and sum-api at `http://localhost:9092`, with its OAuth routes enabled and issuer set to its reachable origin. Then export:
+Run Summation's web app at `http://localhost:5173`. The laptop-only handoff mode opens that app's own local `/login` page, so it uses the local accounts and data without staging OAuth, a local sum-api change, or another backend integration. Then export:
 
 ```sh
-export AXE_HOST_APP_URL=http://localhost:5173
+export AXE_HOST_APP_URL=http://localhost:5173/login
 export AXE_HOST_PUBLIC_MCP_URL=http://127.0.0.1:4717/mcp
-export AXE_HOST_AUTHORIZATION_SERVERS=http://localhost:9092
-export AXE_HOST_SCOPES=agent:read
-export AXE_HOST_OAUTH_USERINFO_URL=http://localhost:9092/v1/me
-export AXE_HOST_PRINCIPAL_CLAIM=identity.user_id
-export AXE_HOST_TENANT_CLAIM=identity.org_id
+export AXE_HOST_AUTH_MODE=local
+export HOST=127.0.0.1
 pnpm mcp:handoff-dev
 ```
 
@@ -161,8 +195,8 @@ Configure Claude Desktop without a static authorization header:
 }
 ```
 
-On the first connection, the MCP OAuth challenge causes the client to open Summation's browser login. After OAuth, Claude calls `relay_tabs`; because no tab is connected, its URL flow opens Summation through the relay handoff. The installed package connects that signed-in tab automatically. There is no pairing code, bearer key, new sum-api route, or credential entered into chat.
+Restarting Claude should not open any browser page. In a fresh conversation, ask Claude to use Summation. Its first `relay_tabs` call offers the local Summation page through the relay handoff. Sign in with the local app's credentials there, never in chat; the installed package connects that signed-in tab automatically. There is no startup login, staging account, pairing code, bearer key, local sum-api change, new sum-api route, or credential entered into chat. `AXE_HOST_AUTH_MODE=local` is deliberately refused unless the service, MCP URL, and app URL are all loopback; use OAuth for any deployed endpoint.
 
 ## ChatGPT plugin
 
-[`plugins/agent-experience`](../plugins/agent-experience/README.md) packages the hosted MCP endpoint with agent instructions. Configure it with the deployed HTTPS URL, test it in ChatGPT developer mode, then submit it to the universal plugin directory. A consumer installs the named plugin once and signs in when ChatGPT prompts; they never configure an MCP server or learn what MCP is.
+[`plugins/agent-experience`](../plugins/agent-experience/README.md) packages the hosted MCP endpoint with agent instructions. Configure it with the deployed HTTPS URL, test it in ChatGPT developer mode, then submit it to the universal plugin directory. A consumer installs the named plugin once; account connection is requested contextually only after they ask to use a supported application. They never configure an MCP server or learn what MCP is.
