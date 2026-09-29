@@ -1,5 +1,5 @@
 {
-  "name": "@summationai/summationai-axe-mcp-service",
+  "name": "@summationai/axe-mcp-service",
   "version": "0.1.0",
   "private": true,
   "description": "Company-operated MCP and browser relay service for Agent Experience Surface integrations.",

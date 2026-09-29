@@ -19,7 +19,7 @@ beforeAll(async () => {
   missing = await chromiumMissing();
   if (missing) console.warn(`[host dev tests] browser cases skipped: no Chromium (${missing})`);
   fixture = await startFixture();
-  dir = await mkdtemp(join(tmpdir(), "summationai-axe-host-"));
+  dir = await mkdtemp(join(tmpdir(), "axe-host-"));
 });
 afterAll(async () => {
   await fixture?.close();

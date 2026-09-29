@@ -10,7 +10,7 @@ WORKDIR /app
 COPY . .
 
 RUN pnpm install --frozen-lockfile \
-  && pnpm --filter @summationai/summationai-axe-mcp-service... build \
+  && pnpm --filter @summationai/axe-mcp-service... build \
   && pnpm store prune
 
 ENV NODE_ENV=production

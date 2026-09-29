@@ -100,7 +100,7 @@ The packages share one set of application logic and differ in how a caller reach
 | `@summationai/axe-testing`  | Conformance suite, AXE audit, drift check, and test helpers.                                                              |
 | `axe`           | CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`, `axe relay`, `axe host`. |
 
-The private `@summationai/summationai-axe-mcp-service` application under [`mcp/`](mcp/README.md) composes the relay and unattended-host runtimes into the Node service operated by the package provider; it is a deployable application, not a dependency customers install.
+The private `@summationai/axe-mcp-service` application under [`mcp/`](mcp/README.md) composes the relay and unattended-host runtimes into the Node service operated by the package provider; it is a deployable application, not a dependency customers install.
 
 ## Developing
 

@@ -221,7 +221,7 @@ describe("axe CLI", () => {
   });
 
   it("generate derives actions from an OpenAPI document, writes a manifest and a starter module", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "summationai-axe-generate-"));
+    const dir = mkdtempSync(join(tmpdir(), "axe-generate-"));
     const doc = join(dir, "openapi.json");
     writeFileSync(doc, JSON.stringify(storeDocument));
     reset();

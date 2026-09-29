@@ -14,7 +14,7 @@ const repo = join(__dirname, "../../..");
 
 /** A fixture copied to a temporary directory, so applying never touches the repository. */
 function copy(name: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `summationai-axe-surface-${name}-`));
+  const dir = mkdtempSync(join(tmpdir(), `axe-surface-${name}-`));
   cpSync(join(fixtures, name), dir, { recursive: true });
   return dir;
 }
@@ -108,7 +108,7 @@ describe("axe surface init: detection", () => {
     const r = await cli(["surface", "init", "--dir", copy("plain"), "--framework", "next"]);
     expect(r.code).toBe(1);
     expect(r.err).toContain("--framework next: no root file found");
-    const empty = mkdtempSync(join(tmpdir(), "summationai-axe-surface-empty-"));
+    const empty = mkdtempSync(join(tmpdir(), "axe-surface-empty-"));
     const e = await cli(["surface", "init", "--dir", empty, "--dry-run"]);
     expect(e.code).toBe(1);
     expect(e.err).toContain("Could not find an application root");
