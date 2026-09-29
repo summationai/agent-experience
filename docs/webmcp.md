@@ -127,6 +127,34 @@ Nothing is registered, `supported` is false, and the page works as before. The o
 
 An application that exposes its browser surface from one module with `expose(window)`, as the reference application under `examples/` is built to, adds the WebMCP adapter on the next line, as in the example above.
 
+## Headless bridge (experimental)
+
+WebMCP tools exist only in a loaded page, for the agent built into that browser: the explainer lists "fully autonomous workflows" without a browser UI as a non-goal. A desktop agent such as Claude Desktop has no browser of its own, so it cannot reach them directly. `axe host --dev --webmcp --stdio` gives it one: it opens the application in headless Chromium with WebMCP enabled, follows the page's tools through the DevTools protocol's WebMCP domain (the events for tools added and removed, and the command that invokes one), and serves them over MCP on stdio.
+
+```sh
+axe host login http://localhost:3000
+claude mcp add plan -- npx @summationai/axe host --dev --webmcp --stdio --app http://localhost:3000 --start /plan
+```
+
+The page needs no relay connection and no host-specific code: `<SurfaceProvider webMcp>`, `exposeWebMcp`, or any `document.modelContext.registerTool` is the whole integration, and the same registration serves Chrome's built-in agent and ChatGPT's in-app browser. The bridge refuses navigations off the application's origin, reports a call whose page navigated or reloaded underneath it as outcome unknown, sends `tools/list_changed` as the page's tools change, and returns each answer only once the tools the call changed are registered again. It needs Chromium 150 or newer (the one Playwright installs qualifies).
+
+Tried on 2026-09-29 against the reference application (`examples/plan-review`, which offers its page surface through `exposeWebMcp` in `app/SurfaceHost.tsx`), headless, signed in as bob at Acme, from a scripted MCP client over stdio:
+
+| Step | Bridge | Relay path (review of 2026-09-25) |
+| --- | --- | --- |
+| Start: first `tools/list`, including the browser | 350 ms warm, 1.8 s cold | `relay_tabs` 296 ms, once listening |
+| Observe | 2 to 3 ms | 3 to 12 ms |
+| Type a forecast | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms |
+| Save | 22 ms, and the server's plan shows the value | `surface_run-control` 67 ms |
+
+What the bridge does not do yet, in the order it matters:
+
+- **Approval.** A high-risk control needs `requestApproval`, trusted application UI that the person sees. A headless page has no one to see it, so the call is refused ("The control needs the person's approval, but this page did not configure a trusted WebMCP approval UI."). The relay path asks the person through MCP elicitation or its approval page. The likely shape is a host-provided approver, injected like the relay's token binding, that the page's `requestApproval` defers to and that the host answers through elicitation; it keeps the approval with the person and out of the agent's reach.
+- **Tool count.** The adapter registers one tool per control: 27 on the reference plan page, and a grid of 50 rows by 12 months would be over 600. The relay path serves a fixed set (`surface_set-field`, `surface_run-control` with an entry id). A compact mode in the adapter, with generic tools taking an entry id, would keep the tool list small for pages with many controls.
+- **Annotations.** The DevTools domain carries only a tool's read-only, untrusted-content, and autosubmit hints. A page's `consequentialHint` and `title` do not reach the bridge, so risk reaches the agent only through the tool's description.
+- **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.
+- **Stability.** WebMCP is behind `--enable-features=WebMCP` and its DevTools domain is experimental; both can change with Chromium.
+
 ## Bundle
 
 `@summationai/axe-surface/webmcp` remains a separate entry for framework-free use. `SurfaceProvider` imports the small adapter so its `webMcp` prop works without another application dependency; ordinary hooks from `@summationai/axe-surface/react` still tree-shake it when the provider is not used.
