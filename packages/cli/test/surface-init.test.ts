@@ -387,6 +387,9 @@ describe("axe surface init: flags and the relay", () => {
       'process.env.NEXT_PUBLIC_SURFACE_RELAY_URL ?? "wss://relay.example.com"',
     );
     expect(r.out).toContain("pack-for-consumer.sh vendor core surface relay");
+    // The registry form comes first, with the scope mapping it needs; tarballs are the fallback.
+    expect(r.out).toContain("@summationai:registry=https://npm.pkg.github.com");
+    expect(r.out.indexOf("npm.pkg.github.com")).toBeLessThan(r.out.indexOf("pack-for-consumer.sh"));
     // With a remote option, next steps require live auth state, explain the provider-owned
     // handoff, and keep the saved-session command only as an optional local fixture.
     expect(r.out).toContain(
@@ -458,16 +461,16 @@ describe("axe surface init: install commands", () => {
     expect(tar.argv).toEqual([
       "npm",
       "install",
-      "@summationai/axe-core@file:vendor/summationai-axe-core-0.1.0.tgz",
-      "@summationai/axe-surface@file:vendor/summationai-axe-surface-0.1.0.tgz",
-      "@summationai/axe-relay@file:vendor/summationai-axe-relay-0.1.0.tgz",
+      "@summationai/axe-core@file:vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-surface@file:vendor/summationai-axe-surface-1.0.0.tgz",
+      "@summationai/axe-relay@file:vendor/summationai-axe-relay-1.0.0.tgz",
     ]);
     expect(tar.overrides).toEqual({
       file: "package.json",
       key: "overrides",
       value: {
-        "@summationai/axe-core": "file:vendor/summationai-axe-core-0.1.0.tgz",
-        "@summationai/axe-surface": "file:vendor/summationai-axe-surface-0.1.0.tgz",
+        "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz",
+        "@summationai/axe-surface": "file:vendor/summationai-axe-surface-1.0.0.tgz",
       },
     });
     expect(installCommand(detect(copy("next")), false).argv).toEqual([
@@ -485,31 +488,31 @@ describe("axe surface init: install commands", () => {
     expect(y.argv).toEqual([
       "yarn",
       "add",
-      "@summationai/axe-core@file:../../vendor/summationai-axe-core-0.1.0.tgz",
-      "@summationai/axe-surface@file:../../vendor/summationai-axe-surface-0.1.0.tgz",
+      "@summationai/axe-core@file:../../vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-surface@file:../../vendor/summationai-axe-surface-1.0.0.tgz",
     ]);
     expect(y.overrides).toEqual({
       file: "../../package.json",
       key: "resolutions",
-      value: { "@summationai/axe-core": "file:./vendor/summationai-axe-core-0.1.0.tgz" },
+      value: { "@summationai/axe-core": "file:./vendor/summationai-axe-core-1.0.0.tgz" },
     });
     // The web app's own precedent: tarballs beside the app, resolutions at the root.
     const beside = installCommand(web, false, "vendor");
     expect(beside.argv).toContain(
-      "@summationai/axe-surface@file:./vendor/summationai-axe-surface-0.1.0.tgz",
+      "@summationai/axe-surface@file:./vendor/summationai-axe-surface-1.0.0.tgz",
     );
     expect(beside.overrides!.value).toEqual({
-      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-0.1.0.tgz",
+      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-1.0.0.tgz",
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(true);
     expect(JSON.parse(readFileSync(join(ws, "package.json"), "utf8")).resolutions).toEqual({
-      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-0.1.0.tgz",
+      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-1.0.0.tgz",
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(false);
     const pnpmApp = copy("next");
     writeOverrides(pnpmApp, installCommand(detect(pnpmApp), false, "vendor").overrides!);
     expect(JSON.parse(readFileSync(join(pnpmApp, "package.json"), "utf8")).pnpm.overrides).toEqual({
-      "@summationai/axe-core": "file:vendor/summationai-axe-core-0.1.0.tgz",
+      "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz",
     });
     // A vendor directory with packed tarballs is read for their real names.
     mkdirSync(join(ws, "apps/web/vendor"));

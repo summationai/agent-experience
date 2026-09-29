@@ -13,7 +13,7 @@ import { createInterface } from "node:readline/promises";
 import * as WIRE from "@summationai/axe-core/vocabulary";
 import type { CommandContext } from "../index";
 import { parse } from "../commands/shared";
-import { DEV_RELAY_URL, PACKAGES } from "./api";
+import { DEV_RELAY_URL, PACKAGES, REGISTRY_NPMRC } from "./api";
 import { detect, FRAMEWORKS } from "./detect";
 import type { Detection, Framework, PackageManager } from "./detect";
 import { unifiedDiff } from "./diff";
@@ -312,7 +312,7 @@ function tarballs(vendorAbs: string | undefined): Record<string, string> {
   for (const pkg of ["core", "surface", "relay"]) {
     out[pkg] =
       names.find((n) => n.startsWith(`summationai-axe-${pkg}-`) && n.endsWith(".tgz")) ??
-      `summationai-axe-${pkg}-0.1.0.tgz`;
+      `summationai-axe-${pkg}-1.0.0.tgz`;
   }
   return out;
 }
@@ -419,7 +419,8 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
       text: "Install (nothing was added to package.json; --install runs it):",
       more: [
         registry.argv.map(quoteArg).join(" "),
-        "Unpublished (0.1.0 is not on npm): pack the SDK from a checkout and install the tarballs:",
+        `The packages are in the summationai GitHub Packages registry, not npmjs. An .npmrc beside package.json maps the scope: ${REGISTRY_NPMRC.join(" and ")}; locally, gh auth refresh -s read:packages && export NODE_AUTH_TOKEN=$(gh auth token).`,
+        "Without registry access, pack the SDK from a checkout and install the tarballs:",
         `<sdk-checkout>/scripts/pack-for-consumer.sh ${o.vendor ?? "vendor"} core surface${remote ? " relay" : ""}`,
         tar.argv.map(quoteArg).join(" "),
         `and in ${tar.overrides!.file}: "${tar.overrides!.key}": ${JSON.stringify(tar.overrides!.value)}`,

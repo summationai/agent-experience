@@ -38,6 +38,10 @@
     "url": "https://github.com/summationai/agent-experience",
     "directory": "packages/generate"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "keywords": [
     "axe",
     "agents",

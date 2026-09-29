@@ -61,5 +61,11 @@ export const PACKAGES = {
   core: "@summationai/axe-core",
 } as const;
 
+/** The `.npmrc` lines that resolve `@summationai/*` from GitHub Packages with `NODE_AUTH_TOKEN`. */
+export const REGISTRY_NPMRC = [
+  "@summationai:registry=https://npm.pkg.github.com",
+  "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}",
+] as const;
+
 /** What `expose` publishes on the page, and what coverage reads. */
 export const PAGE_GLOBAL = "__surface";

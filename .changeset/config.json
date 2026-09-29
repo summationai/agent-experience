@@ -2,10 +2,21 @@
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [["@summationai/axe-*", "axe"]],
+  "fixed": [
+    [
+      "@summationai/axe",
+      "@summationai/axe-*"
+    ]
+  ],
   "linked": [],
-  "access": "public",
+  "access": "restricted",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["body-spray-docs"]
+  "ignore": [
+    "body-spray-docs"
+  ],
+  "privatePackages": {
+    "version": false,
+    "tag": false
+  }
 }
