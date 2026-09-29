@@ -1,6 +1,6 @@
 /**
  * Sunrise Yoga Studio: unit tests for the `classes.book` action, run in-process with
- * `@axe/testing`. No port is opened and no network is used.
+ * `@summationai/axe-testing`. No port is opened and no network is used.
  *
  * This file uses Node's built-in `node:test` and `node:assert` so it runs anywhere Node
  * runs (`node --import tsx --test classes.test-example.ts`). In your project, import
@@ -8,9 +8,9 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
-import { createTestClient, invokeAction, samplePayload } from "@axe/testing";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
+import { createTestClient, invokeAction, samplePayload } from "@summationai/axe-testing";
 
 // #region site
 const axe = createAXE({

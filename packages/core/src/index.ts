@@ -1,9 +1,9 @@
 /**
- * @axe/core: protocol types, schemas, well-known kinds, and the framework-free
+ * @summationai/axe-core: protocol types, schemas, well-known kinds, and the framework-free
  * server runtime.
  *
  * ```ts
- * import { createAXE, action, z } from "@axe/core";
+ * import { createAXE, action, z } from "@summationai/axe-core";
  * ```
  */
 /** Zod, re-exported so integrators use one version. @hidden */
@@ -17,11 +17,33 @@ export type {
   Identity,
   SiteKeyVerdict,
   HookContext,
+  ProviderResultContext,
   AdapterContext,
   Endpoint,
+  RevisionContext,
+  RevisionProvider,
+  HandoffView,
+  HandoffStatus,
+  HandoffRefusal,
+  HandoffDecision,
 } from "./server";
+export {
+  evaluateRequestPolicy,
+  resolveRequestPolicy,
+  isJsonContentType,
+  isAcceptedOrigin,
+  hasAmbientCredentials,
+  normalizeOrigin,
+} from "./request-policy";
+export type {
+  RequestPolicyConfig,
+  ResolvedRequestPolicy,
+  OriginCheck,
+  PolicyContext,
+} from "./request-policy";
 export { action, ActionDefinitionError, ACTION_NAME_PATTERN } from "./action";
 export type {
+  ActionProvider,
   ActionSpec,
   RegisteredAction,
   HandlerContext,
@@ -32,8 +54,24 @@ export type {
   ResultHelpers,
   TenantInfo,
   MaybePromise,
+  AvailabilityInput,
+  AvailabilityContext,
+  ApprovalGrant,
+  ApprovalStateContext,
 } from "./action";
-export { ok, needsInput, handoff, pending, fail, AXEError, isIntent } from "./results";
+export {
+  ok,
+  needsInput,
+  handoff,
+  pending,
+  fail,
+  unavailable,
+  requestApproval,
+  APPROVAL_REQUIRED,
+  APPROVAL_TTL_SECONDS,
+  AXEError,
+  isIntent,
+} from "./results";
 export type {
   ResultIntent,
   OkIntent,
@@ -42,11 +80,24 @@ export type {
   PendingIntent,
   ErrorIntent,
   FailOptions,
+  ApprovalRequest,
 } from "./results";
 export { MemoryTokenStore, TokenSigner, hashJson, canonicalJson } from "./tokens";
-export type { TokenStore, TokenRecord, TokenType } from "./tokens";
-export { MemoryIdempotencyStore, DEFAULT_IDEMPOTENCY_TTL_SECONDS } from "./idempotency";
-export type { IdempotencyStore, IdempotencyRecord } from "./idempotency";
+export type { TokenStore, TokenRecord, TokenType, ApprovalRecord } from "./tokens";
+export { DEFAULT_MAX_ENTRIES, DEFAULT_SWEEP_INTERVAL_MS } from "./retention";
+export type { RetentionOptions } from "./retention";
+export {
+  MemoryIdempotencyStore,
+  DEFAULT_IDEMPOTENCY_TTL_SECONDS,
+  DEFAULT_OPERATION_LEASE_SECONDS,
+} from "./idempotency";
+export type {
+  IdempotencyStore,
+  IdempotencyRecord,
+  ClaimRequest,
+  ClaimOutcome,
+} from "./idempotency";
+export type { SiteKeyContext } from "./principal";
 export { DisplayValidationError, resolveDisplay, stripReserved, MAX_AFFORDANCES } from "./display";
 export type {
   PresentedResult,
@@ -81,7 +132,7 @@ export {
   PERSUASION_PATTERNS,
 } from "./lint";
 export type { LintIssue, LintRule, LintSeverity, LintTextOptions } from "./lint";
-export { consoleSink, jsonlFileSink, otelSink, combineSinks, parseUserAgent } from "./events";
-export type { EventSink, MeterLike, TracerLike } from "./events";
+export { consoleSink, otelSink, combineSinks, parseUserAgent } from "./events";
+export type { ActionEventSink, EventSink, MeterLike, TracerLike } from "./events";
 export { WIRE, WIRE_ENTRIES } from "./vocabulary";
 export type * from "./types";

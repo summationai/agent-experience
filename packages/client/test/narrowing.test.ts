@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AXEClient, isOk, isError, isPending, isNeedsHuman } from "../src/index";
 import { present, toMarkdown, toHTML } from "../src/present";
-import type { Manifest } from "@axe/core/types";
+import type { Manifest } from "@summationai/axe-core/types";
 import { apartmentsAXE, UNITS } from "../../core/test/fixtures/apartments";
 
 const manifestOf = (axe: { describe(): Manifest }) => axe.describe();
@@ -63,7 +63,7 @@ describe("client protocol behavior", () => {
       { maxWaitMs: 50 },
     );
     expect(isPending(r)).toBe(true);
-    expect(polls).toBeLessThanOrEqual(1);
+    expect(polls).toBe(1);
   });
 
   it("treats tokens as opaque strings [P-TOK-1]", async () => {

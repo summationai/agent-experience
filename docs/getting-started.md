@@ -1,30 +1,126 @@
 # Getting started
 
+There are two ways in. If you have a web application and want a desktop agent to drive it through the controls people already use, start with the Surface and MCP-service steps below. If you want to declare server operations as typed actions an agent calls over HTTP, skip to [Serve actions over AXE](#serve-actions-over-axe).
+
+## Add Surface to an existing app in four steps
+
+Out of the box Surface discovers the page's controls and keeps their authoritative live state, revision, ledger, and handlers in the page. The browser relay client connects that Surface to the separately operated Agent Experience MCP service, so the consuming application does not run a server. WebMCP remains an additional direct path where supported, and development publishes `window.__surface`. It works with React Router 7 (framework mode), the Next.js App Router, Vite with React, React under any other bundler, and plain HTML pages.
+
+### 1. Install
+
+```sh
+npm install @summationai/axe-surface @summationai/axe-relay
+```
+
+The packages come from the summationai GitHub Packages registry: an `.npmrc` beside `package.json` maps the scope (`@summationai:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`), and `gh auth refresh -s read:packages && export NODE_AUTH_TOKEN=$(gh auth token)` supplies the token; see [Install from GitHub Packages](deploying.md#install-from-github-packages). Without registry access, `axe surface init --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the provider-operated Agent Experience service.
+
+### 2. Run `axe surface init`
+
+```sh
+npx @summationai/axe surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-run
+```
+
+`axe surface init` detects the framework, the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root component, and prints the diff it would make. For a React Router 7 app it is two lines in `app/root.tsx` plus two new files:
+
+It is also the upgrade entry point: rerunning it applies narrowly defined safe migrations to files carrying its generated marker while preserving application-specific edits. Review the printed diff before accepting it.
+
+```diff
+ import "./app.css";
++import { AgentSurface } from "./surface";
+@@
+ export default function App() {
+-  return <Outlet />;
++  return (
++    <AgentSurface>
++      <Outlet />
++    </AgentSurface>
++  );
+ }
+```
+
+`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@summationai/axe-surface/react` with WebMCP enabled and an injected provider connection through `@summationai/axe-relay/client`. It is enabled by default; add an explicit `--flag` only when product rollout requires one. The generated structured profile publishes the stable application id and name plus live authentication/context facts. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
+
+```sh
+npx @summationai/axe surface init --app-id acme-analytics --app-name "Acme Analytics" --yes
+```
+
+Options that matter on a real app:
+
+- `--mount <file>`: mount in the highest application shell, including login and account/workspace selection routes. `init` lists the layouts it found.
+- `--app-id` and `--app-name`: set the identity expected by the provider connector. Defaults are inferred from `package.json`; review them before applying.
+- `--flag <NAME>`, `--flag <module>#<export>`, or `--flag-hook … --flag-import …`: deliberately gate Surface for a staged rollout. There is no flag by default.
+- `--relay <url>`: connect a person's visible page to a company-operated relay when deliberately using the attended-tab shape.
+- `--relay-dev`: connect a visible page to the loopback development relay and use code pairing as a diagnostic.
+- `--browser-only`: omit the injected relay client and provide only browser-native WebMCP.
+
+### 3. Register the application with the provider
+
+The application team stops here. The provider adds a connector to its trusted registry with the application URL, allowed origins, identity claim mapping, and session strategy. It does not copy selectors, login steps, account names, or workflow instructions into MCP code. Those remain live Surface state.
+
+For local provider development, set `AXE_CONNECTORS_FILE` and start the standalone service in the Agent Experience checkout—not in the consuming application:
+
+```sh
+AXE_CONNECTORS_FILE=./mcp/connectors.local.json pnpm mcp:hosted-dev
+```
+
+The public plugin names one stable provider `/mcp` endpoint. When a request names an application, the agent uses `apps_search` and `app_connect` when needed, then `relay_tabs`, `surface_read`, `surface_observe`, `surface_wait`, and the Surface action tools. One registered application is selected automatically. There is no application-owned MCP deployment or pairing step. See [`mcp/README.md`](../mcp/README.md).
+
+Controls classified as high risk, controls that declare confirmation, and controls waiting on `approval_required` wait for the person through the active transport’s trusted approval channel: the agent client or a one-time approval page when unattended, and the page indicator when attended. An agent tool argument is never approval.
+
+In a compatible browser, WebMCP also registers the same page-held Surface directly; use the [host preflight](webmcp.md#host-compatibility-and-preflight) when testing that optional path. In development, `window.__surface` remains available for diagnosis.
+
+When an authenticated agent has no application session, the provider uses the selected connector's trusted session strategy or a one-time browser handoff. `injectedRelay()` recognizes the provider capability and connects automatically. The application adds no MCP server, token endpoint, session broker, or shared secret. See [ChatGPT consumer path](chatgpt-plugin.md).
+
+### 4. Measure and refine
+
+Run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
+
+```sh
+npx @summationai/axe surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
+npx @summationai/axe surface prompt > integrate-surface.md
+```
+
+The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page, and lists what the page could not say with the rule to paste for each. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout.
+
+## Optional: direct one-application host development
+
+To exercise the lower-level host directly instead of the provider registry:
+
+```sh
+npx @summationai/axe surface init --yes --install
+npx @summationai/axe host login http://localhost:5173
+claude mcp add myapp -- npx @summationai/axe host --dev --stdio --app http://localhost:5173
+```
+
+The host runs the app in a private browser and presents the surface over MCP. A brokered session may start it signed in; otherwise a `signed-out` Surface produces a secure view of that same browser for the person to authenticate without sending credentials through chat. The authoritative surface and every agent act remain in the page. This is useful for SDK development; production uses the provider registry and stable MCP endpoint described above. See [Unattended mode](host.md).
+
+## Serve actions over AXE
+
 In about 15 minutes you will install the SDK, expose one read-only action from an existing app, verify it with the conformance suite, and call it from Claude Desktop through MCP. Every command below is shown with the output you should see.
 
 This tutorial uses a yoga studio. Nothing in it is specific to yoga; swap in your own domain as you go.
 
-## Prerequisites
+### Prerequisites
 
 - Node 20 or newer.
 - An existing Express, Next.js, or fetch-based app (Hono, Remix, Cloudflare Workers, Bun, Deno, SvelteKit). If you have none, the Express server below is complete on its own.
 
-## 1. Install
+### 1. Install
 
 ```sh
-npm install @axe/core @axe/express
-npm install -D axe tsx
+npm install @summationai/axe-core @summationai/axe-express
+npm install -D @summationai/axe tsx
 ```
 
-Use `@axe/next` or `@axe/fetch` instead of `@axe/express` for those frameworks. The `axe` package is the CLI; `tsx` lets the CLI load your TypeScript directly.
+Use `@summationai/axe-next` or `@summationai/axe-fetch` instead of `@summationai/axe-express` for those frameworks. The packages come from the summationai GitHub Packages registry: an `.npmrc` beside `package.json` maps the scope (`@summationai:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`), and `gh auth refresh -s read:packages && export NODE_AUTH_TOKEN=$(gh auth token)` supplies the token; see [Install from GitHub Packages](deploying.md#install-from-github-packages). The `@summationai/axe` package is the CLI (its command is `axe`); `tsx` lets the CLI load your TypeScript directly.
 
-## 2. Declare one action
+### 2. Declare one action
 
 Create `axe.ts`. It creates the server object and registers a single read-only action that wraps a function you already have (here, an in-memory list standing in for your database).
 
 <!-- include: examples/getting-started/axe.ts#all -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Sunrise Yoga Studio",
@@ -133,21 +229,23 @@ Three things to notice:
 
 You can also scaffold this file with `axe init`, which asks for your framework and writes both `axe.ts` and the mount file.
 
-## 3. Mount it
+### 3. Mount it
 
-### Express
+#### Express
 
 <!-- include: examples/getting-started/server-express.ts#all -->
 ```ts
 import express from "express";
-import { axeExpress } from "@axe/express";
+import { axeExpress } from "@summationai/axe-express";
 import { axe } from "./axe";
 
 const app = express();
-app.use(express.json());
 
 // Serves /.well-known/axe.json and every /axe/* endpoint. Everything else falls through.
+// Mounted before any body parser, it reads its own request bodies within maxBodyBytes and
+// answers an oversized one with an AXE envelope.
 app.use(axeExpress(axe));
+app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.send("Sunrise Yoga Studio");
@@ -170,13 +268,13 @@ npx tsx server.ts
 Listening on http://localhost:3000
 ```
 
-### Next.js (App Router)
+#### Next.js (App Router)
 
 Create `app/axe/[...axe]/route.ts` and `app/.well-known/axe.json/route.ts`, each with the same three exports:
 
 <!-- include: examples/getting-started/route.ts#all -->
 ```ts
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { axe } from "./axe";
 
 export const { GET, POST, OPTIONS } = axeNext(axe);
@@ -185,13 +283,13 @@ export const { GET, POST, OPTIONS } = axeNext(axe);
 
 See [Next.js integration](integrations/next.md) for the Pages API and for passing your session into `context`.
 
-### Hono, Remix, Workers, Bun, Deno, SvelteKit
+#### Hono, Remix, Workers, Bun, Deno, SvelteKit
 
 <!-- include: examples/getting-started/server-fetch.ts#all -->
 ```ts
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 
 const app = new Hono();
@@ -207,10 +305,10 @@ serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
 
 See [fetch integration](integrations/fetch.md) for each framework's exact mount.
 
-## 4. Look at it the way an agent does
+### 4. Look at it the way an agent does
 
 ```sh
-npx axe inspect http://localhost:3000
+npx @summationai/axe inspect http://localhost:3000
 ````
 
 ```
@@ -233,7 +331,7 @@ Affordance graph:
   entry points: classes.search
 ```
 
-The manifest itself is plain JSON at `/.well-known/axe.json`. Any agent can call the action with `fetch`:
+The manifest itself is plain JSON at `/.well-known/axe.json`. Any HTTP client can call the action with `fetch`:
 
 ```sh
 curl -s -X POST http://localhost:3000/axe/actions/classes.search \
@@ -262,12 +360,12 @@ curl -s -X POST http://localhost:3000/axe/actions/classes.search \
 
 Every response is a result envelope with a `status`. The five statuses and when to return each are in [Concepts](concepts.md#the-result-envelope).
 
-## 5. Validate and run conformance
+### 5. Validate and run conformance
 
 `axe validate` loads your file, validates the manifest against the schema, and lints the agent-read text:
 
 ```sh
-npx axe validate ./axe.ts
+npx @summationai/axe validate ./axe.ts
 ```
 
 ```
@@ -282,7 +380,7 @@ npx axe validate ./axe.ts
 `axe conformance` runs the protocol suite against the live server. This is how you know you are done:
 
 ```sh
-npx axe conformance http://localhost:3000
+npx @summationai/axe conformance http://localhost:3000
 ```
 
 ```
@@ -299,22 +397,24 @@ PASS  manifest.schema                 Manifest validates against the schema
 ...
 PASS  runtime.example-roundtrip       Read actions return ok for their examples; outputs validate; display resolves
 ...
-35 passed, 0 failed, 1 warnings, 18 skipped. Conformant.
+36 passed, 0 failed, 1 warnings, 27 skipped. Conformant.
+Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised. Each skip's detail line says what the run lacked.
+...
 ```
 
-The skipped checks exercise mutating actions and the escalation ladder; they run once you add a mutating action and pass `--auth`. The one warning is a hint you can fix with a single line in `robots.txt`; see [Deploying](deploying.md#discovery).
+The skipped checks exercise mutating actions and the escalation ladder; they run once you add a mutating action and pass `--auth`. Until then they are not verified, which is what the second line says. The one warning is a hint you can fix with a single line in `robots.txt`; see [Deploying](deploying.md#discovery).
 
 `axe audit` gives you the AXE Score and a fix list, in the style of Lighthouse:
 
 ```sh
-npx axe audit http://localhost:3000
+npx @summationai/axe audit http://localhost:3000
 ```
 
 ```
-AXE Score: 89 / 100   http://localhost:3000/
+AXE Score: 88 / 100   http://localhost:3000/
 ...
 Fix list (highest impact first):
- 1. +7.5 Affordance graph is connected: reads lead somewhere, transactions are reachable [Actionable]
+ 1. +9.2 Affordance graph is connected: reads lead somewhere, transactions are reachable [Actionable]
     classes.search returns a list but offers no affordances
     See docs/presenting-results.md#affordances
  2. +3.2 robots.txt directive, link tag, or header points at the manifest [Discoverable]
@@ -324,7 +424,7 @@ Fix list (highest impact first):
 
 A single read action with no follow-up is a dead end for an agent; the next thing to add is a booking action and an affordance from each class to it. [Designing actions](designing-actions.md) walks through exactly that.
 
-## 6. Connect Claude Desktop
+### 6. Connect Claude Desktop
 
 The same declaration is an MCP server. Add this to Claude Desktop's `claude_desktop_config.json` (Settings → Developer → Edit Config):
 
@@ -343,13 +443,13 @@ Restart Claude Desktop. It now has a `classes_search` tool (dots become undersco
 
 > What yin classes does Sunrise Yoga have on October 1st?
 
-Claude calls `classes_search` with `{ "from": "2026-10-01", "style": "yin" }`, and because the action declares `display`, the tool result includes a comparison table with a link to each class alongside the raw JSON. For Claude Code, run `claude mcp add sunrise-yoga -- npx -y axe mcp http://localhost:3000`. Details and the full mapping are in [MCP](mcp.md).
+Claude calls `classes_search` with `{ "from": "2026-10-01", "style": "yin" }`, and because the action declares `display`, the tool result includes a comparison table with a link to each class alongside the raw JSON. For Claude Code, run `claude mcp add sunrise-yoga -- npx -y @summationai/axe mcp http://localhost:3000`. Details and the full mapping are in [MCP](mcp.md).
 
-## What you have
+### What you have
 
-- A manifest at `/.well-known/axe.json` that any agent can discover.
+- A manifest at `/.well-known/axe.json` that an AXE client can discover.
 - One typed, described, presentable action at `/axe/actions/classes.search`.
-- A passing conformance check and an audit score with a fix list.
+- A passing conformance check (with the ladder checks skipped, so not yet verified) and an audit score with a fix list.
 - An MCP server derived from the same declaration.
 
 Everything from here is additive. You never have to change what you shipped today to add a booking action, a payment requirement, or a human handoff.

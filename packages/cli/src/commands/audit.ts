@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { runAudit, formatAuditTable, formatAuditHtml } from "@axe/testing";
+import { runAudit, formatAuditTable, formatAuditHtml } from "@summationai/axe-testing";
 import type { CommandContext } from "../index";
 import { parse, requireUrl } from "./shared";
 

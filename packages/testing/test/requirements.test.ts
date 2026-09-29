@@ -41,8 +41,26 @@ describe("requirement coverage", () => {
       "packages/core/test/display.test.ts",
       "packages/core/test/pending.test.ts",
       "packages/core/test/tokens.test.ts",
+      "packages/core/test/live.test.ts",
+      "packages/core/test/request-policy.test.ts",
+      "packages/core/test/token-binding.test.ts",
+      "packages/core/test/operations.test.ts",
+      "packages/core/test/sqlite-store.test.ts",
+      "packages/core/test/limits.test.ts",
+      "packages/core/test/schema-boundaries.test.ts",
+      "packages/core/test/approvals.test.ts",
+      "examples/plan-review/test/server.test.ts",
       "packages/client/test/client.test.ts",
       "packages/client/test/narrowing.test.ts",
+      "packages/client/test/trust.test.ts",
+      "packages/client/test/limits.test.ts",
+      "packages/mcp/test/mcp.test.ts",
+      "packages/mcp/test/http.test.ts",
+      "packages/mcp/test/freshness.test.ts",
+      "packages/mcp/test/elicitation.test.ts",
+      "packages/mcp/test/apps.test.ts",
+      "packages/mcp/test/apps-view.test.ts",
+      "packages/client/test/freshness.test.ts",
     ]
       .map((p) => readFileSync(join(root, p), "utf8"))
       .join("\n");
@@ -50,7 +68,7 @@ describe("requirement coverage", () => {
     for (const list of Object.values(REQUIREMENTS))
       for (const c of list) if ("test" in c) names.add(c.test);
     const missing = [...names].filter((n) => {
-      const title = n.replace(/^@axe\/(core|client) /, "");
+      const title = n.replace(/^(@summationai\/axe-(core|client|mcp)|plan-review) /, "");
       const words = title.split(/[:;,]/)[0]!.trim();
       return !testFiles.includes(words);
     });

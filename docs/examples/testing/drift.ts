@@ -2,7 +2,7 @@
  * Run the vocabulary drift check in a repository that extends the protocol with its own
  * vocabulary table, for example a fork that adds custom kinds and documents them.
  */
-import { checkVocabularyDrift, formatDriftReport } from "@axe/testing";
+import { checkVocabularyDrift, formatDriftReport } from "@summationai/axe-testing";
 
 // #region drift
 const report = checkVocabularyDrift({

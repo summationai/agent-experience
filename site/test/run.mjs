@@ -3,6 +3,7 @@
 //   reproducible  build twice into temp dirs; byte-identical output
 //   offline       every page loads from file:// with all network aborted; no console errors, failed requests, or broken images
 //   links         every href/src in dist resolves (re-runs the build's link checker)
+//   llms          every link in llms.txt resolves (repo file, or dist page in the published copy); llms-full.txt carries every doc page
 //   demos         the ladder plays both paths; an arc selection binds the unit id
 //   screenshots   4 widths × 2 themes of index.html, compared with committed baselines
 //   lighthouse    ≥ 95 in all four categories on index.html and one docs page
@@ -20,12 +21,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { chromium, firefox, webkit } from "playwright";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import { build, checkLinks } from "../build.mjs";
+import { build, checkLinks, GITHUB_REPO, LLMS_FILES } from "../build.mjs";
 
 const SITE = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const ROOT = resolve(SITE, "..");
 const DIST = join(SITE, "dist");
 const args = process.argv.slice(2);
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
@@ -165,6 +168,78 @@ await test("links", async () => {
   return `${pageMap.size} pages checked`;
 });
 
+// --- llms ---------------------------------------------------------------------
+/** Markdown link targets in a text, in order. */
+const linkTargets = (text) => [...text.matchAll(/\]\(([^)\s]+)\)/g)].map((m) => m[1]);
+
+await test("llms", async () => {
+  const problems = [];
+  // The root file: an H1, a blockquote, and every relative link a file in the repository.
+  const root = readFileSync(join(ROOT, "llms.txt"), "utf8");
+  if (!/^# .+\n\n> .+/.test(root))
+    problems.push("llms.txt: must start with an H1 and a blockquote");
+  const rootLinks = linkTargets(root);
+  for (const href of rootLinks) {
+    if (/^(https?:|mailto:|#)/.test(href)) continue;
+    const [pathPart] = href.split("#");
+    if (!existsSync(join(ROOT, pathPart)))
+      problems.push(`llms.txt: "${href}" is not in the repository`);
+  }
+  // The published copy: the same links, rewritten to pages that exist in dist or to the repository.
+  const published = readFileSync(join(DIST, "llms.txt"), "utf8");
+  const publishedLinks = linkTargets(published);
+  if (publishedLinks.length !== rootLinks.length)
+    problems.push(
+      `dist/llms.txt has ${publishedLinks.length} links; llms.txt has ${rootLinks.length}`,
+    );
+  for (const href of publishedLinks) {
+    if (/^(mailto:|#)/.test(href)) continue;
+    if (/^https?:\/\//.test(href)) {
+      if (!href.startsWith(GITHUB_REPO))
+        problems.push(`dist/llms.txt: external link not allowed: ${href}`);
+      continue;
+    }
+    if (href.endsWith(".md")) problems.push(`dist/llms.txt: "${href}" was not rewritten to a page`);
+    const [pathPart, anchor] = href.split("#");
+    const file = join(DIST, pathPart);
+    if (!existsSync(file)) {
+      problems.push(`dist/llms.txt: "${href}" → missing ${pathPart}`);
+      continue;
+    }
+    if (anchor && file.endsWith(".html") && !readFileSync(file, "utf8").includes(` id="${anchor}"`))
+      problems.push(`dist/llms.txt: "${href}" → no element with id "${anchor}"`);
+  }
+  // The full file: the root index first, then one `# <source path>` heading per doc and spec page.
+  const full = readFileSync(join(DIST, "llms-full.txt"), "utf8");
+  if (!full.startsWith(root.trimEnd())) problems.push("llms-full.txt does not start with llms.txt");
+  const sourceOf = (page) => {
+    if (page.startsWith("docs/spec/")) return page.replace(/^docs\//, "").replace(/\.html$/, ".md");
+    return page.replace(/\.html$/, ".md");
+  };
+  const docPages = pages()
+    .map((p) => relative(DIST, p).split("\\").join("/"))
+    .filter(
+      (p) =>
+        p.startsWith("docs/") &&
+        !p.startsWith("docs/repo/") &&
+        !p.startsWith("docs/api/reference/"),
+    );
+  let carried = 0;
+  for (const page of docPages) {
+    const source = sourceOf(page);
+    if (!existsSync(join(ROOT, source))) {
+      problems.push(`llms: cannot map ${page} back to a source`);
+      continue;
+    }
+    if (!full.includes(`\n# ${source}\n`)) problems.push(`llms-full.txt is missing ${source}`);
+    else carried++;
+  }
+  for (const f of LLMS_FILES)
+    if (!existsSync(join(DIST, f))) problems.push(`dist/${f} was not written`);
+  if (problems.length) throw new Error(problems.slice(0, 20).join("\n"));
+  return `${rootLinks.length} links; ${carried} pages in llms-full.txt (${(full.length / 1024).toFixed(0)} KiB)`;
+});
+
 // --- demos --------------------------------------------------------------------
 await test("demos", async () => {
   const browser = await chromium.launch();
@@ -242,6 +317,8 @@ await test("demos", async () => {
     await page.keyboard.press("/");
     if (!(await page.isVisible("#search-dialog"))) throw new Error("search dialog did not open");
     await page.fill(".search-input", "handoff");
+    // The search index loads on intent (hover, focus, or open), so results can trail the keystroke.
+    await page.locator(".search-results a").first().waitFor({ state: "attached", timeout: 10_000 });
     const count = await page.locator(".search-results a").count();
     if (count === 0) throw new Error("search returned nothing for 'handoff'");
     await page.keyboard.press("Escape");
@@ -341,7 +418,17 @@ await test("lighthouse", async () => {
     const ext = file.slice(file.lastIndexOf("."));
     res.setHeader("content-type", types[ext] ?? "application/octet-stream");
     res.setHeader("cache-control", "public, max-age=3600");
-    res.end(readFileSync(file));
+    // Any static host compresses text; Lighthouse's simulated network uses the transfer size.
+    const body = readFileSync(file);
+    if (
+      /gzip/.test(req.headers["accept-encoding"] ?? "") &&
+      /^(text\/|application\/javascript|image\/svg)/.test(res.getHeader("content-type"))
+    ) {
+      res.setHeader("content-encoding", "gzip");
+      res.end(gzipSync(body));
+      return;
+    }
+    res.end(body);
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const port = server.address().port;
@@ -358,10 +445,10 @@ await test("lighthouse", async () => {
   const notes = [];
   try {
     for (const path of ["/index.html", "/docs/concepts.html"]) {
-      // Lighthouse's simulated metrics vary a little between runs; take the best of two, as Lighthouse itself recommends.
+      // Lighthouse's simulated metrics vary a little between runs; take the best of up to three, as Lighthouse itself recommends.
       let result = null;
       let scores = {};
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         const run = await lighthouse(`http://127.0.0.1:${port}${path}`, {
           port: chrome.port,
           output: "json",

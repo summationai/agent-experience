@@ -1,16 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { toWebRequest, sendWebResponse } from "@axe/express";
+import { toWebRequest, sendWebResponse } from "@summationai/axe-express";
 import { run } from "../src/index";
 import { affordanceGraph } from "../src/commands/inspect";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
+import { storeDocument } from "../../generate/test/fixtures/store-openapi";
 
 let http: Server;
 let base = "";
@@ -62,6 +63,18 @@ describe("axe CLI", () => {
     expect(err.join("\n")).toContain('Unknown command "bogus"');
   });
 
+  it("axe host is wired to @summationai/axe-host: help, and development only from the command line", async () => {
+    reset();
+    expect(await run([], io)).toBe(1);
+    expect(out.join("\n")).toContain("axe host --dev --app <url>");
+    reset();
+    expect(await run(["host", "--help"], io)).toBe(0);
+    expect(out.join("\n")).toContain("axe host login <app url>");
+    reset();
+    expect(await run(["host", "--app", "http://localhost:5173"], io)).toBe(1);
+    expect(err.join("\n")).toContain("createHost({ appUrl, agentAuth, sessionFor })");
+  });
+
   it("init scaffolds axe.ts and a mount file for each framework", async () => {
     for (const fw of ["express", "next", "fetch"]) {
       const dir = mkdtempSync(join(tmpdir(), "axe-init-"));
@@ -70,7 +83,7 @@ describe("axe CLI", () => {
       expect(existsSync(join(dir, "axe.ts"))).toBe(true);
       expect(readFileSync(join(dir, "axe.ts"), "utf8")).toContain('action("classes.search"');
       expect(out.join("\n")).toContain("Next steps:");
-      expect(out.join("\n")).toContain(`@axe/${fw}`);
+      expect(out.join("\n")).toContain(`@summationai/axe-${fw}`);
     }
     reset();
     expect(
@@ -91,9 +104,9 @@ describe("axe CLI", () => {
   it("validate loads a TypeScript module, validates, and lints", async () => {
     const dir = mkdtempSync(join(tmpdir(), "axe-validate-"));
     await run(["init", "--framework", "express", "--dir", dir, "--yes"], io);
-    // Point the scaffold at the workspace build of @axe/core.
+    // Point the scaffold at the workspace build of @summationai/axe-core.
     const src = readFileSync(join(dir, "axe.ts"), "utf8").replace(
-      'from "@axe/core"',
+      'from "@summationai/axe-core"',
       `from "${join(__dirname, "../../core/src/index.ts")}"`,
     );
     writeFileSync(join(dir, "axe.ts"), src);
@@ -207,6 +220,71 @@ describe("axe CLI", () => {
     expect(await run(["preview", base, "nope.action", "--no-open"], io)).toBe(1);
   });
 
+  it("generate derives actions from an OpenAPI document, writes a manifest and a starter module", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-generate-"));
+    const doc = join(dir, "openapi.json");
+    writeFileSync(doc, JSON.stringify(storeDocument));
+    reset();
+    const code = await run(
+      ["generate", doc, "--out", join(dir, "axe.json"), "--code", join(dir, "axe.ts")],
+      io,
+    );
+    const text = out.join("\n");
+    expect(code, text + err.join("\n")).toBe(0);
+    expect(text).toContain("6 action(s) generated, 2 left out");
+    expect(text).toContain(
+      "orders.get-by-id — Get an order [read, risk low, auth user]  ← GET /orders/{id}",
+    );
+    expect(text).toContain("✗ missing-description products.list (GET /products) description:");
+    expect(text).toContain("✗ excluded legacy.list-carts (GET /legacy/carts)");
+    expect(text).toMatch(/! lint\/missing-examples \(6\)/);
+    expect(text).toContain("✓ The generated manifest validates against the schema");
+    const manifest = JSON.parse(readFileSync(join(dir, "axe.json"), "utf8")) as {
+      name: string;
+      actions: { name: string }[];
+      auth: { modes: string[] };
+    };
+    expect(manifest.name).toBe("Northwind Outfitters API");
+    expect(manifest.actions.map((a) => a.name)).toHaveLength(6);
+    expect(manifest.auth.modes.sort()).toEqual(["site", "user"]);
+    const module = readFileSync(join(dir, "axe.ts"), "utf8");
+    expect(module).toContain("// TODO GET /products: missing-description");
+    expect(module).toContain('"products.list": { description: "" },');
+    expect(module).toContain('"legacy.list-carts": { exclude: true },');
+    expect(module).toContain("registerGenerated(axe, generated);");
+    // The starter module is a valid axe.ts: point it at the workspace sources and validate it.
+    writeFileSync(
+      join(dir, "axe.ts"),
+      module
+        .replace(
+          'from "@summationai/axe-core"',
+          `from "${join(__dirname, "../../core/src/index.ts")}"`,
+        )
+        .replace(
+          /from "@summationai\/axe-generate"/g,
+          `from "${join(__dirname, "../../generate/src/index.ts")}"`,
+        ),
+    );
+    reset();
+    expect(await run(["validate", join(dir, "axe.ts")], io), out.join("\n") + err.join("\n")).toBe(
+      0,
+    );
+    expect(out.join("\n")).toContain("6 action(s)");
+    reset();
+    expect(await run(["generate", doc, "--json"], io)).toBe(0);
+    const parsed = JSON.parse(out.join("\n")) as { valid: boolean; warnings: unknown[] };
+    expect(parsed.valid).toBe(true);
+    expect(parsed.warnings.length).toBeGreaterThan(0);
+    reset();
+    writeFileSync(join(dir, "openapi.yaml"), "openapi: 3.1.0\n");
+    expect(await run(["generate", join(dir, "openapi.yaml")], io)).toBe(1);
+    expect(err.join("\n")).toContain("reads JSON only");
+    reset();
+    writeFileSync(join(dir, "not-openapi.json"), "{}");
+    expect(await run(["generate", join(dir, "not-openapi.json")], io)).toBe(1);
+    expect(err.join("\n")).toContain("does not look like an OpenAPI document");
+  });
+
   it("mcp serves the site over stdio to a real MCP client", async () => {
     const transport = new StdioClientTransport({
       command: process.execPath,
@@ -234,6 +312,22 @@ describe("axe CLI", () => {
     expect((r.structuredContent as { status: string }).status).toBe("ok");
     await client.close();
   }, 30_000);
+
+  it("runs when started through a symlink, as node_modules/.bin/axe and npx start it", async () => {
+    const link = join(mkdtempSync(join(tmpdir(), "axe-bin-")), "axe.ts");
+    symlinkSync(join(__dirname, "../src/index.ts"), link);
+    const env = { ...process.env };
+    delete env["AXE_CLI_MAIN"];
+    const child = spawn(process.execPath, ["--import", "tsx", link, "--version"], {
+      env,
+      cwd: join(__dirname, ".."),
+    });
+    const stdout: string[] = [];
+    child.stdout.on("data", (d: Buffer) => stdout.push(d.toString()));
+    const code = await new Promise<number | null>((r) => child.on("exit", (c) => r(c)));
+    expect(code).toBe(0);
+    expect(stdout.join("").trim()).toMatch(/^\d+\.\d+\.\d+/);
+  }, 20_000);
 
   it("the stdio process exits when the client disconnects", async () => {
     const child = spawn(

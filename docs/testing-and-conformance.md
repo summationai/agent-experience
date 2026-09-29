@@ -1,11 +1,22 @@
 # Testing and conformance
 
-Three layers keep an AXE integration honest. Unit tests run your actions in-process and assert on the result envelope. The conformance suite runs against a URL and checks every numbered requirement in the protocol that can be observed from outside. A vocabulary drift check keeps the names in your docs equal to the names on the wire. This page covers all three, then explains how to read a report.
+Three layers check an AXE integration. Unit tests run your actions in-process and assert on the result envelope. The conformance suite runs against a URL and checks the numbered requirements in the protocol that can be observed from outside, when the run can exercise them. A vocabulary drift check keeps the names in your docs equal to the names on the wire. This page covers all three, explains how to read a report, and ends with [what conformance does not show](#what-conformance-does-not-show).
 
-Everything here ships in `@axe/testing`:
+Four kinds of evidence are easy to confuse, and these docs keep them apart:
+
+| Evidence | What produces it | What it shows | What it does not |
+| --- | --- | --- | --- |
+| Protocol conformance | `axe conformance` against a URL | The observable wire behavior the run could exercise: discovery, envelopes, errors, idempotency replay, the ladder, live state. | Anything a skipped check covers; your authorization; your handlers' correctness. |
+| Tested security properties | The SDK's own test suites (`pnpm -r test`) | Token binding, atomic operations, client trust, poll authorization, Surface authorization, CSRF, site principals, write preconditions, MCP HTTP identity, limits: each pinned by named tests, listed per item in the [review checklist](review/2026-09-24/README.md) (items 01 to 12). | That your deployment configures them, or that code paths the tests do not reach behave the same. |
+| Measured task effectiveness | The scripted evaluation harness, [Evaluation](evaluation.md) | Task outcomes for a scripted agent against the reference app, as a regression signal. | Model performance, real users, or any site other than the one measured. |
+| Heuristic text and parity checks | `axe validate`, `axe audit` | Pattern matches for agent-directed and persuasive text, structurally identical kinds, and a sampled parity comparison. | Honesty. A paraphrase passes; parity is a sample with no weight. |
+
+None of these is evidence of production readiness, agent adoption, or commercial value.
+
+Everything here ships in `@summationai/axe-testing`:
 
 ```sh
-npm install -D @axe/testing
+npm install -D @summationai/axe-testing
 ```
 
 ## Unit testing your actions
@@ -173,7 +184,7 @@ Narrow on `status` before touching members. `Result` is a discriminated union, s
 `axe conformance` runs the protocol suite against a live URL and prints one line per check:
 
 ```sh
-npx axe conformance http://localhost:3000
+npx @summationai/axe conformance http://localhost:3000
 ````
 
 ```
@@ -190,10 +201,12 @@ PASS  manifest.schema                 Manifest validates against the schema
 ...
 PASS  runtime.example-roundtrip       Read actions return ok for their examples; outputs validate; display resolves
 ...
-35 passed, 0 failed, 1 warnings, 18 skipped. Conformant.
+36 passed, 0 failed, 1 warnings, 27 skipped. Conformant.
+Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised. Each skip's detail line says what the run lacked.
+Conformance checks the protocol behavior observable from outside. It is not a security review and not evidence that the application's own logic is correct. See docs/testing-and-conformance.md#what-conformance-does-not-show.
 ```
 
-The exit code is 0 when no check failed and 1 otherwise. Warnings do not fail the run.
+The exit code is 0 when no check failed and 1 otherwise. Warnings and skips do not fail the run, so a run that skipped most of the ladder still exits 0; read the skipped count.
 
 > **Warning**
 > The suite calls your actions. It invokes every read action with its first example, and when it can, it invokes a mutating action three times to test idempotency, continues a `needs_input` with a sample payload, and resumes a fallback handoff. Run it against staging, or against a local instance with a disposable database. Never point it at production with credentials.
@@ -211,7 +224,7 @@ Flags:
 A typical staging run for Oakridge Rentals, whose application flow needs a signed-in renter and a deposit:
 
 ```sh
-npx axe conformance https://staging.oakridge-rentals.example \
+npx @summationai/axe conformance https://staging.oakridge-rentals.example \
   --auth "$AXE_TEST_TOKEN" \
   --ladder applications.submit --ladder-input '{"unitId":"u_204"}'
 ```
@@ -249,10 +262,10 @@ jobs:
           done
 
       - name: Conformance
-        run: npx axe conformance http://localhost:3000
+        run: npx @summationai/axe conformance http://localhost:3000
 
       - name: Audit
-        run: npx axe audit http://localhost:3000 --min-score 80 --html axe-audit.html
+        run: npx @summationai/axe audit http://localhost:3000 --min-score 80 --html axe-audit.html
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -304,7 +317,7 @@ Each check has one of four statuses:
 | PASS | The requirement was verified. | No |
 | FAIL | A MUST in the spec is violated, or a live call returned something the protocol forbids. | Yes: `ok` is false and the CLI exits 1. |
 | WARN | A SHOULD is unmet, or the check could not fully confirm a MUST (for example, the variant input was rejected before the idempotency key was compared). Agents will still work; something is leaving value on the table. | No |
-| SKIP | The check needs something the run did not have: credentials, a mutating action with an example, a fallback handoff, CORS, a platform index. The detail line says what. | No |
+| SKIP | The check needs something the run did not have: credentials, a mutating action with an example, a fallback handoff, CORS, a platform index, or an observation to judge (for example, no `needs_human` was seen). The detail line says what. A skipped check verified nothing; it is not a pass, and the audit gives it no points. | No |
 
 Below is every check the suite emits, grouped by prefix, with the spec requirements it cites. Requirement ids refer to [`spec/AXE-PROTOCOL.md`](../spec/AXE-PROTOCOL.md).
 
@@ -365,6 +378,19 @@ Below is every check the suite emits, grouped by prefix, with the spec requireme
 | `runtime.token-tamper` | A continuation token with its last characters altered returns `not_found`. | P-TOK-3 |
 | `runtime.error-hygiene` | No error body seen during the run contains a stack trace, a node_modules path, or an HTML error page. | P-ERR-2 |
 
+### live.*
+
+Live state (spec §21). Every check skips when the manifest has no `live` member.
+
+| Check | Verifies | Requirements |
+| --- | --- | --- |
+| `live.state-endpoint` | `GET` on `live.url` (or `/axe/state`) returns a valid state document listing every action, with `Cache-Control: no-store`. | P-LIVE-7, P-LIVE-8 |
+| `live.rev-on-envelopes` | A read action's envelope carries `rev` when the state reports a revision. | P-LIVE-2 |
+| `live.stale-conflict` | Calling with an `expectedRev` that differs returns 409 `conflict`, `retryable`, with `expectedRev` and `currentRev` in `details`. | P-LIVE-1, P-LIVE-3 |
+| `live.fresh-accepted` | Calling with the current `rev` as `expectedRev` is not refused. Warns when the revision moved between the two requests. | P-LIVE-3 |
+| `live.reasons` | Every unavailable action in the manifest and the state has a plain-language `reason` with no instruction aimed at the agent. | P-LIVE-5 |
+| `live.availability-honored` | An action the state reports unavailable does not return `ok` for its example. Skips with `--no-mutate` unless the action is read-only. | P-LIVE-6 |
+
 ### ladder.*
 
 | Check | Verifies | Requirements |
@@ -373,9 +399,10 @@ Below is every check the suite emits, grouped by prefix, with the spec requireme
 | `ladder.sensitive-kinds` | Any well-known kind the registry marks sensitive is offered with `sensitive` true. | P-REQ-3 |
 | `ladder.continue-invalid` | Continuing with an invalid payload returns 400 `invalid_input` with issues and does not consume the token; continuing with a kind not in `accepts` also returns `invalid_input`. | P-REQ-8 |
 | `ladder.continue-valid` | Continuing with a valid sample payload returns a non-error status. | P-REQ-7 |
-| `ladder.continue-replay` | Continuing again with the consumed token returns `conflict`. | P-REQ-9 |
+| `ladder.continue-replay` | Continuing again with the same token, kind, and payload returns the original envelope. | P-REQ-9, P-OP-1 |
 | `ladder.fallback-resume` | Resuming with the `fallback` handoff's `resumeToken` returns a non-error status, or `conflict` while the handoff is gated on completion. | P-REQ-6, P-HAND-4 |
-| `ladder.resume-replay` | Resuming again with the consumed token returns `conflict`. | P-HAND-6 |
+| `ladder.resume-replay` | Resuming again with the consumed token returns the original envelope. | P-HAND-6, P-OP-1 |
+| `ladder.token-principal` | With `--auth`, the continuation token presented without the credential is `not_found`. | P-TOK-6 |
 | `ladder.handoff-shape` | Every handoff observed has all six members: `reason`, `instructions`, `url`, `resumeToken`, `expiresAt`, `whatAgentShouldSayToUser`. | P-HAND-1 |
 | `ladder.token-ttl` | The continuation token expires within about 15 minutes and the fallback resume token within about 24 hours. Warns outside those bounds. | P-TOK-5 |
 | `ladder.fake-kinds` | No custom `x-` kind in `accepts` has a schema structurally identical to a well-known kind. | P-HON-5 |
@@ -384,14 +411,14 @@ Below is every check the suite emits, grouped by prefix, with the spec requireme
 
 ### Why checks skip
 
-The getting-started example skips 18 checks. That is expected, not a problem. Each skip has one of these causes, and the detail line names it:
+The getting-started example skips 27 checks. That is expected, not a problem. Each skip has one of these causes, and the detail line names it:
 
 - **No credentials.** Actions with `auth` `user` or `site` are not callable without `--auth`. If every mutating action needs a user, the idempotency and ladder checks skip. Pass a staging user's token.
 - **No mutating action with an example.** The ladder needs an action to call. Add `examples` to your mutating actions; they are validated at registration and used here.
 - **No example returns needs_input.** Examples show the `ok` output, so the suite may call every mutating action and see only `ok`. Pass `--ladder` with an action and input that reach the requirement, such as an application for a unit whose deposit is unpaid.
 - **No fallback handoff.** `ladder.fallback-resume` and `ladder.resume-replay` need a `needs_input` that carries a `fallback`. If your requirement has no human alternative, these stay skipped; that is a design choice, not a defect.
 - **Only custom kinds offered.** The suite has sample payloads for well-known kinds only, so `ladder.continue-valid` skips when every `accepts` entry is an `x-` kind. Offer a well-known kind first where one fits; see [Designing requirements](designing-actions.md#designing-requirements).
-- **Feature not used.** `runtime.cors`, `runtime.pagination-roundtrip`, `manifest.index`, and `ladder.consent-scope` skip when your site does not enable CORS, paginate, publish an index, or ask for consent.
+- **Feature not used.** `runtime.cors`, `runtime.pagination-roundtrip`, `manifest.index`, `ladder.consent-scope`, and every `live.*` check skip when your site does not enable CORS, paginate, publish an index, ask for consent, or publish live state.
 - **`--no-mutate`.** Every check that would call a mutating action skips with that reason.
 
 ## The drift check
@@ -402,7 +429,7 @@ The getting-started example skips 18 checks. That is expected, not a problem. Ea
 - **Unmentioned entries.** Vocabulary names no page mentions.
 - **Unused entries.** Vocabulary names no source file uses.
 - **Missing from types.** `field` and `api` entries that appear in no package's public `.d.ts`, which means the docs describe an API that does not exist.
-- **Literals.** Source files that spell a path, header, or tool name as a string literal instead of reading it from `@axe/core/vocabulary`.
+- **Literals.** Source files that spell a path, header, or tool name as a string literal instead of reading it from `@summationai/axe-core/vocabulary`.
 
 The check passes only when all five lists are empty and the allowlist is shorter than its limit. The allowlist exists for tokens like a file name that happen to match a pattern; the limit keeps it from becoming a way around the check. The reasoning is recorded in [`DECISIONS.md`](../DECISIONS.md#vocabulary-and-drift-prevention).
 
@@ -433,14 +460,21 @@ Run it from your test suite or as a CI step. The first run against an existing s
 
 ## Requirement coverage
 
-Every numbered requirement in [`spec/AXE-PROTOCOL.md`](../spec/AXE-PROTOCOL.md) is verified somewhere, and a test proves it. `packages/testing/src/conformance/requirements.ts` maps each requirement id to one or more of:
+Every numbered requirement in [`spec/AXE-PROTOCOL.md`](../spec/AXE-PROTOCOL.md) is mapped to a check or a test, and a test proves the map is complete. A requirement mapped to a conformance check is verified for a given site only when that check runs and passes against it; one mapped to a named test is verified for the SDK's code path that test exercises. `packages/testing/src/conformance/requirements.ts` maps each requirement id to one or more of:
 
 - a conformance check id, when the requirement can be observed from outside against any URL (for example P-IDEM-2 maps to `runtime.idempotency-replay`);
-- a named test in `@axe/core` or `@axe/client`, when the requirement is about behavior only the implementation can show (for example P-TOK-4, "the wire token carries only binding fields", maps to a test in the core token suite).
+- a named test in `@summationai/axe-core` or `@summationai/axe-client`, when the requirement is about behavior only the implementation can show (for example P-TOK-4, "the wire token carries only binding fields", maps to a test in the core token suite).
 
 `packages/testing/test/requirements.test.ts` asserts three things: every `[P-...]` identifier that appears in the spec is in the map and nothing in the map is absent from the spec; every check id the map references is emitted by a real run of the suite against the Oakridge Rentals fixture; and every test name the map references is the title of a real test. Add a requirement to the spec without covering it and the build fails. The map is summarized in the spec's [Appendix B](../spec/AXE-PROTOCOL.md#appendix-b-requirement-index).
 
 One requirement, P-HON-3 (parity), maps to `audit.parity`, which is not a pass/fail conformance check. Parity can only be spot-checked; see [The parity spot-check](audit.md#the-parity-spot-check).
+
+## What conformance does not show
+
+- **A skipped check is unverified.** "Conformant" means no check failed. It does not mean the ladder, idempotency, or live state were exercised. Run with `--auth` and `--ladder` against staging to turn skips into results.
+- **It observes the wire, not your code.** The suite cannot see whether a handler does what its description says, whether `readOnly` is true beyond the name heuristic, or whether availability reasons are accurate. Unit tests and the evaluation harness are where those are checked.
+- **It is not a security test of your site.** It checks a few security-relevant behaviors from outside (tampered tokens, principal binding with `--auth`, error hygiene, request policy). Tenant isolation, authorization, and CSRF on your own routes are yours to test; the SDK's own properties are pinned by its test suites, listed in [Security](security.md#what-the-sdk-mitigates).
+- **It says nothing about adoption or value.** A conformant site is one an AXE client can talk to. Whether agents find it, use it, or complete tasks on it is a separate question; see [Evaluation](evaluation.md) for what the repository measures and its limits.
 
 ## Next steps
 

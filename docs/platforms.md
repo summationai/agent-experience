@@ -6,7 +6,7 @@ This page uses StudioHost, a class-scheduling platform whose tenants include Sun
 
 ## One integration, every site
 
-A single studio adopting AXE puts one site in front of agents. A platform adopting it puts every site it hosts in front of agents in the same deploy, with the same action set, the same conformance result, and the same audit fixes. The studios do nothing; they were never going to write an integration, and they do not have to. For agents, a platform index is the difference between finding one manifest and finding ten thousand.
+A single studio adopting AXE exposes one site's actions. A platform adopting it exposes every site it hosts in the same deploy, with the same action set, the same conformance result, and the same audit fixes. The studios do nothing; they were never going to write an integration, and they do not have to. For an agent that reads AXE, a platform index is the difference between finding one manifest and finding ten thousand; agents that do not read AXE reach a tenant through the MCP server configured for it.
 
 The declaration does not change shape. `createAXE` takes the same fields it takes for a single site, plus a `tenant` resolver and an `index`. Handlers receive the resolved tenant and scope their queries by it. That is the whole platform surface. Platform plugins for specific hosts are on the [roadmap](../ROADMAP.md); the multi-tenant core described here is what they will be built on.
 

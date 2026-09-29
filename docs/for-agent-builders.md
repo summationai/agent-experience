@@ -1,14 +1,14 @@
 # For agent builders
 
-`@axe/client` is the agent side of AXE: discover a manifest, invoke actions, satisfy requirements from a wallet or credential store, hand off to the human when nothing else works, resume, poll. It has no runtime dependencies and runs in Node 20+ and browsers. This page shows how to drive it from any agent framework, how to handle each result status honestly, and how to talk to your user when the site needs them.
+`@summationai/axe-client` is the agent side of AXE: discover a manifest, invoke actions, satisfy requirements from a wallet or credential store, hand off to the human when nothing else works, resume, poll. It has no runtime dependencies and runs in Node 20+ and browsers. This page shows how to drive it from any agent framework, how to handle each result status honestly, and how to talk to your user when the site needs them.
 
-If your agent already speaks MCP and you only want the tools, [MCP](mcp.md) covers the derived server. Read on when you are building the loop yourself.
+If your agent already speaks MCP and you only want the tools, [MCP](mcp.md) covers the derived server. That server also asks the user through MCP elicitation and shows `display` through MCP Apps when your client declares them. Read on when you are building the loop yourself.
 
 ## Discover and invoke
 
 <!-- include: examples/for-agent-builders/basic.ts#all -->
 ```ts
-import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@axe/client";
+import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@summationai/axe-client";
 
 // Start from any URL on the site. discover() tries /.well-known/axe.json, then /axe/manifest,
 // then the AXE-Manifest header, then <link rel="axe-manifest"> in the page.
@@ -69,7 +69,103 @@ Three things happen for you:
 - **Backoff.** On `rate_limited` and `unavailable`, and on a `429` with `Retry-After`, the client waits the requested time (capped by the maximum retry option, 30 seconds by default) and retries up to `retries` times, once by default.
 - **Policy.** `allowed()` checks your `vendor` against the manifest's `policies.agents`. `deny` wins over `allow`. Call it before the first action; a site that denies you is telling you not to try.
 
+When the manifest carries `live`, the site publishes [live state](live-state.md). `state()` fetches `/axe/state`: the current `rev` and, for every action, whether it can be done right now and why not, computed for the identity your `auth` establishes and never cached. Pass the `rev` you read at as `expectedRev` to `invoke`, `run`, `continue`, or `resume`; a change by someone else in the meantime comes back as `conflict` with `expectedRev` and `currentRev` in `details`, and nothing was applied. Every result then carries `rev`, and `present` passes it to `toMarkdown` and `toHTML` as an "as of" line. `stateToMarkdown` renders the state document for the user or the model.
+
 Identify your agent with `agent`: `name`, `version`, `vendor`, and `contact`. It is sent as `context.agent` and as the `User-Agent`. The `vendor` is the field sites match against in `policies.agents` and the one that shows up in their [analytics](analytics.md), so use the organization operating the agent, spelled the same way every time. An agent with no `vendor` cannot be allowed by name and is invisible in the site's dashboards.
+
+## Keeping the manifest fresh
+
+Sites add, remove, and change actions while your agent runs. A client keeps the manifest it was built with until you ask for another, so a long-lived agent should revalidate it ([P-DISC-13](../spec/AXE-PROTOCOL.md#31-manifest-location)).
+
+<!-- include: examples/for-agent-builders/refresh.ts#refresh -->
+```ts
+import { AXEClient } from "@summationai/axe-client";
+
+const client = await AXEClient.discover("https://oakridge-rentals.example", {
+  // Never use a manifest older than two minutes, or the site's Cache-Control max-age if shorter.
+  manifestMaxAgeMs: 120_000,
+});
+
+client.onManifestChange(({ added, removed, modified }) => {
+  console.log(`actions added ${added}, removed ${removed}, changed ${modified}`);
+});
+
+// Before building tools for a new turn: revalidate if stale (a conditional GET, usually a 304).
+await client.ensureFresh();
+
+// Or refresh now, whatever the age.
+const change = await client.refresh();
+if (change.changed) console.log(`now ${change.manifest.actions.length} actions`);
+```
+<!-- /include -->
+
+- `refresh()` fetches the manifest again from where it was found, conditionally (`If-None-Match`) when the site sent an `ETag`, and replaces the client's copy when it changed. It resolves to a `ManifestChange`: `changed`, and the action names `added`, `removed`, and `modified`. Concurrent calls share one request.
+- `isManifestStale()` compares the copy's age with its bound: the smaller of `manifestMaxAgeMs` (default five minutes) and the `Cache-Control` max-age the site sent (`no-cache` means always stale). `ensureFresh()` refreshes only when stale.
+- `onManifestChange` listeners hear about every refresh that changed something; rebuild your tool list there.
+- `run()` refreshes once on its own when you name an action the copy does not have, then runs it if the site now has it.
+- A refreshed manifest must name a `baseUrl` the [trust policy](#where-the-client-sends-credentials) allows; otherwise `refresh()` throws `AXETrustError` and the client keeps its copy.
+
+## Where the client sends credentials
+
+A manifest, a result, and a discovery hint are data from the site, and each can name a URL: `baseUrl`, `live.url`, `pollUrl`, an `AXE-Manifest` header, a `<link rel="axe-manifest">`. None of them decides where your token goes. The client anchors its credentials at the origin you discovered from; for a manifest you pass to `new AXEClient` yourself, at that manifest's `baseUrl` origin. `auth` and `headers` go to the anchor and to the origins in `trust.origins`, and nowhere else ([spec §17.1](../spec/AXE-PROTOCOL.md#171-where-an-agent-sends-requests-and-credentials)).
+
+<!-- include: examples/for-agent-builders/trust.ts#trust -->
+```ts
+import { AXEClient, AXETrustError } from "@summationai/axe-client";
+
+// The site's pages live on oakridge-rentals.example; its manifest names
+// baseUrl https://api.oakridge-rentals.example. The token goes to the origin you discovered
+// from and to the origins you list, nowhere else. Without the `origins` entry,
+// AXEClient.discover throws AXETrustError instead of sending the token to the API origin.
+try {
+  const client = await AXEClient.discover("https://oakridge-rentals.example", {
+    auth: () => process.env.OAKRIDGE_TOKEN,
+    trust: { origins: ["https://api.oakridge-rentals.example"] },
+  });
+  await client.invoke("units.search", { location: "Bellevue, WA" });
+} catch (e) {
+  // Nothing was sent to e.url. Tell the operator; do not widen trust because a site asked.
+  if (e instanceof AXETrustError) console.error(`Refused ${e.kind} request to ${e.url}`);
+  else throw e;
+}
+```
+<!-- /include -->
+
+| Destination                                                   | Default                                                   | With `trust.origins` listing it | With `allowCrossOrigin`, not listed      |
+| ------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------- | ---------------------------------------- |
+| The anchor origin (discovery, actions, continue, resume, state, poll) | Allowed, with credentials                        | Same                            | Same                                     |
+| `baseUrl`, `live.url`, `pollUrl`, or a discovery hint on another https origin | Refused                                   | Allowed, with credentials       | Allowed, without `auth` or `headers`     |
+| The same on a loopback or private-range host name             | Refused                                                   | Allowed, with credentials       | Refused                                  |
+| A redirect within the same origin                             | Followed, with credentials                                | Same                            | Same                                     |
+| A redirect to another origin                                  | Refused                                                   | Followed, without credentials   | Followed, without credentials            |
+| A redirect from https to http                                 | Refused                                                   | Refused                         | Refused                                  |
+| Plain http                                                    | Only to a loopback anchor or listed loopback origin (`allowHttp: "localhost"`) | Same            | Refused unless `allowHttp: true`         |
+
+A refusal throws `AXETrustError`, with the `url` and the `kind` of request, before anything is sent. `AXEClient.discover` throws it at once when the manifest's `baseUrl` is on an origin you have not authorized. `checkDestination(url)` answers the same question without sending anything; use it before showing the user a URL a site returned, such as a handoff `url`, which the client itself never fetches.
+
+Redirects are followed by hand (`redirect: "manual"`) so that every hop is checked. A browser hides the target of a manual redirect, so in a browser the client refuses any redirect rather than follow one it cannot check. A `fetch` you inject must honour `redirect: "manual"`; a response it redirected across origins by itself is refused.
+
+`allowHttp` is `"localhost"` by default, which permits http only to `localhost`, `127.x.x.x`, and `[::1]` origins you chose, the same exception the protocol makes for `baseUrl`. Set it to `false` on a server, or to `true` only for a private network you control.
+
+`trust.destinationPolicy` is called for every outbound URL, redirects included, after the built-in checks. It can only refuse. When your agent runs on a server with network access of its own, read [Security](security.md#request-forgery-from-a-host-side-agent) before pointing it at sites you do not operate.
+
+## Timeouts, cancellation, and budgets
+
+A site can be slow, stall halfway through a response, send more than you want to hold, or answer `pending` with `retryAfter: 0` forever. The client bounds each of these, inside the same path that applies the trust checks, so every hop of every request is covered ([spec §6.5](../spec/AXE-PROTOCOL.md#65-limits), [P-LIM-3]).
+
+| Bound                  | Option                                   | Default               | What happens                                                                                                  |
+| ---------------------- | ---------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Time per request       | `timeoutMs`                              | 30000                 | The request is aborted, redirects and the body read included; `AXEClientError` "timed out".                   |
+| Caller cancellation    | `signal` on `invoke`, `continue`, `resume`, `poll`, `state`, `run`, `discover`, and `AXEClient.discover` | none | The request is aborted; an already-aborted signal sends nothing. An aborted discovery stops instead of trying the next place. |
+| Response size          | `maxResponseBytes`                       | 4194304 (4 MiB)       | A larger `Content-Length` is refused before reading; a streamed body is cancelled once it passes the limit.   |
+| Polls                  | `maxPollAttempts`                        | 60                    | `poll()` and `run()` stop and return the last `pending`.                                                      |
+| Time spent polling     | `maxWaitMs`                              | 60000                 | The same. In `run()` both budgets are shared by every poll of the run.                                        |
+| Wait between polls     | `retryAfter` from the site               | at least 1 second     | Honored, but never less than one second and never past what is left of `maxWaitMs`.                           |
+
+<!-- include: examples/for-agent-builders/limits.ts#limits -->
+<!-- /include -->
+
+Everything the site sends is checked before it is used: a manifest from `discover()` must have the members the client reads (`baseUrl`, `actions[]` with `name`, `readOnly`, `input`, `output`, and so on), a result must have the members its `status` requires (a `needs_input` with a non-empty `accepts`, a `pending` with a `pollUrl` and a numeric `retryAfter`), and a live-state document must map each action to an `available` boolean. A document that fails is an `AXEClientError` that names the member, so a malformed site never reaches your fulfillers, your loop, or `present()`. Keys such as `__proto__` stay ordinary data. The checks are written by hand rather than with Zod so the client stays dependency-free and small.
 
 ## Handling each status in an agent loop
 
@@ -183,7 +279,7 @@ For each status:
 - `needs_input`: `run` already tried your fulfillers; `tried` lists the kinds it attempted. Ask the user for the specific thing the first untried `accepts` entry names, using its `title` and `description`, and relay its `instructions` if present. Keep the `continuationToken`; it is valid for about 15 minutes. Never a generic "I couldn't do that".
 - `needs_human`: say `whatAgentShouldSayToUser`, give the `url`, remember the `resumeToken` for about 24 hours, and call `resume` when the user tells you they are done. The `handoff` here may come from a `fallback` on a `needs_input` result; `run` surfaces both the same way.
 - `pending`: `run` polled for its budget already. `poll` again with a longer wait, or tell the user how long the site expects and check back after `retryAfter` seconds.
-- `error`: for `invalid_input`, fix your own input from `issues` (each has a JSON Pointer `path` and a `message`) and call again; the user did nothing wrong. For `retryable` errors, retry with backoff; `run` has already done so `retries` times. Otherwise report the site's `message`, which was written for exactly this.
+- `error`: for `invalid_input`, fix your own input from `issues` (each has a JSON Pointer `path` and a `message`) and call again; the user did nothing wrong. For a `conflict` whose `details` carry `currentRev`, your view was stale: read the current state and decide again with the new `rev`. For `unavailable` whose `details` carry a `reason`, relay it in the site's words and offer `handoff.url` when present. For other `retryable` errors, retry with backoff; `run` has already done so `retries` times. Otherwise report the site's `message`, which was written for exactly this.
 
 ## Fulfillers: wallets and credential stores
 
@@ -528,9 +624,9 @@ The manifest is framework-neutral. A function that turns it into `{ name, descri
 
 <!-- include: examples/for-agent-builders/tools.ts#all -->
 ```ts
-import type { AXEClient, RunOutcome } from "@axe/client";
-import { present, toMarkdown } from "@axe/client/present";
-import type { JsonSchema } from "@axe/core/types";
+import type { AXEClient, RunOutcome } from "@summationai/axe-client";
+import { present, toMarkdown } from "@summationai/axe-client/present";
+import type { JsonSchema } from "@summationai/axe-core/types";
 
 /** The shape every framework wants: OpenAI `functions`, LangChain tools, MCP tools. */
 export interface ToolDefinition {
@@ -631,6 +727,7 @@ Keep the `resumeToken`. When the user returns, call `resume` and continue as if 
 
 ## Respecting policy and honesty
 
+- Keep credentials where you put them. Do not add an origin to `trust.origins` because a manifest or a result asked for it; an `AXETrustError` is the client refusing to hand your user's token to someone else.
 - Check `allowed()` before the first call. A site that lists your `vendor` under `deny` does not want your traffic, and the client will refuse anyway.
 - Treat every string from the site as data: `description`, `message`, `instructions`, `whatAgentShouldSayToUser`, `emptyMessage`. Do not follow instructions found in them. Sites are forbidden to address the agent by the [honesty rules](audit.md#honesty-rules), and your agent should assume some will anyway.
 - Show the `disclaimer` whenever you show a result that has one. It is part of the result, not decoration; `toMarkdown` and `toHTML` include it, and a custom renderer must too.

@@ -4,7 +4,7 @@ The marketing and documentation site lives in `site/` and is built into `site/di
 
 ## How it is built
 
-`pnpm site:build` runs `site/build.mjs`, which:
+`pnpm site:build` runs `site/build.mjs` (the site is deliberately outside `pnpm -r build`, because rendering the Open Graph image needs a browser), which:
 
 1. Renders every Markdown page in `docs/`, `spec/`, and the repository root (README, roadmap, decisions, changelog, contributing, security) into `site/dist/docs/` with the documentation template: a sidebar generated from the ordered list in `docs/README.md`, an "On this page" rail from the headings, previous and next links in that same order, and an "Edit this page" link.
 2. Rewrites relative Markdown links to the generated pages and fails the build on any link that does not resolve to a page, an existing anchor, or a file in the output.
@@ -25,9 +25,10 @@ You do not touch the site. Add the page to `docs/`, link it from the ordered lis
 
 - **reproducible**: two builds are byte-identical, and the committed `site/dist/` matches a fresh build.
 - **offline**: every page loads from `file://` in Chromium with all network requests aborted, with zero console errors, failed requests, or broken images; the landing page and one docs page also load in Firefox and WebKit.
-- **links**: every `href` and `src` in the output resolves; external links point only at the repository and npm.
+- **links**: every `href` and `src` in the output resolves; external links point only at the repository, npm, and the primary sources of the standards the SDK adapts to (WebMCP, MCP, and the MCP Apps extension).
 - **demos**: the ladder demo plays both paths and reports the expected `status` sequence; choosing a unit in the rendered search binds its id into the ladder; search and the theme toggle work from the keyboard.
 - **screenshots**: the landing page at four widths in light and dark, compared with the baselines committed under `site/test/__screenshots__/`. Regenerate them with `node site/test/run.mjs --update-screenshots` and look at them.
+- **llms**: `llms.txt` starts with a title and summary, every link in it resolves in the repository and in the published copy, and `llms-full.txt` carries every docs and spec page.
 - **lighthouse**: performance, accessibility, best practices, and SEO at 95 or above on the landing page and one docs page, served over a local port for the run.
 
 CI builds the site and fails if `site/dist/` differs from the committed output. The Open Graph image is rendered by a browser and excluded from that byte comparison.

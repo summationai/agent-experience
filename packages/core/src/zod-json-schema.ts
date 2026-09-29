@@ -2,10 +2,51 @@
 import { z } from "zod";
 import type { JsonSchema, ValidationIssue } from "./types";
 import { escapeToken } from "./pointer";
+import { WIRE } from "./vocabulary";
+
+/**
+ * Zod types JSON Schema cannot express. Zod emits `{}` (any value) for them, so the published
+ * schema is looser than what the server enforces.
+ */
+const UNREPRESENTABLE = new Set([
+  "custom",
+  "date",
+  "bigint",
+  "symbol",
+  "undefined",
+  "void",
+  "map",
+  "set",
+  "function",
+  "promise",
+  "nan",
+]);
+
+/**
+ * Whether a Zod node checks more than its JSON Schema can say ([P-SCHEMA-5]): a refinement
+ * (`.refine`, `.superRefine`, `.check` with a custom function), a custom or unrepresentable
+ * type, or a preprocess whose input side is a function.
+ */
+function isRefined(schema: z.ZodType): boolean {
+  const def = (schema as unknown as { _zod: { def: Record<string, unknown> } })._zod.def;
+  const checks = (def["checks"] as { _zod: { def: { check: string } } }[] | undefined) ?? [];
+  if (checks.some((c) => c._zod.def.check === "custom")) return true;
+  const type = def["type"] as string;
+  if (UNREPRESENTABLE.has(type)) return true;
+  if (type === "pipe") {
+    const input = (def["in"] as { _zod: { def: { type: string } } } | undefined)?._zod.def.type;
+    return input === "transform";
+  }
+  return false;
+}
 
 /**
  * Convert a Zod schema to JSON Schema draft 2020-12.
  * `io` is `"input"` for schemas that describe what callers send and `"output"` for what handlers return.
+ *
+ * For `"input"`, every node whose Zod schema checks more than JSON Schema can express carries
+ * `"x-axe-refined": true` ([P-SCHEMA-5]), so the manifest never claims a looser schema than the
+ * server enforces without saying so. The lint reports each one (`refined-schema`).
  */
 export function toJsonSchema(schema: z.ZodType, io: "input" | "output"): JsonSchema {
   const json = z.toJSONSchema(schema, {
@@ -13,6 +54,13 @@ export function toJsonSchema(schema: z.ZodType, io: "input" | "output"): JsonSch
     io,
     unrepresentable: "any",
     reused: "inline",
+    ...(io === "input"
+      ? {
+          override: (ctx: { zodSchema: unknown; jsonSchema: Record<string, unknown> }) => {
+            if (isRefined(ctx.zodSchema as z.ZodType)) ctx.jsonSchema[WIRE.field.axeRefined] = true;
+          },
+        }
+      : {}),
   }) as JsonSchema;
   delete json["$schema"];
   return json;

@@ -8,3 +8,8 @@ coverage/
 .DS_Store
 *.log
 .axe-preview/
+site/test/__screenshots__/*.actual.png
+# Local probe scripts, never committed
+packages/*/.mcp-probe*.mjs
+# Local demo output, never committed
+outputs/

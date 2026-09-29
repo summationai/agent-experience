@@ -3,10 +3,14 @@
  * `TokenStore` that holds server-side state. See spec §12.
  *
  * Token format: `base64url(payload).base64url(hmacSha256(payload))`.
- * The payload binds type, id, action, input hash, acting user, tenant, and expiry.
- * `state` never enters the token; it lives in the store under the token id.
+ * The payload binds type, id, action, input hash, acting principal, tenant, and expiry.
+ * `state` never enters the token; it lives in the store under the token id. Whether a token has
+ * been used, and the envelope its use produced, live in the `IdempotencyStore` as an operation
+ * claim (spec §12.2), not here.
  */
-import type { Accept, Handoff, JsonValue, RequestContext, Result } from "./types";
+import type { Accept, Handoff, JsonValue, RequestContext, Revision } from "./types";
+import { ExpiringMap } from "./retention";
+import type { RetentionOptions } from "./retention";
 
 export type TokenType = "continuation" | "resume" | "poll";
 
@@ -26,7 +30,12 @@ export interface TokenRecord {
   type: TokenType;
   action: string;
   inputHash: string;
-  onBehalfOf: string | null;
+  /**
+   * The acting principal the token is bound to, as `principalOf` encodes it (`user:<id>`,
+   * `site:<id>`, or both), or null for an anonymous call. Every endpoint that accepts the token
+   * requires the same principal ([P-TOK-6]).
+   */
+  principal: string | null;
   tenant: string | null;
   expiresAt: number;
   /** Site-provided state for `onContinue` / `onResume` / `onPoll`. */
@@ -36,20 +45,46 @@ export interface TokenRecord {
   /** Resume only: the handoff as sent, so it can be re-served while open. */
   handoff?: Handoff;
   /** Resume only: whether the handoff was created by the SDK for login. */
-  login?: { input: JsonValue; context: RequestContext; idempotencyKey?: string };
+  login?: {
+    input: JsonValue;
+    context: RequestContext;
+    idempotencyKey?: string;
+    /** The revision the agent observed on the original call; re-checked when the action runs after sign-in. */
+    expectedRev?: Revision;
+  };
   /** Resume only: refuse resume until completion is recorded. */
   requireCompletion?: boolean;
   /** Resume only: recorded by `completeHandoff`. */
   completion?: { at: string; onBehalfOf?: string; data?: JsonValue };
-  /** Set once the token has been used. */
-  consumedAt?: number;
-  /** Poll only: the terminal result once produced. */
-  terminal?: Result;
+  /** Resume only: the person cancelled the handoff on the site (`cancelHandoff`); a resume is refused ([P-APPR-5]). */
+  cancelled?: { at: string; by?: string; reason?: string };
+  /** Resume only: the handoff is an approval request (spec §9.3). */
+  approval?: ApprovalRecord;
+}
+
+/** What the server keeps about an approval request, beside the resume token's own binding. */
+export interface ApprovalRecord {
+  /** The call's input exactly as sent; its fingerprint is the token's input hash. */
+  input: JsonValue;
+  /** What `approvalState` returned at the request, and its canonical hash. */
+  state: JsonValue;
+  stateHash: string;
+  /** The site's preview for the approval page. */
+  preview?: JsonValue;
+  /** The agent's self-identification from `User-Agent`, when it sent one. Not authenticated. */
+  agent: { name: string; version: string } | null;
+  requestedAt: string;
+  /** Set by `approveHandoff`. */
+  approved?: { at: string; by: string };
+  /** Set when the bound state was found changed, at approval or at resume; permanent ([P-APPR-6]). */
+  invalidated?: { at: string };
 }
 
 /**
  * Storage for token records. Implement with Redis, a KV store, or a database for
- * multi-instance deployments. The in-memory implementation is the default.
+ * multi-instance deployments. The in-memory implementation is the default. Records are written
+ * when a token is minted and when `completeHandoff` records a completion; single use is enforced
+ * by an operation claim in the `IdempotencyStore`, so this store needs no atomic operation.
  */
 export interface TokenStore {
   get(id: string): Promise<TokenRecord | undefined>;
@@ -57,29 +92,42 @@ export interface TokenStore {
   delete(id: string): Promise<void>;
 }
 
-/** In-memory `TokenStore` with expiry. Suitable for a single process. */
+/**
+ * In-memory `TokenStore` with expiry. Suitable for a single process. Retention is bounded
+ * ([P-LIM-4]): expired records are swept on writes at most once per `sweepIntervalMs`, and at
+ * `maxEntries` the oldest records are evicted (an evicted token answers `not_found`). No timer
+ * runs, so nothing keeps a process alive.
+ */
 export class MemoryTokenStore implements TokenStore {
-  private readonly map = new Map<string, { record: TokenRecord; expires: number }>();
+  private readonly map: ExpiringMap<{ record: TokenRecord; expiresAt: number }>;
+
+  constructor(options: RetentionOptions = {}) {
+    this.map = new ExpiringMap("MemoryTokenStore", options);
+  }
 
   async get(id: string): Promise<TokenRecord | undefined> {
-    const entry = this.map.get(id);
-    if (!entry) return undefined;
-    if (entry.expires <= Date.now()) {
-      this.map.delete(id);
-      return undefined;
-    }
-    return entry.record;
+    return this.map.get(id)?.record;
   }
 
   async set(id: string, record: TokenRecord, ttlSeconds: number): Promise<void> {
-    this.map.set(id, { record, expires: Date.now() + ttlSeconds * 1000 });
+    this.map.set(id, { record, expiresAt: this.map.now() + ttlSeconds * 1000 });
   }
 
   async delete(id: string): Promise<void> {
     this.map.delete(id);
   }
 
-  /** Number of live records, for tests. */
+  /** Drop every expired record now; returns how many. Writes do this on their own; see `sweepIntervalMs`. */
+  sweep(): number {
+    return this.map.sweep();
+  }
+
+  /** Drop every record. Later calls throw. There is no timer to stop. */
+  close(): void {
+    this.map.close();
+  }
+
+  /** Number of records held (expired ones not yet swept included), for tests. */
   get size(): number {
     return this.map.size;
   }
@@ -140,6 +188,19 @@ export class TokenSigner {
     }
   }
 
+  /**
+   * A keyed hash of `value` (HMAC-SHA256 under the secret, base64url). Used for a site key's
+   * principal id when `verifySiteKey` returns no id, so the raw key is never stored.
+   */
+  async keyedHash(label: string, value: string): Promise<string> {
+    const sig = await crypto.subtle.sign(
+      "HMAC",
+      await hmacKey(this.secret),
+      encoder.encode(`${label}\n${value}`),
+    );
+    return base64UrlEncode(new Uint8Array(sig));
+  }
+
   async sign(payload: TokenPayload): Promise<string> {
     const body = base64UrlEncode(encoder.encode(JSON.stringify(payload)));
     const sig = await crypto.subtle.sign("HMAC", await hmacKey(this.secret), encoder.encode(body));
@@ -181,7 +242,7 @@ export interface MintOptions {
   type: TokenType;
   action: string;
   inputHash: string;
-  onBehalfOf: string | null;
+  principal: string | null;
   tenant: string | null;
   ttlSeconds: number;
   state: JsonValue | undefined;
@@ -201,7 +262,7 @@ export async function mintToken(
     id,
     a: options.action,
     h: options.inputHash,
-    u: options.onBehalfOf,
+    u: options.principal,
     n: options.tenant,
     e: expiresAt,
   });
@@ -210,7 +271,7 @@ export async function mintToken(
     type: options.type,
     action: options.action,
     inputHash: options.inputHash,
-    onBehalfOf: options.onBehalfOf,
+    principal: options.principal,
     tenant: options.tenant,
     expiresAt,
     state: options.state,
@@ -221,36 +282,33 @@ export async function mintToken(
 }
 
 /**
- * Verify a token and load its record, checking that the record matches the binding in the token.
- * Returns `{ kind: "invalid" }` for tampered/expired/unknown, `{ kind: "consumed" }` for used tokens.
+ * Verify a token and load its record, checking that the record matches the binding in the token
+ * and that the token was minted for the tenant serving this request ([P-TOK-6]). Every failure is
+ * `{ kind: "invalid" }`, so a caller answers all of them with the same `not_found`. The acting
+ * principal is checked by the server, which has to resolve it from the request first.
  */
 export async function loadToken(
   signer: TokenSigner,
   store: TokenStore,
   token: string,
   type: TokenType,
-): Promise<
-  | { kind: "ok"; record: TokenRecord }
-  | { kind: "invalid" }
-  | { kind: "consumed"; record: TokenRecord }
-> {
+  tenant: string | null,
+): Promise<{ kind: "ok"; record: TokenRecord } | { kind: "invalid" }> {
   const payload = await signer.verify(token, type);
   if (!payload) return { kind: "invalid" };
+  if ((payload.n ?? null) !== tenant) return { kind: "invalid" };
   const record = await store.get(payload.id);
   if (
     !record ||
     record.type !== type ||
     record.action !== payload.a ||
-    record.inputHash !== payload.h
+    record.inputHash !== payload.h ||
+    record.expiresAt !== payload.e
   ) {
     return { kind: "invalid" };
   }
-  if (
-    (record.onBehalfOf ?? null) !== (payload.u ?? null) ||
-    (record.tenant ?? null) !== (payload.n ?? null)
-  ) {
+  if ((record.principal ?? null) !== (payload.u ?? null) || (record.tenant ?? null) !== tenant) {
     return { kind: "invalid" };
   }
-  if (record.consumedAt !== undefined && type !== "poll") return { kind: "consumed", record };
   return { kind: "ok", record };
 }

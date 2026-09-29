@@ -1,6 +1,6 @@
 // src/index.ts — a Cloudflare Worker.
 // #region all
-import { axeFetch, isAxePath } from "@axe/fetch";
+import { axeFetch, isAxePath } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom, type SessionLookup } from "./session";
 

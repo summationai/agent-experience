@@ -4,8 +4,15 @@
  */
 // #region imports
 import express from "express";
-import { axeExpress, type NodeRequestLike } from "@axe/express";
-import { createAXE, action, z, type IndexConfig, type Manifest, type TenantInfo } from "@axe/core";
+import { axeExpress, type NodeRequestLike } from "@summationai/axe-express";
+import {
+  createAXE,
+  action,
+  z,
+  type IndexConfig,
+  type Manifest,
+  type TenantInfo,
+} from "@summationai/axe-core";
 // #endregion imports
 
 // #region tenants

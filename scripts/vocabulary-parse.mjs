@@ -47,7 +47,7 @@ export function renderVocabularyTs(entries) {
     byCat.get(e.category).push(e);
   }
   let out = `// GENERATED FILE. Do not edit.\n// Source: spec/VOCABULARY.md. Regenerate with \`pnpm gen:vocabulary\`.\n\n`;
-  out += `// Each category is its own export so bundlers can drop the ones a package does not use.\n// \`import * as WIRE from "@axe/core/vocabulary"\` and \`import { WIRE }\` both read as WIRE.<category>.<key>.\n\n`;
+  out += `// Each category is its own export so bundlers can drop the ones a package does not use.\n// \`import * as WIRE from "@summationai/axe-core/vocabulary"\` and \`import { WIRE }\` both read as WIRE.<category>.<key>.\n\n`;
   for (const [cat, list] of byCat) {
     out += `/** \`${cat}\` names. */\nexport const ${cat} = /* @__PURE__ */ Object.freeze({\n`;
     for (const e of list) {

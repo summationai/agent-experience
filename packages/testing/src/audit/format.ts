@@ -1,5 +1,21 @@
 import type { AuditReport } from "./index";
 
+/**
+ * The footer both reports carry: how many checks counted, and what a score is not.
+ * docs/audit.md#what-a-score-does-not-mean is the long form.
+ */
+function limitsNote(report: AuditReport): string[] {
+  const checks = report.categories.flatMap((c) => c.checks);
+  const skipped = checks.filter((k) => k.status === "skip").length;
+  const unscored = report.categories.filter((c) => !c.scored).map((c) => c.title);
+  const conf = report.conformance;
+  return [
+    `This score counts ${checks.length - skipped} checks; ${skipped} skipped and earned nothing${unscored.length ? `, and ${unscored.join(", ")} had no check that applied, so the total is scaled over the other categories` : ""}. The conformance run behind it: ${conf.passed} passed, ${conf.failed} failed, ${conf.warnings} warnings, ${conf.skipped} skipped; a skipped check was not verified.`,
+    "The score measures how legible the manifest and the observed responses are to an agent. The honesty checks are pattern matches and the parity check is a sample. A high score is not a security review, not proof that the site behaves as its text says, and not evidence of task success, agent adoption, or commercial value.",
+    "See docs/audit.md#what-a-score-does-not-mean.",
+  ];
+}
+
 function pad(s: string, n: number): string {
   return s.length >= n ? s : s + " ".repeat(n - s.length);
 }
@@ -17,7 +33,9 @@ export function formatAuditTable(report: AuditReport, options: { color?: boolean
   lines.push("");
   for (const cat of report.categories) {
     lines.push(
-      `${pad(cat.title, 14)} ${pad(`${cat.score}/${cat.max}`, 8)} ${bar(cat.score / cat.max, 30)}`,
+      cat.scored
+        ? `${pad(cat.title, 14)} ${pad(`${cat.score}/${cat.max}`, 8)} ${bar(cat.score / cat.max, 30)}`
+        : `${pad(cat.title, 14)} not scored: no check applied`,
     );
     for (const k of cat.checks) {
       const mark =
@@ -56,6 +74,8 @@ export function formatAuditTable(report: AuditReport, options: { color?: boolean
       : "";
     lines.push(`  ${t.action} ${t.itemId}: ${t.url}  (${expect})${found}`);
   }
+  lines.push("", "What this score is not:");
+  for (const l of limitsNote(report)) lines.push(`  ${l}`);
   return lines.join("\n");
 }
 
@@ -79,7 +99,7 @@ export function formatAuditHtml(report: AuditReport): string {
     .map(
       (
         c,
-      ) => `<section class="cat"><h2>${esc(c.title)} <span class="pts">${c.score} / ${c.max}</span></h2><div class="bar"><div style="width:${(c.score / c.max) * 100}%"></div></div>
+      ) => `<section class="cat"><h2>${esc(c.title)} <span class="pts">${c.scored ? `${c.score} / ${c.max}` : "not scored: no check applied"}</span></h2><div class="bar"><div style="width:${(c.score / c.max) * 100}%"></div></div>
 <table>${c.checks.map((k) => `<tr class="${k.status}"><td class="st">${k.status === "pass" ? "✓" : k.status === "skip" ? "–" : k.status === "partial" ? "◐" : "✗"}</td><td><strong>${esc(k.title)}</strong><br><code>${esc(k.id)}</code> · weight ${k.weight}<br><span class="detail">${esc(k.detail)}</span>${k.status !== "pass" && k.status !== "skip" ? ` · <a href="${esc(k.docs)}">${esc(k.docs)}</a>` : ""}</td></tr>`).join("")}</table></section>`,
     )
     .join("");
@@ -108,5 +128,8 @@ ${report.hardFailure ? `<div class="hard"><strong>Hard failure:</strong> <code>$
 <h2>Fix list</h2>${fixes}
 ${cats}
 <section class="cat"><h2>Parity spot-check</h2><p class="detail">${esc(report.parity.note)}</p>${parity}</section>
+<section class="cat limits"><h2>What this score is not</h2>${limitsNote(report)
+    .map((l) => `<p class="detail">${esc(l)}</p>`)
+    .join("")}</section>
 </main></body></html>`;
 }

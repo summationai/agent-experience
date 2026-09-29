@@ -6,7 +6,7 @@ Email the maintainers at the address in the repository's package metadata with a
 
 ## Scope
 
-In scope: `@axe/core`, `@axe/client`, `@axe/mcp`, the adapters, `@axe/testing`, and the `axe` CLI as published from this repository, plus the protocol as specified in `spec/`.
+In scope: `@summationai/axe-core`, `@summationai/axe-client`, `@summationai/axe-mcp`, the adapters, `@summationai/axe-testing`, and the `axe` CLI as published from this repository, plus the protocol as specified in `spec/`.
 
 Out of scope: sites built with the SDK (report to them), agents built with the client (report to them), and the example domains in `docs/examples/`, which are fictional.
 

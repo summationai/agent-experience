@@ -14,36 +14,41 @@ The generator reads each package's source entry point through `typedoc.json` at 
 
 | Package | What it exports | Reference |
 | --- | --- | --- |
-| `@axe/core` | The server runtime: `createAXE`, `action`, the result helpers (`needsInput`, `handoff`, `pending`, and the error helper), kinds and `accept`, token and idempotency stores, JSON Pointer utilities, the wire types. No framework dependencies. | [`@axe/core`](reference/@axe/core/README.md) |
-| `@axe/client` | The agent side: `AXEClient` with `discover`, `invoke`, `continue`, `resume`, `poll`, and `run`, plus fulfillers and status type guards. No runtime dependencies. | [`@axe/client`](reference/@axe/client/README.md) |
-| `@axe/mcp` | A Model Context Protocol server derived from an AXE server, manifest, or URL: `createMcpServer`, `serveStdio`, `serveHttp`. | [`@axe/mcp`](reference/@axe/mcp.md) |
-| `@axe/express` | `axeExpress` for Express 4 and 5 and Connect-style frameworks, plus Node-to-Web request and response converters other Node adapters reuse. | [`@axe/express`](reference/@axe/express.md) |
-| `@axe/next` | `axeNext` for App Router route files, `axeNextPages` for the Pages API. | [`@axe/next`](reference/@axe/next.md) |
-| `@axe/fetch` | `axeFetch` for Hono, Remix, Cloudflare Workers, Bun, Deno, and SvelteKit, plus a path predicate for routers. | [`@axe/fetch`](reference/@axe/fetch.md) |
-| `@axe/testing` | `runConformance`, `runAudit` and its weights, `createTestClient` for in-process tests, `checkVocabularyDrift`, sample payloads for every well-known kind. | [`@axe/testing`](reference/@axe/testing.md) |
-| `axe` | The CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`. The reference covers its programmatic surface; the commands are in [Getting started](../getting-started.md). | [`axe`](reference/axe.md) |
+| `@summationai/axe-core` | The server runtime: `createAXE`, `action`, the result helpers (`needsInput`, `handoff`, `pending`, and the error helper), kinds and `accept`, token and idempotency stores, JSON Pointer utilities, the wire types. No framework dependencies. | [`@summationai/axe-core`](reference/@summationai/axe-core/README.md) |
+| `@summationai/axe-client` | The agent side: `AXEClient` with `discover`, `invoke`, `continue`, `resume`, `poll`, and `run`, plus fulfillers and status type guards. No runtime dependencies. | [`@summationai/axe-client`](reference/@summationai/axe-client/README.md) |
+| `@summationai/axe-mcp` | A Model Context Protocol server derived from an AXE server, manifest, or URL: `createMcpServer`, `serveStdio`, `serveHttp`. | [`@summationai/axe-mcp`](reference/@summationai/axe-mcp.md) |
+| `@summationai/axe-express` | `axeExpress` for Express 4 and 5 and Connect-style frameworks, plus Node-to-Web request and response converters other Node adapters reuse. | [`@summationai/axe-express`](reference/@summationai/axe-express.md) |
+| `@summationai/axe-next` | `axeNext` for App Router route files, `axeNextPages` for the Pages API. | [`@summationai/axe-next`](reference/@summationai/axe-next.md) |
+| `@summationai/axe-fetch` | `axeFetch` for Hono, Remix, Cloudflare Workers, Bun, Deno, and SvelteKit, plus a path predicate for routers. | [`@summationai/axe-fetch`](reference/@summationai/axe-fetch.md) |
+| `@summationai/axe-testing` | `runConformance`, `runAudit` and its weights, `createTestClient` for in-process tests, `checkVocabularyDrift`, sample payloads for every well-known kind. | [`@summationai/axe-testing`](reference/@summationai/axe-testing.md) |
+| `@summationai/axe-surface` | `createSurface` (a registry of live controls with `observe`, `act`, and one revision), `useSurface` for React, and `surfaceActions`, which serves any surface as AXE actions with refusals mapped onto the ladder. | [`@summationai/axe-surface`](reference/@summationai/axe-surface/index.md), [`react`](reference/@summationai/axe-surface/react.md), [`axe`](reference/@summationai/axe-surface/axe.md) |
+| `@summationai/axe-host` | Unattended mode: `createHost` runs the application in a headless browser per identity and serves the relay's tools over MCP; `storageStateSession` and `cookieSession`; the `axe host` command. | [`@summationai/axe-host`](reference/@summationai/axe-host/index.md), [`cli`](reference/@summationai/axe-host/cli.md) |
+| `@summationai/axe-generate` | `fromOpenAPI`, `fromFunctions`, and `fromTRPCRouter` yield action candidates from definitions an application already has; `generate` applies overrides and policy, runs the honesty lints, and returns actions with provenance and warnings; `registerGenerated` registers them. | [`@summationai/axe-generate`](reference/@summationai/axe-generate.md) |
+| `@summationai/axe` | The CLI: `axe init`, `axe validate`, `axe inspect`, `axe preview`, `axe conformance`, `axe audit`, `axe mcp`, `axe generate`. The reference covers its programmatic surface; the commands are in [Getting started](../getting-started.md). | [`@summationai/axe`](reference/@summationai/axe.md) |
 
-## Entry points of `@axe/core`
+## Entry points of `@summationai/axe-core`
 
 The main entry point re-exports the runtime and the most-used pieces of each subpath. The subpaths exist so agent-side and tooling code can import types or constants without pulling in Zod.
 
-- [`@axe/core/kinds`](reference/@axe/core/kinds.md) — `kinds`, the typed well-known kind definitions; `accept` to build a requirement from one; helpers for custom `x-` kinds.
-- [`@axe/core/events`](reference/@axe/core/events.md) — the event type and the sinks: `consoleSink`, `jsonlFileSink`, `otelSink`.
-- [`@axe/core/display`](reference/@axe/core/display.md) — `resolveDisplay`, which applies a `display` declaration to an output and returns a presented result.
-- [`@axe/core/lint`](reference/@axe/core/lint.md) — `lintAgentText` and `lintManifest`, and the patterns they match.
-- [`@axe/core/schemas`](reference/@axe/core/schemas.md) — Zod schemas for every wire object, for validating documents you did not generate.
-- [`@axe/core/vocabulary`](reference/@axe/core/vocabulary.md) — the `WIRE` constant: every path, header, status, error code, kind, field, and CLI name as a typed string.
-- [`@axe/core/types`](reference/@axe/core/types.md) — the wire-level TypeScript types, with no runtime code.
+- [`@summationai/axe-core/kinds`](reference/@summationai/axe-core/kinds.md) — `kinds`, the typed well-known kind definitions; `accept` to build a requirement from one; helpers for custom `x-` kinds.
+- [`@summationai/axe-core/events`](reference/@summationai/axe-core/events.md) — the event type and the platform-neutral sinks: `consoleSink`, `otelSink`, `combineSinks`.
+- [`@summationai/axe-core/node`](reference/@summationai/axe-core/node.md) — `jsonlFileSink`, the one export that needs Node. Nothing else in the package reaches for a built-in, so a browser bundle never meets one.
+- [`@summationai/axe-core/json-schema`](reference/@summationai/axe-core/json-schema.md) — `validateJsonSchema` and the schema helpers, with no Zod; `@summationai/axe-surface` validates through this entry.
+- [`@summationai/axe-core/display`](reference/@summationai/axe-core/display.md) — `resolveDisplay`, which applies a `display` declaration to an output and returns a presented result.
+- [`@summationai/axe-core/lint`](reference/@summationai/axe-core/lint.md) — `lintAgentText` and `lintManifest`, and the patterns they match.
+- [`@summationai/axe-core/schemas`](reference/@summationai/axe-core/schemas.md) — Zod schemas for every wire object, for validating documents you did not generate.
+- [`@summationai/axe-core/vocabulary`](reference/@summationai/axe-core/vocabulary.md) — the `WIRE` constant: every path, header, status, error code, kind, field, and CLI name as a typed string.
+- [`@summationai/axe-core/types`](reference/@summationai/axe-core/types.md) — the wire-level TypeScript types, with no runtime code.
 
 ## Where to start
 
-**Integrating a site.** Read `createAXE` and `action` in the [`@axe/core` index](reference/@axe/core/index.md); together they are most of the API. Then `kinds` and `accept` in [`@axe/core/kinds`](reference/@axe/core/kinds.md) for requirements, and `needsInput` and `handoff` for the escalation ladder. Your framework's adapter is one function with one options object.
+**Integrating a site.** Read `createAXE` and `action` in the [`@summationai/axe-core` index](reference/@summationai/axe-core/index.md); together they are most of the API. Then `kinds` and `accept` in [`@summationai/axe-core/kinds`](reference/@summationai/axe-core/kinds.md) for requirements, and `needsInput` and `handoff` for the escalation ladder. Your framework's adapter is one function with one options object.
 
-**Building an agent.** Start with `AXEClient` in the [`@axe/client` index](reference/@axe/client/index.md): `discover` finds a manifest from any URL, `run` drives the whole ladder with fulfillers and confirmation. Then [`@axe/client/present`](reference/@axe/client/present.md): `present` applies a `display` to a result, and `toMarkdown` or `toHTML` renders it.
+**Building an agent.** Start with `AXEClient` in the [`@summationai/axe-client` index](reference/@summationai/axe-client/index.md): `discover` finds a manifest from any URL, `run` drives the whole ladder with fulfillers and confirmation. Then [`@summationai/axe-client/present`](reference/@summationai/axe-client/present.md): `present` applies a `display` to a result, and `toMarkdown` or `toHTML` renders it.
 
 ## The vocabulary is generated
 
-`WIRE` in `@axe/core/vocabulary` is generated from [`spec/VOCABULARY.md`](../../spec/VOCABULARY.md), not written by hand. A test regenerates it and fails if the committed file differs; the drift test fails if a wire name in the docs is missing from the vocabulary. To add or rename a wire name, edit the spec table and regenerate.
+`WIRE` in `@summationai/axe-core/vocabulary` is generated from [`spec/VOCABULARY.md`](../../spec/VOCABULARY.md), not written by hand. A test regenerates it and fails if the committed file differs; the drift test fails if a wire name in the docs is missing from the vocabulary. To add or rename a wire name, edit the spec table and regenerate.
 
 ## Next steps
 

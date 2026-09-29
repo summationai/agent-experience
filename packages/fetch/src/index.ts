@@ -1,5 +1,5 @@
 /**
- * @axe/fetch: mount an AXE server anywhere a Web-standard `(Request) => Response`
+ * @summationai/axe-fetch: mount an AXE server anywhere a Web-standard `(Request) => Response`
  * handler runs: Hono, Remix, Cloudflare Workers, Bun, Deno, SvelteKit.
  *
  * ```ts
@@ -8,8 +8,8 @@
  * app.get("/.well-known/axe.json", (c) => handler(c.req.raw));
  * ```
  */
-import type { AXE, AdapterContext, MaybePromise } from "@axe/core";
-import * as WIRE from "@axe/core/vocabulary";
+import type { AXE, AdapterContext, MaybePromise } from "@summationai/axe-core";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 
 export interface FetchAdapterOptions<Env = unknown> {
   /** Inject the platform's session or tenant. Receives the request and whatever extra argument the platform passes (Workers `env`, Hono `Context`). */

@@ -1,6 +1,6 @@
 // axe.ts — an online shop: track an order, start a return.
 // #region all
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Fieldstone Outfitters",

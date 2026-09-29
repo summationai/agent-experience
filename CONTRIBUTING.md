@@ -16,7 +16,7 @@ Node 20 or newer. pnpm is pinned in `package.json` (`packageManager`), so `corep
 
 ## Repository layout
 
-- `spec/` — normative documents. `VOCABULARY.md` is the source of every wire name; `packages/core/src/vocabulary.ts` is generated from it (`pnpm gen:vocabulary`). `schemas/` is generated from `@axe/core` (`pnpm gen:schemas`).
+- `spec/` — normative documents. `VOCABULARY.md` is the source of every wire name; `packages/core/src/vocabulary.ts` is generated from it (`pnpm gen:vocabulary`). `schemas/` is generated from `@summationai/axe-core` (`pnpm gen:schemas`).
 - `packages/` — `core`, `client`, `mcp`, `express`, `next`, `fetch`, `testing`, `cli`.
 - `docs/` — the product. Every TypeScript code block lives in `docs/examples/**` and is pulled in by `pnpm gen:snippets`; `pnpm -r typecheck` typechecks the examples.
 - `scripts/` — generators and CI helpers.
@@ -27,7 +27,7 @@ Node 20 or newer. pnpm is pinned in `package.json` (`packageManager`), so `corep
 2. **Spec first.** Protocol behavior changes start in `spec/AXE-PROTOCOL.md` with a numbered requirement. Map the requirement in `packages/testing/src/conformance/requirements.ts` to a conformance check or a named test; a test asserts every requirement is mapped.
 3. **Tests.** Vitest. Aim for behavior coverage: every protocol MUST has a test or a conformance check.
 4. **Docs.** Put TypeScript in `docs/examples/`, reference it with an include marker, run `pnpm gen:snippets`. Follow the style rules in `docs/README.md`.
-5. **Changeset.** `pnpm changeset` and describe the change for the changelog. All packages version together.
+5. **Changeset.** `pnpm changeset` and describe the change for the changelog. All packages version together. To release, run `pnpm version-packages` in the pull request: merging a version bump to `main` publishes it to GitHub Packages (`.github/workflows/release.yml`), and the workflow refuses a merge that leaves changesets unversioned. Do not publish from a workstation.
 6. **Decisions.** A non-obvious judgment call gets a short entry in `DECISIONS.md`: what you chose and why.
 
 ## Commit messages

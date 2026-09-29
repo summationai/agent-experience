@@ -58,11 +58,12 @@
 
     <main id="content">
       <section class="section hero" aria-labelledby="hero-title">
-        <h1 id="hero-title">Agents are becoming the front door to every website.</h1>
+        <h1 id="hero-title">One set of application logic, for people and for agents.</h1>
         <p class="lede">
-          AXE is an open, HTTP-native protocol and TypeScript SDK that lets your site declare what
-          it can do, how to present results, what it needs to finish, and when a human must step in.
-          You wrap functions you already have.
+          A TypeScript SDK that exposes what your application already does as typed actions with
+          explicit permissions, availability with a reason, and a result that says what it needs to
+          finish and when a person must step in. Agents reach it through MCP, WebMCP, or the page
+          itself. You wrap functions you already have.
         </p>
         <p class="tagline">{{tagline}}</p>
         <div class="actions">
@@ -70,13 +71,13 @@
           <a class="btn btn-secondary" href="docs/spec/AXE-PROTOCOL.html">Read the spec</a>
         </div>
         <div class="install">
-          <code>npm i @axe/core</code
+          <code>npm i @summationai/axe-core</code
           ><button class="copy" type="button" aria-label="Copy install command">Copy</button>
         </div>
         <ul class="chips" aria-label="Facts">
           <li>Apache-2.0</li>
           <li>TypeScript</li>
-          <li>Works with MCP</li>
+          <li>MCP and WebMCP adapters</li>
         </ul>
       </section>
 
@@ -227,9 +228,9 @@
           <p>
             Most agent journeys start with a read. The site declares which fields matter for
             comparison and what can be done with each result; the agent renders. The search results
-            shown here are the output of the reference renderer in <code>@axe/client/present</code>,
-            produced at build time from the docs' Bellevue example. Choose a unit and the ladder
-            above binds that unit's id.
+            shown here are the output of the reference renderer in
+            <code>@summationai/axe-client/present</code>, produced at build time from the docs'
+            Bellevue example. Choose a unit and the ladder above binds that unit's id.
           </p>
         </div>
         <div class="arc">
@@ -313,19 +314,22 @@
 
       <section class="section" id="audit" aria-labelledby="audit-title">
         <div class="section-head">
-          <p class="eyebrow">Get to a passing score</p>
-          <h2 id="audit-title">There is a number to move.</h2>
+          <p class="eyebrow">Lint what agents read</p>
+          <h2 id="audit-title">A score, a fix list, and its limits.</h2>
           <p>
             <code>axe audit</code> scores a site 0 to 100 across five categories, Discoverable,
             Describable, Presentable, Actionable, and Trustworthy, and prints a prioritized fix
             list. The report below is the real output for the docs' apartment example, generated
             when this page was built; it scores
-            <!-- generated: audit-score --><!-- /generated -->.
+            <!-- generated: audit-score --><!-- /generated -->. The score is a heuristic: skipped
+            checks earn nothing, and a high score is not a security review or evidence that agents
+            succeed.
           </p>
         </div>
         <!-- generated: audit-report --><!-- /generated -->
         <p style="margin-top: 1.5rem">
           <a href="docs/audit.html">How the score is computed</a> ·
+          <a href="docs/audit.html#what-a-score-does-not-mean">What a score does not mean</a> ·
           <a href="docs/audit.html#honesty-rules">The honesty rules</a>
         </p>
       </section>
@@ -385,21 +389,21 @@
         <h3 style="margin-top: 2rem">Then three commands</h3>
         <div class="commands">
           <div class="cmd">
-            <code>npx axe init</code>
+            <code>npx @summationai/axe init</code>
             <p>
               Writes an <code>axe.ts</code> with one read-only action and the mount file for your
               framework.
             </p>
           </div>
           <div class="cmd">
-            <code>npx axe conformance http://localhost:3000</code>
+            <code>npx @summationai/axe conformance http://localhost:3000</code>
             <p>
               Runs the protocol suite against your server and prints a pass/fail table. This is how
               you know you are done.
             </p>
           </div>
           <div class="cmd">
-            <code>npx axe mcp http://localhost:3000</code>
+            <code>npx @summationai/axe mcp http://localhost:3000</code>
             <p>
               Serves your site to Claude Desktop or Claude Code as an MCP server, one tool per
               action.
@@ -414,9 +418,18 @@
       <section class="section" id="who" aria-labelledby="who-title">
         <div class="section-head">
           <p class="eyebrow">Who it is for</p>
-          <h2 id="who-title">Any organization with a website and something to do.</h2>
+          <h2 id="who-title">Applications where people and agents share work.</h2>
+          <p>
+            Our working hypothesis, not a finding: the first teams to benefit build interactive
+            business applications, planning tools, and administrative workflows. The examples in the
+            docs also cover public sites like these.
+          </p>
         </div>
         <div class="grid">
+          <div class="tile">
+            <h3>Planning team</h3>
+            <p>Edit a demand plan, ask an approver to lock it.</p>
+          </div>
           <div class="tile">
             <h3>Yoga studio</h3>
             <p>Book a class.</p>
@@ -428,10 +441,6 @@
           <div class="tile">
             <h3>Property manager</h3>
             <p>Find a unit, apply.</p>
-          </div>
-          <div class="tile">
-            <h3>Dentist</h3>
-            <p>Reschedule an appointment.</p>
           </div>
           <div class="tile">
             <h3>City</h3>

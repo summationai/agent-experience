@@ -1,37 +1,29 @@
 /**
  * Analytics events (spec/EVENTS.md) and the sinks that receive them.
  * Events carry no PII and no payloads by construction: the type has no field for them.
+ * This module is platform-neutral; `jsonlFileSink`, which needs the file system, lives in
+ * `@summationai/axe-core/node`.
  */
-import type { AXEEvent, EventAgent } from "./types";
+import type { AXEActionEvent, AXEEvent, EventAgent } from "./types";
 
-export type { AXEEvent, EventAgent };
+export type { AXEActionEvent, AXEEvent, EventAgent };
 
 /** Anything that receives events. Errors are swallowed and reported to `onSinkError`. */
 export type EventSink = (event: AXEEvent) => void | Promise<void>;
 
-/** Sink: one JSON line per event on stdout. */
-export function consoleSink(write: (line: string) => void = (l) => console.log(l)): EventSink {
+/** Anything that receives action events (`context.emit`), which name actors; keep these sinks separate from analytics. */
+export type ActionEventSink = (event: AXEActionEvent) => void | Promise<void>;
+
+/** Sink: one JSON line per event on stdout. Accepts request events and action events. */
+export function consoleSink(
+  write: (line: string) => void = (l) => console.log(l),
+): (event: AXEEvent | AXEActionEvent) => void {
   return (event) => {
     write(JSON.stringify(event));
   };
 }
 
-/**
- * Sink: append JSON lines to a file. Node only. The file handle is opened lazily and
- * writes are serialized, so events never interleave.
- */
-export function jsonlFileSink(path: string): EventSink {
-  let queue: Promise<void> = Promise.resolve();
-  return (event) => {
-    queue = queue.then(async () => {
-      const { appendFile } = await import("node:fs/promises");
-      await appendFile(path, JSON.stringify(event) + "\n", "utf8");
-    });
-    return queue;
-  };
-}
-
-/** Structural subset of an OpenTelemetry `Meter`, so `@axe/core` needs no OTel dependency. */
+/** Structural subset of an OpenTelemetry `Meter`, so `@summationai/axe-core` needs no OTel dependency. */
 export interface MeterLike {
   createCounter(
     name: string,
@@ -105,11 +97,11 @@ export function parseUserAgent(header: string | null | undefined): EventAgent | 
   return { name: m[1]!, version: m[2]! };
 }
 
-/** Fan events out to several sinks, isolating failures. */
-export function combineSinks(
-  sinks: readonly EventSink[],
+/** Fan events out to several sinks, isolating failures. Works for request events and action events alike. */
+export function combineSinks<E = AXEEvent>(
+  sinks: readonly ((event: E) => void | Promise<void>)[],
   onSinkError?: (error: unknown) => void,
-): EventSink {
+): (event: E) => void {
   return (event) => {
     for (const sink of sinks) {
       try {

@@ -1,11 +1,11 @@
 # Express
 
-`axeExpress` mounts an AXE server in Express 4, Express 5, or any Connect-style middleware stack. The adapter does one job: it converts the Node request into a Web `Request`, calls the framework-free handler from `@axe/core`, and writes the resulting `Response` back onto the Node response. Routing, validation, auth, tokens, and idempotency happen in the core. The adapter is plumbing, and it is short enough to read in one sitting.
+`axeExpress` mounts an AXE server in Express 4, Express 5, or any Connect-style middleware stack. The adapter does one job: it converts the Node request into a Web `Request`, calls the framework-free handler from `@summationai/axe-core`, and writes the resulting `Response` back onto the Node response. Routing, validation, auth, tokens, and idempotency happen in the core. The adapter is plumbing, and it is short enough to read in one sitting.
 
 ## Install
 
 ```sh
-npm install @axe/core @axe/express
+npm install @summationai/axe-core @summationai/axe-express
 ```
 
 ## The mount
@@ -139,7 +139,11 @@ Two ordering rules follow from how it works:
 - Put it after any middleware whose output you read in `context` (session, auth, tenant resolution) and before your catch-all 404 handler.
 - Do not mount it under a prefix such as `app.use("/agents", ...)`. The manifest must be served at `/.well-known/axe.json` relative to the origin of `baseUrl` ([spec §3.1](../../spec/AXE-PROTOCOL.md#31-manifest-location)), and the middleware routes on the original URL, so a prefix would move the endpoints away from where agents look. If your whole site lives under a path, put that path in `baseUrl`; the middleware then claims the same paths under that prefix.
 
-Body parsing is optional. When `express.json()` has already run, the adapter serializes the parsed body back to JSON; when it has not, the adapter reads the raw request stream itself. Either way the core sees the same bytes and validates them against the action's input schema.
+Body parsing is optional. When no parser has consumed the body, the adapter reads the raw request stream itself, and only up to the server's `maxBodyBytes` (1 MiB by default): a larger body is answered with 413 and the connection is closed without reading the rest. When `express.json()` (or another parser) has consumed it, the parser's own `limit` applied first (100 kB by default for `express.json()`), and the adapter serializes the parsed value. Mounting `axeExpress` before your body parsers is simplest: AXE then applies its own limit and answers an oversized body with a result envelope, where a parser in front answers with its own error page. See [Deploying](../deploying.md#limits-and-retention). Either way it keeps every request header as sent, `Content-Type` included, so the core's request policy judges the body the client actually sent: a `text/plain` body that `express.text()` turned into a string is still refused.
+
+### Cookie sessions and CSRF
+
+A session cookie like the one above is sent by the browser on requests from any page, so the core refuses a `POST` that carries a cookie unless its `Origin` is the origin of `baseUrl` or an origin in `requestPolicy.trustedOrigins`, and refuses writes whose body is not `application/json` (spec [P-TRANS-1] and [P-TRANS-2]). Set `baseUrl` to the public origin browsers use; the adapter's `origin` option and the forwarded headers only shape the request URL and are never compared with `Origin`. Agents calling with a bearer token and no `Origin` are unaffected. [Auth](../auth.md#cookie-sessions) has the matrix.
 
 ## Passing your session in
 
@@ -190,14 +194,14 @@ const behindProxy = axeExpress(axe, { origin: "https://sunriseyoga.example" });
 
 The same code runs on Express 4 and 5. The middleware has the plain `(req, res, next)` signature, reads only the original URL, method, headers, and body, and passes conversion errors to `next(err)`, so your error handler sees them. Exceptions thrown by your action handlers never reach it: the core turns them into an `internal` error envelope and calls your `onError` hook, so nothing internal leaks to an agent.
 
-Anything Connect-shaped works too: a `connect()` stack, or a plain Node HTTP server with a hand-written `next`. If you are writing an adapter for another Node framework, `@axe/express` exports the two conversion functions it is built on (toWebRequest and sendWebResponse), so you do not have to reimplement stream reading and header copying.
+Anything Connect-shaped works too: a `connect()` stack, or a plain Node HTTP server with a hand-written `next`. If you are writing an adapter for another Node framework, `@summationai/axe-express` exports the two conversion functions it is built on (toWebRequest and sendWebResponse), so you do not have to reimplement stream reading and header copying.
 
 ## Gotchas
 
 - **Set `secret` in production.** Without it the core generates a random per-process secret; continuation and resume tokens then die with every restart and never verify across two instances. [Deploying](../deploying.md) has the checklist.
 - **The manifest is cached.** It is served with `Cache-Control` for five minutes by default. `axe inspect` fetches it fresh; a browser tab may not.
 - **CORS is off by default.** Agents that call you from a browser need the `cors` option in `createAXE`; see [Deploying](../deploying.md#cors).
-- **Mutating actions require `idempotencyKey`.** A `POST` to `classes.book` without one is rejected. `@axe/client` adds one per attempt automatically; a hand-written `curl` must include it, as above.
+- **Mutating actions require `idempotencyKey`.** A `POST` to `classes.book` without one is rejected. `@summationai/axe-client` adds one per attempt automatically; a hand-written `curl` must include it, as above.
 
 ## Next steps
 

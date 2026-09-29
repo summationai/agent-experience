@@ -1,7 +1,7 @@
 // lib/session.ts — maps the request's session cookie to an AXE identity.
 // Replace the lookup with your auth library (next-auth, iron-session, Clerk, ...).
 // #region all
-import type { Identity } from "@axe/core";
+import type { Identity } from "@summationai/axe-core";
 
 const SESSIONS = new Map<string, string>([["s_demo", "applicant_0142"]]);
 

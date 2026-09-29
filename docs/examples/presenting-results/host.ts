@@ -2,7 +2,7 @@
  * The page that hosts a toHTML() document (directly or in an iframe) listens for the
  * selection and follows the affordance with the agent's client.
  */
-import type { AXEClient } from "@axe/client";
+import type { AXEClient } from "@summationai/axe-client";
 
 declare const client: AXEClient;
 

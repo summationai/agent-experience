@@ -2,7 +2,7 @@
 // Source: spec/VOCABULARY.md. Regenerate with `pnpm gen:vocabulary`.
 
 // Each category is its own export so bundlers can drop the ones a package does not use.
-// `import * as WIRE from "@axe/core/vocabulary"` and `import { WIRE }` both read as WIRE.<category>.<key>.
+// `import * as WIRE from "@summationai/axe-core/vocabulary"` and `import { WIRE }` both read as WIRE.<category>.<key>.
 
 /** `protocol` names. */
 export const protocol = /* @__PURE__ */ Object.freeze({
@@ -26,6 +26,8 @@ export const path = /* @__PURE__ */ Object.freeze({
   resume: "/axe/resume",
   /** Prefix for the SDK's default `pending` poll URLs: `GET /axe/poll/{token}`. */
   poll: "/axe/poll",
+  /** `GET` returns the live state: the current `rev` and every action's `availability`. Served with `Cache-Control: no-store`. */
+  state: "/axe/state",
 } as const);
 
 /** `header` names. */
@@ -246,52 +248,98 @@ export const kind = /* @__PURE__ */ Object.freeze({
   customPrefix: "x-",
 } as const);
 
-/** `reason` names. */
-export const reason = /* @__PURE__ */ Object.freeze({
-  /** Emitted by the SDK when a `user` action is called without identity. */
-  loginRequired: "login_required",
-  /** Recommended reason string when `accepts` are payment kinds. */
-  paymentRequired: "payment_required",
-  /** Recommended reason string when `accepts` are consent kinds. */
-  consentRequired: "consent_required",
-  /** Recommended reason string when `accepts` are identity kinds. */
-  identityRequired: "identity_required",
-  /** Recommended reason string when `accepts` are document kinds. */
-  documentRequired: "document_required",
+/** `entryKind` names. */
+export const entryKind = /* @__PURE__ */ Object.freeze({
+  /** A control that does something when activated: a button, a switch. */
+  action: "action",
+  /** A value the user can edit: an input, a cell. */
+  field: "field",
+  /** A list or grid that can load more. */
+  collection: "collection",
 } as const);
 
-/** `tool` names. */
-export const tool = /* @__PURE__ */ Object.freeze({
-  /** Satisfy a `needs_input` requirement with a chosen `kind` and `payload`. */
-  continue: "axe_continue",
-  /** Resume after a human handoff with a `resumeToken`. */
-  resume: "axe_resume",
-  /** Return the site's manifest so the model can read descriptions and the affordance graph. */
-  manifest: "axe_manifest",
-  /** Poll a `pending` result's `pollUrl` until it settles. */
-  poll: "axe_poll",
-} as const);
-
-/** `cli` names. */
-export const cli = /* @__PURE__ */ Object.freeze({
-  /** Scaffold an `axe.ts` for a framework. */
-  init: "axe init",
-  /** Load an `axe.ts`, validate the manifest, lint descriptions. */
-  validate: "axe validate",
-  /** Discover and print a manifest and its affordance graph. */
-  inspect: "axe inspect",
-  /** Call a read action and render the result to HTML. */
-  preview: "axe preview",
-  /** Run the conformance suite against a URL. */
-  conformance: "axe conformance",
-  /** Produce the AXE Score and fix list. */
-  audit: "axe audit",
-  /** Serve any AXE site as an MCP server over stdio. */
-  mcp: "axe mcp",
+/** `op` names. */
+export const op = /* @__PURE__ */ Object.freeze({
+  /** Activate an action entry. */
+  click: "CLICK",
+  /** Activate a switch-role action entry. */
+  toggle: "TOGGLE",
+  /** Set a field entry's value. */
+  typeText: "TYPE_TEXT",
+  /** Ask a collection entry to load more. */
+  scrollDown: "SCROLL_DOWN",
 } as const);
 
 /** `field` names. */
 export const field = /* @__PURE__ */ Object.freeze({
+  /** The application name the surface belongs to. */
+  app: "app",
+  /** When the snapshot was taken; when the ledger entry was written. */
+  at: "at",
+  /** The indexed table of controls. */
+  entries: "entries",
+  /** Domain objects the application chooses to show alongside the table. */
+  objects: "objects",
+  /** Position among entries that can be acted on now; null otherwise. */
+  index: "index",
+  /** The control's ARIA-style role: `button`, `switch`, `textbox`, `grid`. */
+  role: "role",
+  /** Stable identifier of the domain object the control belongs to. */
+  object: "object",
+  /** `{ available, reason?, requires?, handoff? }` for action entries. */
+  state: "state",
+  /** `{ mutates, idempotent, reversible, risk, confirm?, text? }`. */
+  effect: "effect",
+  /** Name of the state the action changes. */
+  mutates: "mutates",
+  /** The action requires explicit confirmation. */
+  confirm: "confirm",
+  /** Free text passed to a handler; the prompt for it. */
+  text: "text",
+  /** `{ op, maxLength?, readOnly, reason?, schema? }` for field entries. */
+  edit: "edit",
+  /** Longest accepted text. */
+  maxLength: "maxLength",
+  /** A field entry's current value. */
+  value: "value",
+  /** Items in a collection. */
+  total: "total",
+  /** Items currently rendered. */
+  loaded: "loaded",
+  /** The collection's active filter. */
+  filter: "filter",
+  /** The collection's active sort. */
+  sort: "sort",
+  /** The operation to perform. */
+  op: "op",
+  /** Entry id or index to act on; in the ledger, the id it resolved to. */
+  target: "target",
+  /** Who is acting: `agent`, `user`, or an identity. */
+  actor: "actor",
+  /** Entry ids whose state the act changed. */
+  changed: "changed",
+  /** The ledger entry's sequence number: 1-based, increasing by one per act. */
+  seq: "seq",
+  /** The latest ledger `seq`; ask `since` it for what happened after a snapshot. */
+  ledgerSeq: "ledgerSeq",
+  /** The revision when the act arrived. */
+  revBefore: "revBefore",
+  /** The revision when the entry was written; equals `revBefore` for a refusal. */
+  revAfter: "revAfter",
+  /** Cap on the number of ledger entries returned. */
+  limit: "limit",
+  /** Present while the application holds a freeze: `{ reason }`. */
+  frozen: "frozen",
+  /** A revision the handler reported that was older than the surface's, so not adopted. */
+  ignoredRev: "ignoredRev",
+  /** `{ currentRev? }`: the handler's own precondition failed; the act is `conflict` and nothing is adopted. */
+  handlerConflict: "conflict",
+  /** SHA-256 of the act's text, hex, under the ledger's `hash` text policy. */
+  textHash: "textHash",
+  /** Only on ledger entries `act` did not write: `application` (from `record`) or `server` (refused before it). */
+  source: "source",
+  /** An observed entry's guarantee tier: `derived` or `annotated`; absent means declared [S-AUTO-1]. */
+  tier: "tier",
   /** Protocol version string. */
   protocol: "protocol",
   /** Identifier or display name, depending on context. */
@@ -420,7 +468,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   summary: "summary",
   /** JSON Pointer (or array of pointers) to absolute image URLs. */
   image: "image",
-  /** The human-facing page for an item, a handoff, a contact, or a document. */
+  /** The human-facing page for an item, a handoff, a contact, or a document; on `live`, the state endpoint. */
   url: "url",
   /** `{ amount, currency, period? }`. */
   price: "price",
@@ -474,7 +522,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   idempotencyKey: "idempotencyKey",
   /** Result discriminator. */
   status: "status",
-  /** Short machine-readable code for why input or a human is needed. */
+  /** Short machine-readable code for why input or a human is needed; on `availability` and `unavailable` details, plain language for why an action cannot be done right now. */
   reason: "reason",
   /** Agent-facing explanation. */
   message: "message",
@@ -482,7 +530,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   accepts: "accepts",
   /** JSON Schema for the payload of this kind. */
   schema: "schema",
-  /** Agents MUST confirm with the user before sending. */
+  /** On `accepts`: agents MUST confirm with the user before sending. On a Surface field: its value is private and never published. */
   sensitive: "sensitive",
   /** Agent-read text to relay (accepts) or what the human must do (handoff). */
   instructions: "instructions",
@@ -494,7 +542,7 @@ export const field = /* @__PURE__ */ Object.freeze({
   fallback: "fallback",
   /** The value satisfying the chosen kind. */
   payload: "payload",
-  /** `{ reason, instructions, url, resumeToken, expiresAt, whatAgentShouldSayToUser }`. */
+  /** `{ reason, instructions, url, resumeToken, expiresAt, whatAgentShouldSayToUser }`; without the token members on `availability`. */
   handoff: "handoff",
   /** Signed, opaque token to resume after the human acts. */
   resumeToken: "resumeToken",
@@ -514,8 +562,16 @@ export const field = /* @__PURE__ */ Object.freeze({
   details: "details",
   /** Array of `{ path, message, expected? }` validation problems. */
   issues: "issues",
-  /** `open` on a `conflict` returned by `/axe/resume` before the human finished. */
+  /** On a `conflict` from `/axe/resume`: `open` before the human finished or approved, `cancelled` after a person cancelled the handoff, `invalidated` after the state an approval was bound to changed ([P-APPR-4] to [P-APPR-6]). */
   handoffStatus: "handoffStatus",
+  /** The id of the handoff an approval event is about: the `axe_handoff` value, and the id `getHandoff`, `approveHandoff`, and `cancelHandoff` take. */
+  handoffId: "handoffId",
+  /** `in_progress` on a retryable `conflict` returned while another request is running the same operation ([P-OP-2]). */
+  operationStatus: "operationStatus",
+  /** The server's request body limit in bytes, on a `payload_too_large` refusal ([P-LIM-1]). */
+  maxBodyBytes: "maxBodyBytes",
+  /** `true` on a schema node the server checks more strictly than JSON Schema can say (a Zod refinement, custom type, or preprocess); a value that matches may still be refused with `invalid_input` ([P-SCHEMA-5]). */
+  axeRefined: "x-axe-refined",
   /** What the schema wanted at `path`. */
   expected: "expected",
   /** Event schema version, currently `1`. */
@@ -530,6 +586,124 @@ export const field = /* @__PURE__ */ Object.freeze({
   errorCode: "errorCode",
   /** Tenant id on multi-tenant platforms. */
   tenant: "tenant",
+  /** `{ rev?, url? }`: the site publishes live state and a revision. */
+  live: "live",
+  /** `{ available, reason?, requires?, handoff? }`: whether the action can be done right now, and why not. */
+  availability: "availability",
+  /** Whether the action or control can be done right now. */
+  available: "available",
+  /** `accepts`-shaped list of kinds that would make the action available. */
+  requires: "requires",
+  /** The site's single revision: an opaque string or number that moves with every observable change. */
+  rev: "rev",
+  /** The revision the agent observed; the call is refused with `conflict` if it moved. On a dynamic affordance, the revision to present when following it. */
+  expectedRev: "expectedRev",
+  /** The site's revision at the time a stale `expectedRev` was refused. */
+  currentRev: "currentRev",
+  /** What an action event records, as a dotted name in the action's namespace. */
+  event: "event",
+  /** The id of the row a parameterized action acts on, from `<ns>.observe`. */
+  entryId: "entryId",
+  /** Present when more rows match the filters; passed back as `cursor` for the next page. */
+  nextCursor: "nextCursor",
+  /** Where a derived name came from: `aria-label`, `label`, `text`, `placeholder`, `icon`, `href`, and so on. */
+  nameFrom: "nameFrom",
+  /** Configuration rules that matched no control: `stale` on their route, or `unmatched` anywhere yet. */
+  staleConfig: "staleConfig",
+  /** A wait condition: the surface's revision is no longer the one given. */
+  revMoved: "revMoved",
+} as const);
+
+/** `domAttribute` names. */
+export const domAttribute = /* @__PURE__ */ Object.freeze({
+  /** The entry id on the element that receives the interaction; one element per entry. */
+  surfaceId: "data-surface-id",
+  /** The entry kind: `action`, `field`, or `collection`. */
+  surfaceKind: "data-surface-kind",
+  /** The entry's `object`, when it has one. */
+  surfaceObject: "data-surface-object",
+  /** Why the control is unavailable or read only, in the application's words. */
+  surfaceReason: "data-surface-reason",
+  /** The entry name as the control's accessible name: the outcome, never the widget. */
+  label: "aria-label",
+  /** `true` on an unavailable action; the application keeps its own `disabled`. */
+  disabled: "aria-disabled",
+  /** `true` on a read-only field. */
+  readOnly: "aria-readonly",
+} as const);
+
+/** `markup` names. */
+export const markup = /* @__PURE__ */ Object.freeze({
+  /** A subtree an auto-derived surface never reads: the application's own agent UI, the relay's indicator. */
+  ignore: "data-surface-ignore",
+} as const);
+
+/** `reason` names. */
+export const reason = /* @__PURE__ */ Object.freeze({
+  /** Emitted by the SDK when a `user` action is called without identity. */
+  loginRequired: "login_required",
+  /** Recommended reason string when `accepts` are payment kinds. */
+  paymentRequired: "payment_required",
+  /** Recommended reason string when `accepts` are consent kinds. */
+  consentRequired: "consent_required",
+  /** Recommended reason string when `accepts` are identity kinds. */
+  identityRequired: "identity_required",
+  /** Recommended reason string when `accepts` are document kinds. */
+  documentRequired: "document_required",
+  /** Emitted by the SDK when a credentialed POST comes from an origin the site does not accept ([P-TRANS-2]). */
+  crossOriginRefused: "cross_origin_refused",
+  /** Emitted by the SDK when a POST to a state-changing endpoint is not `application/json` ([P-TRANS-1]). */
+  jsonRequired: "json_required",
+  /** Emitted by the SDK, with HTTP 413, when a request body is larger than `maxBodyBytes` ([P-LIM-1]). */
+  payloadTooLarge: "payload_too_large",
+  /** The default reason of an approval request made with `requestApproval` ([P-APPR-1]). */
+  approvalRequired: "approval_required",
+  /** The work was sent and may have taken effect (an act whose page unloaded before it answered); `retryable` is false and the result is stored under the idempotency key ([P-OP-3]). */
+  outcomeUnknown: "outcome_unknown",
+} as const);
+
+/** `tool` names. */
+export const tool = /* @__PURE__ */ Object.freeze({
+  /** Satisfy a `needs_input` requirement with a chosen `kind` and `payload`. */
+  continue: "axe_continue",
+  /** Resume after a human handoff with a `resumeToken`. */
+  resume: "axe_resume",
+  /** Return the site's manifest so the model can read descriptions and the affordance graph. */
+  manifest: "axe_manifest",
+  /** Poll a `pending` result's `pollUrl` until it settles. */
+  poll: "axe_poll",
+  /** Fetch `/axe/state`: the current revision and what can be done right now. */
+  state: "axe_state",
+} as const);
+
+/** `cli` names. */
+export const cli = /* @__PURE__ */ Object.freeze({
+  /** Scaffold an `axe.ts` for a framework. */
+  init: "axe init",
+  /** Load an `axe.ts`, validate the manifest, lint descriptions. */
+  validate: "axe validate",
+  /** Discover and print a manifest and its affordance graph. */
+  inspect: "axe inspect",
+  /** Call a read action and render the result to HTML. */
+  preview: "axe preview",
+  /** Run the conformance suite against a URL. */
+  conformance: "axe conformance",
+  /** Produce the AXE Score and fix list. */
+  audit: "axe audit",
+  /** Serve any AXE site as an MCP server over stdio. */
+  mcp: "axe mcp",
+  /** Derive actions from an OpenAPI document; files for review. */
+  generate: "axe generate",
+  /** Run the relay that lets an agent drive a signed-in tab. */
+  relay: "axe relay",
+  /** Unattended mode in development: `axe host login`, then `axe host --dev`. */
+  host: "axe host",
+  /** Add Surface to an existing app: `init`, `coverage`, `prompt`. */
+  surface: "axe surface",
+  /** Detect the app, print the smallest diff that mounts Surface behind a flag, apply it. */
+  surfaceInit: "axe surface init",
+  /** Open the app headless and report what agents see: gaps and config suggestions. */
+  surfaceCoverage: "axe surface coverage",
 } as const);
 
 /** `payload` names. */
@@ -646,10 +820,22 @@ export const api = /* @__PURE__ */ Object.freeze({
   onResume: "onResume",
   /** Action hook that produces the current result for a `pending` action. */
   onPoll: "onPoll",
-  /** Server-side object attached to a token and delivered back to hooks. */
+  /** Core: server-side object attached to a token and delivered back to hooks. Client: fetch `/axe/state`. */
   state: "state",
   /** Record that the human finished a handoff, optionally binding identity. */
   completeHandoff: "completeHandoff",
+  /** Result helper: a `needs_human` approval request for this exact call, resumed only after a person approves it on the site ([P-APPR-1]). */
+  requestApproval: "requestApproval",
+  /** Action option: the state an approval is bound to, re-read at approval and at resume; a change voids the approval ([P-APPR-6]). */
+  approvalState: "approvalState",
+  /** What the site's own handoff or approval page may show: action, principal, tenant, status, and for an approval the input and bound state. */
+  getHandoff: "getHandoff",
+  /** Record a person's approval of an approval request, from the site's own session-authenticated page ([P-APPR-3]). */
+  approveHandoff: "approveHandoff",
+  /** Record that a person cancelled a handoff that has not been used; a later resume is refused ([P-APPR-5]). */
+  cancelHandoff: "cancelHandoff",
+  /** On `onResume`'s `approval`: who approved, as the site named them to `approveHandoff`. */
+  approvedBy: "approvedBy",
   /** Apply `display` pointers to an output and return a `PresentedResult`. */
   resolveDisplay: "resolveDisplay",
   /** Typed definitions of every well-known kind. */
@@ -662,15 +848,17 @@ export const api = /* @__PURE__ */ Object.freeze({
   lintManifest: "lintManifest",
   /** Hook called before an action runs; may short-circuit with a result. */
   onRequest: "onRequest",
-  /** Hook called with every result envelope. */
+  /** Hook called with every result envelope; on an `ActionProvider`, called with the results of its own actions. */
   onResult: "onResult",
+  /** Passed to a provider's `onResult`: the hook context plus `identity`, `siteKey`, `input`, `expectedRev`, and `handled`. */
+  providerResultContext: "ProviderResultContext",
   /** Hook called when a handler throws. */
   onError: "onError",
   /** Hook receiving every analytics event; sinks attach here. */
   onEvent: "onEvent",
   /** Event sink that prints one JSON line per event to stdout. */
   consoleSink: "consoleSink",
-  /** Event sink that appends JSON lines to a file. */
+  /** Event sink that appends JSON lines to a file. Node only, so it has its own subpath. */
   jsonlFileSink: "jsonlFileSink",
   /** Event sink that records OpenTelemetry metrics and spans. */
   otelSink: "otelSink",
@@ -688,6 +876,16 @@ export const api = /* @__PURE__ */ Object.freeze({
   verifySiteKey: "verifySiteKey",
   /** Configuration for serving a platform index. */
   index: "index",
+  /** Config: returns the site's current revision; enables `rev` on envelopes, the `expectedRev` check, and `/axe/state`. */
+  revision: "revision",
+  /** Return the manifest with `live.rev` and each action's `availability` computed for a request. */
+  describeLive: "describeLive",
+  /** Add an `ActionProvider`: a source of actions consulted whenever actions are enumerated or looked up by name. */
+  addProvider: "addProvider",
+  /** Subscribe to changes in the set of actions: a registration, a new provider, or a provider's own change. */
+  onActionsChanged: "onActionsChanged",
+  /** Helper that turns an `Availability` into an `unavailable` error with `details`. */
+  unavailable: "unavailable",
   /** Find a manifest from any URL. */
   discover: "discover",
   /** Return the loaded manifest. */
@@ -712,6 +910,8 @@ export const api = /* @__PURE__ */ Object.freeze({
   toMarkdown: "toMarkdown",
   /** Render a `PresentedResult` as a self-contained HTML page. */
   toHTML: "toHTML",
+  /** Render a `/axe/state` document as Markdown: what can be done now, and why not. */
+  stateToMarkdown: "stateToMarkdown",
   /** Derive an MCP server from an AXE server or manifest URL. */
   createMcpServer: "createMcpServer",
   /** Connect an MCP server to stdio. */
@@ -734,6 +934,46 @@ export const api = /* @__PURE__ */ Object.freeze({
   createTestClient: "createTestClient",
   /** The drift test as a function, for use in other repositories. */
   checkVocabularyDrift: "checkVocabularyDrift",
+  /** Create a surface: the registry, revision, observe, and act. */
+  createSurface: "createSurface",
+  /** Remove one entry. */
+  unregister: "unregister",
+  /** Drop entries under a prefix that a re-scan did not keep. */
+  reconcile: "reconcile",
+  /** Advance the revision after a change, notifying listeners. */
+  bump: "bump",
+  /** Adopt a persisted revision if it is ahead. */
+  seedRev: "seedRev",
+  /** Adopt the application's own revision as is. */
+  setRev: "setRev",
+  /** Read the revision. */
+  currentRev: "currentRev",
+  /** Subscribe to revision changes. */
+  onChange: "onChange",
+  /** Provide the domain objects included in every snapshot. */
+  setObjects: "setObjects",
+  /** Take an indexed snapshot of the live table. */
+  observe: "observe",
+  /** Run one control's own handler under the revision guard; returns a result envelope. */
+  act: "act",
+  /** Publish observe and act on a host object for browser agents. */
+  expose: "expose",
+  /** React hook that keeps one entry registered while mounted. */
+  useSurface: "useSurface",
+  /** Derive an action provider from a surface: observe, ledger, and one action per entry. */
+  surfaceActions: "surfaceActions",
+  /** The AXE action name for an entry id: `<ns>.<slug>`, stable for the life of the bridge. */
+  actionNameFor: "actionNameFor",
+  /** The exact entry id an action name was issued for, or undefined. */
+  entryIdFor: "entryIdFor",
+  /** The plain slug of an entry id, before collision handling. */
+  entrySlug: "entrySlug",
+  /** Every registered entry, in registration order. */
+  entries: "entries",
+  /** Counter moved by register, unregister, reconcile, and reset; a bump alone leaves it. */
+  registryVersion: "registryVersion",
+  /** One entry's live availability as the bridge publishes it, honoring a freeze. */
+  availability: "availability",
   /** Restrict a document kind to specific MIME types. */
   withMimeTypes: "withMimeTypes",
   /** Define a site-specific kind under `x-<org>.`. */
@@ -762,6 +1002,14 @@ export const api = /* @__PURE__ */ Object.freeze({
   manifestCacheSeconds: "manifestCacheSeconds",
   /** CORS option: send `Access-Control-Allow-Credentials`. */
   allowCredentials: "allowCredentials",
+  /** Config: the content-type and origin rules applied to POSTs before anything runs ([P-TRANS-1] to [P-TRANS-4]). */
+  requestPolicy: "requestPolicy",
+  /** Request policy option: refuse non-JSON bodies on state-changing endpoints (default true). */
+  requireJsonContentType: "requireJsonContentType",
+  /** Request policy option: origins besides `baseUrl`'s whose browser requests may carry cookies. */
+  trustedOrigins: "trustedOrigins",
+  /** Request policy option: `cookie` (default), `always`, or `off`; when the origin rule applies. */
+  originCheck: "originCheck",
   /** Fan events out to several sinks, isolating failures. */
   combineSinks: "combineSinks",
   /** Parse the recommended `User-Agent` form into an event agent. */
@@ -784,6 +1032,16 @@ export const api = /* @__PURE__ */ Object.freeze({
   maxRetryAfterMs: "maxRetryAfterMs",
   /** Poll option: give up after this long. */
   maxWaitMs: "maxWaitMs",
+  /** Client and discover option: which destinations the client may contact and which receive credentials (spec §17.1). */
+  trust: "trust",
+  /** Trust option: contact other https origins a site names, without credentials (default false). */
+  allowCrossOrigin: "allowCrossOrigin",
+  /** Trust option: plain http policy; `"localhost"` (default) allows it only for authorized loopback origins. */
+  allowHttp: "allowHttp",
+  /** Trust option: callback that gates every outbound URL, redirects included; return false to refuse. */
+  destinationPolicy: "destinationPolicy",
+  /** Whether the client may contact a URL, and with credentials, without sending anything. */
+  checkDestination: "checkDestination",
   /** MCP tool name for an action (dots become underscores). */
   toolNameFor: "toolNameFor",
   /** Render a result envelope as MCP tool content. */
@@ -808,6 +1066,328 @@ export const api = /* @__PURE__ */ Object.freeze({
   formatAuditHtml: "formatAuditHtml",
   /** Human-readable drift report. */
   formatDriftReport: "formatDriftReport",
+  /** Hook receiving action events, the ledger lines handlers record with `emit`. */
+  onActionEvent: "onActionEvent",
+  /** Handler context: record an action event for the `onActionEvent` sinks. */
+  emit: "emit",
+  /** Read the ledger, oldest first (`since`, `actor`, `limit`): acts run and refused, recorded changes, refusals before the surface. */
+  ledger: "ledger",
+  /** Append a change the application made outside `act`, or a refusal the surface never saw; runs no handler, moves no revision. */
+  record: "record",
+  /** Mark every entry unavailable with a reason during a transient state; returns thaw. */
+  freeze: "freeze",
+  /** Release one freeze; the last release restores the entries and moves the revision. */
+  thaw: "thaw",
+  /** The attributes a rendered control carries for an entry (name, id, kind, reason). */
+  surfaceAttributes: "surfaceAttributes",
+  /** CSS selector that finds the rendered control for an entry id. */
+  surfaceSelector: "surfaceSelector",
+  /** One plain-text line for an entry: name, availability and reason, effect. */
+  describeEntry: "describeEntry",
+  /** React hook that registers an entry and returns its live attributes as props. */
+  useSurfaceProps: "useSurfaceProps",
+  /** The DOM mirror for one registered entry from its live availability: attributes to set and to remove. */
+  attributesFor: "attributesFor",
+  /** Listen for every change a reader could see, registration and `setRev` included; a React external-store subscription. */
+  subscribe: "subscribe",
+  /** Replace or clear the application profile (`profile.id`, authentication, context) the surface reports; `null` clears it. */
+  setProfile: "setProfile",
+  /** Who moves the revision: `surface` (`bump`) or `app` (`setRev`). */
+  revisionMode: "revisionMode",
+  /** Every attribute the DOM mirror may set, from the `domAttribute` table. */
+  surfaceAttributeNames: "SURFACE_ATTRIBUTES",
+  /** Converts a Zod schema to JSON Schema; also the converter option a surface publishes Zod schemas through. */
+  toJsonSchema: "toJsonSchema",
+  /** Error a handler throws when its own conditional write finds a newer revision; `act` returns `conflict` and applies nothing. */
+  surfaceConflict: "SurfaceConflict",
+  /** `{ id, op, expectedRev, actor }`, passed to a handler, setter, or `more`, so the write can carry the presented revision. */
+  actContext: "ActContext",
+  /** One surface per tenant and principal, created on first use, evicted when idle or over `max`. */
+  scopedSurfaces: "scopedSurfaces",
+  /** Bridge option: the auth mode of one entry's action, overriding `auth`. */
+  authFor: "authFor",
+  /** Bridge option: rewrite the details of each `surface.act` event before it is emitted. */
+  redactEvent: "redactEvent",
+  /** `scopedSurfaces` option: evict a surface unused for this long (default 30 minutes). `createHost` option: close a hosted session after this long without a tool call (default 15 minutes). */
+  idleMs: "idleMs",
+  /** `scopedSurfaces` option: called with each evicted surface. */
+  onEvict: "onEvict",
+  /** The scope key `scopedSurfaces` computes for a caller: tenant and principal. */
+  keyFor: "keyFor",
+  /** Durable `IdempotencyStore` over `node:sqlite` (Node 22.5 or newer); claims are single SQL statements. */
+  sqliteIdempotencyStore: "SqliteIdempotencyStore",
+  /** Config: how long an operation claim holds before a retry of the same operation may take it over (default 60). */
+  operationLeaseSeconds: "operationLeaseSeconds",
+  /** Handler context member: a stable id for the operation, the same on every retry, for downstream idempotency. */
+  operationId: "operationId",
+  /** Config: the largest request body the runtime reads, in bytes (default 1048576); larger is refused with 413 ([P-LIM-1]). */
+  maxBodyBytes: "maxBodyBytes",
+  /** `MemoryTokenStore` and `MemoryIdempotencyStore` option: most entries held; the oldest evictable are dropped at the limit (default 10000, [P-LIM-4]). */
+  maxEntries: "maxEntries",
+  /** `MemoryTokenStore` and `MemoryIdempotencyStore` option: least time between two sweeps of expired entries on writes (default 60000). */
+  sweepIntervalMs: "sweepIntervalMs",
+  /** `SqliteIdempotencyStore` method: delete rows that expired before a time; run it from a periodic job ([P-LIM-4]). */
+  prune: "prune",
+  /** Report what the SDK's JSON Schema validator would refuse to apply in a schema, and patterns shaped for catastrophic backtracking ([P-SCHEMA-2]). */
+  schemaProblems: "schemaProblems",
+  /** Client and discover option: abort one request, redirects and body included, after this many milliseconds (default 30000). */
+  timeoutMs: "timeoutMs",
+  /** Client and discover option: largest response body the client reads, in bytes (default 4194304). */
+  maxResponseBytes: "maxResponseBytes",
+  /** `poll` and `run` option: most poll requests before the last `pending` is returned (default 60). */
+  maxPollAttempts: "maxPollAttempts",
+  /** Validate a value against a JSON Schema in the supported subset; never throws, refuses what it cannot apply ([P-SCHEMA-2]). */
+  validateJsonSchema: "validateJsonSchema",
+  /** Apply every lint rule to one action definition, the schema rules included. */
+  lintAction: "lintAction",
+  /** Whether a pattern has the nested-repetition shape that backtracks catastrophically ([P-SCHEMA-4]). */
+  isBacktrackingPattern: "isBacktrackingPattern",
+  /** `serveHttp` option: each verified caller's AXE identity (`CallerContext`), asked on every tool call. */
+  clientFor: "clientFor",
+  /** `serveHttp` session option: close a session with no request for this long (default 30 minutes). */
+  idleTimeoutMs: "idleTimeoutMs",
+  /** `serveHttp` session option: open sessions at most; past it a new `initialize` gets 503 (default 1000). `createHost` option: hosted browser sessions at most; one more closes the least recently used (default 20). */
+  maxSessions: "maxSessions",
+  /** The number of open sessions on a `serveHttp` handler. */
+  sessionCount: "sessionCount",
+  /** Deprecated `serveHttp` option: a session id generator; setting it turns sessions on. */
+  sessionIdGenerator: "sessionIdGenerator",
+  /** `serveHttp` option: browser origins allowed besides the endpoint's own; others get 403. `createHost` option: origins a hosted page may navigate to besides the application's. */
+  allowedOrigins: "allowedOrigins",
+  /** `serveHttp` auth option: scopes every access token needs; otherwise 403 `insufficient_scope`. */
+  requiredScopes: "requiredScopes",
+  /** `serveHttp` auth option: the protected-resource metadata URL sent in `WWW-Authenticate`. */
+  resourceMetadataUrl: "resourceMetadataUrl",
+  /** The verified access token (the MCP SDK's `AuthInfo`) of one HTTP request; passed to `clientFor`. */
+  authInfo: "authInfo",
+  /** RFC 9728 metadata for an MCP endpoint: the document, its path and URL, and a handler. */
+  protectedResourceMetadata: "protectedResourceMetadata",
+  /** Client option: longest a manifest is used before revalidation; a shorter site max-age wins (default 300000). */
+  manifestMaxAgeMs: "manifestMaxAgeMs",
+  /** Subscribe to manifest refreshes that changed the actions; returns an unsubscribe function. */
+  onManifestChange: "onManifestChange",
+  /** Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle. */
+  exposeWebMcp: "exposeWebMcp",
+  /** The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`. */
+  modelContext: "modelContext",
+  /** The draft's method that registers one tool; unregistered by aborting the signal passed with it. */
+  registerTool: "registerTool",
+  /** Tool annotation for an effect that cannot be undone; set on a control that is not reversible. */
+  consequentialHint: "consequentialHint",
+  /** The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema. */
+  requestedSchema: "requestedSchema",
+  /** Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind. */
+  isSensitiveAccept: "isSensitiveAccept",
+  /** The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering. */
+  toFormSchema: "toFormSchema",
+  /** Tool annotation: the tool changes nothing; set on the observe tool. */
+  readOnlyHint: "readOnlyHint",
+  /** Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool. */
+  untrustedContentHint: "untrustedContentHint",
+  /** Derive an action provider from a surface as a fixed set of parameterized actions, plus observe and ledger. */
+  domainActions: "domainActions",
+  /** The domain action that acts on an entry id now, or undefined. */
+  actionFor: "actionFor",
+  /** A domain action's `availability` reason when no entry it covers can be acted on. */
+  idleReason: "idleReason",
+  /** The largest `limit` `<ns>.observe` accepts; published as `pagination.pageSize.max`. */
+  maxPageSize: "maxPageSize",
+  /** Connect a page's surface to a relay for the signed-in person; shows the indicator, answers observes and acts. */
+  connectRelay: "connectRelay",
+  /** Connection options for the local provider-operated MCP service: its tab endpoint and development-token callback. */
+  localMcpService: "localMcpService",
+  /** Default local origin of the provider-operated MCP service. */
+  localMcpServiceUrl: "LOCAL_MCP_SERVICE_URL",
+  /** `connectRelay` option: returns a fresh relay token, on every connection and before the current one expires. */
+  getToken: "getToken",
+  /** `connectRelay` option: told after every change of the connection's status, approvals included. */
+  onStatus: "onStatus",
+  /** `connectRelay` option: which rows wait for the person's approval; default high risk or `confirm`. */
+  requireApproval: "requireApproval",
+  /** Create a relay: tab connections, a mirror per tab served through `domainActions`, MCP over HTTP and stdio. */
+  createRelay: "createRelay",
+  /** `createRelay` option: check a tab's token yourself and name its principal and tenant. */
+  authenticateTab: "authenticateTab",
+  /** `createRelay` option: the OAuth `verifier` for agents over HTTP and `identify`, the principal a token speaks for. */
+  agentAuth: "agentAuth",
+  /** `createRelay` option: local development on loopback, with pairing codes and development tokens. */
+  devPairing: "devPairing",
+  /** `createRelay` option: how long a read waits for a fresh snapshot before serving the last one. */
+  syncTimeoutMs: "syncTimeoutMs",
+  /** `createRelay` option: how long an act waits for a reconnecting (reloading) tab. */
+  reconnectGraceMs: "reconnectGraceMs",
+  /** `createRelay` option: how long the relay waits for the tab's answer to an act; past it the outcome is unknown (`outcome_unknown`). */
+  actTimeoutMs: "actTimeoutMs",
+  /** `true` when the act's click navigated the page before it settled ([S-RELAY-14]); observe the new page. */
+  navigated: "navigated",
+  /** `createRelay` option: how long a disconnected or stopped tab stays listed. */
+  tabRetentionMs: "tabRetentionMs",
+  /** Mint a relay token (HS256 JWT: `sub`, `org`, `aud`, `exp`) for the signed-in person, in the backend. */
+  mintRelayToken: "mintRelayToken",
+  /** Check a relay token's signature, audience, and expiry; returns its principal, tenant, and claims or null. */
+  verifyRelayToken: "verifyRelayToken",
+  /** The connection a host injected into the page (`window.__AXE_RELAY__`) as `connectRelay` options, or null; read when called, never at import. */
+  injectedRelay: "injectedRelay",
+  /** `injectedRelay()` when a host injected a connection, else the fallback options given (the attended relay). */
+  relayOptions: "relayOptions",
+  /** On the page: where the person decides an approval (`page`, `agent`, or `both`). On the relay: the approval page (`identify`, `pageUrl`, `linkTtlMs`, `sensitive`). */
+  approvals: "approvals",
+  /** How long a link to the relay's approval page works, in ms; default five minutes. */
+  linkTtlMs: "linkTtlMs",
+  /** The relay's single-use approval page, given when the agent's client could not show the request. */
+  approvalUrl: "approvalUrl",
+  /** A browser tab's id at the relay, kept across reloads. */
+  tabId: "tabId",
+  /** The MCP tool call an in-process AXE request serves (`AxeLike.handle`'s third argument): elicitation modes, `elicit`, `completeElicitation`, `signal`. */
+  toolCallContext: "ToolCallContext",
+  /** Tell the client a URL-mode elicitation is finished (`notifications/elicitation/complete`). */
+  completeElicitation: "completeElicitation",
+  /** Create a session host: one browser context per identity, started on the agent's first tool call, served over MCP. */
+  createHost: "createHost",
+  /** Turn the agent's verified identity into the application session its hosted browser starts with; null refuses. */
+  sessionFor: "sessionFor",
+  /** Require the person to sign in at the application's HTTP(S) page before the original hosted tool call resumes. */
+  sessionLoginRequired: "SessionLoginRequired",
+  /** Development `sessionFor`: every identity gets the storage state `axe host login` saved. */
+  storageStateSession: "storageStateSession",
+  /** A `sessionFor` from a function that returns the cookies for an identity. */
+  cookieSession: "cookieSession",
+  /** A Playwright storage state (a file path or the object): cookies and each origin's `localStorage`. */
+  storageState: "storageState",
+  /** `localStorage` entries by origin that a hosted session starts with. */
+  localStorage: "localStorage",
+  /** The path each hosted session opens first, relative to the application URL. */
+  startPath: "startPath",
+  /** How long a hosted page may take to load and connect its surface to the relay. */
+  navigationTimeoutMs: "navigationTimeoutMs",
+  /** Lifetime of each relay token the host mints for a hosted page; the page renews in-band. */
+  tokenTtlSeconds: "tokenTtlSeconds",
+  /** A Chromium or Chrome executable for the hosted sessions, instead of Playwright's download. */
+  executablePath: "executablePath",
+  /** With a relay you run: the tab endpoint the hosted pages connect to. */
+  relayUrl: "relayUrl",
+  /** With a relay you run: the secret the host mints relay tokens with. */
+  relaySecret: "relaySecret",
+  /** Close an identity's hosted session; the next tool call starts a new one. */
+  closeSession: "closeSession",
+  /** With a relay you run: pass its events to the host, so Stop there closes the hosted session. */
+  relayEvent: "relayEvent",
+  /** Tools answered by the embedding code with any MCP content (an image), beside the derived ones. */
+  extraTools: "extraTools",
+  /** Serve one agent tool call's AXE request as the relay's own MCP front does, tool-call context included. */
+  handleAgent: "handleAgent",
+  /** The adapter context the relay's AXE server expects for an agent acting as a principal and tenant, for a front end such as a host. */
+  relayAgentContext: "relayAgentContext",
+  /** Derive entries from the rendered page and keep them current; returns a handle with `coverage()` and `stop()`. */
+  autoSurface: "autoSurface",
+  /** The coverage report of an auto surface as Markdown. */
+  formatCoverage: "formatCoverage",
+  /** The problems of a `SurfaceConfig` as plain sentences; empty when it is sound. */
+  checkConfig: "checkConfig",
+  /** The generic domain actions of a derived surface: configured groups, `navigate`, `set-field`, `run-control`, `load-more`. */
+  autoDomains: "autoDomains",
+  /** The recommended AXE bridge for an auto surface: `domainActions` over `autoDomains`. */
+  autoActions: "autoActions",
+  /** React hook: start `autoSurface` on mount, re-scan on route changes, stop on unmount. */
+  useAutoSurface: "useAutoSurface",
+  /** The handle of the nearest `SurfaceProvider`, or null before it has started. */
+  useAutoSurfaceHandle: "useAutoSurfaceHandle",
+  /** Provider option: expose the page-held surface to a browser-native agent through WebMCP when supported. */
+  webMcp: "webMcp",
+  /** Provider callback: receives the auto-surface handle after the page scan starts and may return a cleanup. */
+  onReady: "onReady",
+  /** The element an auto entry was derived from, when it is on the page. */
+  elementFor: "elementFor",
+  /** What the scan recorded about an entry: its key, source, name source and confidence, risk, and policy. */
+  metaFor: "metaFor",
+  /** How long DOM changes are coalesced before a re-scan. */
+  debounceMs: "debounceMs",
+  /** How long the page must go without a DOM change before an act reports. */
+  quietMs: "quietMs",
+  /** A read of the page (`handle.read()`) as Markdown: sections, fields, tables, lists, and what could not be read. */
+  formatRead: "formatRead",
+  /** The read-only page-content actions `read` and `wait`, served as `<ns>.read` and `<ns>.wait` [S-AUTO-16]. */
+  contentDomains: "contentDomains",
+  /** At most this many characters of Markdown per read result (default 12000, at most 50000); `nextCursor` continues. */
+  maxChars: "maxChars",
+  /** At most this many rows per table and items per list in a read (default 50, at most 500). */
+  maxRows: "maxRows",
+  /** How often a wait checks its condition at least, beside every DOM change (default 250 ms). */
+  pollMs: "pollMs",
+  /** Action source: one candidate per OpenAPI 3.x operation, with an HTTP handler. */
+  fromOpenAPI: "fromOpenAPI",
+  /** Action source: a table of zod-typed functions keyed by action name. */
+  fromFunctions: "fromFunctions",
+  /** Action source: a tRPC router's queries and mutations, read structurally. */
+  fromTRPCRouter: "fromTRPCRouter",
+  /** Register every generated action on a server. */
+  registerGenerated: "registerGenerated",
+  /** One line per generator warning. */
+  formatWarnings: "formatWarnings",
+  /** Convert the common JSON Schema subset to Zod, warning on the rest. */
+  jsonSchemaToZod: "jsonSchemaToZod",
+  /** Policy: risk for candidates whose source did not decide. */
+  defaultRisk: "defaultRisk",
+  /** Policy: leave out actions above this risk. */
+  maxRisk: "maxRisk",
+  /** Policy: leave out actions whose input fields lack descriptions. */
+  requireInputDescriptions: "requireInputDescriptions",
+  /** OpenAPI option: keep operations the document marks deprecated. */
+  includeDeprecated: "includeDeprecated",
+  /** tRPC option: build the router context from the AXE handler context. */
+  createContext: "createContext",
+} as const);
+
+/** `schema` names. */
+export const schema = /* @__PURE__ */ Object.freeze({
+  /** Members not named by `properties` or `patternProperties`. */
+  additionalProperties: "additionalProperties",
+  /** Members whose names match a pattern. */
+  patternProperties: "patternProperties",
+  /** A schema every member name must match. */
+  propertyNames: "propertyNames",
+  /** Fewest members. */
+  minProperties: "minProperties",
+  /** Most members. */
+  maxProperties: "maxProperties",
+  /** Members required when another is present. */
+  dependentRequired: "dependentRequired",
+  /** A schema applied when a member is present. */
+  dependentSchemas: "dependentSchemas",
+  /** Schemas for the first array items, in order (tuples). */
+  prefixItems: "prefixItems",
+  /** Fewest array items. */
+  minItems: "minItems",
+  /** Most array items. */
+  maxItems: "maxItems",
+  /** No two array items deeply equal. */
+  uniqueItems: "uniqueItems",
+  /** Fewest items matching `contains`. */
+  minContains: "minContains",
+  /** Most items matching `contains`. */
+  maxContains: "maxContains",
+  /** Shortest string, in code points. */
+  minLength: "minLength",
+  /** Number strictly above. */
+  exclusiveMinimum: "exclusiveMinimum",
+  /** Number strictly below. */
+  exclusiveMaximum: "exclusiveMaximum",
+  /** Number an exact decimal multiple of ([P-SCHEMA-3]). */
+  multipleOf: "multipleOf",
+  /** Every schema must match. */
+  allOf: "allOf",
+  /** At least one schema must match. */
+  anyOf: "anyOf",
+  /** Exactly one schema must match. */
+  oneOf: "oneOf",
+  /** Ignored by the validator. */
+  writeOnly: "writeOnly",
+  /** Refuses every value in the SDK's validator ([P-SCHEMA-2]). */
+  unevaluatedProperties: "unevaluatedProperties",
+  /** Refuses every value in the SDK's validator ([P-SCHEMA-2]). */
+  unevaluatedItems: "unevaluatedItems",
+  /** Draft 7; refuses every value in the SDK's validator ([P-SCHEMA-2]). */
+  additionalItems: "additionalItems",
 } as const);
 
 /**
@@ -833,19 +1413,24 @@ export const WIRE = /* @__PURE__ */ Object.freeze({
   period,
   tone,
   kind,
+  entryKind,
+  op,
+  field,
+  domAttribute,
+  markup,
   reason,
   tool,
   cli,
-  field,
   payload,
   api,
+  schema,
 } as const);
 
 export type Wire = typeof WIRE;
 /** Union of every `protocol` name. */
 export type WireProtocol = "axe/0.1";
 /** Union of every `path` name. */
-export type WirePath = "/.well-known/axe.json" | "/axe/manifest" | "/.well-known/axe-index.json" | "/axe/actions" | "/axe/continue" | "/axe/resume" | "/axe/poll";
+export type WirePath = "/.well-known/axe.json" | "/axe/manifest" | "/.well-known/axe-index.json" | "/axe/actions" | "/axe/continue" | "/axe/resume" | "/axe/poll" | "/axe/state";
 /** Union of every `header` name. */
 export type WireHeader = "AXE-Protocol" | "AXE-Manifest" | "Retry-After" | "RateLimit-Policy" | "Authorization" | "User-Agent" | "Content-Type";
 /** Union of every `link` name. */
@@ -876,18 +1461,28 @@ export type WirePeriod = "once" | "hour" | "day" | "month" | "year";
 export type WireTone = "formal" | "neutral" | "casual";
 /** Union of every `kind` name. */
 export type WireKind = "payment.card" | "payment.ach-debit" | "payment.wire-confirmation" | "payment.invoice" | "identity.government-id" | "identity.date-of-birth" | "identity.ssn-last-4" | "document.url" | "document.base64" | "contact.email" | "contact.phone" | "contact.address" | "consent.terms" | "x-";
-/** Union of every `reason` name. */
-export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required";
-/** Union of every `tool` name. */
-export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll";
-/** Union of every `cli` name. */
-export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp";
+/** Union of every `entryKind` name. */
+export type WireEntryKind = "action" | "field" | "collection";
+/** Union of every `op` name. */
+export type WireOp = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
 /** Union of every `field` name. */
-export type WireField = "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant";
+export type WireField = "app" | "at" | "entries" | "objects" | "index" | "role" | "object" | "state" | "effect" | "mutates" | "confirm" | "text" | "edit" | "maxLength" | "value" | "total" | "loaded" | "filter" | "sort" | "op" | "target" | "actor" | "changed" | "seq" | "ledgerSeq" | "revBefore" | "revAfter" | "limit" | "frozen" | "ignoredRev" | "conflict" | "textHash" | "source" | "tier" | "protocol" | "name" | "description" | "baseUrl" | "humanFallbackUrl" | "auth" | "modes" | "userLoginUrl" | "actions" | "flows" | "steps" | "policies" | "rateLimit" | "requestsPerMinute" | "burst" | "termsUrl" | "dataRetention" | "agents" | "allow" | "deny" | "contact" | "email" | "brand" | "logoUrl" | "accentColor" | "tone" | "indexUrl" | "updatedAt" | "platform" | "sites" | "manifestUrl" | "tags" | "next" | "title" | "input" | "output" | "readOnly" | "idempotent" | "reversible" | "risk" | "examples" | "display" | "affordances" | "pagination" | "cursorIn" | "cursorOut" | "pageSize" | "default" | "max" | "freshness" | "cacheTtlSeconds" | "validUntil" | "humanHandoff" | "reasons" | "deprecated" | "since" | "replacedBy" | "kind" | "items" | "item" | "id" | "subtitle" | "summary" | "image" | "url" | "price" | "amount" | "currency" | "period" | "attributes" | "label" | "path" | "format" | "compare" | "badges" | "suggestedComparison" | "emptyMessage" | "disclaimer" | "action" | "primary" | "_axe" | "context" | "onBehalfOf" | "locale" | "timezone" | "agent" | "version" | "vendor" | "sessionId" | "idempotencyKey" | "status" | "reason" | "message" | "accepts" | "schema" | "sensitive" | "instructions" | "continuationToken" | "expiresAt" | "fallback" | "payload" | "handoff" | "resumeToken" | "whatAgentShouldSayToUser" | "pollUrl" | "retryAfter" | "error" | "code" | "retryable" | "details" | "issues" | "handoffStatus" | "handoffId" | "operationStatus" | "maxBodyBytes" | "x-axe-refined" | "expected" | "schemaVersion" | "ts" | "latencyMs" | "ladder" | "errorCode" | "tenant" | "live" | "availability" | "available" | "requires" | "rev" | "expectedRev" | "currentRev" | "event" | "entryId" | "nextCursor" | "nameFrom" | "staleConfig" | "revMoved";
+/** Union of every `domAttribute` name. */
+export type WireDomAttribute = "data-surface-id" | "data-surface-kind" | "data-surface-object" | "data-surface-reason" | "aria-label" | "aria-disabled" | "aria-readonly";
+/** Union of every `markup` name. */
+export type WireMarkup = "data-surface-ignore";
+/** Union of every `reason` name. */
+export type WireReason = "login_required" | "payment_required" | "consent_required" | "identity_required" | "document_required" | "cross_origin_refused" | "json_required" | "payload_too_large" | "approval_required" | "outcome_unknown";
+/** Union of every `tool` name. */
+export type WireTool = "axe_continue" | "axe_resume" | "axe_manifest" | "axe_poll" | "axe_state";
+/** Union of every `cli` name. */
+export type WireCli = "axe init" | "axe validate" | "axe inspect" | "axe preview" | "axe conformance" | "axe audit" | "axe mcp" | "axe generate" | "axe relay" | "axe host" | "axe surface" | "axe surface init" | "axe surface coverage";
 /** Union of every `payload` name. */
 export type WirePayload = "token" | "provider" | "brand" | "last4" | "expMonth" | "expYear" | "billingPostalCode" | "accountHolderName" | "routingNumber" | "accountNumber" | "accountType" | "authorizedAt" | "authorizationText" | "referenceNumber" | "sentAt" | "bankName" | "companyName" | "billingEmail" | "purchaseOrderNumber" | "netTermsDays" | "taxId" | "documentType" | "documentNumber" | "issuingCountry" | "fullName" | "dateOfBirth" | "expiresOn" | "mimeType" | "filename" | "sizeBytes" | "contentBase64" | "phone" | "canReceiveSms" | "line1" | "line2" | "city" | "region" | "postalCode" | "country" | "policyUrl" | "policyVersion" | "scope" | "acceptedAt" | "acceptedBy";
 /** Union of every `api` name. */
-export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport";
+export type WireApi = "createAXE" | "action" | "register" | "describe" | "fetchHandler" | "handler" | "needsInput" | "onContinue" | "onResume" | "onPoll" | "state" | "completeHandoff" | "requestApproval" | "approvalState" | "getHandoff" | "approveHandoff" | "cancelHandoff" | "approvedBy" | "resolveDisplay" | "kinds" | "accept" | "lintAgentText" | "lintManifest" | "onRequest" | "onResult" | "ProviderResultContext" | "onError" | "onEvent" | "consoleSink" | "jsonlFileSink" | "otelSink" | "tokenStore" | "idempotencyStore" | "secret" | "cors" | "authenticate" | "verifySiteKey" | "index" | "revision" | "describeLive" | "addProvider" | "onActionsChanged" | "unavailable" | "discover" | "manifest" | "invoke" | "continue" | "resume" | "poll" | "run" | "fulfillers" | "confirm" | "present" | "toMarkdown" | "toHTML" | "stateToMarkdown" | "createMcpServer" | "serveStdio" | "serveHttp" | "axeExpress" | "axeNext" | "axeNextPages" | "axeFetch" | "runConformance" | "runAudit" | "createTestClient" | "checkVocabularyDrift" | "createSurface" | "unregister" | "reconcile" | "bump" | "seedRev" | "setRev" | "currentRev" | "onChange" | "setObjects" | "observe" | "act" | "expose" | "useSurface" | "surfaceActions" | "actionNameFor" | "entryIdFor" | "entrySlug" | "entries" | "registryVersion" | "availability" | "withMimeTypes" | "customKind" | "suggestedReason" | "ttlSeconds" | "requireCompletion" | "appendHandoffId" | "completion" | "identity" | "claims" | "siteKey" | "requireIdempotencyKey" | "idempotencyTtlSeconds" | "manifestCacheSeconds" | "allowCredentials" | "requestPolicy" | "requireJsonContentType" | "trustedOrigins" | "originCheck" | "combineSinks" | "parseUserAgent" | "isOk" | "isNeedsInput" | "isNeedsHuman" | "isPending" | "isError" | "allowed" | "retries" | "maxRetryAfterMs" | "maxWaitMs" | "trust" | "allowCrossOrigin" | "allowHttp" | "destinationPolicy" | "checkDestination" | "toolNameFor" | "formatResult" | "pollBudgetMs" | "isAxePath" | "toWebRequest" | "sendWebResponse" | "invokeAction" | "samplePayload" | "formatConformanceTable" | "formatAuditTable" | "formatAuditHtml" | "formatDriftReport" | "onActionEvent" | "emit" | "ledger" | "record" | "freeze" | "thaw" | "surfaceAttributes" | "surfaceSelector" | "describeEntry" | "useSurfaceProps" | "attributesFor" | "subscribe" | "setProfile" | "revisionMode" | "SURFACE_ATTRIBUTES" | "toJsonSchema" | "SurfaceConflict" | "ActContext" | "scopedSurfaces" | "authFor" | "redactEvent" | "idleMs" | "onEvict" | "keyFor" | "SqliteIdempotencyStore" | "operationLeaseSeconds" | "operationId" | "maxBodyBytes" | "maxEntries" | "sweepIntervalMs" | "prune" | "schemaProblems" | "timeoutMs" | "maxResponseBytes" | "maxPollAttempts" | "validateJsonSchema" | "lintAction" | "isBacktrackingPattern" | "clientFor" | "idleTimeoutMs" | "maxSessions" | "sessionCount" | "sessionIdGenerator" | "allowedOrigins" | "requiredScopes" | "resourceMetadataUrl" | "authInfo" | "protectedResourceMetadata" | "manifestMaxAgeMs" | "onManifestChange" | "exposeWebMcp" | "modelContext" | "registerTool" | "consequentialHint" | "requestedSchema" | "isSensitiveAccept" | "toFormSchema" | "readOnlyHint" | "untrustedContentHint" | "domainActions" | "actionFor" | "idleReason" | "maxPageSize" | "connectRelay" | "localMcpService" | "LOCAL_MCP_SERVICE_URL" | "getToken" | "onStatus" | "requireApproval" | "createRelay" | "authenticateTab" | "agentAuth" | "devPairing" | "syncTimeoutMs" | "reconnectGraceMs" | "actTimeoutMs" | "navigated" | "tabRetentionMs" | "mintRelayToken" | "verifyRelayToken" | "injectedRelay" | "relayOptions" | "approvals" | "linkTtlMs" | "approvalUrl" | "tabId" | "ToolCallContext" | "completeElicitation" | "createHost" | "sessionFor" | "SessionLoginRequired" | "storageStateSession" | "cookieSession" | "storageState" | "localStorage" | "startPath" | "navigationTimeoutMs" | "tokenTtlSeconds" | "executablePath" | "relayUrl" | "relaySecret" | "closeSession" | "relayEvent" | "extraTools" | "handleAgent" | "relayAgentContext" | "autoSurface" | "formatCoverage" | "checkConfig" | "autoDomains" | "autoActions" | "useAutoSurface" | "useAutoSurfaceHandle" | "webMcp" | "onReady" | "elementFor" | "metaFor" | "debounceMs" | "quietMs" | "formatRead" | "contentDomains" | "maxChars" | "maxRows" | "pollMs" | "fromOpenAPI" | "fromFunctions" | "fromTRPCRouter" | "registerGenerated" | "formatWarnings" | "jsonSchemaToZod" | "defaultRisk" | "maxRisk" | "requireInputDescriptions" | "includeDeprecated" | "createContext";
+/** Union of every `schema` name. */
+export type WireSchema = "additionalProperties" | "patternProperties" | "propertyNames" | "minProperties" | "maxProperties" | "dependentRequired" | "dependentSchemas" | "prefixItems" | "minItems" | "maxItems" | "uniqueItems" | "minContains" | "maxContains" | "minLength" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf" | "allOf" | "anyOf" | "oneOf" | "writeOnly" | "unevaluatedProperties" | "unevaluatedItems" | "additionalItems";
 
 /** All entries as a flat list, for tooling. */
 export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly key: string; readonly name: string }> = /* @__PURE__ */ Object.freeze([
@@ -899,6 +1494,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "path", key: "continue", name: "/axe/continue" },
   { category: "path", key: "resume", name: "/axe/resume" },
   { category: "path", key: "poll", name: "/axe/poll" },
+  { category: "path", key: "state", name: "/axe/state" },
   { category: "header", key: "protocol", name: "AXE-Protocol" },
   { category: "header", key: "manifest", name: "AXE-Manifest" },
   { category: "header", key: "retryAfter", name: "Retry-After" },
@@ -978,15 +1574,70 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "kind", key: "contactAddress", name: "contact.address" },
   { category: "kind", key: "consentTerms", name: "consent.terms" },
   { category: "kind", key: "customPrefix", name: "x-" },
+  { category: "entryKind", key: "action", name: "action" },
+  { category: "entryKind", key: "field", name: "field" },
+  { category: "entryKind", key: "collection", name: "collection" },
+  { category: "op", key: "click", name: "CLICK" },
+  { category: "op", key: "toggle", name: "TOGGLE" },
+  { category: "op", key: "typeText", name: "TYPE_TEXT" },
+  { category: "op", key: "scrollDown", name: "SCROLL_DOWN" },
+  { category: "field", key: "app", name: "app" },
+  { category: "field", key: "at", name: "at" },
+  { category: "field", key: "entries", name: "entries" },
+  { category: "field", key: "objects", name: "objects" },
+  { category: "field", key: "index", name: "index" },
+  { category: "field", key: "role", name: "role" },
+  { category: "field", key: "object", name: "object" },
+  { category: "field", key: "state", name: "state" },
+  { category: "field", key: "effect", name: "effect" },
+  { category: "field", key: "mutates", name: "mutates" },
+  { category: "field", key: "confirm", name: "confirm" },
+  { category: "field", key: "text", name: "text" },
+  { category: "field", key: "edit", name: "edit" },
+  { category: "field", key: "maxLength", name: "maxLength" },
+  { category: "field", key: "value", name: "value" },
+  { category: "field", key: "total", name: "total" },
+  { category: "field", key: "loaded", name: "loaded" },
+  { category: "field", key: "filter", name: "filter" },
+  { category: "field", key: "sort", name: "sort" },
+  { category: "field", key: "op", name: "op" },
+  { category: "field", key: "target", name: "target" },
+  { category: "field", key: "actor", name: "actor" },
+  { category: "field", key: "changed", name: "changed" },
+  { category: "field", key: "seq", name: "seq" },
+  { category: "field", key: "ledgerSeq", name: "ledgerSeq" },
+  { category: "field", key: "revBefore", name: "revBefore" },
+  { category: "field", key: "revAfter", name: "revAfter" },
+  { category: "field", key: "limit", name: "limit" },
+  { category: "field", key: "frozen", name: "frozen" },
+  { category: "field", key: "ignoredRev", name: "ignoredRev" },
+  { category: "field", key: "handlerConflict", name: "conflict" },
+  { category: "field", key: "textHash", name: "textHash" },
+  { category: "field", key: "source", name: "source" },
+  { category: "field", key: "tier", name: "tier" },
+  { category: "domAttribute", key: "surfaceId", name: "data-surface-id" },
+  { category: "domAttribute", key: "surfaceKind", name: "data-surface-kind" },
+  { category: "domAttribute", key: "surfaceObject", name: "data-surface-object" },
+  { category: "domAttribute", key: "surfaceReason", name: "data-surface-reason" },
+  { category: "domAttribute", key: "label", name: "aria-label" },
+  { category: "domAttribute", key: "disabled", name: "aria-disabled" },
+  { category: "domAttribute", key: "readOnly", name: "aria-readonly" },
+  { category: "markup", key: "ignore", name: "data-surface-ignore" },
   { category: "reason", key: "loginRequired", name: "login_required" },
   { category: "reason", key: "paymentRequired", name: "payment_required" },
   { category: "reason", key: "consentRequired", name: "consent_required" },
   { category: "reason", key: "identityRequired", name: "identity_required" },
   { category: "reason", key: "documentRequired", name: "document_required" },
+  { category: "reason", key: "crossOriginRefused", name: "cross_origin_refused" },
+  { category: "reason", key: "jsonRequired", name: "json_required" },
+  { category: "reason", key: "payloadTooLarge", name: "payload_too_large" },
+  { category: "reason", key: "approvalRequired", name: "approval_required" },
+  { category: "reason", key: "outcomeUnknown", name: "outcome_unknown" },
   { category: "tool", key: "continue", name: "axe_continue" },
   { category: "tool", key: "resume", name: "axe_resume" },
   { category: "tool", key: "manifest", name: "axe_manifest" },
   { category: "tool", key: "poll", name: "axe_poll" },
+  { category: "tool", key: "state", name: "axe_state" },
   { category: "cli", key: "init", name: "axe init" },
   { category: "cli", key: "validate", name: "axe validate" },
   { category: "cli", key: "inspect", name: "axe inspect" },
@@ -994,6 +1645,12 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "cli", key: "conformance", name: "axe conformance" },
   { category: "cli", key: "audit", name: "axe audit" },
   { category: "cli", key: "mcp", name: "axe mcp" },
+  { category: "cli", key: "generate", name: "axe generate" },
+  { category: "cli", key: "relay", name: "axe relay" },
+  { category: "cli", key: "host", name: "axe host" },
+  { category: "cli", key: "surface", name: "axe surface" },
+  { category: "cli", key: "surfaceInit", name: "axe surface init" },
+  { category: "cli", key: "surfaceCoverage", name: "axe surface coverage" },
   { category: "field", key: "protocol", name: "protocol" },
   { category: "field", key: "name", name: "name" },
   { category: "field", key: "description", name: "description" },
@@ -1106,6 +1763,10 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "details", name: "details" },
   { category: "field", key: "issues", name: "issues" },
   { category: "field", key: "handoffStatus", name: "handoffStatus" },
+  { category: "field", key: "handoffId", name: "handoffId" },
+  { category: "field", key: "operationStatus", name: "operationStatus" },
+  { category: "field", key: "maxBodyBytes", name: "maxBodyBytes" },
+  { category: "field", key: "axeRefined", name: "x-axe-refined" },
   { category: "field", key: "expected", name: "expected" },
   { category: "field", key: "schemaVersion", name: "schemaVersion" },
   { category: "field", key: "ts", name: "ts" },
@@ -1113,6 +1774,14 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "field", key: "ladder", name: "ladder" },
   { category: "field", key: "errorCode", name: "errorCode" },
   { category: "field", key: "tenant", name: "tenant" },
+  { category: "field", key: "live", name: "live" },
+  { category: "field", key: "availability", name: "availability" },
+  { category: "field", key: "available", name: "available" },
+  { category: "field", key: "requires", name: "requires" },
+  { category: "field", key: "rev", name: "rev" },
+  { category: "field", key: "expectedRev", name: "expectedRev" },
+  { category: "field", key: "currentRev", name: "currentRev" },
+  { category: "field", key: "event", name: "event" },
   { category: "payload", key: "token", name: "token" },
   { category: "payload", key: "provider", name: "provider" },
   { category: "payload", key: "brand", name: "brand" },
@@ -1169,6 +1838,12 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "onPoll", name: "onPoll" },
   { category: "api", key: "state", name: "state" },
   { category: "api", key: "completeHandoff", name: "completeHandoff" },
+  { category: "api", key: "requestApproval", name: "requestApproval" },
+  { category: "api", key: "approvalState", name: "approvalState" },
+  { category: "api", key: "getHandoff", name: "getHandoff" },
+  { category: "api", key: "approveHandoff", name: "approveHandoff" },
+  { category: "api", key: "cancelHandoff", name: "cancelHandoff" },
+  { category: "api", key: "approvedBy", name: "approvedBy" },
   { category: "api", key: "resolveDisplay", name: "resolveDisplay" },
   { category: "api", key: "kinds", name: "kinds" },
   { category: "api", key: "accept", name: "accept" },
@@ -1176,6 +1851,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "lintManifest", name: "lintManifest" },
   { category: "api", key: "onRequest", name: "onRequest" },
   { category: "api", key: "onResult", name: "onResult" },
+  { category: "api", key: "providerResultContext", name: "ProviderResultContext" },
   { category: "api", key: "onError", name: "onError" },
   { category: "api", key: "onEvent", name: "onEvent" },
   { category: "api", key: "consoleSink", name: "consoleSink" },
@@ -1188,6 +1864,11 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "authenticate", name: "authenticate" },
   { category: "api", key: "verifySiteKey", name: "verifySiteKey" },
   { category: "api", key: "index", name: "index" },
+  { category: "api", key: "revision", name: "revision" },
+  { category: "api", key: "describeLive", name: "describeLive" },
+  { category: "api", key: "addProvider", name: "addProvider" },
+  { category: "api", key: "onActionsChanged", name: "onActionsChanged" },
+  { category: "api", key: "unavailable", name: "unavailable" },
   { category: "api", key: "discover", name: "discover" },
   { category: "api", key: "manifest", name: "manifest" },
   { category: "api", key: "invoke", name: "invoke" },
@@ -1200,6 +1881,7 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "present", name: "present" },
   { category: "api", key: "toMarkdown", name: "toMarkdown" },
   { category: "api", key: "toHTML", name: "toHTML" },
+  { category: "api", key: "stateToMarkdown", name: "stateToMarkdown" },
   { category: "api", key: "createMcpServer", name: "createMcpServer" },
   { category: "api", key: "serveStdio", name: "serveStdio" },
   { category: "api", key: "serveHttp", name: "serveHttp" },
@@ -1211,6 +1893,26 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "runAudit", name: "runAudit" },
   { category: "api", key: "createTestClient", name: "createTestClient" },
   { category: "api", key: "checkVocabularyDrift", name: "checkVocabularyDrift" },
+  { category: "api", key: "createSurface", name: "createSurface" },
+  { category: "api", key: "unregister", name: "unregister" },
+  { category: "api", key: "reconcile", name: "reconcile" },
+  { category: "api", key: "bump", name: "bump" },
+  { category: "api", key: "seedRev", name: "seedRev" },
+  { category: "api", key: "setRev", name: "setRev" },
+  { category: "api", key: "currentRev", name: "currentRev" },
+  { category: "api", key: "onChange", name: "onChange" },
+  { category: "api", key: "setObjects", name: "setObjects" },
+  { category: "api", key: "observe", name: "observe" },
+  { category: "api", key: "act", name: "act" },
+  { category: "api", key: "expose", name: "expose" },
+  { category: "api", key: "useSurface", name: "useSurface" },
+  { category: "api", key: "surfaceActions", name: "surfaceActions" },
+  { category: "api", key: "actionNameFor", name: "actionNameFor" },
+  { category: "api", key: "entryIdFor", name: "entryIdFor" },
+  { category: "api", key: "entrySlug", name: "entrySlug" },
+  { category: "api", key: "entries", name: "entries" },
+  { category: "api", key: "registryVersion", name: "registryVersion" },
+  { category: "api", key: "availability", name: "availability" },
   { category: "api", key: "withMimeTypes", name: "withMimeTypes" },
   { category: "api", key: "customKind", name: "customKind" },
   { category: "api", key: "suggestedReason", name: "suggestedReason" },
@@ -1225,6 +1927,10 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "idempotencyTtlSeconds", name: "idempotencyTtlSeconds" },
   { category: "api", key: "manifestCacheSeconds", name: "manifestCacheSeconds" },
   { category: "api", key: "allowCredentials", name: "allowCredentials" },
+  { category: "api", key: "requestPolicy", name: "requestPolicy" },
+  { category: "api", key: "requireJsonContentType", name: "requireJsonContentType" },
+  { category: "api", key: "trustedOrigins", name: "trustedOrigins" },
+  { category: "api", key: "originCheck", name: "originCheck" },
   { category: "api", key: "combineSinks", name: "combineSinks" },
   { category: "api", key: "parseUserAgent", name: "parseUserAgent" },
   { category: "api", key: "isOk", name: "isOk" },
@@ -1236,6 +1942,11 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "retries", name: "retries" },
   { category: "api", key: "maxRetryAfterMs", name: "maxRetryAfterMs" },
   { category: "api", key: "maxWaitMs", name: "maxWaitMs" },
+  { category: "api", key: "trust", name: "trust" },
+  { category: "api", key: "allowCrossOrigin", name: "allowCrossOrigin" },
+  { category: "api", key: "allowHttp", name: "allowHttp" },
+  { category: "api", key: "destinationPolicy", name: "destinationPolicy" },
+  { category: "api", key: "checkDestination", name: "checkDestination" },
   { category: "api", key: "toolNameFor", name: "toolNameFor" },
   { category: "api", key: "formatResult", name: "formatResult" },
   { category: "api", key: "pollBudgetMs", name: "pollBudgetMs" },
@@ -1248,4 +1959,168 @@ export const WIRE_ENTRIES: ReadonlyArray<{ readonly category: string; readonly k
   { category: "api", key: "formatAuditTable", name: "formatAuditTable" },
   { category: "api", key: "formatAuditHtml", name: "formatAuditHtml" },
   { category: "api", key: "formatDriftReport", name: "formatDriftReport" },
+  { category: "api", key: "onActionEvent", name: "onActionEvent" },
+  { category: "api", key: "emit", name: "emit" },
+  { category: "api", key: "ledger", name: "ledger" },
+  { category: "api", key: "record", name: "record" },
+  { category: "api", key: "freeze", name: "freeze" },
+  { category: "api", key: "thaw", name: "thaw" },
+  { category: "api", key: "surfaceAttributes", name: "surfaceAttributes" },
+  { category: "api", key: "surfaceSelector", name: "surfaceSelector" },
+  { category: "api", key: "describeEntry", name: "describeEntry" },
+  { category: "api", key: "useSurfaceProps", name: "useSurfaceProps" },
+  { category: "api", key: "attributesFor", name: "attributesFor" },
+  { category: "api", key: "subscribe", name: "subscribe" },
+  { category: "api", key: "setProfile", name: "setProfile" },
+  { category: "api", key: "revisionMode", name: "revisionMode" },
+  { category: "api", key: "surfaceAttributeNames", name: "SURFACE_ATTRIBUTES" },
+  { category: "api", key: "toJsonSchema", name: "toJsonSchema" },
+  { category: "api", key: "surfaceConflict", name: "SurfaceConflict" },
+  { category: "api", key: "actContext", name: "ActContext" },
+  { category: "api", key: "scopedSurfaces", name: "scopedSurfaces" },
+  { category: "api", key: "authFor", name: "authFor" },
+  { category: "api", key: "redactEvent", name: "redactEvent" },
+  { category: "api", key: "idleMs", name: "idleMs" },
+  { category: "api", key: "onEvict", name: "onEvict" },
+  { category: "api", key: "keyFor", name: "keyFor" },
+  { category: "api", key: "sqliteIdempotencyStore", name: "SqliteIdempotencyStore" },
+  { category: "api", key: "operationLeaseSeconds", name: "operationLeaseSeconds" },
+  { category: "api", key: "operationId", name: "operationId" },
+  { category: "api", key: "maxBodyBytes", name: "maxBodyBytes" },
+  { category: "api", key: "maxEntries", name: "maxEntries" },
+  { category: "api", key: "sweepIntervalMs", name: "sweepIntervalMs" },
+  { category: "api", key: "prune", name: "prune" },
+  { category: "api", key: "schemaProblems", name: "schemaProblems" },
+  { category: "api", key: "timeoutMs", name: "timeoutMs" },
+  { category: "api", key: "maxResponseBytes", name: "maxResponseBytes" },
+  { category: "api", key: "maxPollAttempts", name: "maxPollAttempts" },
+  { category: "api", key: "validateJsonSchema", name: "validateJsonSchema" },
+  { category: "api", key: "lintAction", name: "lintAction" },
+  { category: "api", key: "isBacktrackingPattern", name: "isBacktrackingPattern" },
+  { category: "schema", key: "additionalProperties", name: "additionalProperties" },
+  { category: "schema", key: "patternProperties", name: "patternProperties" },
+  { category: "schema", key: "propertyNames", name: "propertyNames" },
+  { category: "schema", key: "minProperties", name: "minProperties" },
+  { category: "schema", key: "maxProperties", name: "maxProperties" },
+  { category: "schema", key: "dependentRequired", name: "dependentRequired" },
+  { category: "schema", key: "dependentSchemas", name: "dependentSchemas" },
+  { category: "schema", key: "prefixItems", name: "prefixItems" },
+  { category: "schema", key: "minItems", name: "minItems" },
+  { category: "schema", key: "maxItems", name: "maxItems" },
+  { category: "schema", key: "uniqueItems", name: "uniqueItems" },
+  { category: "schema", key: "minContains", name: "minContains" },
+  { category: "schema", key: "maxContains", name: "maxContains" },
+  { category: "schema", key: "minLength", name: "minLength" },
+  { category: "schema", key: "exclusiveMinimum", name: "exclusiveMinimum" },
+  { category: "schema", key: "exclusiveMaximum", name: "exclusiveMaximum" },
+  { category: "schema", key: "multipleOf", name: "multipleOf" },
+  { category: "schema", key: "allOf", name: "allOf" },
+  { category: "schema", key: "anyOf", name: "anyOf" },
+  { category: "schema", key: "oneOf", name: "oneOf" },
+  { category: "schema", key: "writeOnly", name: "writeOnly" },
+  { category: "schema", key: "unevaluatedProperties", name: "unevaluatedProperties" },
+  { category: "schema", key: "unevaluatedItems", name: "unevaluatedItems" },
+  { category: "schema", key: "additionalItems", name: "additionalItems" },
+  { category: "api", key: "clientFor", name: "clientFor" },
+  { category: "api", key: "idleTimeoutMs", name: "idleTimeoutMs" },
+  { category: "api", key: "maxSessions", name: "maxSessions" },
+  { category: "api", key: "sessionCount", name: "sessionCount" },
+  { category: "api", key: "sessionIdGenerator", name: "sessionIdGenerator" },
+  { category: "api", key: "allowedOrigins", name: "allowedOrigins" },
+  { category: "api", key: "requiredScopes", name: "requiredScopes" },
+  { category: "api", key: "resourceMetadataUrl", name: "resourceMetadataUrl" },
+  { category: "api", key: "authInfo", name: "authInfo" },
+  { category: "api", key: "protectedResourceMetadata", name: "protectedResourceMetadata" },
+  { category: "api", key: "manifestMaxAgeMs", name: "manifestMaxAgeMs" },
+  { category: "api", key: "onManifestChange", name: "onManifestChange" },
+  { category: "api", key: "exposeWebMcp", name: "exposeWebMcp" },
+  { category: "api", key: "modelContext", name: "modelContext" },
+  { category: "api", key: "registerTool", name: "registerTool" },
+  { category: "api", key: "consequentialHint", name: "consequentialHint" },
+  { category: "api", key: "requestedSchema", name: "requestedSchema" },
+  { category: "api", key: "isSensitiveAccept", name: "isSensitiveAccept" },
+  { category: "api", key: "toFormSchema", name: "toFormSchema" },
+  { category: "api", key: "readOnlyHint", name: "readOnlyHint" },
+  { category: "api", key: "untrustedContentHint", name: "untrustedContentHint" },
+  { category: "field", key: "entryId", name: "entryId" },
+  { category: "field", key: "nextCursor", name: "nextCursor" },
+  { category: "api", key: "domainActions", name: "domainActions" },
+  { category: "api", key: "actionFor", name: "actionFor" },
+  { category: "api", key: "idleReason", name: "idleReason" },
+  { category: "api", key: "maxPageSize", name: "maxPageSize" },
+  { category: "api", key: "connectRelay", name: "connectRelay" },
+  { category: "api", key: "localMcpService", name: "localMcpService" },
+  { category: "api", key: "localMcpServiceUrl", name: "LOCAL_MCP_SERVICE_URL" },
+  { category: "api", key: "getToken", name: "getToken" },
+  { category: "api", key: "onStatus", name: "onStatus" },
+  { category: "api", key: "requireApproval", name: "requireApproval" },
+  { category: "api", key: "createRelay", name: "createRelay" },
+  { category: "api", key: "authenticateTab", name: "authenticateTab" },
+  { category: "api", key: "agentAuth", name: "agentAuth" },
+  { category: "api", key: "devPairing", name: "devPairing" },
+  { category: "api", key: "syncTimeoutMs", name: "syncTimeoutMs" },
+  { category: "api", key: "reconnectGraceMs", name: "reconnectGraceMs" },
+  { category: "api", key: "actTimeoutMs", name: "actTimeoutMs" },
+  { category: "api", key: "navigated", name: "navigated" },
+  { category: "api", key: "tabRetentionMs", name: "tabRetentionMs" },
+  { category: "api", key: "mintRelayToken", name: "mintRelayToken" },
+  { category: "api", key: "verifyRelayToken", name: "verifyRelayToken" },
+  { category: "api", key: "injectedRelay", name: "injectedRelay" },
+  { category: "api", key: "relayOptions", name: "relayOptions" },
+  { category: "api", key: "approvals", name: "approvals" },
+  { category: "api", key: "linkTtlMs", name: "linkTtlMs" },
+  { category: "api", key: "approvalUrl", name: "approvalUrl" },
+  { category: "api", key: "tabId", name: "tabId" },
+  { category: "api", key: "toolCallContext", name: "ToolCallContext" },
+  { category: "api", key: "completeElicitation", name: "completeElicitation" },
+  { category: "api", key: "createHost", name: "createHost" },
+  { category: "api", key: "sessionFor", name: "sessionFor" },
+  { category: "api", key: "sessionLoginRequired", name: "SessionLoginRequired" },
+  { category: "api", key: "storageStateSession", name: "storageStateSession" },
+  { category: "api", key: "cookieSession", name: "cookieSession" },
+  { category: "api", key: "storageState", name: "storageState" },
+  { category: "api", key: "localStorage", name: "localStorage" },
+  { category: "api", key: "startPath", name: "startPath" },
+  { category: "api", key: "navigationTimeoutMs", name: "navigationTimeoutMs" },
+  { category: "api", key: "tokenTtlSeconds", name: "tokenTtlSeconds" },
+  { category: "api", key: "executablePath", name: "executablePath" },
+  { category: "api", key: "relayUrl", name: "relayUrl" },
+  { category: "api", key: "relaySecret", name: "relaySecret" },
+  { category: "api", key: "closeSession", name: "closeSession" },
+  { category: "api", key: "relayEvent", name: "relayEvent" },
+  { category: "api", key: "extraTools", name: "extraTools" },
+  { category: "api", key: "handleAgent", name: "handleAgent" },
+  { category: "api", key: "relayAgentContext", name: "relayAgentContext" },
+  { category: "api", key: "autoSurface", name: "autoSurface" },
+  { category: "api", key: "formatCoverage", name: "formatCoverage" },
+  { category: "api", key: "checkConfig", name: "checkConfig" },
+  { category: "api", key: "autoDomains", name: "autoDomains" },
+  { category: "api", key: "autoActions", name: "autoActions" },
+  { category: "api", key: "useAutoSurface", name: "useAutoSurface" },
+  { category: "api", key: "useAutoSurfaceHandle", name: "useAutoSurfaceHandle" },
+  { category: "api", key: "webMcp", name: "webMcp" },
+  { category: "api", key: "onReady", name: "onReady" },
+  { category: "api", key: "elementFor", name: "elementFor" },
+  { category: "api", key: "metaFor", name: "metaFor" },
+  { category: "field", key: "nameFrom", name: "nameFrom" },
+  { category: "field", key: "staleConfig", name: "staleConfig" },
+  { category: "api", key: "debounceMs", name: "debounceMs" },
+  { category: "api", key: "quietMs", name: "quietMs" },
+  { category: "api", key: "formatRead", name: "formatRead" },
+  { category: "api", key: "contentDomains", name: "contentDomains" },
+  { category: "api", key: "maxChars", name: "maxChars" },
+  { category: "api", key: "maxRows", name: "maxRows" },
+  { category: "api", key: "pollMs", name: "pollMs" },
+  { category: "field", key: "revMoved", name: "revMoved" },
+  { category: "api", key: "fromOpenAPI", name: "fromOpenAPI" },
+  { category: "api", key: "fromFunctions", name: "fromFunctions" },
+  { category: "api", key: "fromTRPCRouter", name: "fromTRPCRouter" },
+  { category: "api", key: "registerGenerated", name: "registerGenerated" },
+  { category: "api", key: "formatWarnings", name: "formatWarnings" },
+  { category: "api", key: "jsonSchemaToZod", name: "jsonSchemaToZod" },
+  { category: "api", key: "defaultRisk", name: "defaultRisk" },
+  { category: "api", key: "maxRisk", name: "maxRisk" },
+  { category: "api", key: "requireInputDescriptions", name: "requireInputDescriptions" },
+  { category: "api", key: "includeDeprecated", name: "includeDeprecated" },
+  { category: "api", key: "createContext", name: "createContext" },
 ]);

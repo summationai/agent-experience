@@ -1,0 +1,109 @@
+diff --git a/src/main.tsx b/src/main.tsx
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -1,9 +1,12 @@
+ import { StrictMode } from "react";
+ import { createRoot } from "react-dom/client";
+ import App from "./App";
++import { AgentSurface } from "./surface";
+ 
+ createRoot(document.getElementById("root")!).render(
+   <StrictMode>
+-    <App />
++    <AgentSurface>
++      <App />
++    </AgentSurface>
+   </StrictMode>,
+ );
+diff --git a/src/surface.tsx b/src/surface.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/surface.tsx
+@@ -0,0 +1,43 @@
++// Agent Surface for this app, written by `axe surface init`. Yours to edit.
++//
++// <AgentSurface> wraps the app root. On, autoSurface discovers the controls under it and, in
++// development, publishes window.__surface for `axe surface coverage` and browser agents.
++// It also registers the live controls with a browser-native agent when WebMCP is available.
++// Off, it renders its children and nothing else. Overlay config: ./surface.config.
++// Nothing here runs at import time: the provider starts discovery and the remote connection in an effect,
++// so a server render renders the children only.
++//
++// Always on: Surface is a browser-local description of controls, not a separately deployed service.
++// Always on after a provider browser handoff or in an optional `axe host` session (both are read by
++// `injectedRelay()`).
++import type { ReactNode } from "react";
++import { SurfaceProvider } from "@summationai/axe-surface/react";
++import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";
++import surfaceConfig from "./surface.config";
++
++const development = import.meta.env.DEV;
++const enabled = true;
++
++// The relay carries the page's surface to an agent outside the browser (an MCP client). The
++// provider supplies a scoped connection through its browser handoff or optional host;
++// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay
++// for a person's own tab (attended mode, with pairing).
++
++export function AgentSurface({ children }: { children: ReactNode }) {
++  return (
++    <SurfaceProvider
++      config={surfaceConfig}
++      flag={enabled}
++      expose={development}
++      webMcp
++      onReady={(handle) => {
++        const options = injectedRelay();
++        if (!options) return;
++        const connection = connectRelay(handle.surface, options);
++        return () => connection.disconnect();
++      }}
++    >
++      {children}
++    </SurfaceProvider>
++  );
++}
+diff --git a/src/surface.config.ts b/src/surface.config.ts
+new file mode 100644
+--- /dev/null
++++ b/src/surface.config.ts
+@@ -0,0 +1,39 @@
++// Surface config for this app, written by `axe surface init`. Yours to edit.
++//
++// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
++// page alone cannot tell it. An empty overlay is a working start.
++import type { SurfaceConfig } from "@summationai/axe-surface/auto";
++
++const surfaceConfig: SurfaceConfig = {
++  profile: {
++    id: "vite-fixture",
++    name: "vite-fixture",
++    // Wire this to the app's existing auth source: unknown only while it resolves.
++    authentication: { state: "unknown" },
++  },
++  // Nothing here is required: autoSurface discovers the page's controls on its own. Run
++  // `axe surface coverage <url>` and add a rule for each gap it lists, most important first.
++  // A rule matches by `key` (from coverage), `id` (data-surface-id), `selector`, `route`,
++  // `role`, or `name`, and overrides what was derived.
++  //
++  // rules: [
++  //   // rename: the name an agent reads, stated as the outcome ("Lock March", not "Lock button").
++  //   { match: { selector: "#lock-month" }, name: "Lock the month" },
++  //   // reason: why a disabled control is unavailable, in the app's own words.
++  //   { match: { selector: "[data-testid=submit-plan]" }, reason: "the plan has unsaved edits" },
++  //   // risk: how much a mistaken act costs; never none for a control that changes state.
++  //   { match: { selector: "button.archive" }, effect: { mutates: "plans", risk: "medium" } },
++  //   // hide: controls an agent should never see (debug panels, the app's own chat).
++  //   { match: { selector: ".debug-panel" }, hide: true },
++  //   // handler: run the app's own function instead of a synthetic click (the declared tier).
++  //   { match: { selector: "#export-csv" }, handler: () => exportCsv() },
++  //   // approval: a person approves on the page before this runs.
++  //   { match: { selector: "button.delete-plan" }, approval: true },
++  //   // group: fold controls into one domain action (a key of `groups`).
++  //   { match: { selector: "#toolbar button" }, group: "plan-toolbar" },
++  //   // sensitive: an agent may set the field (with `editable`) but never reads its value back.
++  //   { match: { selector: "input[name=salary]" }, sensitive: true },
++  // ],
++};
++
++export default surfaceConfig;

@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ManifestSchema } from "@axe/core/schemas";
-import { lintManifest, hasLintErrors } from "@axe/core/lint";
-import type { Manifest } from "@axe/core/types";
+import { ManifestSchema } from "@summationai/axe-core/schemas";
+import { lintManifest, hasLintErrors } from "@summationai/axe-core/lint";
+import type { Manifest } from "@summationai/axe-core/types";
 import type { CommandContext } from "../index";
 import { parse } from "./shared";
 

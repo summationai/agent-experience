@@ -10,7 +10,7 @@ Companion documents, all normative:
 - [`VOCABULARY.md`](./VOCABULARY.md): every name used on the wire.
 - [`KINDS.md`](./KINDS.md): the registry of well-known requirement kinds and their schemas.
 - [`EVENTS.md`](./EVENTS.md): the analytics event emitted by conforming servers.
-- [`schemas/`](./schemas/): JSON Schemas for the manifest, request, result, index, event, and each kind.
+- [`schemas/`](./schemas/): JSON Schemas for the manifest, request, result, index, event, live state, and each kind.
 
 ## 1. Conformance language and terminology
 
@@ -54,6 +54,8 @@ Before 1.0 the major version is `0`, and minor versions MAY contain incompatible
 
 **[P-DISC-3]** The manifest response MUST have `Content-Type: application/json` and SHOULD carry a `Cache-Control` header allowing caching for at least 60 seconds. Manifests change rarely; agents fetch them often.
 
+**[P-DISC-13]** The manifest response SHOULD carry an `ETag`. A request whose `If-None-Match` lists that validator SHOULD be answered `304 Not Modified` with no body and the same `ETag` and `Cache-Control`. An agent that caches a manifest MUST NOT use it past the `Cache-Control` max-age without revalidating it (a conditional request is enough), and SHOULD fetch it again when an action it is about to call is missing from its copy.
+
 ### 3.2 Alternate hints
 
 **[P-DISC-4]** An HTML page MAY include `<link rel="axe-manifest" href="<url>">` in its `<head>`. Agents that discover through HTML MUST honor it.
@@ -84,7 +86,7 @@ A manifest is an invitation. A site that publishes one is asking agents to use i
 
 ## 4. Manifest
 
-**[P-MAN-1]** A manifest MUST validate against `schemas/manifest.schema.json`. Its required members are `protocol`, `name`, `description`, `baseUrl`, `auth`, and `actions`. Optional members are `humanFallbackUrl`, `flows`, `policies`, `contact`, `brand`, `indexUrl`, and `updatedAt`.
+**[P-MAN-1]** A manifest MUST validate against `schemas/manifest.schema.json`. Its required members are `protocol`, `name`, `description`, `baseUrl`, `auth`, and `actions`. Optional members are `humanFallbackUrl`, `flows`, `policies`, `contact`, `brand`, `indexUrl`, `updatedAt`, and `live`.
 
 | Member             | Type                                                                                                   | Meaning                                                                                                      |
 | ------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
@@ -101,6 +103,7 @@ A manifest is an invitation. A site that publishes one is asking agents to use i
 | `brand`            | `{ name?, logoUrl?, accentColor?, tone? }`                                                             | Rendering hints. See §13.2.                                                                                  |
 | `indexUrl`         | URL                                                                                                    | The platform index this site belongs to.                                                                     |
 | `updatedAt`        | date-time                                                                                              | When the manifest last changed.                                                                              |
+| `live`             | `{ rev?, url? }`                                                                                       | The site publishes live state and a revision. See §21.                                                       |
 
 **[P-MAN-2]** `baseUrl` MUST use the `https` scheme, except that `http` is permitted for hosts named `localhost` or resolving to a loopback address.
 
@@ -131,6 +134,7 @@ A manifest is an invitation. A site that publishes one is asking agents to use i
 | `freshness`    | `{ cacheTtlSeconds?, validUntil? }` (optional)                   | See §14.4.                                                                                                                                  |
 | `humanHandoff` | `{ reasons: string[] }` (optional)                               | Declares that the action may return `needs_human`, and the reason codes it uses.                                                            |
 | `deprecated`   | `{ since, replacedBy? }` (optional)                              | The action still works but agents SHOULD prefer `replacedBy`.                                                                               |
+| `availability` | `{ available, reason?, requires?, handoff? }` (optional)         | Whether the action can be done right now, and why not. Computed when the manifest is rendered. See §21.                                     |
 
 **[P-ACT-2]** Action names MUST be unique within a manifest.
 
@@ -164,6 +168,32 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 | `medium` | The effect commits the user to something reversible at low cost: a booking with free cancellation, a tour request. | Tell the user what was done.                                                            |
 | `high`   | Money moves, a legal commitment is made, identity is asserted, or the effect is hard to reverse.                   | Confirm with the user before calling, and again before sending any `sensitive` payload. |
 
+### 5.4 Schemas: the supported subset
+
+Every schema a site publishes (`input`, `output`, `accepts[].schema`) is read by agents that build values from it and by validators that check values against it. The two must agree, so the protocol fixes a subset of JSON Schema draft 2020-12 and says what a validator does with anything outside it. `docs/schemas.md` has the full keyword table for the SDK's validator, its Zod converter, and `@summationai/axe-generate`.
+
+| Group       | Keywords                                                                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Types       | `type`, `enum`, `const`                                                                                                                                           |
+| Objects     | `properties`, `required`, `additionalProperties`, `patternProperties`, `propertyNames`, `minProperties`, `maxProperties`, `dependentRequired`, `dependentSchemas` |
+| Arrays      | `items` (a schema), `prefixItems`, `minItems`, `maxItems`, `uniqueItems`, `contains`, `minContains`, `maxContains`                                                |
+| Strings     | `minLength`, `maxLength` (code points), `pattern` (ECMAScript), `format`: `date`, `date-time`, `time`, `duration`, `email`, `uri`, `uuid`, `ipv4`, `jwt`          |
+| Numbers     | `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf`                                                                                        |
+| Composition | `allOf`, `anyOf`, `oneOf`, `not`, `if`, `then`, `else`, `$ref` to `#` or `#/...` within the same document, `$defs`                                                |
+| Ignored     | Annotations (`title`, `description`, `default`, `examples`, `deprecated`, `readOnly`, `writeOnly`, `$comment`, `$id`, `$anchor`, `content*`) and any `x-` keyword |
+
+**[P-SCHEMA-1]** A validator MUST treat an instance's members as its own members only. `__proto__` and `constructor` are ordinary member names: they are subject to `additionalProperties`, and `required` is not satisfied by anything inherited.
+
+**[P-SCHEMA-2]** A validator MUST refuse the value, never ignore the construct, when a schema uses a keyword outside the subset (for example `unevaluatedProperties`, `$dynamicRef`, the draft 7 `dependencies`, or an array-valued `items`), a `format` it cannot check that no `pattern` in the same schema (directly or in an `allOf` member) carries, a `pattern` that does not compile, a `$ref` that is not local or does not resolve, or a `$ref` loop that consumes no part of the instance. Treating any of these as absent would accept values the author meant to refuse. Sites SHOULD NOT publish them; the SDK's lint reports each one.
+
+**[P-SCHEMA-3]** `multipleOf` MUST be evaluated on the decimal values of the instance and the divisor: `0.3` is a multiple of `0.1`, `0.30000000000000004` is not. A validator MUST NOT accept a value only because a floating-point division rounds to an integer.
+
+**[P-SCHEMA-4]** `pattern` and `patternProperties` keys are ECMAScript regular expressions, evaluated with the `u` flag where they compile with it. Sites MUST NOT publish a pattern that backtracks catastrophically on long input, such as a repeated group whose body is itself repeated (`(a+)+`, `(\w+\s?)*`). The SDK's lint warns on that shape; the request body limit ([P-LIM-1]) bounds the input any pattern sees.
+
+**[P-SCHEMA-5]** The published schema MUST NOT be looser than what the server enforces unless it says so. A schema node the server checks more strictly than JSON Schema can express (a Zod `.refine` or `.superRefine`, a custom type, a type JSON cannot carry, a preprocess) MUST carry `"x-axe-refined": true`. Agents SHOULD expect `invalid_input` for a value that matches a node so marked. A server whose parsing is more permissive than its schema (coercion) publishes the stricter schema, which agents follow.
+
+**[P-SCHEMA-6]** The fingerprint of an action call, used for idempotency ([P-IDEM-2], [P-IDEM-3]) and token binding ([P-TOK-2]), is the canonical JSON of `input` as sent, before defaults, coercion, or transforms. Two requests whose `input` differs in any member, including one the schema would default or strip, are different operations; the handler still receives the parsed value.
+
 ## 6. Invocation
 
 ### 6.1 Request
@@ -189,7 +219,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 }
 ```
 
-`input` is REQUIRED (an empty object is valid input for an action with no parameters). `context` and `idempotencyKey` are OPTIONAL.
+`input` is REQUIRED (an empty object is valid input for an action with no parameters). `context`, `idempotencyKey`, and `expectedRev` (§21, the revision the agent observed) are OPTIONAL.
 
 **[P-INV-2]** Servers MUST validate `input` against the action's `input` schema before running any handler and MUST return `error` with `code: "invalid_input"` on failure. `details.issues` MUST list every problem as `{ path, message, expected? }`, where `path` is a JSON Pointer into `input`.
 
@@ -201,7 +231,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 ### 6.2 HTTP status codes
 
-**[P-INV-6]** Every AXE response body is a result envelope (§7). Non-error results MUST use HTTP `200`. Error results MUST use the mapped HTTP status:
+**[P-INV-6]** Every AXE response body is a result envelope (§7). Non-error results MUST use HTTP `200`. Error results MUST use the mapped HTTP status, except that a body refused for its size uses `413` ([P-LIM-1]):
 
 | `error.code`    | HTTP |
 | --------------- | ---- |
@@ -223,9 +253,38 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 **[P-INV-9]** A server that permits browser-based agents MUST answer `OPTIONS` preflight requests on every AXE path with `204`, `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods: GET, POST, OPTIONS`, and `Access-Control-Allow-Headers` including `Content-Type`, `Authorization`, and `AXE-Protocol`. It SHOULD expose `AXE-Protocol`, `Retry-After`, and `RateLimit-Policy`. CORS is opt-in; a server that does not enable it MUST NOT emit CORS headers.
 
+### 6.4 Requests a browser can send on a page's behalf
+
+A browser attaches cookies (and cached HTTP authentication, and client certificates) to requests a page makes to another origin, and it sends a `POST` with a `text/plain`, `application/x-www-form-urlencoded`, or `multipart/form-data` body, or with no body type at all, without asking the target first. CORS decides whether the page may read the response; it does not stop the request from reaching the server. These rules keep such a request from changing state.
+
+**[P-TRANS-1]** A `POST` to `/axe/actions/{name}` for an action that is not `readOnly`, to `/axe/continue`, or to `/axe/resume` MUST carry `Content-Type: application/json` or a media type of the form `application/<subtype>+json` (parameters such as `charset` are ignored). A server MUST refuse any other value, and a missing one, with `unsupported` before it reads the body, establishes identity, loads a token, or runs a handler. Agents MUST send `Content-Type: application/json` on every request with a body. A name that is not a known action is treated as not `readOnly`.
+
+**[P-TRANS-2]** A server whose deployment lets browsers hold credentials for it that are sent without the page's involvement (cookies, HTTP authentication, client certificates: ambient credentials) MUST refuse a `POST` to any AXE endpoint that carries them when:
+
+- the request has an `Origin` header whose value is not the origin of the site's `baseUrl` (on a platform, the tenant's `baseUrl`) and not an origin the site has explicitly trusted; `Origin: null` never matches; or
+- the request has no `Origin` and its `Sec-Fetch-Site` header is `cross-site` or `same-site`.
+
+The refusal is `forbidden`. It MUST be returned before the server looks up the action, reads the body, establishes identity, or loads a token, and it MUST be the same response whatever the path, action, token, or credential, so it confirms nothing about them.
+
+**[P-TRANS-3]** A request with neither `Origin` nor `Sec-Fetch-Site` was not made by a browser on a page's behalf; [P-TRANS-2] MUST NOT refuse it. Server-to-server callers presenting `Authorization: Bearer` are therefore unaffected. `GET`, `HEAD`, and `OPTIONS` requests are outside §6.4; a site MUST NOT change state in response to them beyond what the protocol defines (`GET` on a `pollUrl` returns the result of work the agent already started).
+
+**[P-TRANS-4]** For [P-TRANS-2] the site's own origin MUST come from its configuration (`baseUrl`), never from the `Host`, `Forwarded`, or `X-Forwarded-*` request headers, which a client or an intermediary can set. Trusted origins are exact origins (scheme, host, and port); a wildcard MUST NOT be accepted as one. An origin the site allows to make credentialed CORS requests is already trusted to send any request with its cookies and read the result, so a server MAY treat it as trusted.
+
+### 6.5 Limits
+
+A manifest invites traffic from software that does not get tired. Every buffer a request can fill and every record it can leave behind needs a bound that does not depend on the caller behaving.
+
+**[P-LIM-1]** A server MUST bound the size of the request bodies it reads and MUST refuse a larger body before parsing it, with `error` `code: "invalid_input"`, `retryable: false`, `details.reason: "payload_too_large"`, `details.maxBodyBytes` (the limit in bytes), and HTTP `413`. A body whose `Content-Length` exceeds the limit MUST be refused without reading it; a body without one MUST NOT be read past the limit. The SDK's default is 1 MiB (`maxBodyBytes`). A proxy or body parser in front of the server that refuses first is also conforming. Agents MUST NOT repeat a refused request unchanged; a large document goes by `document.url` (KINDS.md).
+
+**[P-LIM-2]** A server MUST answer a request body nested arbitrarily deep with a result envelope, not a server error or a dropped connection. The SDK refuses a body whose arrays and objects nest more than 64 levels deep with `invalid_input`.
+
+**[P-LIM-3]** An agent MUST bound what it spends on a site: a timeout on every request (the body read included), a limit on the size of each response it reads, and a budget for polling, in attempts and in total time. It MUST honor `retryAfter` within that budget and MUST wait at least one second between polls whatever `retryAfter` says. It MUST check a manifest, a result, or a live-state document for the members it uses before acting on it, and treat one that fails as a transport error. The SDK client's defaults are a 30-second timeout, 4 MiB per response, and 60 polls or 60 seconds per `poll()` or `run()`.
+
+**[P-LIM-4]** A server MUST NOT keep per-request state without bound. Token records and operation claims (§12) expire, and an expired entry MUST eventually be removed whether or not its key is presented again. An in-memory store MUST cap the number of entries it holds. When it evicts before expiry, it MUST NOT evict an operation claim whose lease is running, since that would let the operation run twice; evicting a completed operation record shortens that key's idempotency window, so a retry runs the handler again. A durable store needs a periodic cleanup job; correctness never depends on it.
+
 ## 7. Result envelope
 
-**[P-RES-1]** Every response from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl` MUST be a JSON object with a `status` member equal to one of `ok`, `needs_input`, `needs_human`, `pending`, or `error`, plus the members for that status and nothing else at the top level. It MUST validate against `schemas/result.schema.json`.
+**[P-RES-1]** Every response from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl` MUST be a JSON object with a `status` member equal to one of `ok`, `needs_input`, `needs_human`, `pending`, or `error`, plus the members for that status, the OPTIONAL `rev` member (§21), and nothing else at the top level. It MUST validate against `schemas/result.schema.json`.
 
 | `status`      | Members                                                                       | Meaning                                                                                 |
 | ------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -234,6 +293,8 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 | `needs_human` | `handoff`                                                                     | The human must act on the site. §9.                                                     |
 | `pending`     | `pollUrl`, `retryAfter`                                                       | Long-running work. §10.                                                                 |
 | `error`       | `error: { code, message, retryable, details? }`                               | Failed. §11.                                                                            |
+
+Every status MAY additionally carry `rev`, the site's revision after the call, when the site publishes one (§21).
 
 ### 7.1 Which status to return
 
@@ -304,7 +365,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 **[P-REQ-8]** The server MUST verify the token (§12), MUST reject a `kind` that is not in the original `accepts[]` with `invalid_input`, and MUST validate `payload` against that entry's `schema`, returning `invalid_input` with `details.issues` on failure. A validation failure MUST NOT consume the token.
 
-**[P-REQ-9]** A successful continuation (any status other than `error`) MUST consume the token. A second `/axe/continue` with the same token MUST return `conflict`.
+**[P-REQ-9]** A successful continuation (any status other than `error`) MUST consume the token, and the hook MUST NOT run again for it. A second `/axe/continue` with the same token, `kind`, and `payload` from the same principal MUST return the original result envelope, so an agent whose response was lost recovers the outcome ([P-OP-1]); with a different `kind` or `payload` it MUST return `conflict`. A continuation that returns `error` does not consume the token.
 
 **[P-REQ-10]** Servers MUST NOT log `payload` for entries marked `sensitive`, and MUST NOT include payloads in analytics events (`EVENTS.md`).
 
@@ -333,15 +394,41 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 **[P-HAND-5]** The site's page at `url` MAY record completion through the SDK (`completeHandoff`) so that a resume before the human is done returns `error` with `code: "conflict"`, `retryable: true`, and `details.handoffStatus: "open"`. Sites that do not record completion MUST make their resume logic check the real-world state and return `needs_human` again (with the same or a new Handoff) when the step is not done.
 
-**[P-HAND-6]** A resume token MUST be single-use: once a resume returns any status other than `error`, the token is consumed and a second resume MUST return `conflict`.
+**[P-HAND-6]** A resume token MUST be single-use: once a resume returns any status other than `error`, the token is consumed and the resume MUST NOT run again. A second resume with the same token from the same principal MUST return the original result envelope ([P-OP-1]).
 
 **[P-HAND-7]** The SDK's built-in `login_required` handoff (§16.1) binds the resume token to the identity established at `url`; the resumed action runs as that user.
+
+### 9.3 Approvals
+
+An approval request is a handoff that asks a person to approve one consequential call before it runs. It exists because nothing an agent sends proves a person's consent: an input flag such as `confirm: true`, a payload, or a resume is the agent's own assertion. Consent is established where the person already is, on the site, with their own session, and it is bound to the exact call it approves.
+
+**[P-APPR-1]** An approval request is a `needs_human` result returned by the handler of the call it would approve, with a complete Handoff ([P-HAND-1]) whose `url` is the site's own approval page and whose `reason` is `approval_required` or a site-specific code. When it mints the resume token, the server MUST record, beside the token's binding ([P-TOK-2]: action, input fingerprint, principal, tenant), the call's input exactly as sent and the relevant state at that moment: a value the site computes (for example the record's id and revision) whose change should void the approval. The recorded input and state are not sent to the agent.
+
+**[P-APPR-2]** The approval page MUST be able to show the person exactly what will run: the action, the recorded input, the principal the agent acts for, the tenant, the state the request is bound to next to the current state, the expiry, and any self-identification the agent sent (marked as unverified). A server MUST NOT show a request to, or accept a decision from, a request of another tenant, and MUST answer an unknown, expired, and foreign request alike.
+
+**[P-APPR-3]** An approval MUST be recorded only by the site, from a request authenticated as a person by the site's own session and protected against cross-site request forgery (§6.4 or the site's equivalent), after the site has decided that this person may approve this operation. Nothing that reaches the AXE endpoints (an action's input, a continuation payload, a resume body, a `confirm` flag) records or implies approval. The server MUST record an approval only when the request is still open (not approved already, cancelled, invalidated, used, or expired) and the relevant state still equals the recorded state; when the state differs, the request is invalidated ([P-APPR-6]).
+
+**[P-APPR-4]** A resume of an approval request MUST run the operation only when all of these hold at the time it runs: the request was approved, and not cancelled or invalidated since; the resume token is authorized for the request's principal and tenant ([P-TOK-6]) and has not expired; and the relevant state still equals the recorded state. It runs the recorded input, never anything the resume carries. A resume before approval MUST return `error` with `code: "conflict"`, `retryable: true`, and `details.handoffStatus: "open"`, and run nothing.
+
+**[P-APPR-5]** A person MAY cancel a handoff that has not been used, an approval request open or approved alike; the site records it the same way as an approval ([P-APPR-3]). A resume of a cancelled handoff MUST return `error` with `code: "conflict"`, `retryable: false`, and `details.handoffStatus: "cancelled"`, and run nothing. A handoff whose resume has run, or is running, cannot be cancelled: that work is committed, and undoing it is an action of the site's own, which the site offers only if it implements one.
+
+**[P-APPR-6]** When the relevant state differs from the recorded state, at approval or at resume, the request is invalidated for good, whatever the state does afterwards. A resume of an invalidated request MUST return `error` with `code: "conflict"`, `retryable: false`, and `details.handoffStatus: "invalidated"`, run nothing, and say that the agent must start the action again to ask for a new approval. The server's state check is the first gate; the operation's own conditional write at the recorded state is the second, since the state can move between the check and the write.
+
+**[P-APPR-7]** An approval request is single use ([P-HAND-6]): once a resume has run it and returned any status other than `error`, a repeat of the same resume by the same principal returns the stored envelope, even though the state has since moved (usually because of that very operation), and runs nothing. A repeat of the original call with its `idempotencyKey` returns the same handoff ([P-IDEM-2]).
+
+**[P-APPR-8]** An approval request SHOULD expire sooner than a plain handoff ([P-TOK-5]); the SDK's default is one hour. After expiry the resume is answered as an unknown token ([P-TOK-3]), whose message says that nothing was applied and that the agent must start the action again, and the site can neither approve nor cancel it.
+
+**[P-APPR-9]** The `ok` result of an approved operation SHOULD be a receipt: the approved operation, the resulting changes, the principal the agent acted for, who approved and when, and the state before and after (for a revisioned site, the revision before and after). Receipts and the server's approval events (`EVENTS.md`, "Approval events") MUST NOT carry sensitive input; the events carry identifiers and actors, never the recorded input or state.
 
 ## 10. Long-running work: `pending`
 
 **[P-PEND-1]** A `pending` result MUST include `pollUrl` (absolute) and `retryAfter` (integer seconds, at least 1). The HTTP response SHOULD also carry `Retry-After`.
 
 **[P-PEND-2]** `GET pollUrl` MUST return a result envelope. While work continues it returns `pending` again. The final envelope MAY be any status. Once a terminal status has been returned, subsequent polls MUST return the same terminal result for at least the idempotency window (§12.1) or `not_found` after that.
+
+**[P-POLL-1]** A poll MUST be authorized as the call that produced it: the SDK's poll URL requires the tenant and the acting principal the originating call had ([P-TOK-6]), and the check runs before anything is returned, a stored terminal result included, and whether or not the action still exists. A poll that fails the check MUST get the same `not_found` as an unknown poll token.
+
+**[P-POLL-2]** At most one poll of a token computes its result at a time. A poll that arrives while another is computing MUST return `pending`; the first terminal result is stored and every later authorized poll returns it, so a site's poll hook that causes effects runs to completion once.
 
 **[P-PEND-3]** Agents SHOULD stop polling after `expiresAt` when present on the pending result, or after a client-side budget, and tell the user.
 
@@ -353,29 +440,47 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 **[P-ERR-3]** For `invalid_input`, `details.issues[]` MUST name each failing `path` as a JSON Pointer and MUST include a `message`. It SHOULD include `expected`. Agents fix these themselves; they SHOULD NOT surface them to the user verbatim.
 
+Two further `details` shapes are defined in §21: `{ expectedRev, currentRev }` on a `conflict` caused by a stale observation, and `{ reason, requires?, handoff? }` on `unavailable`.
+
 ## 12. Tokens
 
 Continuation tokens, resume tokens, and the SDK's poll tokens share one design.
 
 **[P-TOK-1]** Tokens MUST be opaque to agents. Agents MUST NOT parse or construct them.
 
-**[P-TOK-2]** Tokens MUST be integrity-protected (the SDK uses HMAC-SHA256 with a server secret), MUST be bound to the originating action, a hash of the originating `input`, and the acting user when there is one, and MUST carry an expiry.
+**[P-TOK-2]** Tokens MUST be integrity-protected (the SDK uses HMAC-SHA256 with a server secret), MUST be bound to the originating action, a hash of the originating `input`, the acting principal ([P-TOK-7]) when there is one, and the tenant on a multi-tenant server, and MUST carry an expiry.
 
-**[P-TOK-3]** Servers MUST reject a token whose signature does not verify, that has expired, or whose binding does not match the endpoint it is presented to, with `not_found` for unknown or tampered tokens and `conflict` for consumed ones. The response MUST NOT reveal which check failed beyond those two codes.
+**[P-TOK-3]** Servers MUST reject a token whose signature does not verify, that has expired, or whose binding does not match the endpoint it is presented to, with `not_found`. A consumed token presented again is answered by [P-REQ-9] and [P-HAND-6]: the original envelope for the same use, `conflict` for a different one. The response MUST NOT reveal which check failed beyond those two codes.
 
 **[P-TOK-4]** Server-side `state` associated with a token (the value a handler passes to `needsInput` or `handoff`) MUST NOT be encoded in the token. It is stored server-side and delivered to `onContinue`, `onResume`, or `onPoll`.
 
 **[P-TOK-5]** Continuation tokens SHOULD expire within 15 minutes. Resume tokens SHOULD expire within 24 hours. Poll tokens expire when the work does.
 
+**[P-TOK-6]** Every presentation of a token (`/axe/continue`, `/axe/resume`, a poll URL) MUST be authorized before any hook runs, any completion is recorded, and any stored result is returned: the tenant serving the request MUST be the tenant the token was minted for, and the principal the request resolves to MUST be the principal the token is bound to, including none for a token minted anonymously. A request that fails either check MUST receive exactly the response an unknown token receives (`not_found`, same message), whether the token is open, consumed, or terminal. The one transition is the SDK's `login_required` handoff ([P-AUTH-4]): minted anonymously, it runs as the user the site records at completion, and the resume MUST come from an anonymous caller or from that user. Recording completion (`completeHandoff`) MUST name the tenant the handoff was minted for, MUST NOT change the user a user-bound handoff belongs to, and MUST fail once the resume token has been used.
+
+**[P-TOK-7]** The acting principal is resolved the same way for an action call and every follow-up. For a `site` action it is the site key's identity, plus the user when the request also carries one; for any other action it is the user, or none. The site key is verified again on every follow-up, so a revoked key, or a key whose allowlist no longer includes the action, can no longer use the tokens it obtained. A key's identity is the `id` the site's key verification returns; when it returns none, the server MUST derive one that distinguishes keys without storing the key (the SDK uses HMAC-SHA256 of the key under the server secret). Two unrelated keys MUST NOT share a principal.
+
 ### 12.1 Idempotency
 
 **[P-IDEM-1]** Actions that are not `readOnly` MUST accept `idempotencyKey`. Agents MUST send one on every such call. The SDK client generates a UUID when the caller does not supply one.
 
-**[P-IDEM-2]** When a request repeats an `idempotencyKey` for the same action and the same acting user within the idempotency window with the same `input`, the server MUST return the original result envelope without re-running the handler.
+**[P-IDEM-2]** When a request repeats an `idempotencyKey` for the same action and the same acting principal ([P-TOK-7]) on the same tenant within the idempotency window with the same `input`, the server MUST return the original result envelope without re-running the handler.
 
 **[P-IDEM-3]** When the key repeats but `input` differs, the server MUST return `conflict`.
 
 **[P-IDEM-4]** The idempotency window MUST be at least one hour and SHOULD be 24 hours. Sites MUST document their window in `policies.dataRetention` if it differs from 24 hours.
+
+### 12.2 Operations
+
+An operation is one attempt the server must run at most once at a time and answer consistently afterwards: an action call under one `idempotencyKey` (scoped by tenant, action, and principal), one use of a continuation or resume token, and the computation of a poll token's result.
+
+**[P-OP-1]** Servers MUST claim an operation atomically before running it, across every instance that serves the site. Of any number of concurrent requests for the same operation, exactly one runs the handler or hook; a request for an operation that completed returns the stored envelope ([P-IDEM-2], [P-REQ-9], [P-HAND-6], [P-POLL-2]). A request that reuses the key or token for a different operation (different `input`, `kind`, or `payload`) MUST return `conflict` whether the first is still running or finished.
+
+**[P-OP-2]** A request for an operation another request is still running MUST return `error` with `code: "conflict"`, `retryable: true`, `details.operationStatus: "in_progress"`, and `details.retryAfter` in seconds, with the same value in `Retry-After`. The agent retries with the same key or token and receives the stored envelope once it exists. A poll answers `pending` instead.
+
+**[P-OP-3]** A non-error result completes the operation and is stored for the idempotency window. An `error` result (a thrown handler included) releases the claim without storing anything, so the same key or token may be retried and the handler runs again, except an `error` whose `details.reason` is `outcome_unknown` (the work was sent and may have taken effect, for example an act whose page unloaded before it answered), which is stored like a success so a retry with the same key is answered with it and never runs the work twice; a terminal poll result is stored whatever its status. A claim is a lease: when the request holding it stops without completing or releasing it (a crash), a later request for the same operation MAY take it over once the lease has passed, and then runs the handler again. A request for a different operation never takes over a claim.
+
+**[P-OP-4]** The claim makes the decision to run atomic, not the business effect. Between a handler's commit and the stored result there is a window in which a crash leads to a second run under [P-OP-3]. The SDK passes a stable `operationId`, identical on every run of one operation, so a site can make the effect idempotent downstream (a unique constraint written in the same transaction, or a payment provider's idempotency key). Servers MUST NOT describe idempotency as exactly-once execution of side effects.
 
 ## 13. Presentation
 
@@ -458,7 +563,7 @@ Most agent journeys start with a read. The site knows which fields matter for co
 
 ### 14.2 Dynamic affordances
 
-**[P-AFF-4]** An output, and each element of the array at `display.items`, MAY carry a reserved `_axe` member: `{ affordances: [ { action, title, input, primary? } ] }`. In dynamic affordances `input` holds concrete values, not pointers. When an item has `_axe.affordances`, it replaces the static list for that item entirely.
+**[P-AFF-4]** An output, and each element of the array at `display.items`, MAY carry a reserved `_axe` member: `{ affordances: [ { action, title, input, primary?, expectedRev? } ] }`. In dynamic affordances `input` holds concrete values, not pointers. When an item has `_axe.affordances`, it replaces the static list for that item entirely. `expectedRev`, when present, is the revision the item was observed at (§21); an agent that follows the affordance presents it as the request envelope's `expectedRev`, so the follow-up is refused with `conflict` if the item moved in between.
 
 **[P-AFF-5]** `_axe` MUST be removed from `output` and from each item before validating against the `output` schema, and MUST NOT appear in the declared schema ([P-ACT-6]).
 
@@ -492,7 +597,7 @@ Three modes.
 
 **[P-AUTH-1]** An action's `auth` MUST be one of the modes listed in `manifest.auth.modes`.
 
-**[P-AUTH-2]** A call to a `site` action without a valid key MUST return `unauthorized`. A call with a valid key that is not permitted to perform the action MUST return `forbidden`.
+**[P-AUTH-2]** A call to a `site` action without a valid key MUST return `unauthorized`. A call with a valid key that is not permitted to perform the action MUST return `forbidden`. Follow-ups of a `site` call are authorized under [P-TOK-7], and a refusal there is `not_found` ([P-TOK-6]).
 
 ### 16.1 `user` mode
 
@@ -514,6 +619,22 @@ OAuth 2.1 authorization-server behavior (client registration, authorization endp
 
 **[P-AGENT-3]** Agents MUST honor `Retry-After` and MUST NOT retry `rate_limited` errors sooner.
 
+### 17.1 Where an agent sends requests and credentials
+
+A manifest, a result, and a discovery hint are data from the site. Each one can name a URL (`baseUrl`, `live.url`, `pollUrl`, a handoff `url`, an `AXE-Manifest` header, a `<link rel="axe-manifest">`), and none of them is authority to receive the agent's credentials. The rules below say which origins an agent may contact and which receive credentials. "Credentials" means the `Authorization` header and any other header the agent operator configured to identify the user or the agent.
+
+**[P-AGENT-4]** An agent's credential audience is the origin it started discovery from, plus origins its operator explicitly authorized. An agent that was handed a manifest rather than discovering one MAY treat that manifest's `baseUrl` origin as the starting origin. An agent MUST NOT send credentials to any other origin, whatever a manifest, result, or hint names.
+
+**[P-AGENT-5]** An agent MUST NOT follow a `baseUrl`, `live.url`, `pollUrl`, `AXE-Manifest` header, or `axe-manifest` link on an origin outside its credential audience unless its operator authorized contacting other origins; such a request MUST carry no credentials. An agent that allows such requests SHOULD refuse loopback, link-local, and private-range destinations. The handoff `url` is for a human; an agent does not fetch it.
+
+**[P-AGENT-6]** An agent MUST check every redirect target against [P-AGENT-4] and [P-AGENT-5] before requesting it, MUST NOT send credentials on a redirect to an origin other than that of the original request, and MUST refuse a redirect from `https` to `http`.
+
+**[P-AGENT-7]** An agent MUST use `https`, except for `http` to a loopback host (`localhost`, `127.0.0.0/8`, `[::1]`) in its credential audience, the same exception [P-MAN-2] makes for `baseUrl`, or where its operator deliberately permits `http` on a network it controls.
+
+**[P-AGENT-8]** An agent that runs on a host with network access the site should not have (a server, an MCP server on a company network) SHOULD let its operator gate every outbound URL, and SHOULD run behind an egress policy. URL checks see names, not the addresses they resolve to: they do not stop DNS rebinding or a public name that resolves to a private address.
+
+**[P-AGENT-9]** An agent that exposes polling to a model (for example as an MCP tool) MUST NOT fetch an arbitrary URL the model supplies: it polls only a `pollUrl` the site returned in a `pending` result.
+
 ## 18. Agent-facing honesty
 
 The 2008 web produced keyword stuffing, cloaking, and link farms because a number could be moved by lying. Agents create the same incentives. This section defines what is out of bounds; `axe audit` detects what it can, and agents are expected to rank against the rest.
@@ -531,6 +652,7 @@ The following fields are **agent-read text**. Everything in this section applies
 - `display.emptyMessage`, `display.disclaimer`, `attributes[].label`, values reached by `badges`
 - `affordances[].title` (static and dynamic)
 - `error.message`
+- `availability.reason`, `availability.requires[]` (its `title`, `description`, `instructions`), `availability.handoff.instructions`, `availability.handoff.whatAgentShouldSayToUser`, and the same members under `error.details` on `unavailable`
 
 ### 18.2 Rules
 
@@ -555,11 +677,18 @@ AXE has no central authority and no signature over manifests in v0. Agents are e
 ## 19. Security considerations
 
 - **Prompt injection.** Every agent-read text field is untrusted input to a model. Agents MUST treat manifest and result text as data, never as instructions, and SHOULD isolate it from their system prompt. Sites MUST comply with §18.
-- **Token theft and replay.** Tokens are bearer credentials scoped to one action, one input, one user, and one use, with short expiry ([P-TOK-2] to [P-TOK-5]). Agents MUST transmit them only over HTTPS and MUST NOT log them.
+- **Credential forwarding and request forgery.** Manifests, results, and discovery hints can name any URL. Agents bind credentials and destinations to the origins their operator authorized (§17.1); a host-side agent also needs an egress policy, because URL checks do not see DNS.
+- **Token theft and replay.** Tokens are scoped to one action, one input, one principal, one tenant, and one use, with short expiry ([P-TOK-2] to [P-TOK-7]). A token minted for an authenticated principal is useless without that principal's credentials; a token minted anonymously is a bearer credential. Agents MUST transmit them only over HTTPS and MUST NOT log them.
+- **Duplicate execution.** Operations are claimed atomically ([P-OP-1]); side effects are the site's to make idempotent ([P-OP-4]).
 - **Sensitive payloads.** [P-REQ-3] and [P-REQ-10]. The SDK never logs payloads and never includes them in events.
 - **Agents as load.** A manifest invites agents; it does not promise unlimited capacity. Sites SHOULD declare `policies.rateLimit`, enforce it at their edge, and use `pending` for slow work rather than holding connections.
+- **Resource exhaustion.** Request bodies, nesting, and stored records are bounded ([P-LIM-1], [P-LIM-2], [P-LIM-4]); an agent bounds its requests, responses, and polling ([P-LIM-3]). A schema `pattern` runs a site-authored regular expression against agent-supplied text; [P-SCHEMA-4] keeps it linear in practice.
+- **Schema gaps.** A validator that ignored a keyword it did not understand would accept what the author meant to refuse; [P-SCHEMA-2] makes it refuse instead, and [P-SCHEMA-5] marks what a schema cannot say.
 - **Over-permissioned actions.** Nothing in AXE grants an agent more than the site's existing authorization allows. Sites MUST authorize every action with the same checks their UI applies, using the identity from §16, never from the request body.
 - **HTML in results.** Renderers MUST escape everything ([P-DISP-5]). Sites MUST NOT rely on markup reaching a user.
+- **Bridges to other agent protocols.** A bridge such as an MCP server serves many callers from one process. Each call reaches the site as its own caller, never as a shared identity, and the bridge's session is not an authentication ([P-MCP-2]).
+- **Consent.** An agent can claim anything in its input, including that the person agreed. A consequential call is approved by the person on the site, bound to the call, the principal, the tenant, and the state, and runs once ([P-APPR-1] to [P-APPR-9]).
+- **Cross-site request forgery.** A site that authenticates with cookies is reachable from every page its users visit. CORS response headers do not prevent the write; [P-TRANS-1] to [P-TRANS-4] do. A site that also sets `SameSite=Lax` or `Strict` on its session cookie has a second, independent layer.
 
 ## 20. Worked example: search → present → select → transact
 
@@ -753,20 +882,84 @@ POST /axe/continue
 
 Had the agent held no bank credential, it would have shown `fallback.whatAgentShouldSayToUser` to the user, sent them to `fallback.url`, and later called `/axe/resume` with `fallback.resumeToken` to receive the same `ok`.
 
+## 21. Live state and revisions
+
+A manifest is static and an action is a function: until this section, "what can be done right now, and why not the rest" was something an agent found out by calling, and two actors (a person in the UI and an agent through AXE) editing the same record could only be kept apart by the site's own checks. This section adds two things to the wire, both OPTIONAL and additive: a **revision** that every envelope reports and every request may present, and an **availability** that every action may declare and a dedicated endpoint serves uncached. A site that publishes neither behaves exactly as described in the preceding sections.
+
+### 21.1 The revision
+
+**[P-LIVE-10]** A site's revision (`rev`) is one value for the whole site (or tenant): a non-empty string or a number that changes with every change an agent could observe, whoever made it. Agents MUST treat it as opaque: compare two revisions for equality only, never order them or parse them. A numeric string and the number it spells are the same revision.
+
+Per-resource revisions (ETags) were considered and rejected: an action touches several records, agents observe a whole result at once, and one value answers the only question that matters, "has anything I saw moved". `DECISIONS.md` has the reasoning.
+
+**[P-LIVE-2]** A site that publishes a revision MUST include `rev` at the top level of every result envelope it returns from `/axe/actions/{name}`, `/axe/continue`, `/axe/resume`, and a `pollUrl`, whatever the `status`. For `ok` it is the revision the change produced; for the others it is the site's revision after the call. An idempotent replay ([P-IDEM-2]) returns the stored envelope with the `rev` it carried originally. A site with no revision MUST omit `rev`.
+
+### 21.2 The state the agent saw
+
+**[P-LIVE-1]** A request to `/axe/actions/{name}` MAY carry `expectedRev`, the revision the agent observed (from `/axe/state`, from `live.rev`, or from a previous envelope's `rev`). `/axe/continue` and `/axe/resume` bodies MAY carry it too, with the same meaning and check. A malformed `expectedRev` (anything other than a non-empty string or a number) is `invalid_input`. A site that publishes no revision MUST ignore `expectedRev` ([P-VER-4]).
+
+**[P-LIVE-3]** When a site publishes a revision and a request carries `expectedRev` that is not equal to the current revision, the server MUST return `error` with `code: "conflict"`, `retryable: true`, HTTP `409`, and `details: { expectedRev, currentRev }`, where `expectedRev` echoes the request and `currentRev` is the site's revision at that moment. The server MUST have applied nothing: the check runs before the handler, before `onContinue` or `onResume`, and before a login handoff is minted; a stale continue or resume MUST NOT consume its token. The `rev` on the envelope equals `currentRev`.
+
+**[P-LIVE-4]** The idempotency replay ([P-IDEM-2]) is answered before the stale check: a request that repeats an `idempotencyKey` for the same action, user, and `input` returns the stored envelope whatever `expectedRev` it carries, because it is the same attempt. `expectedRev` is not part of the idempotency binding. A stale request MUST NOT store a record for its `idempotencyKey`, so the agent may retry with the same key once it has read the current state. When the original call carried `expectedRev` and was answered with a `login_required` handoff, the server MUST re-check that revision when the action runs after sign-in, unless the resume presents a fresher `expectedRev`.
+
+### 21.3 Availability: unavailable, because
+
+**[P-LIVE-5]** An action MAY declare `availability`: `{ available: true }` or `{ available: false, reason, requires?, handoff? }`. `reason` is REQUIRED when `available` is false: plain language in the site's own words ("already drafted by another team", "approval required"), agent-read text under §18. `requires`, when present, is a non-empty list of `accepts` entries ([P-REQ-2]) naming what would make the action available; `handoff`, when present, is a Handoff object (§9.1) without `resumeToken` and `expiresAt`, naming a step only a human can take. Its `url` MAY be omitted when the step is taken inside the site's own interface and no page names it; a site MUST NOT invent one. A handoff without a `url` can only be reported (here and under [P-LIVE-9]), never returned as `needs_human`, whose Handoff is complete ([P-HAND-1]). Availability is computed when the document that carries it is rendered; it is a report, not a promise.
+
+**[P-LIVE-6]** An action whose availability for the caller is `available: false` MUST NOT complete with `ok` when invoked. It MUST return `error` with `code: "unavailable"`, or climb the ladder: `needs_input` whose `accepts` are the declared `requires`, or `needs_human` with the declared `handoff`.
+
+**[P-LIVE-9]** An `error` with `code: "unavailable"` MAY carry `details: { reason, requires?, handoff? }` mirroring the availability that caused it. Agents SHOULD relay `reason` to the user in the site's words, MAY offer `handoff.url` when it is present, and otherwise relay `handoff.whatAgentShouldSayToUser`.
+
+### 21.4 Where availability is served
+
+**[P-LIVE-7]** A site that publishes a revision or any action's availability MUST include `live` in its manifest: `{ rev?, url? }`, where `url` is the absolute URL of the state endpoint (the SDK serves `{baseUrl}/axe/state`) and `rev` is the revision when the manifest was rendered. The manifest MAY carry each declaring action's `availability` as computed for an anonymous caller; because manifests are cacheable ([P-DISC-3]), agents MUST treat `live.rev` and manifest `availability` as a snapshot and prefer the state endpoint when acting.
+
+**[P-LIVE-8]** `GET {live.url}` MUST return `{ rev?, actions: { [name]: availability } }` validating against `schemas/state.schema.json`, with `Cache-Control: no-store`. `actions` MUST list every action in the manifest; one that declares no availability is `{ available: true }`. Availability MAY depend on the authenticated caller (§16): the endpoint establishes identity the same way an action does and SHOULD send `Vary: Authorization`. `rev` MUST be present when the site publishes a revision.
+
+### 21.5 The two-actor loop
+
+1. The agent reads the state: `GET /axe/state` gives `rev: 41` and, for each action, whether it can be done now and why not.
+2. It invokes an available action with `expectedRev: 41`. If a person changed the record in the meantime, the site is at `rev: 42` and answers `conflict` with `details: { expectedRev: 41, currentRev: 42 }`, having applied nothing. The agent reads again and decides again.
+3. If nothing moved, the action runs and the `ok` envelope carries `rev: 42`, the revision the change produced; the agent uses it as the next `expectedRev`.
+4. A retry after a lost response repeats the `idempotencyKey` and is answered from the stored envelope ([P-LIVE-4]); a retry with a new key and the old `expectedRev` is refused, so a lost response cannot double-apply.
+
+## 22. MCP mapping
+
+An AXE site can be offered to Model Context Protocol hosts through a bridge that maps each action to an MCP tool (the SDK's is `@summationai/axe-mcp`; `docs/mcp.md` has the full mapping table). The rules below apply to any such bridge. "Caller" means the principal an MCP request is authenticated as; over stdio it is the one user who started the process.
+
+**[P-MCP-1]** A bridge served over the MCP Streamable HTTP transport MUST serve any number of clients, each through its own MCP server state: in stateless mode, state that answers one HTTP request; in stateful mode, one session per `Mcp-Session-Id`. A request naming a session that is unknown, closed by `DELETE`, or expired MUST be answered `404`, after which the client starts a new session with a new `initialize`. A bridge that expires idle sessions MUST document the bound.
+
+**[P-MCP-2]** A bridge that authenticates MCP requests MUST authenticate every request, not only the one that opened a session, and MUST NOT treat a session id as a credential. A session belongs to the caller that opened it; a request from another caller naming it MUST be answered as for an unknown session. Each tool call MUST reach the AXE site as the caller of that request: with a credential for that caller (for a remote site) or that caller's identity (for a site in the same process). A bridge MUST NOT use one caller's credential for another caller. A bridge that is an OAuth protected resource MUST NOT forward the access token it received to the AXE site unless that token was also issued for the AXE site; otherwise it obtains a separate credential (for example by token exchange).
+
+**[P-MCP-3]** The poll tool's memory of issued `pollUrl`s ([P-AGENT-9]) MUST be scoped to one session, or, where there are no sessions, to one caller: a `pollUrl` issued to one session or caller is not polled for another.
+
+**[P-MCP-4]** A bridge whose tools come from a remote manifest MUST NOT derive tools from a copy older than its freshness bound: the smaller of the manifest's `Cache-Control` max-age and a bound the bridge documents. It SHOULD fetch the manifest again, once per call, when a tool call names a tool its copy does not have, and when the site answers `not_found` for an action its copy has. When the derived tools change it SHOULD send `notifications/tools/list_changed` to connected clients that can receive it; a tool whose action the site removed MUST NOT be listed after the bridge has seen the change, and calling it returns an error saying so.
+
+**[P-MCP-5]** A tool for an action that is not `readOnly` MUST accept an optional `idempotencyKey` argument (unless the action's own input uses that name) and send it as the request's `idempotencyKey`, so a caller who repeats an uncertain call with the same key and arguments receives the stored envelope ([P-IDEM-2], [P-OP-1]). Without the argument, the bridge MUST send a fresh key per tool call, so two deliberate calls are two operations even when their inputs match. The continuation and resume tools MUST accept an optional `expectedRev` when the manifest carries `live` and forward it ([P-LIVE-1]).
+
+The rules below map the ladder and `display` onto capabilities MCP already has: elicitation (MCP specification 2025-11-25, form and URL modes) and the MCP Apps extension (`io.modelcontextprotocol/ui`, stable version 2026-01-26). A bridge MAY use neither; the text results above remain the baseline every client can read.
+
+**[P-MCP-6]** A bridge MAY ask for a `needs_input` requirement with a form-mode elicitation only when the client declared form mode (an empty `elicitation` capability counts as form mode), the connection can carry a request from the server within the tool call (not a stateless HTTP exchange), and the accepted kind is not sensitive ([P-MCP-7]). It considers `accepts` in the site's order and stops at the first sensitive kind. The `requestedSchema` MUST be a flat object of primitive properties, as MCP's form mode requires; a kind whose schema has no such rendering MUST NOT be asked for in a form (the model can still supply it). On `accept`, the bridge MUST send the answer to `/axe/continue` with the result's `continuationToken`, as the same caller, and return the continued result with a note that the user supplied the kind through the client. On `decline`, `cancel`, an error, or a timeout it MUST return the `needs_input` result as it would without elicitation.
+
+**[P-MCP-7]** A bridge MUST NOT collect the payload of a sensitive kind through form-mode elicitation. Sensitive here means `sensitive: true`, any `payment.*` or `identity.*` kind whatever its flag, and any kind for a credential, password, secret, key, or token. When the step belongs on the site's page (a sensitive kind met first in `accepts` with a `fallback` handoff, or a `needs_human` result), the client declared URL mode, and the page's URL is `https` (or `http` on a loopback host), the bridge MAY send a URL-mode elicitation with that URL. `accept` means the user agreed to open the page, not that the step is done: the result still goes to the model with the resume token, and the model calls resume after the user says they finished. A `login_required` handoff is not sent in URL mode; signing the caller in is MCP authorization's job. The site's handoff page MUST establish who the user is before accepting anything (the `axe_handoff` id in the URL is not a credential), which is also what MCP requires of a URL-mode page.
+
+**[P-MCP-8]** A bridge MAY offer an MCP Apps view (a `ui://` resource with type `text/html;profile=mcp-app`, referenced from the tool's `_meta.ui.resourceUri`) for actions with `display`, and only to a host that declared the `io.modelcontextprotocol/ui` extension with that type. The view MUST be self-contained (no external script, stylesheet, or network request), MUST render every value escaped and ignore non-`https` links ([P-DISP-5], [P-DISP-6]), and MUST NOT execute anything carried in a result. The tool result's text content MUST remain the complete rendering a host without Apps shows.
+
 ## Appendix A. Endpoint summary
 
-| Method  | Path                          | Body                                   | Returns                      |
-| ------- | ----------------------------- | -------------------------------------- | ---------------------------- |
-| GET     | `/.well-known/axe.json`       |                                        | Manifest                     |
-| GET     | `/axe/manifest`               |                                        | Manifest                     |
-| GET     | `/.well-known/axe-index.json` |                                        | Index (platforms)            |
-| POST    | `/axe/actions/{name}`         | `{ input, context?, idempotencyKey? }` | Result envelope              |
-| GET     | `/axe/actions/{name}`         |                                        | Action definition (optional) |
-| POST    | `/axe/continue`               | `{ continuationToken, kind, payload }` | Result envelope              |
-| POST    | `/axe/resume`                 | `{ resumeToken }`                      | Result envelope              |
-| GET     | `/axe/poll/{token}`           |                                        | Result envelope              |
-| OPTIONS | any of the above              |                                        | `204` when CORS is enabled   |
+| Method  | Path                          | Body                                                 | Returns                      |
+| ------- | ----------------------------- | ---------------------------------------------------- | ---------------------------- |
+| GET     | `/.well-known/axe.json`       |                                                      | Manifest                     |
+| GET     | `/axe/manifest`               |                                                      | Manifest                     |
+| GET     | `/.well-known/axe-index.json` |                                                      | Index (platforms)            |
+| POST    | `/axe/actions/{name}`         | `{ input, context?, idempotencyKey?, expectedRev? }` | Result envelope              |
+| GET     | `/axe/actions/{name}`         |                                                      | Action definition (optional) |
+| POST    | `/axe/continue`               | `{ continuationToken, kind, payload, expectedRev? }` | Result envelope              |
+| POST    | `/axe/resume`                 | `{ resumeToken, expectedRev? }`                      | Result envelope              |
+| GET     | `/axe/poll/{token}`           |                                                      | Result envelope              |
+| GET     | `/axe/state`                  |                                                      | Live state (§21, optional)   |
+| OPTIONS | any of the above              |                                                      | `204` when CORS is enabled   |
 
 ## Appendix B. Requirement index
 
-Every numbered requirement above maps to at least one test in `@axe/core` or one check in the conformance suite; `packages/testing/src/conformance/requirements.ts` lists the mapping and a test asserts that every `[P-...]` identifier in this file appears there.
+Every numbered requirement above maps to at least one test in `@summationai/axe-core` or one check in the conformance suite; `packages/testing/src/conformance/requirements.ts` lists the mapping and a test asserts that every `[P-...]` identifier in this file appears there.

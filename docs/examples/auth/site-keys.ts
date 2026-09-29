@@ -3,7 +3,7 @@
  * the wholesaler issued; each key is scoped to the actions that partner may call.
  */
 import { createHash } from "node:crypto";
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 // #region keys
 // Stand-in for your API-key table. Store a hash of each key, never the key itself.
@@ -37,15 +37,6 @@ const keysBySha256 = new Map<string, ApiKeyRecord>([
 ]);
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
-
-// The runtime does not pass the verdict's `id` to handlers in v0, so a handler that needs
-// to know which partner is calling resolves it from the same bearer key.
-function partnerFromRequest(request: Request): ApiKeyRecord {
-  const key = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  const record = keysBySha256.get(sha256(key));
-  if (!record) throw new Error("verifySiteKey admitted a key that is no longer in the table");
-  return record;
-}
 // #endregion keys
 
 // Stand-in for your warehouse and order systems.
@@ -149,8 +140,10 @@ axe.register(
         output: { orderNumber: "PO-88214", expectedShipDate: "2026-10-02" },
       },
     ],
-    handler: async ({ input, request }) =>
-      warehouse.placeOrder(partnerFromRequest(request).id, input.lines, input.poReference),
+    // `siteKey.id` is the id verifySiteKey returned for this request's key. The same key, verified
+    // again, is required to continue, resume, or poll anything this call starts.
+    handler: async ({ input, siteKey }) =>
+      warehouse.placeOrder(siteKey!.id, input.lines, input.poReference),
   }),
 );
 // #endregion actions

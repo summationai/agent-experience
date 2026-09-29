@@ -1,0 +1,10 @@
+.next/
+test-results/
+playwright-report/
+*.tsbuildinfo
+# Written by Next on every build or dev run, and imports types from .next/ that a fresh clone
+# does not have; app-env.d.ts carries the references the typecheck needs.
+next-env.d.ts
+# Written by `next dev` when it detects a coding agent in the environment.
+AGENTS.md
+CLAUDE.md

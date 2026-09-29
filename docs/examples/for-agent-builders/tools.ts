@@ -1,7 +1,7 @@
 // #region all
-import type { AXEClient, RunOutcome } from "@axe/client";
-import { present, toMarkdown } from "@axe/client/present";
-import type { JsonSchema } from "@axe/core/types";
+import type { AXEClient, RunOutcome } from "@summationai/axe-client";
+import { present, toMarkdown } from "@summationai/axe-client/present";
+import type { JsonSchema } from "@summationai/axe-core/types";
 
 /** The shape every framework wants: OpenAI `functions`, LangChain tools, MCP tools. */
 export interface ToolDefinition {

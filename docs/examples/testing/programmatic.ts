@@ -9,7 +9,7 @@ import {
   runAudit,
   formatAuditHtml,
   type ConformanceOptions,
-} from "@axe/testing";
+} from "@summationai/axe-testing";
 
 // #region conformance
 const url = process.env.AXE_TARGET_URL ?? "https://staging.oakridge-rentals.example";

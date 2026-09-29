@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { RegisteredAction } from "../../core/src/index";
 import { createMcpServer, toolNameFor, formatResult } from "../src/index";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
+import { liveAXE } from "../../core/test/fixtures/live";
 
 async function connect(auth?: string) {
   const { axe, state } = apartmentsAXE();
@@ -19,7 +22,7 @@ function text(r: Awaited<ReturnType<Client["callTool"]>>): string {
   return content.map((c) => c.text ?? "").join("\n");
 }
 
-describe("@axe/mcp", () => {
+describe("@summationai/axe-mcp", () => {
   it("lists one tool per action plus the reserved tools, with schemas and annotations", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
@@ -132,6 +135,179 @@ describe("@axe/mcp", () => {
     );
     expect(e.isError).toBe(true);
     expect((e.content[0] as { text: string }).text).toContain("/a: is required (expected string)");
+  });
+
+  it("adds axe_state, accepts expectedRev, and explains stale and unavailable when the site is live", async () => {
+    const { axe, studio } = liveAXE();
+    const derived = await createMcpServer(axe, { client: { auth: "user:dana" } });
+    const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+    await derived.server.connect(serverT);
+    const client = new Client({ name: "test", version: "0" });
+    await client.connect(clientT);
+    const { tools } = await client.listTools();
+    expect(tools.map((t) => t.name)).toContain("axe_state");
+    const book = tools.find((t) => t.name === "classes_book")!;
+    expect((book.inputSchema.properties as Record<string, unknown>)["expectedRev"]).toBeDefined();
+    expect(book.description).toContain("Available at the time the manifest was read");
+    const state = await client.callTool({ name: "axe_state", arguments: {} });
+    expect(text(state)).toContain("As of revision 41.");
+    expect((state.structuredContent as { rev: number }).rev).toBe(41);
+    const stale = await client.callTool({
+      name: "classes_book",
+      arguments: { classId: "yin-tue-1800", expectedRev: 40 },
+    });
+    expect(stale.isError).toBe(true);
+    expect(text(stale)).toContain("Stale: you acted on revision 40 but the site is at revision 41");
+    expect(studio.handlerRuns).toBe(0);
+    const ok = await client.callTool({
+      name: "classes_book",
+      arguments: { classId: "yin-tue-1800", expectedRev: 41 },
+    });
+    expect(ok.isError).toBeUndefined();
+    expect(text(ok)).toContain("Revision: 42.");
+    // Sam has no credits: unavailable, with the reason and what would unblock it.
+    const sam = await createMcpServer(axe, { client: { auth: "user:sam" } });
+    const [c2, s2] = InMemoryTransport.createLinkedPair();
+    await sam.server.connect(s2);
+    const client2 = new Client({ name: "test", version: "0" });
+    await client2.connect(c2);
+    const refused = await client2.callTool({
+      name: "classes_book",
+      arguments: { classId: "yin-tue-1800" },
+    });
+    expect(refused.isError).toBe(true);
+    expect(text(refused)).toContain(
+      "Not available right now: no credits left on the member's pass.",
+    );
+    expect(text(refused)).toContain("payment.card");
+    expect(text(refused)).toContain(
+      "A person can do it at https://ember-yoga.example/account/passes.",
+    );
+  });
+
+  it("re-derives the tool list from a changing action set and tells the client it changed", async () => {
+    const core = await import("../../core/src/index");
+    const axe = core.createAXE({
+      name: "Grid",
+      description: "A planning grid whose cells register and unregister as the page changes.",
+      baseUrl: "http://localhost:3000",
+      auth: { modes: ["none"] },
+      secret: "0123456789abcdef0123456789abcdef",
+      revision: () => 3,
+    });
+    const cells = new Map<string, RegisteredAction>();
+    const listeners = new Set<() => void>();
+    const cell = (name: string, title: string) =>
+      core.action(name, {
+        title,
+        description: `Approves the ${title} cell of the plan and returns the cell it approved.`,
+        risk: "low",
+        idempotent: true,
+        reversible: true,
+        input: core.z.object({}).strict(),
+        output: core.z.object({ cell: core.z.string() }),
+        handler: async () => ({ cell: name }),
+      }) as unknown as RegisteredAction;
+    cells.set("grid.cell-2026-03", cell("grid.cell-2026-03", "March"));
+    axe.addProvider({
+      actions: () => [...cells.values()],
+      get: (name) => cells.get(name),
+      onChange: (fn) => {
+        listeners.add(fn);
+        return () => void listeners.delete(fn);
+      },
+    });
+    const derived = await createMcpServer(axe);
+    const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+    await derived.server.connect(serverT);
+    const client = new Client({ name: "test", version: "0" });
+    const changed = new Promise<void>((resolve) =>
+      client.setNotificationHandler(ToolListChangedNotificationSchema, () => resolve()),
+    );
+    await client.connect(clientT);
+    expect(client.getServerCapabilities()).toMatchObject({ tools: { listChanged: true } });
+    expect((await client.listTools()).tools.map((t) => t.name)).toContain("grid_cell-2026-03");
+    // The page changes: April appears, March is gone. The next listing shows it, and the client hears.
+    cells.delete("grid.cell-2026-03");
+    cells.set("grid.cell-2026-04", cell("grid.cell-2026-04", "April"));
+    for (const fn of listeners) fn();
+    await changed;
+    const names = (await client.listTools()).tools.map((t) => t.name);
+    expect(names).toContain("grid_cell-2026-04");
+    expect(names).not.toContain("grid_cell-2026-03");
+    // A tool that appeared after the server was created is callable, with an idempotency key supplied.
+    const r = await client.callTool({ name: "grid_cell-2026-04", arguments: { expectedRev: 3 } });
+    expect(r.isError).toBeUndefined();
+    expect((r.structuredContent as { output: { cell: string } }).output.cell).toBe(
+      "grid.cell-2026-04",
+    );
+    const gone = await client.callTool({ name: "grid_cell-2026-03", arguments: {} });
+    expect(gone.isError).toBe(true);
+    expect(text(gone)).toContain("Unknown tool");
+  });
+
+  it("axe_poll polls only a pollUrl this server returned; a model-supplied URL is refused unfetched [P-AGENT-9]", async () => {
+    const core = await import("../../core/src/index");
+    const axe = core.createAXE({
+      name: "Registrar",
+      description: "University registrar that generates enrollment verification letters.",
+      baseUrl: "https://registrar.example",
+      auth: { modes: ["none"] },
+      secret: "0123456789abcdef0123456789abcdef",
+    });
+    let ready = false;
+    axe.register(
+      core.action("letters.request", {
+        title: "Request a letter",
+        description:
+          "Generates an enrollment verification letter and returns its download URL; the result is delivered by polling.",
+        risk: "low",
+        input: core.z.object({ studentId: core.z.string() }),
+        output: core.z.object({ url: core.z.string() }),
+        handler: async ({ pending }) => pending({ retryAfter: 1 }),
+        onPoll: async ({ pending }) =>
+          ready ? { url: "https://registrar.example/l.pdf" } : pending({ retryAfter: 1 }),
+      }),
+    );
+    const fetched: { url: string; authorization: string | null }[] = [];
+    const derived = await createMcpServer(axe.describe(), {
+      pollBudgetMs: 50,
+      client: {
+        auth: "private-token",
+        fetch: async (input, init) => {
+          fetched.push({
+            url: String(input),
+            authorization: new Headers(init?.headers).get("authorization"),
+          });
+          return axe.handle(new Request(input, init));
+        },
+      },
+    });
+    const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+    await derived.server.connect(serverT);
+    const client = new Client({ name: "test", version: "0" });
+    await client.connect(clientT);
+    for (const pollUrl of [
+      "https://attacker.example/steal",
+      "https://registrar.example/axe/poll/forged",
+    ]) {
+      const refused = await client.callTool({ name: "axe_poll", arguments: { pollUrl } });
+      expect(refused.isError).toBe(true);
+      expect(text(refused)).toContain("only polls a pollUrl this server returned");
+    }
+    expect(fetched).toEqual([]);
+    const started = await client.callTool({
+      name: "letters_request",
+      arguments: { studentId: "s1" },
+    });
+    const { pollUrl } = started.structuredContent as { status: string; pollUrl: string };
+    expect((started.structuredContent as { status: string }).status).toBe("pending");
+    ready = true;
+    const done = await client.callTool({ name: "axe_poll", arguments: { pollUrl } });
+    expect(done.isError).toBeUndefined();
+    expect((done.structuredContent as { status: string }).status).toBe("ok");
+    expect(fetched.every((f) => f.url.startsWith("https://registrar.example/"))).toBe(true);
+    expect(fetched.every((f) => f.authorization === "Bearer private-token")).toBe(true);
   });
 
   it("rejects colliding or reserved tool names", async () => {

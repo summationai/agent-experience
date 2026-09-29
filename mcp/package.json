@@ -1,0 +1,30 @@
+{
+  "name": "@summationai/axe-mcp-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Company-operated MCP and browser relay service for Agent Experience Surface integrations.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts",
+    "dev:handoff": "AXE_MCP_MODE=handoff HOST=127.0.0.1 PORT=4717 tsx watch src/index.ts",
+    "dev:local-unattended": "AXE_MCP_MODE=local-unattended HOST=127.0.0.1 PORT=4717 tsx watch src/index.ts",
+    "dev:hosted": "AXE_MCP_MODE=hosted HOST=127.0.0.1 PORT=4717 tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@summationai/axe-host": "workspace:*",
+    "@summationai/axe-mcp": "workspace:*",
+    "@summationai/axe-relay": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.30.1",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
+  }
+}

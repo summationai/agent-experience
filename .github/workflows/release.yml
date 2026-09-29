@@ -1,0 +1,61 @@
+# Publish @summationai/axe-* to GitHub Packages on every push to main.
+#
+# A merge releases whatever versions the PR set: `pnpm -r publish` skips any package whose
+# version is already in the registry, so a merge that did not bump versions publishes nothing.
+# Bump versions in the PR with `pnpm changeset` and then `pnpm version-packages`.
+#
+# Auth is the per-job GITHUB_TOKEN: no PAT, nothing stored. `packages: write` is scoped to this
+# job and expires with it. Each package's publishConfig names the registry and restricted access,
+# and a package published from this internal repository is private to the organization. The last
+# step fails the run if any package is served to a request without credentials.
+name: Release
+
+on:
+  push:
+    branches: [main]
+# No workflow_dispatch on purpose: a manual run from another ref could publish that ref's code
+# under a version main has not reached, and registry versions cannot be reused.
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@summationai"
+
+      - name: Unreleased changesets are versioned first
+        run: |
+          pending=$(find .changeset -name '*.md' ! -name README.md | wc -l)
+          if [ "$pending" -ne 0 ]; then
+            echo "::error::$pending changeset(s) not yet versioned; run pnpm version-packages in the PR"
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      # `axe surface coverage`'s tests (packages/cli) launch headless Chromium.
+      - name: Install Chromium
+        run: pnpm --filter body-spray-site exec playwright install --with-deps chromium
+      - run: pnpm -r test
+
+      - name: Publish
+        run: pnpm -r publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Packages stay private to the organization
+        run: node scripts/check-package-privacy.mjs

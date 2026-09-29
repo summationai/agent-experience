@@ -3,11 +3,11 @@
  * Deterministic for a given manifest and set of responses. Weights live in
  * `weights.json` so a team can tune them in one place.
  */
-import type { ActionDefinition, Manifest } from "@axe/core/types";
-import { lintManifest, isBareQuerySearch } from "@axe/core/lint";
-import { resolveDisplay } from "@axe/core/display";
-import { getPointer } from "@axe/core";
-import * as WIRE from "@axe/core/vocabulary";
+import type { ActionDefinition, Manifest } from "@summationai/axe-core/types";
+import { lintManifest, isBareQuerySearch } from "@summationai/axe-core/lint";
+import { resolveDisplay } from "@summationai/axe-core/display";
+import { getPointer } from "@summationai/axe-core";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import weightsJson from "./weights.json";
 import { runConformance } from "../conformance/index";
 import type { ConformanceOptions, ConformanceReport } from "../conformance/index";
@@ -17,7 +17,7 @@ export interface AuditCheck {
   category: string;
   title: string;
   weight: number;
-  /** Fraction earned, 0..1. */
+  /** Fraction earned, 0..1. Always 0 for a skipped check, which is excluded from the score. */
   earned: number;
   status: "pass" | "partial" | "fail" | "skip";
   detail: string;
@@ -28,7 +28,13 @@ export interface AuditCategory {
   id: string;
   title: string;
   max: number;
+  /** 0 when the category is not scored. */
   score: number;
+  /**
+   * False when every check in the category skipped. An unscored category earns nothing and is
+   * left out of the total, which is then scaled to 100 over the categories that were scored.
+   */
+  scored: boolean;
   checks: AuditCheck[];
 }
 
@@ -36,7 +42,7 @@ export interface AuditFix {
   check: string;
   title: string;
   category: string;
-  /** Points recoverable. */
+  /** Points of the total score recoverable by fixing this check completely. */
   points: number;
   detail: string;
   docs: string;
@@ -103,7 +109,7 @@ class Scorer {
       category: id.split(".")[0]!,
       title: w.title,
       weight: w.weight,
-      earned: 1,
+      earned: 0,
       status: "skip",
       detail,
       docs: w.docs,
@@ -219,7 +225,8 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
   );
   {
     const idx = status(report, "manifest.index");
-    if (idx?.status === "skip") s.skip("discoverable.index", idx.detail);
+    if (!idx || idx.status === "skip")
+      s.skip("discoverable.index", idx?.detail ?? "No manifest to read an indexUrl from.");
     else s.add("discoverable.index", idx?.status === "pass" ? 1 : 0, idx?.detail ?? "Not checked.");
   }
 
@@ -241,19 +248,19 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
         : "All descriptions within 40–400 characters",
     );
     const noEx = m.actions.filter((a) => !a.examples?.length);
-    s.add(
-      "describable.examples-present",
-      fraction(m.actions.length - noEx.length, m.actions.length),
-      noEx.length
-        ? `Missing examples: ${noEx.map((a) => a.name).join(", ")}`
-        : "Every action has examples",
-    );
+    if (m.actions.length === 0) s.skip("describable.examples-present", "No actions.");
+    else
+      s.add(
+        "describable.examples-present",
+        fraction(m.actions.length - noEx.length, m.actions.length),
+        noEx.length
+          ? `Missing examples: ${noEx.map((a) => a.name).join(", ")}`
+          : "Every action has examples",
+      );
     const exv = status(report, "manifest.examples-validate");
-    s.add(
-      "describable.examples-validate",
-      exv?.status === "fail" ? 0 : 1,
-      exv?.detail ?? "Not checked.",
-    );
+    if (!exv || exv.status === "skip")
+      s.skip("describable.examples-validate", exv?.detail ?? "Not checked.");
+    else s.add("describable.examples-validate", exv.status === "fail" ? 0 : 1, exv.detail);
     let total = 0;
     let missing = 0;
     const missingBy: string[] = [];
@@ -263,21 +270,25 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
       missing += r.missing.length;
       if (r.missing.length) missingBy.push(`${a.name}: ${r.missing.join(", ")}`);
     }
-    s.add(
-      "describable.input-descriptions",
-      fraction(total - missing, total),
-      missingBy.length
-        ? `Undescribed input fields: ${missingBy.join("; ")}`
-        : `${total} input fields described`,
-    );
+    if (total === 0) s.skip("describable.input-descriptions", "No input fields.");
+    else
+      s.add(
+        "describable.input-descriptions",
+        fraction(total - missing, total),
+        missingBy.length
+          ? `Undescribed input fields: ${missingBy.join("; ")}`
+          : `${total} input fields described`,
+      );
     const bare = m.actions.filter((a) => isBareQuerySearch(a.input));
-    s.add(
-      "describable.structured-filters",
-      bare.length ? 0 : 1,
-      bare.length
-        ? `Free-text-only search: ${bare.map((a) => a.name).join(", ")}`
-        : "No bare query searches",
-    );
+    if (m.actions.length === 0) s.skip("describable.structured-filters", "No actions.");
+    else
+      s.add(
+        "describable.structured-filters",
+        bare.length ? 0 : 1,
+        bare.length
+          ? `Free-text-only search: ${bare.map((a) => a.name).join(", ")}`
+          : "No bare query searches",
+      );
     const dep = m.actions.filter((a) => a.deprecated);
     const depBad = dep.filter((a) => !a.deprecated!.replacedBy);
     if (dep.length === 0) s.skip("describable.deprecations", "No deprecated actions.");
@@ -321,13 +332,25 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
       s.skip("presentable.disclaimer", "No display declared.");
       s.skip("presentable.images-https", "No display declared.");
     } else {
+      // Two halves, static and live. A half that did not run earns nothing and is left out,
+      // so a skipped round trip cannot contribute the points of a passing one.
       const ptr = status(report, "manifest.display-pointers");
       const live = status(report, "runtime.example-roundtrip");
-      s.add(
-        "presentable.pointers-resolve",
-        (ptr?.status === "fail" ? 0 : 0.5) + (live?.status === "fail" ? 0 : 0.5),
-        [ptr?.detail, live?.detail].filter(Boolean).join("; "),
-      );
+      const halves = [ptr, live].filter((c) => c && c.status !== "skip");
+      const notRun = [
+        !ptr || ptr.status === "skip" ? "static pointer check not run" : "",
+        !live || live.status === "skip"
+          ? `live round trip not run${live ? ` (${live.detail})` : ""}`
+          : "",
+      ].filter(Boolean);
+      if (halves.length === 0)
+        s.skip("presentable.pointers-resolve", notRun.join("; ") || "Not checked.");
+      else
+        s.add(
+          "presentable.pointers-resolve",
+          halves.filter((c) => c!.status !== "fail").length / halves.length,
+          [...halves.map((c) => c!.detail), ...notRun].filter(Boolean).join("; "),
+        );
       const noUrl = displayed.filter((a) => a.display!.item && !a.display!.item.url);
       s.add(
         "presentable.url",
@@ -388,13 +411,15 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
       ...g.deadEndReads.map((n) => `${n} returns a list but offers no affordances`),
     ];
     const total = m.actions.length;
-    s.add(
-      "actionable.graph-connected",
-      fraction(total - g.orphanTransactions.length - g.deadEndReads.length, total),
-      problems.length
-        ? problems.join("; ")
-        : "Every read leads somewhere and every transaction is reachable",
-    );
+    if (total === 0) s.skip("actionable.graph-connected", "No actions.");
+    else
+      s.add(
+        "actionable.graph-connected",
+        fraction(total - g.orphanTransactions.length - g.deadEndReads.length, total),
+        problems.length
+          ? problems.join("; ")
+          : "Every read leads somewhere and every transaction is reachable",
+      );
     const truth = status(report, "manifest.truthful-metadata");
     s.add(
       "actionable.truthful-metadata",
@@ -422,6 +447,21 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
         "actionable.handoff-rate",
         rate <= 0.25 ? 1 : rate <= 0.5 ? 0.5 : 0,
         `${humans} of ${calls.length} live calls ended in needs_human (${Math.round(rate * 100)}%)`,
+      );
+    }
+    // Live state is optional: sites that publish none are not penalized; sites that do must get it right.
+    const liveChecks = report.checks.filter((c) => c.id.startsWith("live.") && c.status !== "skip");
+    if (!m.live || liveChecks.length === 0)
+      s.skip("actionable.live-state", "The manifest does not advertise live state.");
+    else {
+      const passed = liveChecks.filter((c) => c.status === "pass").length;
+      const failed = liveChecks.filter((c) => c.status === "fail");
+      s.add(
+        "actionable.live-state",
+        fraction(passed, liveChecks.length),
+        failed.length
+          ? failed.map((c) => `${c.id}: ${c.detail}`).join("; ")
+          : `${passed} live-state checks passed`,
       );
     }
   }
@@ -496,22 +536,25 @@ export async function runAudit(url: string, options: AuditOptions = {}): Promise
     );
     const tamper = report.observations.tokenTamperRejected;
     const fakes = status(report, "ladder.fake-kinds");
-    if (tamper === null && (!fakes || fakes.status === "skip"))
-      s.skip("trustworthy.tokens", "Ladder not exercised.");
+    // Two halves; only the ones that were exercised count.
+    const fakesRan = Boolean(fakes && fakes.status !== "skip");
+    const halves = [
+      ...(tamper === null ? [] : [tamper]),
+      ...(fakesRan ? [fakes!.status !== "fail"] : []),
+    ];
+    if (halves.length === 0) s.skip("trustworthy.tokens", "Ladder not exercised.");
     else
       s.add(
         "trustworthy.tokens",
-        (tamper === false ? 0 : 0.5) + (fakes?.status === "fail" ? 0 : 0.5),
+        halves.filter(Boolean).length / halves.length,
         [
           tamper === false
             ? "A tampered token was not rejected"
             : tamper
               ? "Tampered tokens rejected"
-              : "",
-          fakes?.detail,
-        ]
-          .filter(Boolean)
-          .join("; "),
+              : "Token tampering not exercised",
+          fakesRan ? fakes!.detail : "Custom kinds not observed",
+        ].join("; "),
       );
   }
 
@@ -546,11 +589,27 @@ function finish(
     const scored = checks.filter((k) => k.status !== "skip");
     const totalW = scored.reduce((n, k) => n + k.weight, 0);
     const earnedW = scored.reduce((n, k) => n + k.weight * k.earned, 0);
-    let score = totalW === 0 ? c.max : (earnedW / totalW) * c.max;
+    // A category where every check skipped earns nothing and is not scored: skipped checks
+    // are not passes, so they cannot add a category's maximum to the total.
+    const isScored = totalW > 0;
+    let score = isScored ? (earnedW / totalW) * c.max : 0;
     if (hardFailure && hardFailure.startsWith(id + ".")) score = 0;
-    return { id, title: c.title, max: c.max, score: Math.round(score * 10) / 10, checks };
+    return {
+      id,
+      title: c.title,
+      max: c.max,
+      score: Math.round(score * 10) / 10,
+      scored: isScored,
+      checks,
+    };
   });
-  const score = Math.round(categories.reduce((n, c) => n + c.score, 0));
+  // The total is out of 100 over the categories that were scored. When all are (the usual
+  // case, since the category maximums sum to 100), this is the plain sum.
+  const scoredMax = categories.filter((c) => c.scored).reduce((n, c) => n + c.max, 0);
+  const scale = scoredMax > 0 ? 100 / scoredMax : 0;
+  const score = Math.round(
+    categories.filter((c) => c.scored).reduce((n, c) => n + c.score, 0) * scale,
+  );
   const fixes: AuditFix[] = s.checks
     .filter((k) => k.status === "fail" || k.status === "partial")
     .map((k) => {
@@ -559,13 +618,13 @@ function finish(
         .filter((x) => x.status !== "skip")
         .reduce((n, x) => n + x.weight, 0);
       const points = scoredW
-        ? Math.round(((k.weight * (1 - k.earned)) / scoredW) * cat.max * 10) / 10
+        ? Math.round(((k.weight * (1 - k.earned)) / scoredW) * cat.max * scale * 10) / 10
         : 0;
       return {
         check: k.id,
         title: k.title,
         category: cat.title,
-        points: hardFailure === k.id ? cat.max : points,
+        points: hardFailure === k.id ? Math.round(cat.max * scale * 10) / 10 : points,
         detail: k.detail,
         docs: k.docs,
       };

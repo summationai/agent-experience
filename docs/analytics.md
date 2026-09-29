@@ -53,11 +53,11 @@ Events contain no personally identifiable information and no payloads, by constr
 
 ## Sinks
 
-A sink is any function of an event: `(event: AXEEvent) => void | Promise<void>`. Pass one sink or an array to `onEvent`. Three ship in `@axe/core/events`:
+A sink is any function of an event: `(event: AXEEvent) => void | Promise<void>`. Pass one sink or an array to `onEvent`. Three ship with `@summationai/axe-core`, two in `@summationai/axe-core/events` and one in `@summationai/axe-core/node`:
 
 - `consoleSink` writes one JSON line per event to stdout. Pass your own writer to send the line elsewhere.
-- `jsonlFileSink` takes a path and appends JSON lines to it, opening the file lazily and serializing writes so lines never interleave. Node only.
-- `otelSink` takes a meter and an optional tracer, and records a counter and a histogram, plus one span per event when the tracer is present. The parameter types are structural subsets of OpenTelemetry's meter and tracer, so `@axe/core` has no OpenTelemetry dependency and you pass the real objects from `@opentelemetry/api`.
+- `jsonlFileSink` (`@summationai/axe-core/node`) takes a path and appends JSON lines to it, opening the file lazily and serializing writes so lines never interleave. It is the one export that needs Node, which is why it has its own subpath: every other entry of `@summationai/axe-core` bundles for the browser.
+- `otelSink` takes a meter and an optional tracer, and records a counter and a histogram, plus one span per event when the tracer is present. The parameter types are structural subsets of OpenTelemetry's meter and tracer, so `@summationai/axe-core` has no OpenTelemetry dependency and you pass the real objects from `@opentelemetry/api`.
 
 The fourth export, combineSinks, fans events out to several sinks and isolates failures; it takes an error callback so a broken sink reports instead of disappearing. The array form of `onEvent` uses it internally with a callback that logs to stderr.
 

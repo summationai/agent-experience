@@ -1,0 +1,88 @@
+diff --git a/index.html b/index.html
+--- a/index.html
++++ b/index.html
+@@ -9,5 +9,6 @@
+       <label>Hours <input name="hours" type="number" /></label>
+       <button type="submit">Submit timesheet</button>
+     </form>
++    <script type="module" src="./surface.js"></script>
+   </body>
+ </html>
+diff --git a/surface.js b/surface.js
+new file mode 100644
+--- /dev/null
++++ b/surface.js
+@@ -0,0 +1,29 @@
++// Agent Surface for this page, written by `axe surface init`. Yours to edit.
++//
++// Always on: Surface is a browser-local description of controls, not a separately deployed service.
++// Always on after a provider browser handoff or in an optional `axe host` session (both are read by
++// `injectedRelay()`).
++//
++// @summationai/axe-surface/auto is a bare module specifier: load this file through your bundler, or map
++// the specifier with an import map to the package's built files.
++import { autoSurface } from "@summationai/axe-surface/auto";
++import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
++import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";
++import surfaceConfig from "./surface.config.js";
++
++const development =
++  typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
++const enabled = true;
++
++// The relay carries the page's surface to an agent outside the browser (an MCP client). The
++// provider supplies a scoped connection through its browser handoff or optional host;
++// anywhere else nothing connects. `axe surface init --relay-dev` adds the development relay
++// for a person's own tab (attended mode, with pairing).
++
++if (enabled) {
++  // expose publishes window.__surface for `axe surface coverage` and browser-driving agents.
++  const handle = autoSurface({ root: document.body, config: surfaceConfig, expose: development });
++  exposeWebMcp(handle.surface);
++  const options = injectedRelay();
++  if (options) connectRelay(handle.surface, options);
++}
+diff --git a/surface.config.js b/surface.config.js
+new file mode 100644
+--- /dev/null
++++ b/surface.config.js
+@@ -0,0 +1,39 @@
++// Surface config for this app, written by `axe surface init`. Yours to edit.
++//
++// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
++// page alone cannot tell it. An empty overlay is a working start.
++
++/** @type {import("@summationai/axe-surface/auto").SurfaceConfig} */
++const surfaceConfig = {
++  profile: {
++    id: "application",
++    name: "Application",
++    // Wire this to the app's existing auth source: unknown only while it resolves.
++    authentication: { state: "unknown" },
++  },
++  // Nothing here is required: autoSurface discovers the page's controls on its own. Run
++  // `axe surface coverage <url>` and add a rule for each gap it lists, most important first.
++  // A rule matches by `key` (from coverage), `id` (data-surface-id), `selector`, `route`,
++  // `role`, or `name`, and overrides what was derived.
++  //
++  // rules: [
++  //   // rename: the name an agent reads, stated as the outcome ("Lock March", not "Lock button").
++  //   { match: { selector: "#lock-month" }, name: "Lock the month" },
++  //   // reason: why a disabled control is unavailable, in the app's own words.
++  //   { match: { selector: "[data-testid=submit-plan]" }, reason: "the plan has unsaved edits" },
++  //   // risk: how much a mistaken act costs; never none for a control that changes state.
++  //   { match: { selector: "button.archive" }, effect: { mutates: "plans", risk: "medium" } },
++  //   // hide: controls an agent should never see (debug panels, the app's own chat).
++  //   { match: { selector: ".debug-panel" }, hide: true },
++  //   // handler: run the app's own function instead of a synthetic click (the declared tier).
++  //   { match: { selector: "#export-csv" }, handler: () => exportCsv() },
++  //   // approval: a person approves on the page before this runs.
++  //   { match: { selector: "button.delete-plan" }, approval: true },
++  //   // group: fold controls into one domain action (a key of `groups`).
++  //   { match: { selector: "#toolbar button" }, group: "plan-toolbar" },
++  //   // sensitive: an agent may set the field (with `editable`) but never reads its value back.
++  //   { match: { selector: "input[name=salary]" }, sensitive: true },
++  // ],
++};
++
++export default surfaceConfig;

@@ -1,6 +1,6 @@
 {
-  "name": "@axe/client",
-  "version": "0.1.0",
+  "name": "@summationai/axe-client",
+  "version": "1.0.0",
   "description": "Agent-side client for AXE: discover, invoke, continue, resume, and present results.",
   "license": "Apache-2.0",
   "type": "module",
@@ -41,12 +41,16 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*"
+    "@summationai/axe-core": "workspace:*"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/summationai/agent-experience",
     "directory": "packages/client"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "keywords": [
     "axe",

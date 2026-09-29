@@ -3,7 +3,7 @@
  * aimed at the agent, a readOnly lie, orphan actions, a bare query search, no examples,
  * no display, no contact, no terms, and a mutating action with risk none.
  */
-import type { Manifest } from "@axe/core/types";
+import type { Manifest } from "@summationai/axe-core/types";
 
 export const BAD_MANIFEST: Manifest = {
   protocol: "axe/0.1",

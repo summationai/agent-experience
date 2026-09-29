@@ -1,8 +1,8 @@
 // A complete Express app for Sunrise Yoga Studio with AXE mounted at the root.
 // In your app the `axe` section is axe.ts and the `mount` section is server.ts.
 import express from "express";
-import { createAXE, action, z, type TenantInfo } from "@axe/core";
-import { axeExpress } from "@axe/express";
+import { createAXE, action, z, type TenantInfo } from "@summationai/axe-core";
+import { axeExpress } from "@summationai/axe-express";
 
 // #region axe
 export const axe = createAXE({

@@ -1,6 +1,6 @@
 // session.ts — maps a Web Request to the signed-in customer.
 // #region all
-import type { Identity } from "@axe/core";
+import type { Identity } from "@summationai/axe-core";
 
 /** The two methods we use from a KV namespace, a Redis client, or a table. */
 export interface SessionLookup {

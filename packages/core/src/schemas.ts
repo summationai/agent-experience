@@ -78,6 +78,9 @@ export const DisplaySchema = z
   })
   .strict();
 
+/** A site revision: an opaque string or number. */
+export const RevisionSchema = z.union([z.string().min(1), z.number()]);
+
 export const AffordanceSchema = z
   .object({
     action: z.string().regex(ACTION_NAME),
@@ -93,6 +96,7 @@ export const DynamicAffordanceSchema = z
     title: z.string().min(1),
     input: z.record(z.string(), JsonValueSchema),
     primary: z.boolean().optional(),
+    expectedRev: RevisionSchema.optional(),
   })
   .strict();
 
@@ -113,6 +117,53 @@ export const FreshnessSchema = z
 
 export const ActionExampleSchema = z
   .object({ input: JsonValueSchema, output: JsonValueSchema })
+  .strict();
+
+export const AcceptSchema = z
+  .object({
+    kind: z.string().regex(KIND_NAME),
+    title: z.string().min(1),
+    description: z.string().min(1),
+    schema: JsonSchemaSchema,
+    sensitive: z.boolean(),
+    instructions: z.string().optional(),
+  })
+  .strict();
+
+/** `manifest.live`. */
+export const LiveSchema = z
+  .object({ rev: RevisionSchema.optional(), url: UrlSchema.optional() })
+  .strict();
+
+/** A handoff declared on an unavailable action: the Handoff object without the token members; `url` is optional for a step with no page of its own. */
+export const HandoffSpecSchema = z
+  .object({
+    reason: z.string().min(1),
+    instructions: z.string().min(1),
+    url: UrlSchema.optional(),
+    whatAgentShouldSayToUser: z.string().min(1),
+  })
+  .strict();
+
+/** `action.availability` and the entries of `/axe/state`. A reason is required when unavailable. */
+export const AvailabilitySchema = z.discriminatedUnion("available", [
+  z.object({ available: z.literal(true) }).strict(),
+  z
+    .object({
+      available: z.literal(false),
+      reason: z.string().min(1),
+      requires: z.array(AcceptSchema).min(1).optional(),
+      handoff: HandoffSpecSchema.optional(),
+    })
+    .strict(),
+]);
+
+/** The document served at `/axe/state`. */
+export const LiveStateSchema = z
+  .object({
+    rev: RevisionSchema.optional(),
+    actions: z.record(z.string().regex(ACTION_NAME), AvailabilitySchema),
+  })
   .strict();
 
 export const ActionSchema = z
@@ -140,6 +191,7 @@ export const ActionSchema = z
       .object({ since: z.string(), replacedBy: z.string().regex(ACTION_NAME).optional() })
       .strict()
       .optional(),
+    availability: AvailabilitySchema.optional(),
   })
   .strict();
 
@@ -205,6 +257,7 @@ export const ManifestSchema = z
     brand: BrandSchema.optional(),
     indexUrl: UrlSchema.optional(),
     updatedAt: z.string().datetime({ offset: true }).optional(),
+    live: LiveSchema.optional(),
   })
   .strict();
 
@@ -232,6 +285,7 @@ export const RequestEnvelopeSchema = z
     input: JsonValueSchema,
     context: RequestContextSchema.optional(),
     idempotencyKey: z.string().max(256).optional(),
+    expectedRev: RevisionSchema.optional(),
   })
   .strict();
 
@@ -240,20 +294,12 @@ export const ContinueRequestSchema = z
     continuationToken: z.string().min(1),
     kind: z.string().regex(KIND_NAME),
     payload: JsonValueSchema,
+    expectedRev: RevisionSchema.optional(),
   })
   .strict();
 
-export const ResumeRequestSchema = z.object({ resumeToken: z.string().min(1) }).strict();
-
-export const AcceptSchema = z
-  .object({
-    kind: z.string().regex(KIND_NAME),
-    title: z.string().min(1),
-    description: z.string().min(1),
-    schema: JsonSchemaSchema,
-    sensitive: z.boolean(),
-    instructions: z.string().optional(),
-  })
+export const ResumeRequestSchema = z
+  .object({ resumeToken: z.string().min(1), expectedRev: RevisionSchema.optional() })
   .strict();
 
 export const HandoffSchema = z
@@ -281,7 +327,11 @@ export const ErrorBodySchema = z
   .strict();
 
 export const OkResultSchema = z
-  .object({ status: z.literal(WIRE.status.ok), output: JsonValueSchema })
+  .object({
+    status: z.literal(WIRE.status.ok),
+    output: JsonValueSchema,
+    rev: RevisionSchema.optional(),
+  })
   .strict();
 export const NeedsInputResultSchema = z
   .object({
@@ -292,10 +342,15 @@ export const NeedsInputResultSchema = z
     continuationToken: z.string().min(1),
     expiresAt: z.string().datetime({ offset: true }),
     fallback: HandoffSchema.optional(),
+    rev: RevisionSchema.optional(),
   })
   .strict();
 export const NeedsHumanResultSchema = z
-  .object({ status: z.literal(WIRE.status.needsHuman), handoff: HandoffSchema })
+  .object({
+    status: z.literal(WIRE.status.needsHuman),
+    handoff: HandoffSchema,
+    rev: RevisionSchema.optional(),
+  })
   .strict();
 export const PendingResultSchema = z
   .object({
@@ -303,10 +358,15 @@ export const PendingResultSchema = z
     pollUrl: UrlSchema,
     retryAfter: z.number().int().min(1),
     expiresAt: z.string().datetime({ offset: true }).optional(),
+    rev: RevisionSchema.optional(),
   })
   .strict();
 export const ErrorResultSchema = z
-  .object({ status: z.literal(WIRE.status.error), error: ErrorBodySchema })
+  .object({
+    status: z.literal(WIRE.status.error),
+    error: ErrorBodySchema,
+    rev: RevisionSchema.optional(),
+  })
   .strict();
 
 export const ResultSchema = z.discriminatedUnion("status", [
@@ -357,6 +417,20 @@ export const EventSchema = z
   })
   .strict();
 
+export const ActionEventSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    ts: z.string().datetime({ offset: true }),
+    action: z.string(),
+    event: z.string(),
+    status: StatusSchema,
+    errorCode: ErrorCodeSchema.nullable(),
+    actor: z.string().nullable(),
+    details: z.record(z.string(), JsonValueSchema),
+    tenant: z.string().nullable(),
+  })
+  .strict();
+
 /** The JSON Schemas published under `spec/schemas/`, keyed by file stem. */
 export function specJsonSchemas(): Record<string, JsonSchema> {
   const withId = (id: string, schema: z.ZodType): JsonSchema => ({
@@ -372,5 +446,7 @@ export function specJsonSchemas(): Record<string, JsonSchema> {
     result: withId("result", ResultSchema),
     index: withId("index", PlatformIndexSchema),
     event: withId("event", EventSchema),
+    "action-event": withId("action-event", ActionEventSchema),
+    state: withId("state", LiveStateSchema),
   };
 }

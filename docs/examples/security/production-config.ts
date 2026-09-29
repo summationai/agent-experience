@@ -2,8 +2,10 @@
  * Oakridge Rentals: the production shape of `createAXE`. A real secret, durable stores
  * shared by every instance, an error hook that logs causes without bodies, and no CORS.
  */
-import { createAXE } from "@axe/core";
-import type { IdempotencyRecord, IdempotencyStore, TokenRecord, TokenStore } from "@axe/core";
+import { createAXE } from "@summationai/axe-core";
+import type { TokenRecord, TokenStore } from "@summationai/axe-core";
+import { SqliteIdempotencyStore } from "@summationai/axe-core/node";
+import type { SqliteDatabaseLike } from "@summationai/axe-core/node";
 
 // Stand-in for your Redis or KV client. Any store with get, set-with-TTL, and delete works.
 interface Kv {
@@ -26,9 +28,8 @@ const kv: Kv = {
 };
 
 // #region stores
-// Token records hold `state`, the accepted schemas, and the consumed flag. Idempotency
-// records hold the original result. Both are plain JSON; both keys are already scoped by
-// tenant, action, and acting user before they reach you.
+// Token records hold `state` and the accepted schemas; they are plain JSON, keyed by a random id.
+// A get/set store with TTLs is enough for them.
 class KvTokenStore implements TokenStore {
   constructor(private readonly kv: Kv) {}
   async get(id: string): Promise<TokenRecord | undefined> {
@@ -43,16 +44,13 @@ class KvTokenStore implements TokenStore {
   }
 }
 
-class KvIdempotencyStore implements IdempotencyStore {
-  constructor(private readonly kv: Kv) {}
-  async get(key: string): Promise<IdempotencyRecord | undefined> {
-    const raw = await this.kv.get(`axe:idem:${key}`);
-    return raw ? (JSON.parse(raw) as IdempotencyRecord) : undefined;
-  }
-  async set(key: string, record: IdempotencyRecord, ttlSeconds: number): Promise<void> {
-    await this.kv.set(`axe:idem:${key}`, JSON.stringify(record), ttlSeconds);
-  }
-}
+// Operation claims (idempotency keys, token uses, poll results) must be atomic across every
+// instance. A get/set store is refused at startup. This is the SQLite reference adapter; for
+// Redis or PostgreSQL, see docs/deploying.md, "Secrets and stores".
+const { DatabaseSync } = (await import("node:sqlite" as string)) as {
+  DatabaseSync: new (path: string) => SqliteDatabaseLike;
+};
+const idempotencyStore = new SqliteIdempotencyStore(new DatabaseSync("/var/lib/oakridge/axe.db"));
 // #endregion stores
 
 // #region config
@@ -77,7 +75,7 @@ export const axe = createAXE({
   contact: { email: "agents@oakridge-rentals.example" },
   secret,
   tokenStore: new KvTokenStore(kv),
-  idempotencyStore: new KvIdempotencyStore(kv),
+  idempotencyStore,
   // `cors` is omitted on purpose: no browser-based agent calls this origin, so no CORS headers are emitted.
   onError: (ctx, error) => {
     // The agent has already received a generic `internal` error. Log the cause with the

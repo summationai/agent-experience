@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
 
 const dist = join(fileURLToPath(new URL(".", import.meta.url)), "dist");
 const types = {
@@ -26,5 +27,14 @@ createServer((req, res) => {
     return;
   }
   res.setHeader("content-type", types[extname(file)] ?? "application/octet-stream");
-  res.end(readFileSync(file));
+  const body = readFileSync(file);
+  if (
+    /gzip/.test(req.headers["accept-encoding"] ?? "") &&
+    /^(text\/|application\/|image\/svg)/.test(types[extname(file)] ?? "")
+  ) {
+    res.setHeader("content-encoding", "gzip");
+    res.end(gzipSync(body));
+    return;
+  }
+  res.end(body);
 }).listen(port, () => console.log(`Serving ${dist} at http://localhost:${port}/`));

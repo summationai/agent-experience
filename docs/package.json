@@ -6,17 +6,21 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "echo docs have no build step",
-    "test": "echo docs have no tests"
+    "test": "vitest run"
   },
   "dependencies": {
-    "axe": "workspace:*",
-    "@axe/client": "workspace:*",
-    "@axe/core": "workspace:*",
-    "@axe/express": "workspace:*",
-    "@axe/fetch": "workspace:*",
-    "@axe/mcp": "workspace:*",
-    "@axe/next": "workspace:*",
-    "@axe/testing": "workspace:*"
+    "@summationai/axe": "workspace:*",
+    "@summationai/axe-client": "workspace:*",
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-express": "workspace:*",
+    "@summationai/axe-fetch": "workspace:*",
+    "@summationai/axe-generate": "workspace:*",
+    "@summationai/axe-host": "workspace:*",
+    "@summationai/axe-mcp": "workspace:*",
+    "@summationai/axe-next": "workspace:*",
+    "@summationai/axe-relay": "workspace:*",
+    "@summationai/axe-surface": "workspace:*",
+    "@summationai/axe-testing": "workspace:*"
   },
   "devDependencies": {
     "@hono/node-server": "^1.19.9",
@@ -26,6 +30,8 @@
     "tsx": "^4.23.15",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "@anthropic-ai/sdk": "^0.128.0",
-    "@opentelemetry/api": "^1.9.1"
+    "@opentelemetry/api": "^1.9.1",
+    "react": "^18.3.1",
+    "@types/react": "^18.3.12"
   }
 }

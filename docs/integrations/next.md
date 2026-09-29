@@ -1,13 +1,13 @@
 # Next.js
 
-`@axe/next` mounts an AXE server in a Next.js app. `axeNext` is for the App Router: it hands the Web `Request` that Next gives a route handler straight to `@axe/core` and returns the `Response`, with no conversion at all. `axeNextPages` is for the Pages API: it converts Next's Node request into a Web `Request`, calls the same handler, and writes the `Response` back. Pick the one that matches where your routes live; both can coexist during a migration.
+`@summationai/axe-next` mounts an AXE server in a Next.js app. `axeNext` is for the App Router: it hands the Web `Request` that Next gives a route handler straight to `@summationai/axe-core` and returns the `Response`, with no conversion at all. `axeNextPages` is for the Pages API: it converts Next's Node request into a Web `Request`, calls the same handler, and writes the `Response` back. Pick the one that matches where your routes live; both can coexist during a migration.
 
 The example is Northgate University Admissions, whose `applications.status` action ([Concepts](../concepts.md#action)) needs a signed-in applicant.
 
 ## Install
 
 ```sh
-npm install @axe/core @axe/next
+npm install @summationai/axe-core @summationai/axe-next
 ```
 
 ## Where the declaration goes
@@ -16,7 +16,7 @@ Put `axe.ts` at the project root, next to `next.config.js`, not inside `app/` or
 
 <!-- include: examples/integrations/next/axe.ts#create -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Northgate University Admissions",
@@ -37,7 +37,7 @@ Create a catch-all route at `app/axe/[...axe]/route.ts` and export the three han
 
 <!-- include: examples/integrations/next/app/axe/[...axe]/route.ts#all -->
 ```ts
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 import { applicantFromRequest } from "../../../lib/session";
 
@@ -52,7 +52,7 @@ The session helper is yours. This one parses a cookie and looks it up; with next
 
 <!-- include: examples/integrations/next/lib/session.ts#all -->
 ```ts
-import type { Identity } from "@axe/core";
+import type { Identity } from "@summationai/axe-core";
 
 const SESSIONS = new Map<string, string>([["s_demo", "applicant_0142"]]);
 
@@ -101,7 +101,7 @@ Create a catch-all at `pages/api/axe/[...axe].ts` with a default export. Here `c
 
 <!-- include: examples/integrations/next/pages/api/axe/[...axe].ts#all -->
 ```ts
-import { axeNextPages } from "@axe/next";
+import { axeNextPages } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 import { applicantFromCookieHeader } from "../../../lib/session";
 
@@ -130,7 +130,7 @@ module.exports = {
 
 Next passes the original URL through to the API route, so the adapter still sees `/axe/actions/applications.status` and routes it correctly. The adapter also honors an x-axe-original-path request header, which you only need when something in front of Next (nginx, a CDN rule) rewrites the path before Next sees it. Have that layer set the header to the path the agent requested.
 
-Two Pages API defaults are worth knowing. Next parses JSON bodies for API routes; the adapter serializes the parsed body back, and if you disable the body parser for the route, it reads the raw stream instead. And the adapter assumes `https` unless `X-Forwarded-Proto` says otherwise, which is right on Vercel and behind most load balancers and wrong on `localhost`; the `origin` option in the example makes both cases explicit.
+Two Pages API defaults are worth knowing. Next parses JSON bodies for API routes, within its size limit (`sizeLimit: "1mb"` by default); the adapter serializes the parsed body back, and if you disable the body parser for the route, it reads the raw stream instead, only up to the server's `maxBodyBytes`, answering 413 beyond it. The App Router adapter hands the `Request` to the core, which reads it within `maxBodyBytes` ([Deploying](../deploying.md#limits-and-retention)). And the adapter assumes `https` unless `X-Forwarded-Proto` says otherwise, which is right on Vercel and behind most load balancers and wrong on `localhost`; the `origin` option in the example makes both cases explicit.
 
 ## Passing your session in
 
@@ -144,9 +144,11 @@ The `onBehalfOf` an agent puts in the request body is ignored. Only what your co
 
 `context` may also return `tenant` for multi-tenant deployments; [Platforms](../platforms.md) covers that.
 
+If `context` reads a session cookie (from `cookies()` or the request headers), the core's request policy protects it: a `POST` carrying a cookie must come from the origin of `baseUrl` or an origin in `requestPolicy.trustedOrigins`, and writes must be `application/json` (spec [P-TRANS-1] and [P-TRANS-2]). The App Router adapter hands the core Next's `Request` unchanged. The Pages adapter keeps the `Content-Type` the browser sent even after Next's body parser has turned a `text/plain` or form body into a string or an object, so those bodies are still refused. Neither adapter compares `Origin` with `Host` or `X-Forwarded-Host`; the site's origin is `baseUrl`. [Auth](../auth.md#cookie-sessions) has the matrix.
+
 ## Edge runtime
 
-`@axe/core` is written against Web-standard `Request`, `Response`, `URL`, and Web Crypto, so `export const runtime = "edge"` in the route file works with `axeNext` as it is. Two things change when you do that:
+`@summationai/axe-core` is written against Web-standard `Request`, `Response`, `URL`, and Web Crypto, so `export const runtime = "edge"` in the route file works with `axeNext` as it is. Two things change when you do that:
 
 - Every isolate has its own memory. The default token store and idempotency store are in-memory, so a continuation token minted on one isolate is unknown to the next, and an idempotent replay may run twice. Configure `tokenStore` and `idempotencyStore` with something durable (Vercel KV, Upstash, a database) before enabling the Edge runtime. [Deploying](../deploying.md) shows the two interfaces.
 - The random fallback `secret` is per isolate, too. Set `secret` explicitly or no token will verify.

@@ -65,9 +65,11 @@ The difference between `description` and `instructions`: `description` tells the
 
 ## The well-known kind registry
 
-Thirteen kinds in five namespaces, normative in [`spec/KINDS.md`](../spec/KINDS.md). Every kind's payload is an object with no additional properties; strings are non-empty; money is a number in major units with an ISO 4217 `currency`. The JSON Schemas under [`spec/schemas/kinds/`](../spec/schemas/kinds/) are generated from `@axe/core/kinds`, and a test fails if the two drift.
+Thirteen kinds in five namespaces, normative in [`spec/KINDS.md`](../spec/KINDS.md). Every kind's payload is an object with no additional properties; strings are non-empty; money is a number in major units with an ISO 4217 `currency`. The JSON Schemas under [`spec/schemas/kinds/`](../spec/schemas/kinds/) are generated from `@summationai/axe-core/kinds`, and a test fails if the two drift.
 
-The registry exists so agents can hold credentials keyed by kind. If your requirement fits one of these, use it: an agent that holds a `payment.card` token fulfills your requirement in one confirmation, and cannot fulfill `x-yourorg.card` at all.
+The registry exists so agents can hold credentials keyed by kind. If your requirement fits one of these, use it: an agent that holds a `payment.card` token can fulfill your requirement in one confirmation, and cannot fulfill `x-yourorg.card` at all.
+
+A kind is a payload shape. The registry defines what a `payment.ach-debit` or `identity.government-id` payload looks like and the SDK validates it; it does not show that any agent wallet produces one (none is known to today), that a payment will clear, or that an identity is real. Charging, verifying, and authorizing stay with your payment provider and your own checks in `onContinue`. Offer a `fallback` handoff so a person can finish when no agent holds the kind.
 
 ### payment
 
@@ -214,7 +216,7 @@ The registry's `sensitive` values are minimums. You may mark any kind sensitive;
 
 ## Using kinds in code
 
-Everything is in `@axe/core/kinds` (also re-exported from `@axe/core`).
+Everything is in `@summationai/axe-core/kinds` (also re-exported from `@summationai/axe-core`).
 
 - `kinds` is the registry as typed definitions grouped by namespace: `kinds.document.url`, `kinds.consent.terms`, and so on. Each definition carries the wire name, a title, a description, a Zod schema, and the default `sensitive`.
 - `accept` builds an `accepts` entry from a definition. Pass `description` (what this requirement is for here), and optionally `title`, `instructions`, and `sensitive: true`.
@@ -225,8 +227,8 @@ Northgate admissions accepts a transcript by URL or inline, PDF only, and treats
 
 <!-- include: examples/requirements-and-kinds/transcript.ts#imports -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept, withMimeTypes } from "@axe/core/kinds";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept, withMimeTypes } from "@summationai/axe-core/kinds";
 ```
 <!-- /include -->
 
@@ -393,7 +395,7 @@ The waiver entry is built by hand rather than with `accept` so that the schema p
 
 ## How agents fulfill kinds
 
-An agent that supports AXE holds a wallet and a credential store keyed by kind. When a `needs_input` arrives, it walks `accepts` in order and asks each store whether it can produce a payload for that kind. `@axe/client` models this as a `Fulfiller`: a list of kinds and a function that returns a payload or nothing. The client's `run` drives the whole ladder: invoke, try each `accepts` entry against the registered `fulfillers`, call `/axe/continue`, follow a further `needs_input`, poll `pending`, and surface a handoff only when nothing else works.
+An agent that supports AXE can hold a wallet and a credential store keyed by kind; this is the design the client supports, not a description of agents that exist today. When a `needs_input` arrives, it walks `accepts` in order and asks each store whether it can produce a payload for that kind. `@summationai/axe-client` models this as a `Fulfiller`: a list of kinds and a function that returns a payload or nothing. The client's `run` drives the whole ladder: invoke, try each `accepts` entry against the registered `fulfillers`, call `/axe/continue`, follow a further `needs_input`, poll `pending`, and surface a handoff only when nothing else works.
 
 Before any payload for an entry marked `sensitive` is sent, the client calls its `confirm` callback with the action, the entry, the payload, and your `message`. The agent shows the user a summary ("Oakridge needs a $500 refundable deposit by bank transfer. Use your checking account ending 4471?") and sends only on a yes. A client with no `confirm` skips sensitive options entirely, which is why a requirement that offers only sensitive kinds should carry a `fallback`.
 
@@ -455,16 +457,16 @@ Expect agents to need a human for a custom kind more often than for a well-known
 
 The agent posts `{ continuationToken, kind, payload }`. The server:
 
-1. Verifies the token's signature, expiry, and binding, and re-establishes the acting identity. A tampered, expired, or wrong-user token is `not_found`; the response does not say which.
+1. Verifies the token's signature, expiry, binding, and tenant, and re-establishes the acting principal: the same user, the same site key (verified again), or none, exactly as when the token was minted. A tampered, expired, wrong-tenant, or wrong-principal token is `not_found`; the response does not say which.
 2. Rejects a `kind` that is not in the original `accepts` with `invalid_input`; `issues` names `/kind` and lists the accepted kinds under `expected`.
 3. Validates `payload` against that entry's stored JSON Schema. On failure it returns `invalid_input` with `issues`, each `path` a JSON Pointer prefixed with `/payload`, and **does not consume the token**. Agents fix their own mistakes and retry with the same token.
-4. Runs your `onContinue`. Any status other than `error` consumes the token. A second `/axe/continue` with the same token returns `conflict`.
+4. Claims the token, then runs your `onContinue`. Any status other than `error` consumes the token and stores the envelope. A second `/axe/continue` with the same token, kind, and payload returns that envelope without running `onContinue` again (a lost response is recoverable); with a different kind or payload it returns `conflict`. While the first is still running, a second gets a retryable `conflict` with `operationStatus` set to `in_progress`.
 
-The validator is the SDK's own JSON Schema validator, running against the schema stored with the token, because a `TokenStore` backed by Redis can hold JSON but not Zod. Consequently the contract is the JSON-Schema-expressible subset of your Zod schema: types, `required`, `enum`, `pattern`, `format`, string lengths, numeric bounds. Zod refinements are not enforced on continue. Anything a refinement would have checked belongs in `onContinue`, returning `fail` with `issues`, as the transcript size check above does. The reasoning is in [DECISIONS.md](../DECISIONS.md).
+The validator is the SDK's own JSON Schema validator, running against the schema stored with the token, because a `TokenStore` backed by Redis can hold JSON but not Zod. Consequently the contract is the JSON-Schema-expressible subset of your Zod schema: types, `required`, `enum`, `pattern`, `format`, string lengths, numeric bounds. Zod refinements are not enforced on continue. Anything a refinement would have checked belongs in `onContinue`, returning `fail` with `issues`, as the transcript size check above does; the published `accepts[].schema` marks a refined node `x-axe-refined`, so the agent knows a matching payload can still be refused. A keyword, format, or pattern the validator cannot apply refuses every payload rather than being skipped; [Schemas](schemas.md) lists the subset. The reasoning is in [DECISIONS.md](../DECISIONS.md).
 
 ## Chaining requirements
 
-`onContinue` may return anything a handler may return. Returning another `needsInput` mints a new `continuationToken` and consumes the one just used; the agent sees a second `needs_input` and repeats. Returning `handoff` produces `needs_human`; returning `pending` starts a poll. `@axe/client` follows chains up to a configurable step limit.
+`onContinue` may return anything a handler may return. Returning another `needsInput` mints a new `continuationToken` and consumes the one just used; the agent sees a second `needs_input` and repeats. Returning `handoff` produces `needs_human`; returning `pending` starts a poll. `@summationai/axe-client` follows chains up to a configurable step limit.
 
 Northgate verifies identity before asking for a FERPA release:
 
@@ -542,8 +544,8 @@ Carry what you have learned forward in `state`; each new `needsInput` gets its o
 - **The SDK never logs a payload and never puts one in an event.** Events carry the kind, the status, and the ladder position; the event type has no field a payload could occupy.
 - **Your handler must not log it either.** Pass a `payment.card` token straight to your PSP; pass ACH details to the processor and keep the authorization record it returns; store the fact that identity was verified, not the document number.
 - **Short lifetime.** Continuation tokens expire in 15 minutes by default. Shorten it with the ttlSeconds option on `needsInput` when every entry is sensitive; there is no reason for a card token to be presentable for longer than the agent needs to confirm with its user.
-- **Single use.** A consumed token is `conflict`; a stolen token that has already been used is worthless.
-- **Bound.** The token is tied to the action, the input hash, the acting user, and the tenant. Presenting it under a different identity is `not_found`.
+- **Single use.** A consumed token runs nothing again: the same payload gets the original envelope, a different one `conflict`.
+- **Bound.** The token is tied to the action, the input hash, the acting principal, and the tenant. Presenting it under a different identity, or anonymously when it was minted for someone, is `not_found`. A token minted anonymously is a bearer credential: whoever holds it and the exact payload can read the stored envelope.
 - **HTTPS only.** Tokens are bearer credentials and payloads are credentials. Serve `baseUrl` over HTTPS and nothing else.
 - **Store only what the process needs.** Retention is a policy question; state it in `policies.dataRetention` so agents can relay it.
 

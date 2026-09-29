@@ -1,5 +1,26 @@
 [
-  { "token": "package.json", "reason": "npm file name, not a wire field" },
-  { "token": "axe.ts", "reason": "the integrator's source file, not a wire name" },
-  { "token": "userId", "reason": "example session field in adapter docs" }
+  {
+    "token": "package.json",
+    "reason": "npm file name, not a wire field"
+  },
+  {
+    "token": "axe.ts",
+    "reason": "the integrator's source file, not a wire name"
+  },
+  {
+    "token": "userId",
+    "reason": "example session field in adapter docs"
+  },
+  {
+    "token": "operationId",
+    "reason": "OpenAPI field name read by @summationai/axe-generate, not AXE vocabulary"
+  },
+  {
+    "token": "safeParse",
+    "reason": "Zod's own method: the structural check by which @summationai/axe-surface recognizes a Zod schema"
+  },
+  {
+    "token": "surfaceId",
+    "reason": "the provider connector's expected Surface profile id: a provider-registry field, not an AXE wire name"
+  }
 ]

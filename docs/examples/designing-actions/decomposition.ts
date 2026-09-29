@@ -2,7 +2,7 @@
  * Oakridge Rentals: the same two-page application form, decomposed badly (one action
  * per page) and well (one action per intention).
  */
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Oakridge Rentals",

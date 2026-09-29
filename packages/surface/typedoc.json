@@ -1,0 +1,3 @@
+{
+  "entryPoints": ["src/index.ts", "src/react.ts", "src/axe.ts", "src/webmcp.ts", "src/auto.ts"]
+}

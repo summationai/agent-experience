@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agent-experience",
+  "version": "0.1.0",
+  "description": "Use supported websites through their real, structured interface.",
+  "author": {
+    "name": "Summation",
+    "url": "https://github.com/summationai/agent-experience"
+  },
+  "homepage": "https://github.com/summationai/agent-experience",
+  "repository": "https://github.com/summationai/agent-experience",
+  "license": "Apache-2.0",
+  "keywords": ["agents", "websites", "accessibility", "automation"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Agent Experience",
+        "shortDescription": "Use connected websites directly",
+        "longDescription": "Agent Experience lets ChatGPT read and use supported websites through the controls and permissions those sites already provide.",
+        "developerName": "Summation",
+        "category": "Productivity",
+        "capabilities": ["Interactive", "Read", "Write"],
+        "websiteURL": "https://github.com/summationai/agent-experience",
+        "defaultPrompt": [
+          "Open my connected app and tell me what I can do.",
+          "Use the connected website to finish this task."
+        ],
+        "brandColor": "#3F5BF6"
+      }
+    }
+  }
+}

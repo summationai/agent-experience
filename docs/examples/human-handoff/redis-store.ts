@@ -4,7 +4,7 @@
  * ioredis satisfies it as written.
  */
 // #region all
-import type { TokenRecord, TokenStore } from "@axe/core";
+import type { TokenRecord, TokenStore } from "@summationai/axe-core";
 
 /** The three calls this store needs from a Redis client. */
 export interface RedisLike {
@@ -24,8 +24,9 @@ export class RedisTokenStore implements TokenStore {
     return raw === null ? undefined : (JSON.parse(raw) as TokenRecord);
   }
 
-  // The runtime passes the remaining lifetime on every write, including the write that marks
-  // a token consumed, so the key expires exactly when the token does.
+  // The runtime passes the remaining lifetime on every write (the mint, and completeHandoff's
+  // update), so the key expires exactly when the token does. Whether the token was used lives in
+  // the IdempotencyStore, whose claims are atomic.
   async set(id: string, record: TokenRecord, ttlSeconds: number): Promise<void> {
     await this.redis.set(
       this.prefix + id,

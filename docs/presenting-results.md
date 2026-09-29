@@ -163,7 +163,7 @@ freshness: { cacheTtlSeconds: 300 },
 
 ## What the reference renderers produce
 
-`@axe/client/present` ships three functions:
+`@summationai/axe-client/present` ships three functions:
 
 - `present(action, result, brand?)` applies an action's `display` and `affordances` to an `ok` result and returns a normalized PresentedResult: items with a title, price, formatted attributes, badges, images, a URL, and resolved affordances, plus the disclaimer and the brand. It throws when the result is not `ok`; the other statuses need handling first ([For agent builders](for-agent-builders.md)). An action without `display` yields one generic item whose raw value is the whole output.
 - `toMarkdown(presented, options?)` renders a comparison table for chat surfaces: the option name linked to `url`, badges, a Next steps list of affordances, and the disclaimer. Options set the locale, cap the columns (default six), and turn off the affordance list.
@@ -173,8 +173,8 @@ A script that takes a result and produces all three:
 
 <!-- include: examples/presenting-results/render.ts#imports -->
 ```ts
-import { present, toMarkdown, toHTML } from "@axe/client/present";
-import type { Result } from "@axe/core/types";
+import { present, toMarkdown, toHTML } from "@summationai/axe-client/present";
+import type { Result } from "@summationai/axe-core/types";
 import { axe } from "../apartments/site.js";
 ```
 <!-- /include -->

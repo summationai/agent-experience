@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agent_experience": {
+      "type": "http",
+      "url": "https://configure-before-publishing.invalid/mcp"
+    }
+  }
+}

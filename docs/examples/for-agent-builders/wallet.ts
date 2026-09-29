@@ -1,5 +1,5 @@
-import { AXEClient } from "@axe/client";
-import type { ConfirmRequest, Fulfiller, JsonValue } from "@axe/client";
+import { AXEClient } from "@summationai/axe-client";
+import type { ConfirmRequest, Fulfiller, JsonValue } from "@summationai/axe-client";
 
 // Stand-ins for your credential store and your UI. Nothing here is logged.
 interface BankAccount {

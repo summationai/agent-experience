@@ -1,8 +1,10 @@
 # AXE Well-Known Kinds
 
-**Version:** `axe/0.1`. Normative. Schemas in this file are generated into [`schemas/kinds/`](./schemas/kinds/) from `@axe/core/kinds` and a test asserts they match.
+**Version:** `axe/0.1`. Normative. Schemas in this file are generated into [`schemas/kinds/`](./schemas/kinds/) from `@summationai/axe-core/kinds` and a test asserts they match.
 
 A **kind** names the type of payload an agent can submit to satisfy a `needs_input` requirement. Well-known kinds exist so that an agent's wallet or credential store can fulfill a requirement automatically: when a site asks for `payment.ach-debit`, every conforming agent knows the shape without reading prose.
+
+This registry defines payload shapes and the validation rules below. It does not define how a credential is issued, whether a payment clears, or whether an identity document is genuine; those are decided by the site's payment provider and its own checks. A payload that validates against a kind is well-formed, not accepted. The existence of a kind is not evidence that any agent wallet supports it.
 
 Rules:
 
@@ -125,7 +127,7 @@ A document the site fetches from a URL the agent controls or the user has shared
 
 ### `document.base64`
 
-Inline upload. Sites SHOULD state the maximum size; the SDK enforces a 10 MiB default on the decoded size.
+Inline upload. Sites SHOULD state the maximum size; the SDK enforces a 10 MiB default on the decoded size. The request body limit applies first ([P-LIM-1]): with the SDK's default `maxBodyBytes` of 1 MiB, an inline document can be about 750 KiB, and a site that accepts larger ones raises `maxBodyBytes` (base64 is four bytes for every three).
 
 | Member          | Type   | Required | Meaning                              |
 | --------------- | ------ | -------- | ------------------------------------ |
@@ -179,4 +181,4 @@ The `accepts[]` entry for a `consent.terms` requirement SHOULD carry, in `instru
 
 ## Adding to this registry
 
-The registry is governed informally in v0 (see `ROADMAP.md`). Proposals add a section here, a definition in `@axe/core/kinds`, a row in `VOCABULARY.md`, and a regenerated schema, in one change.
+The registry is governed informally in v0 (see `ROADMAP.md`). Proposals add a section here, a definition in `@summationai/axe-core/kinds`, a row in `VOCABULARY.md`, and a regenerated schema, in one change.

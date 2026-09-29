@@ -29,6 +29,43 @@ describe("manifest", () => {
     }
   });
 
+  it("carries an ETag and answers a matching If-None-Match with 304 [P-DISC-13]", async () => {
+    const { axe } = apartmentsAXE();
+    const first = await call(axe, "GET", WIRE.path.manifest);
+    const etag = first.headers.get("ETag");
+    expect(etag).toMatch(/^"[A-Za-z0-9_-]+"$/);
+    // Same document at the alias: same validator.
+    expect((await call(axe, "GET", WIRE.path.manifestAlias)).headers.get("ETag")).toBe(etag);
+    const conditional = (tag: string) =>
+      axe.handle(
+        new Request(`https://oakridge-rentals.example${WIRE.path.manifest}`, {
+          headers: { "If-None-Match": tag },
+        }),
+      );
+    const same = await conditional(etag!);
+    expect(same.status).toBe(304);
+    expect(await same.text()).toBe("");
+    expect(same.headers.get("ETag")).toBe(etag);
+    expect(same.headers.get("Cache-Control")).toContain("max-age=300");
+    expect((await conditional(`"other", W/${etag}`)).status).toBe(304);
+    expect((await conditional('"stale"')).status).toBe(200);
+    // A new action is a new document and a new validator.
+    axe.register(
+      action("units.compare", {
+        title: "Compare units",
+        description: "Compares two units side by side and returns the differences between them.",
+        readOnly: true,
+        risk: "none",
+        input: z.object({ a: z.string(), b: z.string() }),
+        output: z.object({ differences: z.array(z.string()) }),
+        handler: async () => ({ differences: [] }),
+      }),
+    );
+    const changed = await conditional(etag!);
+    expect(changed.status).toBe(200);
+    expect(changed.headers.get("ETag")).not.toBe(etag);
+  });
+
   it("validates against the generated JSON Schema too", async () => {
     const { axe } = apartmentsAXE();
     const schemas = specJsonSchemas();
@@ -50,6 +87,41 @@ describe("manifest", () => {
     expect(search.readOnly).toBe(true);
     expect(search.idempotent).toBe(true);
     expect(search.examples).toHaveLength(1);
+  });
+
+  it("a site that says nothing about auth is public: auth defaults to { modes: [none] }", () => {
+    const axe = createAXE({
+      name: "Public Site",
+      description: "A public site with one read-only action and no login of any kind.",
+      baseUrl: "https://public.example",
+      secret: "0123456789abcdef0123456789abcdef",
+    });
+    expect(axe.describe().auth).toEqual({ modes: ["none"] });
+    expect(ManifestSchema.safeParse(axe.describe()).success).toBe(true);
+    // A user-mode action still needs the mode declared; the message says how.
+    expect(() =>
+      axe.register(
+        action("me.profile", {
+          title: "My profile",
+          description: "Returns the signed-in user's profile.",
+          readOnly: true,
+          risk: "none",
+          auth: "user",
+          input: z.object({}),
+          output: z.object({}),
+          handler: () => ({}),
+        }),
+      ),
+    ).toThrow(/auth "user" is not in manifest auth.modes \[none\]/);
+    // An explicit but empty auth is a bad value, not a missing option.
+    expect(() =>
+      createAXE({
+        name: "Public Site",
+        description: "A public site with one read-only action and no login of any kind.",
+        baseUrl: "https://public.example",
+        auth: { modes: [] },
+      }),
+    ).toThrow(/Omit `auth` for a public site/);
   });
 
   it("rejects actions whose auth mode is not in manifest auth.modes [P-AUTH-1]", () => {

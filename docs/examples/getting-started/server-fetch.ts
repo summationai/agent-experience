@@ -1,7 +1,7 @@
 // #region all
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 
 const app = new Hono();

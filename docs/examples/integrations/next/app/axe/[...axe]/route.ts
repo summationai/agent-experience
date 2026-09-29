@@ -1,6 +1,6 @@
 // app/axe/[...axe]/route.ts
 // #region all
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 import { applicantFromRequest } from "../../../lib/session";
 

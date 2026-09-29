@@ -3,7 +3,14 @@
  * turns them into wire envelopes (minting and storing tokens as needed).
  */
 import type { AcceptInput } from "./kinds";
-import type { ErrorBody, ErrorCode, JsonObject, JsonValue, ValidationIssue } from "./types";
+import type {
+  Availability,
+  ErrorBody,
+  ErrorCode,
+  JsonObject,
+  JsonValue,
+  ValidationIssue,
+} from "./types";
 import { WIRE } from "./vocabulary";
 
 export const INTENT: unique symbol = Symbol.for("axe.intent");
@@ -28,6 +35,22 @@ export interface HandoffIntent {
   appendHandoffId?: boolean;
   /** Refuse `/axe/resume` with `conflict` until `completeHandoff()` is called for this handoff. Default false. */
   requireCompletion?: boolean;
+  /**
+   * Makes this handoff an approval request (spec §9.3): the human approves the exact call on the
+   * site's own page with `approveHandoff`, and the resume runs only while every binding still
+   * holds. Set by `requestApproval`; the action must declare `approvalState`.
+   */
+  approval?: ApprovalRequest;
+}
+
+/** What an approval request carries beyond a handoff. Stored server-side; never sent to the agent. */
+export interface ApprovalRequest {
+  /**
+   * What the approval page shows the person about the operation, in the site's words (for example
+   * the rows that will change). The page SHOULD also render the current state from the site's own
+   * store; the preview is what the agent's call looked like when it was made.
+   */
+  preview?: JsonValue;
 }
 
 export interface NeedsInputIntent {
@@ -99,6 +122,39 @@ export function handoff(spec: Omit<HandoffIntent, typeof INTENT>): HandoffIntent
   return { [INTENT]: "handoff", ...spec };
 }
 
+/** The default lifetime of an approval request: one hour. A shorter window than a plain handoff's 24 hours, since the state it is bound to keeps moving. */
+export const APPROVAL_TTL_SECONDS = 60 * 60;
+
+/** The default `reason` of an approval handoff. */
+export const APPROVAL_REQUIRED = WIRE.reason.approvalRequired;
+
+/**
+ * Ask a person to approve this exact call before it runs (spec §9.3). Return it from an action's
+ * `handler` for a consequential operation. The agent receives `needs_human` with a handoff to
+ * `url`, the site's own approval page; the runtime records the call's input, the acting principal,
+ * the tenant, and the state the action's `approvalState` reports now. The person approves or
+ * cancels on that page with `approveHandoff` or `cancelHandoff`; the agent then calls
+ * `/axe/resume`, and `onResume` runs with `approval` set only while the approval stands and the
+ * state still matches. An agent cannot approve its own request: nothing it can send marks the
+ * handoff approved.
+ */
+export function requestApproval(
+  spec: Omit<HandoffIntent, typeof INTENT | "approval" | "requireCompletion" | "reason"> & {
+    reason?: string;
+    preview?: JsonValue;
+  },
+): HandoffIntent {
+  const { preview, reason, ...rest } = spec;
+  const intent = handoff({
+    ...rest,
+    reason: reason ?? APPROVAL_REQUIRED,
+    ttlSeconds: rest.ttlSeconds ?? APPROVAL_TTL_SECONDS,
+  });
+  intent.requireCompletion = true;
+  intent.approval = preview === undefined ? {} : { preview };
+  return intent;
+}
+
 /** Report long-running work; define `onPoll` on the action to produce the eventual result. See spec §10. */
 export function pending(spec: Omit<PendingIntent, typeof INTENT> = {}): PendingIntent {
   return { [INTENT]: "pending", ...spec };
@@ -123,6 +179,24 @@ export function fail(code: ErrorCode, message: string, options: FailOptions = {}
     if (options.issues) error.details.issues = options.issues;
   }
   return { [INTENT]: "error", error };
+}
+
+/**
+ * Refuse a call because the action is not available right now (spec §21). `details` mirrors the
+ * availability: `reason`, and `requires` / `handoff` when declared, so the agent learns what would
+ * change that. The message defaults to the reason.
+ */
+export function unavailable(
+  availability: Extract<Availability, { available: false }>,
+  options: { message?: string; retryable?: boolean } = {},
+): ErrorIntent {
+  const details: JsonObject = { reason: availability.reason };
+  if (availability.requires) details.requires = availability.requires as unknown as JsonValue;
+  if (availability.handoff) details.handoff = { ...availability.handoff };
+  return fail(WIRE.error.unavailable, options.message ?? availability.reason, {
+    retryable: options.retryable ?? true,
+    details,
+  });
 }
 
 /** Throwable form of `fail()`, for code paths deep inside a handler. The runtime converts it. */

@@ -4,8 +4,8 @@
  * transcript is an education record.
  */
 // #region imports
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept, withMimeTypes } from "@axe/core/kinds";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept, withMimeTypes } from "@summationai/axe-core/kinds";
 // #endregion imports
 
 const axe = createAXE({

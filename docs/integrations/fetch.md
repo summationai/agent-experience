@@ -1,20 +1,20 @@
 # Hono, Remix, Cloudflare Workers, Bun, Deno, SvelteKit
 
-`axeFetch` mounts an AXE server anywhere a Web-standard `(Request) => Response` function runs. There is nothing to convert: it takes the `Request` your framework already holds, resolves your `context`, and calls the handler from `@axe/core`. A second export, isAxePath, tells a router which paths to delegate. Everything on this page is the same server; only the few lines that hand it a request change per framework.
+`axeFetch` mounts an AXE server anywhere a Web-standard `(Request) => Response` function runs. There is nothing to convert: it takes the `Request` your framework already holds, resolves your `context`, and calls the handler from `@summationai/axe-core`. A second export, isAxePath, tells a router which paths to delegate. Everything on this page is the same server; only the few lines that hand it a request change per framework.
 
 The example is Fieldstone Outfitters, an online shop with two actions: `orders.track` (read-only) and `returns.start` (mutating). Both need a signed-in customer.
 
 ## Install
 
 ```sh
-npm install @axe/core @axe/fetch
+npm install @summationai/axe-core @summationai/axe-fetch
 ```
 
 ## The declaration
 
 <!-- include: examples/integrations/fetch/axe.ts#all -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Fieldstone Outfitters",
@@ -94,7 +94,7 @@ Every mount below uses one function to turn a `Request` into an identity. A brow
 
 <!-- include: examples/integrations/fetch/session.ts#all -->
 ```ts
-import type { Identity } from "@axe/core";
+import type { Identity } from "@summationai/axe-core";
 
 /** The two methods we use from a KV namespace, a Redis client, or a table. */
 export interface SessionLookup {
@@ -134,7 +134,7 @@ Two routes: a wildcard for everything under `/axe`, and the well-known path for 
 ```ts
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom, type SessionLookup } from "./session";
 
@@ -156,7 +156,7 @@ serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
 ```
 <!-- /include -->
 
-Run it with `npx tsx server.ts`, then `npx axe inspect http://localhost:3000`.
+Run it with `npx tsx server.ts`, then `npx @summationai/axe inspect http://localhost:3000`.
 
 ## Remix
 
@@ -164,7 +164,7 @@ A resource route owns the whole AXE surface. The `$` in the filename is Remix's 
 
 <!-- include: examples/integrations/fetch/remix.ts#all -->
 ```ts
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom } from "./session";
 
@@ -199,7 +199,7 @@ The Worker's `fetch` receives the request and the environment. Pass the environm
 
 <!-- include: examples/integrations/fetch/workers.ts#all -->
 ```ts
-import { axeFetch, isAxePath } from "@axe/fetch";
+import { axeFetch, isAxePath } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom, type SessionLookup } from "./session";
 
@@ -232,7 +232,7 @@ Two Workers specifics. First, the environment interface here lists one binding; 
 
 <!-- include: examples/integrations/fetch/bun.ts#all -->
 ```ts
-import { axeFetch, isAxePath } from "@axe/fetch";
+import { axeFetch, isAxePath } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom } from "./session";
 
@@ -264,7 +264,7 @@ The same shape with `Deno.serve`:
 
 <!-- include: examples/integrations/fetch/deno.ts#all -->
 ```ts
-import { axeFetch, isAxePath } from "@axe/fetch";
+import { axeFetch, isAxePath } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom } from "./session";
 
@@ -293,7 +293,7 @@ Answer AXE paths in `hooks.server.ts` before SvelteKit's own router runs. `event
 
 <!-- include: examples/integrations/fetch/sveltekit.ts#all -->
 ```ts
-import { axeFetch, isAxePath } from "@axe/fetch";
+import { axeFetch, isAxePath } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom, type SessionLookup } from "./session";
 
@@ -330,6 +330,8 @@ The `context` callback is `(request, env) => ({ identity, tenant })`. The first 
 Handlers then see the user as `context.onBehalfOf`. The `onBehalfOf` an agent writes into the request body is never trusted; only what `context` or `authenticate` returns counts.
 
 `tenant` is for platforms that serve many shops from one Worker or one Hono app. Resolve it from the request's host in the same callback; [Platforms](../platforms.md) covers the rest.
+
+Because the session helper accepts the `fo_session` cookie, a page on another origin could otherwise make the customer's browser start a return. The core refuses that before it reads the body or runs a handler: a `POST` carrying a cookie must come from the origin of `baseUrl` (or the tenant's) or an origin in `requestPolicy.trustedOrigins`, and writes must be `application/json` (spec [P-TRANS-1] and [P-TRANS-2]). `axeFetch` passes the framework's `Request` through untouched, so the core sees the `Origin`, `Sec-Fetch-Site`, `Cookie`, and `Content-Type` the browser sent. An agent sending a bearer token and no `Origin` is unaffected. [Auth](../auth.md#cookie-sessions) has the matrix.
 
 ## Gotchas
 

@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { AXEClient } from "@axe/client";
-import type { RunOutcome } from "@axe/client";
-import { present, toHTML } from "@axe/client/present";
-import { toolNameFor } from "@axe/mcp";
+import { AXEClient } from "@summationai/axe-client";
+import type { RunOutcome } from "@summationai/axe-client";
+import { present, toHTML } from "@summationai/axe-client/present";
+import { toolNameFor } from "@summationai/axe-mcp";
 
 // #region host
 /** What the page (from toHTML) dispatches when the user presses an affordance button. */

@@ -2,8 +2,8 @@
  * Sunrise Yoga Studio: three descriptions for the same booking action, and the
  * action written with the good one.
  */
-import { createAXE, action, z } from "@axe/core";
-import { lintAgentText } from "@axe/core/lint";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { lintAgentText } from "@summationai/axe-core/lint";
 
 export const axe = createAXE({
   name: "Sunrise Yoga Studio",

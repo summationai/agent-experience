@@ -1,5 +1,5 @@
 // #region stdio
-import { createMcpServer, serveStdio } from "@axe/mcp";
+import { createMcpServer, serveStdio } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 // In-process: every tool call goes straight to axe.handle(); nothing touches the network.

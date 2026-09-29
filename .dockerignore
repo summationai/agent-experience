@@ -1,0 +1,9 @@
+.git
+.turbo
+**/node_modules
+**/dist
+coverage
+.axe
+.axe-preview
+outputs
+*.log

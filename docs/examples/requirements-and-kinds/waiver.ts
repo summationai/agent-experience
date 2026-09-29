@@ -3,8 +3,8 @@
  * payment (the drop-in rate). One function decides what is still missing, so the handler
  * and onContinue cannot disagree.
  */
-import { createAXE, action, needsInput, z } from "@axe/core";
-import { kinds, accept, type AcceptInput } from "@axe/core/kinds";
+import { createAXE, action, needsInput, z } from "@summationai/axe-core";
+import { kinds, accept, type AcceptInput } from "@summationai/axe-core/kinds";
 
 const axe = createAXE({
   name: "Sunrise Yoga Studio",

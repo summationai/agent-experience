@@ -1,6 +1,6 @@
 {
-  "name": "@axe/core",
-  "version": "0.1.0",
+  "name": "@summationai/axe-core",
+  "version": "1.0.0",
   "description": "AXE protocol types, schemas, well-known kinds, and framework-free server runtime.",
   "license": "Apache-2.0",
   "type": "module",
@@ -88,6 +88,26 @@
         "types": "./dist/types.d.cts",
         "default": "./dist/types.cjs"
       }
+    },
+    "./json-schema": {
+      "import": {
+        "types": "./dist/json-schema.d.ts",
+        "default": "./dist/json-schema.js"
+      },
+      "require": {
+        "types": "./dist/json-schema.d.cts",
+        "default": "./dist/json-schema.cjs"
+      }
+    },
+    "./node": {
+      "import": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "require": {
+        "types": "./dist/node.d.cts",
+        "default": "./dist/node.cjs"
+      }
     }
   },
   "files": [
@@ -107,6 +127,10 @@
     "type": "git",
     "url": "https://github.com/summationai/agent-experience",
     "directory": "packages/core"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "keywords": [
     "axe",
@@ -136,6 +160,12 @@
       ],
       "types": [
         "./dist/types.d.ts"
+      ],
+      "json-schema": [
+        "./dist/json-schema.d.ts"
+      ],
+      "node": [
+        "./dist/node.d.ts"
       ]
     }
   }

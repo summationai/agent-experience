@@ -2,8 +2,8 @@
  * Northgate University Admissions: two requirements in sequence. The first onContinue
  * returns another needs_input, which mints a new continuation token and consumes the old one.
  */
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
 
 const axe = createAXE({
   name: "Northgate University Admissions",

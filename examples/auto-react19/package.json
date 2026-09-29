@@ -1,0 +1,21 @@
+{
+  "name": "auto-react19-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "SurfaceProvider and autoSurface on React 19: the built @summationai/axe-surface packages, mounted in jsdom against React 19, acting through React's own onChange and onClick.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@summationai/axe-surface": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "jsdom": "^30.1.1"
+  }
+}

@@ -1,5 +1,5 @@
 // #region all
-import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@axe/client";
+import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@summationai/axe-client";
 
 // Start from any URL on the site. discover() tries /.well-known/axe.json, then /axe/manifest,
 // then the AXE-Manifest header, then <link rel="axe-manifest"> in the page.

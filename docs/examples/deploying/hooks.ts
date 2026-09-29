@@ -1,7 +1,7 @@
 // #region all
-import { createAXE } from "@axe/core";
-import type { HookContext } from "@axe/core";
-import { otelSink } from "@axe/core/events";
+import { createAXE } from "@summationai/axe-core";
+import type { HookContext } from "@summationai/axe-core";
+import { otelSink } from "@summationai/axe-core/events";
 import { metrics } from "@opentelemetry/api";
 
 // Stand-ins for your structured logger and your APM client.

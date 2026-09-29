@@ -99,6 +99,51 @@ export interface Manifest {
   brand?: Brand;
   indexUrl?: string;
   updatedAt?: string;
+  /** The site publishes live state: a revision and per-action availability. See spec §21. */
+  live?: Live;
+}
+
+// ---------------------------------------------------------------------------
+// Live state and revisions (spec §21)
+// ---------------------------------------------------------------------------
+
+/** A site's revision: an opaque string or number that moves with every change an agent could observe. */
+export type Revision = string | number;
+
+/** `manifest.live`: where live state is served, and the revision when the manifest was rendered. */
+export interface Live {
+  /** The revision at manifest render time. Manifests are cached; prefer `url`. */
+  rev?: Revision;
+  /** Absolute URL of the state endpoint (`/axe/state`), served with `Cache-Control: no-store`. */
+  url?: string;
+}
+
+/**
+ * A handoff declared on an unavailable action: the Handoff object without the token members.
+ * `url` is optional here: a step taken inside the application itself has no page to send the
+ * person to. Such a handoff is reported (in `availability` and in `error.details.handoff`) and
+ * never becomes `needs_human`, whose Handoff needs a `url` to resume from ([P-HAND-1]).
+ */
+export type HandoffSpec = Omit<Handoff, "resumeToken" | "expiresAt" | "url"> & { url?: string };
+
+/** Whether an action can be done right now, and if not, why and what would change that. */
+export type Availability =
+  | { available: true; reason?: undefined; requires?: undefined; handoff?: undefined }
+  | {
+      available: false;
+      /** Plain language, in the site's words. Agent-read text. */
+      reason: string;
+      /** `accepts`-shaped kinds that would make the action available. */
+      requires?: Accept[];
+      /** A step only a human can take. */
+      handoff?: HandoffSpec;
+    };
+
+/** The document at `/axe/state`. */
+export interface LiveState {
+  rev?: Revision;
+  /** Every action in the manifest; one that declares no availability is `{ available: true }`. */
+  actions: Record<string, Availability>;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +198,8 @@ export interface DynamicAffordance {
   title: string;
   input: Record<string, JsonValue>;
   primary?: boolean;
+  /** The revision the item was observed at; presented as the request envelope's `expectedRev` when the affordance is followed (spec §21). */
+  expectedRev?: Revision;
 }
 
 /** The reserved `_axe` member on an output or item. */
@@ -200,6 +247,8 @@ export interface ActionDefinition {
   freshness?: Freshness;
   humanHandoff?: { reasons: string[] };
   deprecated?: Deprecation;
+  /** Computed at render time: whether the action can be done right now (the anonymous view in the manifest). */
+  availability?: Availability;
 }
 
 // ---------------------------------------------------------------------------
@@ -225,16 +274,20 @@ export interface RequestEnvelope<I = JsonValue> {
   input: I;
   context?: RequestContext;
   idempotencyKey?: string;
+  /** The revision the agent observed. A server with a revision refuses the call with `conflict` when it moved. */
+  expectedRev?: Revision;
 }
 
 export interface ContinueRequest {
   continuationToken: string;
   kind: string;
   payload: JsonValue;
+  expectedRev?: Revision;
 }
 
 export interface ResumeRequest {
   resumeToken: string;
+  expectedRev?: Revision;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,6 +328,8 @@ export interface ErrorBody {
 export interface OkResult<O = JsonValue> {
   status: "ok";
   output: O;
+  /** The revision the change produced, when the site has one. */
+  rev?: Revision;
 }
 
 export interface NeedsInputResult {
@@ -285,11 +340,13 @@ export interface NeedsInputResult {
   continuationToken: string;
   expiresAt: string;
   fallback?: Handoff;
+  rev?: Revision;
 }
 
 export interface NeedsHumanResult {
   status: "needs_human";
   handoff: Handoff;
+  rev?: Revision;
 }
 
 export interface PendingResult {
@@ -297,11 +354,14 @@ export interface PendingResult {
   pollUrl: string;
   retryAfter: number;
   expiresAt?: string;
+  rev?: Revision;
 }
 
 export interface ErrorResult {
   status: "error";
   error: ErrorBody;
+  /** The site's current revision, when it has one. On a stale `conflict` it equals `details.currentRev`. */
+  rev?: Revision;
 }
 
 /** The result envelope: every AXE response body is one of these. */
@@ -347,4 +407,36 @@ export interface AXEEvent {
   kind: string | null;
   errorCode: ErrorCode | null;
   tenant: string | null;
+}
+
+/**
+ * An event an action emits about its own work (spec/EVENTS.md, "Action events"): a ledger line
+ * rather than a request metric. Unlike `AXEEvent` it names the `actor`, because attribution is
+ * its purpose, so it goes to `onActionEvent` sinks and never to the analytics `onEvent` sinks.
+ */
+export interface AXEActionEvent {
+  schemaVersion: 1;
+  ts: string;
+  /** The action whose handler emitted the event; for a continue or resume, the originating action. */
+  action: string;
+  /** What happened, as a dotted name in the action's namespace: `surface.act`. */
+  event: string;
+  /** Outcome of the work the event records. */
+  status: ResultStatus;
+  errorCode: ErrorCode | null;
+  /** Who the work was done as, in the application's terms; `null` when the action has no actor. */
+  actor: string | null;
+  /** What the action chooses to record: ids, revisions, sequence numbers. Never a payload. */
+  details: Record<string, JsonValue>;
+  tenant: string | null;
+}
+
+/** What a handler passes to `emit`; the server fills in `schemaVersion`, `ts`, `action`, and `tenant`. */
+export interface AXEActionEventInput {
+  event: string;
+  /** Default `ok`. */
+  status?: ResultStatus;
+  errorCode?: ErrorCode | null;
+  actor?: string | null;
+  details?: Record<string, JsonValue>;
 }

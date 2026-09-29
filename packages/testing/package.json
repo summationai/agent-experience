@@ -1,6 +1,6 @@
 {
-  "name": "@axe/testing",
-  "version": "0.1.0",
+  "name": "@summationai/axe-testing",
+  "version": "1.0.0",
   "description": "Conformance suite, AXE audit, and test helpers for AXE servers.",
   "license": "Apache-2.0",
   "type": "module",
@@ -31,13 +31,17 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*",
-    "@axe/client": "workspace:*"
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-client": "workspace:*"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/summationai/agent-experience",
     "directory": "packages/testing"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "keywords": [
     "axe",

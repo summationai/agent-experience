@@ -1,14 +1,14 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
-import * as WIRE from "@axe/core/vocabulary";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import type { CommandContext } from "../index";
 import { parse } from "./shared";
 
 type Framework = "express" | "next" | "fetch";
 const FRAMEWORKS: Framework[] = ["express", "next", "fetch"];
 
-const AXE_TS = `import { createAXE, action, z } from "@axe/core";
+const AXE_TS = `import { createAXE, action, z } from "@summationai/axe-core";
 
 // One read-only action is enough to be agent-visible. Add more as you go.
 export const axe = createAXE({
@@ -81,7 +81,7 @@ const MOUNTS: Record<Framework, { file: string; content: string; note: string }>
   express: {
     file: "server.ts",
     content: `import express from "express";
-import { axeExpress } from "@axe/express";
+import { axeExpress } from "@summationai/axe-express";
 import { axe } from "./axe";
 
 const app = express();
@@ -95,7 +95,7 @@ app.listen(3000, () => console.log("Listening on http://localhost:3000"));
   },
   next: {
     file: "app/axe/[...axe]/route.ts",
-    content: `import { axeNext } from "@axe/next";
+    content: `import { axeNext } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 
 export const { GET, POST, OPTIONS } = axeNext(axe);
@@ -106,7 +106,7 @@ export const { GET, POST, OPTIONS } = axeNext(axe);
     file: "server.ts",
     content: `import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 
 const app = new Hono();
@@ -151,19 +151,19 @@ export async function init(ctx: CommandContext): Promise<number> {
   const mountPath = join(dir, mount.file);
   mkdirSync(join(mountPath, ".."), { recursive: true });
   if (!existsSync(mountPath) || values.yes) writeFileSync(mountPath, mount.content);
-  const adapter = `@axe/${framework}`;
+  const adapter = `@summationai/axe-${framework}`;
   ctx.stdout(`Wrote ${axePath}`);
   ctx.stdout(`Wrote ${mountPath}`);
   ctx.stdout("");
   ctx.stdout("Next steps:");
   ctx.stdout(
-    `  1. Install: npm install @axe/core ${adapter}${framework === "fetch" ? " hono @hono/node-server" : framework === "express" ? " express" : ""} && npm install -D axe tsx`,
+    `  1. Install: npm install @summationai/axe-core ${adapter}${framework === "fetch" ? " hono @hono/node-server" : framework === "express" ? " express" : ""} && npm install -D @summationai/axe tsx`,
   );
   ctx.stdout(
-    `  2. Start your app (${mount.note}), then check it: npx ${WIRE.cli.inspect} http://localhost:3000`,
+    `  2. Start your app (${mount.note}), then check it: npx @summationai/${WIRE.cli.inspect} http://localhost:3000`,
   );
   ctx.stdout(
-    `  3. Prove it works: npx ${WIRE.cli.conformance} http://localhost:3000 — then npx ${WIRE.cli.mcp} http://localhost:3000 to talk to it from Claude Desktop.`,
+    `  3. Prove it works: npx @summationai/${WIRE.cli.conformance} http://localhost:3000 — then npx @summationai/${WIRE.cli.mcp} http://localhost:3000 to talk to it from Claude Desktop.`,
   );
   return 0;
 }

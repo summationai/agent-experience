@@ -3,7 +3,7 @@ import { AXEClient, discover, findLinkHref, isOk, isNeedsHuman, isNeedsInput } f
 import type { Fulfiller } from "../src/index";
 import { present, toMarkdown, toHTML, formatValue } from "../src/present";
 import { apartmentsAXE, UNITS } from "../../core/test/fixtures/apartments";
-import { WIRE } from "@axe/core/vocabulary";
+import { WIRE } from "@summationai/axe-core/vocabulary";
 
 /** Route fetch calls into the in-process server, adding a fake HTML home page. */
 function fetchFor(
@@ -196,6 +196,30 @@ describe("AXEClient", () => {
     const r = await client.invoke("units.search", { location: "x" });
     expect(isOk(r)).toBe(true);
     expect(n).toBe(2);
+  });
+
+  it("does not retry an unavailable error the site marked retryable: false", async () => {
+    const { axe } = apartmentsAXE({ onRequest: () => undefined });
+    let n = 0;
+    const base = fetchFor(axe).fetch;
+    const client = await AXEClient.discover("https://oakridge-rentals.example", {
+      fetch: async (u, init) => {
+        if (String(u).includes("/axe/actions/")) {
+          n++;
+          return new Response(
+            JSON.stringify({
+              status: "error",
+              error: { code: "unavailable", message: "March is locked", retryable: false },
+            }),
+            { status: 503, headers: { "content-type": "application/json" } },
+          );
+        }
+        return base(u, init);
+      },
+    });
+    const r = await client.invoke("units.search", { location: "x" });
+    expect(r.status).toBe("error");
+    expect(n).toBe(1);
   });
 
   it("refuses to call a site whose policies deny the vendor [P-DISC-12]", async () => {

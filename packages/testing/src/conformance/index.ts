@@ -6,19 +6,21 @@
 import type {
   Accept,
   ActionDefinition,
+  LiveState,
   Manifest,
   NeedsInputResult,
   Result,
   JsonValue,
   JsonSchema,
-} from "@axe/core/types";
+} from "@summationai/axe-core/types";
 import {
+  LiveStateSchema,
   ManifestSchema,
   PlatformIndexSchema,
   ResultSchema,
   validateJsonSchema,
   schemasStructurallyEqual,
-} from "@axe/core/schemas";
+} from "@summationai/axe-core/schemas";
 import {
   resolveDisplay,
   validateDisplay,
@@ -27,11 +29,16 @@ import {
   validateFreshness,
   schemaMentionsReserved,
   validateAffordanceBinding,
-} from "@axe/core/display";
-import { lintManifest, isBareQuerySearch } from "@axe/core/lint";
-import { WELL_KNOWN_KINDS, isCustomKind, kindJsonSchema, suggestedReason } from "@axe/core/kinds";
-import { getPointer } from "@axe/core";
-import * as WIRE from "@axe/core/vocabulary";
+} from "@summationai/axe-core/display";
+import { lintManifest, isBareQuerySearch, lintAgentText } from "@summationai/axe-core/lint";
+import {
+  WELL_KNOWN_KINDS,
+  isCustomKind,
+  kindJsonSchema,
+  suggestedReason,
+} from "@summationai/axe-core/kinds";
+import { getPointer } from "@summationai/axe-core";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import { samplePayload } from "../helpers";
 
 export type CheckStatus = "pass" | "fail" | "warn" | "skip";
@@ -75,6 +82,8 @@ export interface Observations {
   idempotencyReplayWorked: boolean | null;
   tokenTamperRejected: boolean | null;
   hintFound: "link" | "robots" | "header" | null;
+  /** The `/axe/state` document, when the manifest advertises live state and the endpoint answered. */
+  liveState: LiveState | null;
 }
 
 export interface ConformanceOptions {
@@ -105,6 +114,8 @@ const DOCS = {
   auth: "docs/auth.md",
   cors: "docs/deploying.md#cors",
   security: "docs/security.md",
+  live: "docs/live-state.md",
+  limits: "docs/deploying.md#limits-and-retention",
 };
 
 class Runner {
@@ -119,6 +130,7 @@ class Runner {
     idempotencyReplayWorked: null,
     tokenTamperRejected: null,
     hintFound: null,
+    liveState: null,
   };
   private readonly f: (input: string | URL, init?: RequestInit) => Promise<Response>;
   manifest: Manifest | null = null;
@@ -143,11 +155,12 @@ class Runner {
     this.checks.push({ id, title, status, requirements, detail, docs });
   }
 
-  async request(path: string, init: RequestInit = {}): Promise<Response> {
+  async request(path: string, init: RequestInit = {}, anonymous = false): Promise<Response> {
     const headers = new Headers(init.headers ?? {});
     headers.set("Accept", "application/json");
     for (const [k, v] of Object.entries(this.options.headers ?? {})) headers.set(k, v);
-    if (this.options.auth && !headers.has(WIRE.header.authorization))
+    if (anonymous) headers.delete(WIRE.header.authorization);
+    else if (this.options.auth && !headers.has(WIRE.header.authorization))
       headers.set(WIRE.header.authorization, `Bearer ${this.options.auth}`);
     if (init.body && !headers.has(WIRE.header.contentType))
       headers.set(WIRE.header.contentType, "application/json");
@@ -165,12 +178,17 @@ class Runner {
     path: string,
     body: unknown,
     extraHeaders: Record<string, string> = {},
+    anonymous = false,
   ): Promise<{ res: Response; json: unknown }> {
-    const res = await this.request(path, {
-      method: "POST",
-      body: JSON.stringify(body),
-      headers: extraHeaders,
-    });
+    const res = await this.request(
+      path,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: extraHeaders,
+      },
+      anonymous,
+    );
     const text = await res.text();
     let json: unknown = null;
     try {
@@ -196,9 +214,11 @@ class Runner {
     action: ActionDefinition,
     input: unknown,
     idempotencyKey?: string,
+    expectedRev?: string | number,
   ): Promise<{ res: Response; result: Result | null }> {
     const body: Record<string, unknown> = { input, context: this.context() };
     if (!action.readOnly) body["idempotencyKey"] = idempotencyKey ?? crypto.randomUUID();
+    if (expectedRev !== undefined) body["expectedRev"] = expectedRev;
     const { res, json } = await this.post(
       `${WIRE.path.actions}/${encodeURIComponent(action.name)}`,
       body,
@@ -842,6 +862,88 @@ async function runtime(r: Runner): Promise<void> {
     );
   }
 
+  // An oversized body is refused before it is read in full ([P-LIM-1]). The body streams up to
+  // 32 MiB and is never valid JSON, so no handler can run whatever the server does with it.
+  {
+    const cap = 32 * 1024 * 1024;
+    const enc = new TextEncoder();
+    const chunk = enc.encode("x".repeat(64 * 1024));
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent === 0) {
+          const head = enc.encode('{"input":{"axeConformancePad":"');
+          sent += head.byteLength;
+          controller.enqueue(head);
+        } else if (sent >= cap) {
+          controller.close();
+        } else {
+          sent += chunk.byteLength;
+          controller.enqueue(chunk);
+        }
+      },
+    });
+    let res: Response | undefined;
+    let json: unknown = null;
+    try {
+      res = await r.request(`${WIRE.path.actions}/${first.name}`, {
+        method: "POST",
+        body,
+        duplex: "half",
+      } as RequestInit);
+      json = JSON.parse(await res.text());
+    } catch {
+      // Reported below.
+    }
+    const result = isResult(json) ? json : null;
+    const reason =
+      result?.status === WIRE.status.error ? result.error.details?.["reason"] : undefined;
+    const envelope =
+      res?.status === 413 &&
+      errorCode(result) === WIRE.error.invalidInput &&
+      reason === WIRE.reason.payloadTooLarge;
+    // A 413 without an envelope was refused in front of the AXE server (a proxy, or a body
+    // parser mounted before it): the limit holds, but the agent gets no result envelope.
+    r.add(
+      "runtime.body-limit",
+      "A body over the server's limit → 413 invalid_input, payload_too_large, before it is read in full",
+      envelope ? "pass" : res?.status === 413 && !result ? "warn" : "fail",
+      ["P-LIM-1"],
+      res
+        ? `HTTP ${res.status}, code ${errorCode(result) ?? "(none)"}, reason ${String(reason ?? "(none)")}, after sending ${sent} bytes${res.status === 413 && !result ? "; refused in front of the AXE server without a result envelope (mount the AXE middleware before body parsers)" : ""}`
+        : `No response after sending ${sent} bytes`,
+      DOCS.limits,
+    );
+  }
+
+  // Deep nesting is refused as input, not a server failure ([P-LIM-2]).
+  {
+    const depth = 20_000;
+    const res = await r
+      .request(`${WIRE.path.actions}/${first.name}`, {
+        method: "POST",
+        body: `{"input":{"axeConformanceDeep":${"[".repeat(depth)}${"]".repeat(depth)}},"idempotencyKey":"${crypto.randomUUID()}"}`,
+      })
+      .catch(() => undefined);
+    let json: unknown = null;
+    try {
+      json = res ? JSON.parse(await res.text()) : null;
+    } catch {
+      json = null;
+    }
+    const code = errorCode(isResult(json) ? json : null);
+    r.add(
+      "runtime.nesting-limit",
+      `A body nested ${depth} levels deep → 4xx invalid_input, not a server error`,
+      res && res.status >= 400 && res.status < 500 && code === WIRE.error.invalidInput
+        ? "pass"
+        : "fail",
+      ["P-LIM-2"],
+      res ? `HTTP ${res.status}, code ${code ?? "(none)"}` : "No response",
+      DOCS.limits,
+    );
+  }
+
   // Invalid input with a bogus property and a wrong type.
   {
     const props = Object.keys((first.input["properties"] ?? {}) as object);
@@ -1167,6 +1269,61 @@ async function runtime(r: Runner): Promise<void> {
     }
   }
 
+  // A state-changing POST whose body is not labeled JSON is refused ([P-TRANS-1]). A browser
+  // sends text/plain to any origin without a preflight, so accepting it opens a CSRF path.
+  {
+    const target =
+      m.actions.find((a) => !a.readOnly && a.examples?.length && r.callable(a)) ??
+      m.actions.find((a) => !a.readOnly);
+    const title = "text/plain POST to a mutating action → unsupported";
+    if (!target || r.options.noMutate) {
+      r.add(
+        "runtime.json-content-type",
+        title,
+        "skip",
+        ["P-TRANS-1"],
+        r.options.noMutate ? "Skipped: --no-mutate." : "The manifest declares no mutating action.",
+        DOCS.security,
+      );
+    } else {
+      const res = await r.request(`${WIRE.path.actions}/${encodeURIComponent(target.name)}`, {
+        method: "POST",
+        headers: { [WIRE.header.contentType]: "text/plain;charset=UTF-8" },
+        body: JSON.stringify({
+          input: target.examples?.[0]?.input ?? {},
+          context: r.context(),
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      });
+      const text = await res.text();
+      let json: unknown = null;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        json = null;
+      }
+      if (res.status >= 400) r.errorBodies.push(text);
+      const result = isResult(json) ? json : null;
+      const code = errorCode(result);
+      r.add(
+        "runtime.json-content-type",
+        title,
+        code === WIRE.error.unsupported
+          ? "pass"
+          : result && result.status !== WIRE.status.error
+            ? "fail"
+            : "warn",
+        ["P-TRANS-1"],
+        code === WIRE.error.unsupported
+          ? `${target.name} refused a text/plain body`
+          : result && result.status !== WIRE.status.error
+            ? `${target.name} accepted a text/plain body (status ${result.status}). A cross-origin page can send that without a preflight; require Content-Type: application/json.`
+            : `${target.name} refused a text/plain body with ${code ?? `HTTP ${res.status}`}, not unsupported; it may have refused for another reason first.`,
+        DOCS.security,
+      );
+    }
+  }
+
   // Idempotency.
   {
     const mutating = m.actions.find(
@@ -1264,7 +1421,7 @@ async function runtime(r: Runner): Promise<void> {
   r.add(
     "runtime.error-hygiene",
     "Error bodies contain no stack traces or internals",
-    leaked.length ? "fail" : "pass",
+    leaked.length ? "fail" : r.errorBodies.length === 0 ? "skip" : "pass",
     ["P-ERR-2"],
     leaked.length
       ? `${leaked.length} of ${r.errorBodies.length} error responses leaked a stack trace or HTML error page.`
@@ -1289,12 +1446,17 @@ async function ladder(r: Runner): Promise<void> {
         ["P-REQ-8"],
       ],
       ["ladder.continue-valid", "continue with a valid payload → non-error", ["P-REQ-7"]],
-      ["ladder.continue-replay", "Consumed continuation token → conflict", ["P-REQ-9"]],
+      ["ladder.continue-replay", "Repeated continuation → original envelope", ["P-REQ-9"]],
       ["ladder.fallback-resume", "fallback handoff resumes", ["P-REQ-6", "P-HAND-4"]],
-      ["ladder.resume-replay", "Consumed resume token → conflict", ["P-HAND-6"]],
+      ["ladder.resume-replay", "Repeated resume → original envelope", ["P-HAND-6"]],
       ["ladder.handoff-shape", "Handoff has every member", ["P-HAND-1"]],
       ["ladder.token-ttl", "Token lifetimes within recommended bounds", ["P-TOK-5"]],
       ["runtime.token-tamper", "Tampered token → not_found", ["P-TOK-3"]],
+      [
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        ["P-TOK-6"],
+      ],
       ["ladder.fake-kinds", "No custom kind duplicates a well-known kind", ["P-HON-5"]],
       ["ladder.consent-scope", "Consent requirements reference version and scope", ["P-HON-6"]],
       [
@@ -1393,7 +1555,8 @@ async function ladder(r: Runner): Promise<void> {
   r.add(
     "ladder.needs-human-avoidable",
     "needs_human not used where a well-known kind would do",
-    avoidable.length ? "fail" : "pass",
+    // Nothing observed is nothing verified: skip rather than pass vacuously.
+    avoidable.length ? "fail" : r.obs.needsHuman.length === 0 ? "skip" : "pass",
     ["P-RES-2", "P-HAND-2"],
     avoidable.length
       ? avoidable
@@ -1423,11 +1586,16 @@ async function ladder(r: Runner): Promise<void> {
         ["P-REQ-8"],
       ],
       ["ladder.continue-valid", "continue with a valid payload → non-error", ["P-REQ-7"]],
-      ["ladder.continue-replay", "Consumed continuation token → conflict", ["P-REQ-9"]],
+      ["ladder.continue-replay", "Repeated continuation → original envelope", ["P-REQ-9"]],
       ["ladder.fallback-resume", "fallback handoff resumes", ["P-REQ-6", "P-HAND-4"]],
-      ["ladder.resume-replay", "Consumed resume token → conflict", ["P-HAND-6"]],
+      ["ladder.resume-replay", "Repeated resume → original envelope", ["P-HAND-6"]],
       ["ladder.token-ttl", "Token lifetimes within recommended bounds", ["P-TOK-5"]],
       ["runtime.token-tamper", "Tampered token → not_found", ["P-TOK-3"]],
+      [
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        ["P-TOK-6"],
+      ],
       ["ladder.fake-kinds", "No custom kind duplicates a well-known kind", ["P-HON-5"]],
       ["ladder.consent-scope", "Consent requirements reference version and scope", ["P-HON-6"]],
     ] as [string, string, string[]][]) {
@@ -1579,6 +1747,43 @@ async function ladder(r: Runner): Promise<void> {
         DOCS.ladder,
       );
   }
+  // The same token without the credentials it was minted with. The kind is not offered, so an
+  // authorized request is invalid_input and nothing runs either way ([P-TOK-6]).
+  {
+    if (!r.options.auth) {
+      r.add(
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        "skip",
+        ["P-TOK-6"],
+        "No --auth: the token was minted anonymously and is not bound to a principal.",
+        DOCS.auth,
+      );
+    } else {
+      const { json } = await r.post(
+        WIRE.path.continue,
+        {
+          continuationToken: ni.continuationToken,
+          kind: "x-axe-conformance.not-offered",
+          payload: {},
+        },
+        {},
+        true,
+      );
+      const code = errorCode(isResult(json) ? json : null);
+      const bound = target.auth !== WIRE.authMode.none;
+      r.add(
+        "ladder.token-principal",
+        "Token presented without the caller's credentials → not_found",
+        code === WIRE.error.notFound ? "pass" : bound ? "fail" : "warn",
+        ["P-TOK-6"],
+        code === WIRE.error.notFound
+          ? `${target.name}: refused as an unknown token`
+          : `${target.name}: anonymous presentation got ${code ?? "a non-error"}${bound ? "" : " (the action is auth none; the server may not have bound the token to the credential)"}`,
+        DOCS.auth,
+      );
+    }
+  }
   // Valid payload.
   const payload = samplePayload(entry!.kind);
   if (payload === undefined) {
@@ -1592,7 +1797,7 @@ async function ladder(r: Runner): Promise<void> {
     );
     r.add(
       "ladder.continue-replay",
-      "Consumed continuation token → conflict",
+      "Repeated continuation → original envelope",
       "skip",
       ["P-REQ-9"],
       "Depends on a successful continue.",
@@ -1621,13 +1826,16 @@ async function ladder(r: Runner): Promise<void> {
       payload,
     });
     const c2 = errorCode(isResult(j2) ? j2 : null);
+    const same = JSON.stringify(j2) === JSON.stringify(json);
     r.add(
       "ladder.continue-replay",
-      "Consumed continuation token → conflict",
-      good ? (c2 === WIRE.error.conflict ? "pass" : "fail") : "skip",
-      ["P-REQ-9"],
+      "Repeated continuation → original envelope",
+      good ? (same ? "pass" : "fail") : "skip",
+      ["P-REQ-9", "P-OP-1"],
       good
-        ? `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}`
+        ? same
+          ? "the same kind and payload returned the original envelope"
+          : `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}, not the original envelope`
         : "Depends on a successful continue.",
       DOCS.ladder,
     );
@@ -1645,7 +1853,7 @@ async function ladder(r: Runner): Promise<void> {
     );
     r.add(
       "ladder.resume-replay",
-      "Consumed resume token → conflict",
+      "Repeated resume → original envelope",
       "skip",
       ["P-HAND-6"],
       "No fallback handoff.",
@@ -1688,22 +1896,219 @@ async function ladder(r: Runner): Promise<void> {
         resumeToken: fresh.fallback.resumeToken,
       });
       const c2 = errorCode(isResult(j2) ? j2 : null);
+      const same = JSON.stringify(j2) === JSON.stringify(json);
       r.add(
         "ladder.resume-replay",
-        "Consumed resume token → conflict",
-        c2 === WIRE.error.conflict ? "pass" : "fail",
-        ["P-HAND-6"],
-        `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}`,
+        "Repeated resume → original envelope",
+        same ? "pass" : "fail",
+        ["P-HAND-6", "P-OP-1"],
+        same
+          ? "a repeated resume returned the original envelope"
+          : `replay → ${c2 ?? (isResult(j2) ? j2.status : "no envelope")}, not the original envelope`,
         DOCS.handoff,
       );
     } else {
       r.add(
         "ladder.resume-replay",
-        "Consumed resume token → conflict",
+        "Repeated resume → original envelope",
         "skip",
         ["P-HAND-6"],
         "Depends on a successful resume.",
         DOCS.handoff,
+      );
+    }
+  }
+}
+
+const LIVE_CHECKS: [string, string, string[]][] = [
+  [
+    "live.state-endpoint",
+    `${WIRE.path.state} returns the live state, uncached`,
+    ["P-LIVE-7", "P-LIVE-8"],
+  ],
+  ["live.rev-on-envelopes", "Every envelope carries rev", ["P-LIVE-2"]],
+  [
+    "live.stale-conflict",
+    "A stale expectedRev → 409 conflict with expectedRev and currentRev",
+    ["P-LIVE-1", "P-LIVE-3"],
+  ],
+  ["live.fresh-accepted", "The current rev as expectedRev is accepted", ["P-LIVE-3"]],
+  ["live.reasons", "Every unavailable action says why, in plain language", ["P-LIVE-5"]],
+  [
+    "live.availability-honored",
+    "An action reported unavailable does not complete with ok",
+    ["P-LIVE-6"],
+  ],
+];
+
+/** Live state and revisions (spec §21). Every check skips when the manifest does not advertise `live`. */
+async function live(r: Runner): Promise<void> {
+  const m = r.manifest!;
+  const skipAll = (why: string) => {
+    for (const [id, title, reqs] of LIVE_CHECKS) r.add(id, title, "skip", reqs, why, DOCS.live);
+  };
+  if (!m.live) return skipAll("The manifest does not advertise live state (no `live` member).");
+  const byId = new Map(LIVE_CHECKS.map((c) => [c[0], c] as const));
+  const add = (id: string, status: CheckStatus, detail: string) => {
+    const [, title, reqs] = byId.get(id)!;
+    r.add(id, title, status, reqs, detail, DOCS.live);
+  };
+
+  // State endpoint.
+  const stateUrl = m.live.url ?? `${r.base}${WIRE.path.state}`;
+  let state: LiveState | null = null;
+  try {
+    const res = await r.request(stateUrl);
+    const text = await res.text();
+    let json: unknown = null;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+    const parsed = LiveStateSchema.safeParse(json);
+    const cc = (res.headers.get("cache-control") ?? "").toLowerCase();
+    const noStore = cc.includes("no-store");
+    if (res.ok && parsed.success) {
+      state = parsed.data as LiveState;
+      r.obs.liveState = state;
+    }
+    const missing = m.actions.filter((a) => !state?.actions[a.name]).map((a) => a.name);
+    add(
+      "live.state-endpoint",
+      res.ok && parsed.success && noStore && missing.length === 0 ? "pass" : "fail",
+      !res.ok
+        ? `HTTP ${res.status} at ${stateUrl}`
+        : !parsed.success
+          ? `Invalid state document: ${parsed.error.issues
+              .slice(0, 3)
+              .map((i) => `${i.path.join(".") || "/"}: ${i.message}`)
+              .join("; ")}`
+          : [
+              `rev ${state?.rev === undefined ? "(none)" : String(state?.rev)}; ${Object.keys(state?.actions ?? {}).length} actions`,
+              noStore ? "" : `Cache-Control is "${cc || "(none)"}"; it must be no-store.`,
+              missing.length ? `Actions missing from state: ${missing.join(", ")}` : "",
+            ]
+              .filter(Boolean)
+              .join(". "),
+    );
+  } catch (e) {
+    add("live.state-endpoint", "fail", `Request to ${stateUrl} failed: ${(e as Error).message}`);
+  }
+
+  // Reasons: every unavailable entry (manifest and state) has a plain-language reason with no directive.
+  {
+    const entries: { where: string; reason: string | undefined }[] = [];
+    for (const a of m.actions)
+      if (a.availability && !a.availability.available)
+        entries.push({ where: `manifest ${a.name}`, reason: a.availability.reason });
+    for (const [name, av] of Object.entries(state?.actions ?? {}))
+      if (!av.available) entries.push({ where: `state ${name}`, reason: av.reason });
+    const missing = entries.filter((e) => !e.reason?.trim());
+    const directives = entries.filter(
+      (e) =>
+        e.reason &&
+        lintAgentText(e.reason, { location: e.where }).some((i) => i.rule === "agent-directive"),
+    );
+    add(
+      "live.reasons",
+      missing.length || directives.length ? "fail" : "pass",
+      entries.length === 0
+        ? "No unavailable actions observed."
+        : [
+            missing.length ? `No reason: ${missing.map((e) => e.where).join(", ")}` : "",
+            directives.length
+              ? `Agent-directed text in reason: ${directives.map((e) => e.where).join(", ")}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("; ") || `${entries.length} unavailable action(s), each with a reason`,
+    );
+  }
+
+  const readable = m.actions.find((a) => a.readOnly && a.examples?.length && r.callable(a));
+  const rev = state?.rev;
+  if (!readable) {
+    const why = "No callable read-only action with an example.";
+    add("live.rev-on-envelopes", "skip", why);
+    add("live.stale-conflict", "skip", why);
+    add("live.fresh-accepted", "skip", why);
+  } else if (rev === undefined) {
+    const why = "The site publishes availability but no revision (state.rev is absent).";
+    add("live.rev-on-envelopes", "skip", why);
+    add("live.stale-conflict", "skip", why);
+    add("live.fresh-accepted", "skip", why);
+  } else {
+    const input = readable.examples![0]!.input;
+    const { result } = await r.invoke(readable, input);
+    add(
+      "live.rev-on-envelopes",
+      result && result.rev !== undefined ? "pass" : "fail",
+      result
+        ? result.rev !== undefined
+          ? `${readable.name} → ${result.status} at rev ${String(result.rev)}`
+          : `${readable.name} → ${result.status} without rev; a site with a revision stamps every envelope.`
+        : "No envelope.",
+    );
+    const stale = typeof rev === "number" ? rev - 1 : `${rev}-axe-conformance-stale`;
+    const { res, result: conflict } = await r.invoke(readable, input, undefined, stale);
+    const details =
+      conflict?.status === WIRE.status.error ? (conflict.error.details ?? {}) : undefined;
+    const ok =
+      conflict?.status === WIRE.status.error &&
+      conflict.error.code === WIRE.error.conflict &&
+      res.status === 409 &&
+      conflict.error.retryable === true &&
+      details?.[WIRE.field.expectedRev] === stale &&
+      details?.[WIRE.field.currentRev] !== undefined;
+    add(
+      "live.stale-conflict",
+      ok ? "pass" : "fail",
+      ok
+        ? `expectedRev ${String(stale)} → conflict; currentRev ${String(details?.[WIRE.field.currentRev])}`
+        : `expectedRev ${String(stale)} → HTTP ${res.status}, ${conflict ? (conflict.status === WIRE.status.error ? `${conflict.error.code} (retryable ${conflict.error.retryable}, details ${JSON.stringify(conflict.error.details ?? null)})` : conflict.status) : "no envelope"}`,
+    );
+    const { result: fresh } = await r.invoke(readable, input, undefined, rev);
+    const freshOk = fresh && fresh.status !== WIRE.status.error;
+    const moved = fresh?.status === WIRE.status.error && fresh.error.code === WIRE.error.conflict;
+    add(
+      "live.fresh-accepted",
+      freshOk ? "pass" : moved ? "warn" : "fail",
+      freshOk
+        ? `expectedRev ${String(rev)} → ${fresh.status}`
+        : moved
+          ? `The revision moved between reading state and calling (now ${String(fresh.error.details?.[WIRE.field.currentRev])}); run again on a quiet site.`
+          : `expectedRev ${String(rev)} → ${fresh ? (fresh.status === WIRE.status.error ? fresh.error.code : fresh.status) : "no envelope"}`,
+    );
+  }
+
+  // Availability honored: an action the state reports unavailable must not complete with ok.
+  {
+    const unavailable = m.actions.filter((a) => {
+      const av = state?.actions[a.name];
+      return av && !av.available && a.examples?.length && r.callable(a);
+    });
+    const targets = r.options.noMutate ? unavailable.filter((a) => a.readOnly) : unavailable;
+    if (targets.length === 0) {
+      add(
+        "live.availability-honored",
+        "skip",
+        unavailable.length
+          ? "Skipped: --no-mutate."
+          : "No callable action with an example is reported unavailable.",
+      );
+    } else {
+      const completed: string[] = [];
+      for (const a of targets) {
+        const { result } = await r.invoke(a, a.examples![0]!.input);
+        if (result?.status === WIRE.status.ok) completed.push(a.name);
+      }
+      add(
+        "live.availability-honored",
+        completed.length ? "fail" : "pass",
+        completed.length
+          ? `Reported unavailable but returned ok: ${completed.join(", ")}`
+          : `${targets.length} unavailable action(s) refused`,
       );
     }
   }
@@ -1721,6 +2126,7 @@ export async function runConformance(
     const schemaOk = r.checks.find((c) => c.id === "manifest.schema")?.status === "pass";
     if (schemaOk) {
       await runtime(r);
+      await live(r);
       await ladder(r);
     }
   }
@@ -1768,6 +2174,13 @@ export function formatConformanceTable(
   lines.push(
     "",
     `${report.passed} passed, ${report.failed} failed, ${report.warnings} warnings, ${report.skipped} skipped. ${report.ok ? "Conformant." : "Not conformant."}`,
+  );
+  if (report.skipped > 0)
+    lines.push(
+      `Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised. Each skip's detail line says what the run lacked.`,
+    );
+  lines.push(
+    "Conformance checks the protocol behavior observable from outside. It is not a security review and not evidence that the application's own logic is correct. See docs/testing-and-conformance.md#what-conformance-does-not-show.",
   );
   return lines.join("\n");
 }

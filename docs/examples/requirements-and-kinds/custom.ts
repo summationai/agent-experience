@@ -1,8 +1,8 @@
 /**
  * Oakridge Rentals: a custom kind for something no well-known kind covers.
  */
-import { needsInput, z } from "@axe/core";
-import { customKind, accept } from "@axe/core/kinds";
+import { needsInput, z } from "@summationai/axe-core";
+import { customKind, accept } from "@summationai/axe-core/kinds";
 
 // #region kind
 // Nothing in the registry describes a guarantor agreement, so it is a custom kind.

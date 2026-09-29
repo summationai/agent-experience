@@ -178,7 +178,9 @@ describe("the escalation ladder", () => {
     expect(body.status).toBe("ok");
     expect(body.output.depositStatus).toBe("received");
     expect(state.applications.get(body.output.applicationId)!.status).toBe("submitted");
-    const replay = await json<ErrorResult>(
+    // The same continuation again is the same use: the stored envelope, no second submission
+    // ([P-REQ-9], [P-OP-1]). A different payload on a used token is conflict.
+    const replay = await json<OkResult<{ applicationId: string }>>(
       await call(
         axe,
         "POST",
@@ -191,7 +193,22 @@ describe("the escalation ladder", () => {
         USER,
       ),
     );
-    expect(replay.error.code).toBe(WIRE.error.conflict);
+    expect(replay).toEqual(body);
+    expect(state.applications.size).toBe(1);
+    const reuse = await json<ErrorResult>(
+      await call(
+        axe,
+        "POST",
+        "/axe/continue",
+        {
+          continuationToken: first.continuationToken,
+          kind: WIRE.kind.paymentAchDebit,
+          payload: { ...ACH, amount: 1 },
+        },
+        USER,
+      ),
+    );
+    expect(reuse.error.code).toBe(WIRE.error.conflict);
   });
 
   it("continue rejects a kind not in accepts and an invalid payload without consuming the token [P-REQ-8]", async () => {
@@ -270,10 +287,11 @@ describe("the escalation ladder", () => {
       await call(axe, "POST", "/axe/resume", { resumeToken: first.fallback!.resumeToken }, USER),
     );
     expect(resumed.status).toBe("ok");
-    const again = await json<ErrorResult>(
+    // A repeated resume is answered from the stored envelope; onResume does not run again.
+    const again = await json<OkResult<{ applicationId: string }>>(
       await call(axe, "POST", "/axe/resume", { resumeToken: first.fallback!.resumeToken }, USER),
     );
-    expect(again.error.code).toBe(WIRE.error.conflict);
+    expect(again).toEqual(resumed);
   });
 
   it("a gated handoff refuses resume until completeHandoff is called [P-HAND-5]", async () => {
@@ -350,10 +368,13 @@ describe("the escalation ladder", () => {
       ),
     );
     const [body, sig] = first.continuationToken.split(".") as [string, string];
-    const flipped = body.slice(0, -2) + (body.endsWith("A") ? "B" : "A") + body.slice(-1);
+    // Replace the second-to-last character with one that differs from it, so the body always changes.
+    const victim = body[body.length - 2];
+    const flipped = body.slice(0, -2) + (victim === "A" ? "B" : "A") + body.slice(-1);
     for (const token of [
       `${flipped}.${sig}`,
-      `${body}.${sig.slice(0, -1)}x`,
+      // The first signature character is fully significant; the last carries base64url padding bits.
+      `${body}.${sig.startsWith("A") ? "B" : "A"}${sig.slice(1)}`,
       "garbage",
       "",
       `${body}`,

@@ -13,3 +13,8 @@ docs/**/*.md
 README.md
 site/dist
 site/test/__screenshots__
+.next
+examples/*/next-env.d.ts
+examples/*/test-results
+examples/*/playwright-report
+docs/review/*/data

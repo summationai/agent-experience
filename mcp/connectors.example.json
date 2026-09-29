@@ -1,0 +1,25 @@
+{
+  "default": "example-app",
+  "connectors": [
+    {
+      "id": "example-app",
+      "displayName": "Example App",
+      "aliases": ["example"],
+      "description": "A factual description used only to discover the application.",
+      "appUrl": "https://app.example.com/",
+      "startPath": "/",
+      "allowedOrigins": ["https://app.example.com", "https://login.example.com"],
+      "surfaceId": "example-app",
+      "identity": {
+        "principalClaim": "sub",
+        "contextClaim": "org"
+      },
+      "session": {
+        "strategy": "broker",
+        "brokerUrl": "https://app.example.com/internal/agent-session",
+        "brokerAuth": "service",
+        "brokerTokenEnv": "EXAMPLE_APP_BROKER_TOKEN"
+      }
+    }
+  ]
+}

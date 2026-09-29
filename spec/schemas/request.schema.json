@@ -47,6 +47,17 @@
     "idempotencyKey": {
       "type": "string",
       "maxLength": 256
+    },
+    "expectedRev": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "number"
+        }
+      ]
     }
   },
   "required": [

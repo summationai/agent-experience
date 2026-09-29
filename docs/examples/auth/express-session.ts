@@ -3,8 +3,8 @@
  * injected through the Express adapter's `context` option.
  */
 import express from "express";
-import { createAXE, action, z } from "@axe/core";
-import { axeExpress } from "@axe/express";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { axeExpress } from "@summationai/axe-express";
 
 // #region session
 // Stand-in for your session store (express-session, iron-session, a sessions table).
