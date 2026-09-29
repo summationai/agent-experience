@@ -4,5 +4,8 @@ import { autoSurface } from "@summationai/axe-surface/auto";
 import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
 
 const handle = autoSurface({ expose: true });
-const webmcp = exposeWebMcp(handle.surface, { actor: "headless agent" });
+// `?granularity=domain` offers the fixed domain tools instead of one tool per control.
+const granularity =
+  new URLSearchParams(location.search).get("granularity") === "domain" ? "domain" : "control";
+const webmcp = exposeWebMcp(handle.surface, { actor: "headless agent", granularity });
 (window as unknown as Record<string, unknown>)["webmcpFixture"] = { webmcp };

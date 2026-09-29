@@ -383,6 +383,42 @@ describe.skipIf(missing)("WebMCP bridge: a Surface offered through WebMCP, no re
   }, 30_000);
 });
 
+describe.skipIf(missing)("WebMCP bridge: a Surface with domain tools", () => {
+  it("serves a fixed tool set, acts by entryId, and still asks the person before a high-risk control", async () => {
+    const bridge = createWebMcpBridge({ appUrl: origin, startPath: "/board?granularity=domain" });
+    try {
+      const mcp = await connect(bridge, () => ({ action: "accept", content: { approve: true } }));
+      const names = await mcp.names();
+      expect(names).toEqual([
+        "surface_load-more",
+        "surface_observe",
+        "surface_read",
+        "surface_run-control",
+        "surface_set-field",
+        "surface_wait",
+      ]);
+      const observed = await mcp.call("surface_observe", { kind: "action" });
+      const rows = (
+        observed.structuredContent as { entries: { id: string; name: string; tool?: string }[] }
+      ).entries;
+      const add = rows.find((r) => r.name === "Add one")!;
+      const del = rows.find((r) => r.name === "Delete everything")!;
+      expect(add.tool).toBe("surface_run-control");
+      const before = mcp.listChanged();
+      const r = await mcp.call("surface_run-control", { entryId: add.id });
+      expect(r.isError, text(r)).toBeFalsy();
+      expect(await bridge.page()!.textContent("#count")).toBe("1");
+      // The page changed; the tool list did not.
+      expect(mcp.listChanged()).toBe(before);
+      const d = await mcp.call("surface_run-control", { entryId: del.id });
+      expect(d.isError, text(d)).toBeFalsy();
+      expect(await deleted(bridge)).toBe(true);
+    } finally {
+      await bridge.close();
+    }
+  }, 30_000);
+});
+
 const deleted = (bridge: WebMcpBridge) =>
   bridge.page()!.evaluate(() => (window as { deleted?: boolean }).deleted);
 

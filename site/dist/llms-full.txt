@@ -8474,6 +8474,27 @@ Use a fresh agent conversation for a clean acceptance test after installing or u
 - **A collection with nothing to load.**
 - **Anything outside the page.** WebMCP tools run in the page with the user's own session, like `expose`. They add no reader the page did not have and are not a way to reach the surface from a server.
 
+## Granularity
+
+By default each control is its own tool, and its description carries the control's live state. That reads well on a small page, but the list grows with the page (27 tools on the reference plan page; a grid of 50 products by 12 months would be over 600), and every change of state re-registers the tools it touched.
+
+`granularity: "domain"` registers a fixed set instead: the observe tool, read and wait on an auto surface, and one tool per domain action, the same names the relay serves.
+
+```ts
+exposeWebMcp(surface, { granularity: "domain" });
+// <SurfaceProvider webMcp={{ granularity: "domain" }}>
+```
+
+| Tool | Acts on |
+| --- | --- |
+| `surface_set-field` | a field: `{ entryId, text }` |
+| `surface_run-control` | an action (a button, a switch, a link): `{ entryId, confirm? }` |
+| `surface_load-more` | a collection that can load more: `{ entryId }` |
+
+Each takes `expectedRev` too. The agent finds ids with `surface_observe`, which filters (`query`, `kind`, `object`, `available`) and pages (`limit`, `cursor`) and names the tool for each row. A call with an id another tool acts on is refused with that tool's name. Pass your own `domains` (the specs of `domainActions`) to name groups the application would name, such as a `set-demand` for a month's forecast.
+
+On the reference plan page, driven headless through the bridge, the forecast edit and save took 4 tools instead of 27 and sent no tool-list change instead of 10, with the same result on the server.
+
 ## Acting
 
 A tool call is `surface.act` with the entry's id and op. With `expectedRev`, a page that changed since the agent observed it refuses the act as `conflict` and nothing runs. Without it, the act uses the page's revision at the moment of the call: the agent acts on the page as it is, and the surface's availability and confirmation checks still apply. The tool returns the act's envelope as structured content, one line of text (`Done: Lock March. The page is now at rev 3.`, or why not and what to do), and `isError` when the act was refused.
@@ -8540,7 +8561,6 @@ The approval link never appears in anything the agent receives. It is a credenti
 
 What the bridge does not do yet, in the order it matters:
 
-- **Tool count.** The adapter registers one tool per control: 27 on the reference plan page, and a grid of 50 rows by 12 months would be over 600. The relay path serves a fixed set (`surface_set-field`, `surface_run-control` with an entry id). A compact mode in the adapter, with generic tools taking an entry id, would keep the tool list small for pages with many controls.
 - **Annotations.** The DevTools domain carries only a tool's read-only, untrusted-content, and autosubmit hints. A page's `consequentialHint` and `title` do not reach the bridge, so risk reaches the agent only through the tool's description.
 - **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.
 - **Stability.** WebMCP is behind `--enable-features=WebMCP` and its DevTools domain is experimental; both can change with Chromium.
@@ -13297,7 +13317,7 @@ WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft r
 
 **[S-WEB-1] Feature detection and diagnosis.** `exposeWebMcp(surface, options)` registers nothing unless it finds an object with `registerTool` (by default `document.modelContext`), and then returns a handle with `supported: false` and the reason. Its `diagnostic()` distinguishes unavailable, registering, ready, degraded, registration error, and closed states and names each refused registration without exposing page data. The page, its controls, and `expose` ([S-DOM-2]) behave the same with or without WebMCP. The adapter reaches the browser API in one place, so a change in the draft changes that place only.
 
-**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. An action that is not reversible carries the `consequentialHint` annotation. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
+**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content, with the filters and pages of [S-OBS-5]: `query`, `kind`, `object`, `available`, `limit`, and `cursor`). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. An action that is not reversible carries the `consequentialHint` annotation. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
 
 **[S-WEB-3] Availability follows the surface.** The adapter follows `subscribe` ([S-OBS-4]) and re-registers a tool when its name, description, schema, or annotations changed, and only then. An unavailable entry is registered with its reason, `requires`, and `handoff` in the description (`unavailable: "describe"`, the default) or left out until it is available (`"omit"`). A freeze makes every entry unavailable with the freeze's reason ([S-FRZ-1]).
 
@@ -13306,6 +13326,8 @@ WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft r
 **[S-WEB-5] Browser-local and host-delivered.** Like `expose`, WebMCP exposure adds no reader the page did not have: the browser's agent acts in the page with the user's session. The browser host must both implement `document.modelContext.registerTool` and deliver registered tools to that agent task. A generic browser-automation or headless-computer-use session with only click/type primitives is not thereby a WebMCP host; its UI actions do not pass through `surface.act`. WebMCP is not a way to reach the surface from a server; server-side agents use the AXE bridge (§6) and its authorization (§6.1).
 
 **[S-WEB-6] Host-delivered approval.** A host that runs the page for a person where no one sees it (a headless browser) MAY install an approver before any page script runs: a non-writable, non-configurable function at the global named by `INJECTED_APPROVER_GLOBAL`. The adapter uses it only when the property is so defined, and then in preference to `requestApproval`, whose UI no one would see. It passes plain data (the tool, the entry's id, name, application, risk, what it mutates, whether it is reversible, and the bound revision) and takes a decision, which is recorded before the act as under [S-WEB-4], or an unanswered result: nothing runs, no decision is recorded, and the call returns `unavailable` with reason `approval_pending`, retryable, with the host's message. The host MUST obtain the decision from the person through a channel the agent cannot answer (its MCP client's elicitation, or a page shown to the person), MUST bind a decision made outside the call to that entry at that revision and use it once, and MUST NOT put a link that decides into anything the agent receives.
+
+**[S-WEB-7] Domain granularity.** With `granularity: "domain"`, the adapter registers, beside the observe tool (and read and wait, [S-WEB-2]), one tool per domain action ([S-AXE-10]) instead of one per entry: `<prefix><name>` for each spec, by default `domainActions`' own set (`set-field`, `run-control`, `load-more`) on any surface. Each takes the `entryId` of an observe row, and `text`, `confirm`, and `expectedRev` as the per-entry tool does. The first spec that covers an entry acts on it, and a spec covers an entry only when the entry's risk is no higher than the spec's and it is reversible or idempotent where the spec says so. A call for an entry that another tool acts on is refused with that tool's name, and one for an unknown or sensitive entry as `not_found`; nothing runs. The observe tool names each row's tool. Descriptions carry no row state, so the set is registered once and does not change with the page. Acts, approval ([S-WEB-4], [S-WEB-6]), the revision guard, and the ledger are those of the per-entry tools.
 
 ## 9. Execution modes
 

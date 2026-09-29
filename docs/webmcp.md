@@ -92,6 +92,27 @@ Use a fresh agent conversation for a clean acceptance test after installing or u
 - **A collection with nothing to load.**
 - **Anything outside the page.** WebMCP tools run in the page with the user's own session, like `expose`. They add no reader the page did not have and are not a way to reach the surface from a server.
 
+## Granularity
+
+By default each control is its own tool, and its description carries the control's live state. That reads well on a small page, but the list grows with the page (27 tools on the reference plan page; a grid of 50 products by 12 months would be over 600), and every change of state re-registers the tools it touched.
+
+`granularity: "domain"` registers a fixed set instead: the observe tool, read and wait on an auto surface, and one tool per domain action, the same names the relay serves.
+
+```ts
+exposeWebMcp(surface, { granularity: "domain" });
+// <SurfaceProvider webMcp={{ granularity: "domain" }}>
+```
+
+| Tool | Acts on |
+| --- | --- |
+| `surface_set-field` | a field: `{ entryId, text }` |
+| `surface_run-control` | an action (a button, a switch, a link): `{ entryId, confirm? }` |
+| `surface_load-more` | a collection that can load more: `{ entryId }` |
+
+Each takes `expectedRev` too. The agent finds ids with `surface_observe`, which filters (`query`, `kind`, `object`, `available`) and pages (`limit`, `cursor`) and names the tool for each row. A call with an id another tool acts on is refused with that tool's name. Pass your own `domains` (the specs of `domainActions`) to name groups the application would name, such as a `set-demand` for a month's forecast.
+
+On the reference plan page, driven headless through the bridge, the forecast edit and save took 4 tools instead of 27 and sent no tool-list change instead of 10, with the same result on the server.
+
 ## Acting
 
 A tool call is `surface.act` with the entry's id and op. With `expectedRev`, a page that changed since the agent observed it refuses the act as `conflict` and nothing runs. Without it, the act uses the page's revision at the moment of the call: the agent acts on the page as it is, and the surface's availability and confirmation checks still apply. The tool returns the act's envelope as structured content, one line of text (`Done: Lock March. The page is now at rev 3.`, or why not and what to do), and `isError` when the act was refused.
@@ -158,7 +179,6 @@ The approval link never appears in anything the agent receives. It is a credenti
 
 What the bridge does not do yet, in the order it matters:
 
-- **Tool count.** The adapter registers one tool per control: 27 on the reference plan page, and a grid of 50 rows by 12 months would be over 600. The relay path serves a fixed set (`surface_set-field`, `surface_run-control` with an entry id). A compact mode in the adapter, with generic tools taking an entry id, would keep the tool list small for pages with many controls.
 - **Annotations.** The DevTools domain carries only a tool's read-only, untrusted-content, and autosubmit hints. A page's `consequentialHint` and `title` do not reach the bridge, so risk reaches the agent only through the tool's description.
 - **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.
 - **Stability.** WebMCP is behind `--enable-features=WebMCP` and its DevTools domain is experimental; both can change with Chromium.

@@ -9,7 +9,8 @@ import { exposePageSurface, pageSurface } from "../lib/browser-surface";
 export function SurfaceHost() {
   useEffect(() => {
     const unexpose = exposePageSurface(window);
-    const webmcp = exposeWebMcp(pageSurface, { actor: "webmcp agent" });
+    // Domain tools: a fixed set that takes entry ids, however many cells the plan has.
+    const webmcp = exposeWebMcp(pageSurface, { actor: "webmcp agent", granularity: "domain" });
     return () => {
       webmcp.close();
       unexpose();
