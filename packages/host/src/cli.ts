@@ -274,7 +274,7 @@ async function serveWebMcp(o: {
   stderr: (l: string) => void;
   until: Promise<void> | undefined;
 }): Promise<number> {
-  const { createWebMcpBridge, webMcpBridgeServer } = await import("./webmcp-bridge");
+  const { createWebMcpBridge, openInBrowser, webMcpBridgeServer } = await import("./webmcp-bridge");
   const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
   let bridge: ReturnType<typeof createWebMcpBridge>;
   try {
@@ -283,6 +283,12 @@ async function serveWebMcp(o: {
       ...(o.start ? { startPath: o.start } : {}),
       ...(o.statePath ? { storageState: o.statePath } : {}),
       browser: { headless: o.headless },
+      // The person may not see a browser window open (another desktop, a remote session), so the
+      // link is in this process's log too; it never goes to the agent.
+      showApprovalPage: (url, q) => {
+        o.stderr(`axe host: approval needed for "${q.name}": ${url}`);
+        return openInBrowser(url);
+      },
     });
   } catch (e) {
     o.stderr(`axe host: ${e instanceof Error ? e.message : String(e)}`);

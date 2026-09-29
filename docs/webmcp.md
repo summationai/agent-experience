@@ -136,7 +136,7 @@ axe host login http://localhost:3000
 claude mcp add plan -- npx @summationai/axe host --dev --webmcp --stdio --app http://localhost:3000 --start /plan
 ```
 
-The page needs no relay connection and no host-specific code: `<SurfaceProvider webMcp>`, `exposeWebMcp`, or any `document.modelContext.registerTool` is the whole integration, and the same registration serves Chrome's built-in agent and ChatGPT's in-app browser. The bridge refuses navigations off the application's origin, reports a call whose page navigated or reloaded underneath it as outcome unknown, sends `tools/list_changed` as the page's tools change, and returns each answer only once the tools the call changed are registered again. It needs Chromium 150 or newer (the one Playwright installs qualifies).
+The page needs no relay connection and no host-specific code: `<SurfaceProvider webMcp>`, `exposeWebMcp`, or any `document.modelContext.registerTool` is the whole integration, and the same registration serves Chrome's built-in agent and ChatGPT's in-app browser. A high-risk control still needs the person: the bridge asks them in the agent's MCP client when it can show a form (elicitation), and otherwise opens a single-use approval page in the person's browser and tells the agent to call again after they decide; see [Approval in a headless page](#approval-in-a-headless-page). The bridge refuses navigations off the application's origin, reports a call whose page navigated or reloaded underneath it as outcome unknown, sends `tools/list_changed` as the page's tools change, and returns each answer only once the tools the call changed are registered again. It needs Chromium 150 or newer (the one Playwright installs qualifies).
 
 Tried on 2026-09-29 against the reference application (`examples/plan-review`, which offers its page surface through `exposeWebMcp` in `app/SurfaceHost.tsx`), headless, signed in as bob at Acme, from a scripted MCP client over stdio:
 
@@ -147,9 +147,17 @@ Tried on 2026-09-29 against the reference application (`examples/plan-review`, w
 | Type a forecast | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms |
 | Save | 22 ms, and the server's plan shows the value | `surface_run-control` 67 ms |
 
+### Approval in a headless page
+
+A headless page has no one to see the application's `requestApproval` UI. The bridge therefore installs a host approver before any page script runs (`INJECTED_APPROVER_GLOBAL`, a function page code cannot replace), and `exposeWebMcp` asks it instead of the page's UI ([S-WEB-6](../spec/SURFACE.md#8-webmcp-the-browsers-own-agent)). The bridge asks the person:
+
+1. In the agent's own MCP client, when the client declares form elicitation: "Approve “Delete everything” on the board? It changes state, risk high." The answer is recorded in the page's ledger with who gave it, and the act runs or not within the same tool call.
+2. Otherwise on a single-use approval page on loopback, opened in the person's browser (and written to the bridge's log). The tool call returns `approval_pending` and nothing runs; after the person decides, the agent's next call of the same tool uses that decision, once, for that control at that revision.
+
+The approval link never appears in anything the agent receives. It is a credential for one decision, and an agent that can reach loopback could otherwise open it and press Approve itself. Tool calls on the page run one at a time, so a question always belongs to exactly one call, and the time the person takes does not count against the call's timeout.
+
 What the bridge does not do yet, in the order it matters:
 
-- **Approval.** A high-risk control needs `requestApproval`, trusted application UI that the person sees. A headless page has no one to see it, so the call is refused ("The control needs the person's approval, but this page did not configure a trusted WebMCP approval UI."). The relay path asks the person through MCP elicitation or its approval page. The likely shape is a host-provided approver, injected like the relay's token binding, that the page's `requestApproval` defers to and that the host answers through elicitation; it keeps the approval with the person and out of the agent's reach.
 - **Tool count.** The adapter registers one tool per control: 27 on the reference plan page, and a grid of 50 rows by 12 months would be over 600. The relay path serves a fixed set (`surface_set-field`, `surface_run-control` with an entry id). A compact mode in the adapter, with generic tools taking an entry id, would keep the tool list small for pages with many controls.
 - **Annotations.** The DevTools domain carries only a tool's read-only, untrusted-content, and autosubmit hints. A page's `consequentialHint` and `title` do not reach the bridge, so risk reaches the agent only through the tool's description.
 - **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.

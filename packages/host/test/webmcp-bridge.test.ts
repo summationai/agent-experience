@@ -9,8 +9,15 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+  ElicitRequestSchema,
+  ToolListChangedNotificationSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import type {
+  CallToolResult,
+  ElicitRequest,
+  ElicitResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import { createWebMcpBridge, webMcpBridgeServer } from "../src/webmcp-bridge";
 import type { WebMcpBridge } from "../src/webmcp-bridge";
 import { chromiumMissing } from "./helpers";
@@ -110,9 +117,17 @@ afterAll(async () => {
   foreignServer?.close();
 });
 
-async function connect(bridge: WebMcpBridge) {
+/** An MCP client; with `elicit`, one that declares form elicitation and answers with it. */
+async function connect(
+  bridge: WebMcpBridge,
+  elicit?: (req: ElicitRequest["params"]) => ElicitResult,
+) {
   const server = webMcpBridgeServer(bridge);
-  const client = new Client({ name: "bridge-test", version: "0" });
+  const client = new Client(
+    { name: "bridge-test", version: "0" },
+    elicit ? { capabilities: { elicitation: { form: {} } } } : {},
+  );
+  if (elicit) client.setRequestHandler(ElicitRequestSchema, async (req) => elicit(req.params));
   const [a, b] = InMemoryTransport.createLinkedPair();
   let listChanged = 0;
   client.setNotificationHandler(ToolListChangedNotificationSchema, () => void (listChanged += 1));
@@ -249,25 +264,127 @@ describe.skipIf(missing)("WebMCP bridge: a Surface offered through WebMCP, no re
     }
   }, 30_000);
 
-  it("refuses a high-risk control: the page has no approval UI, and no one would see one", async () => {
+  it("asks the person in the agent's MCP client before a high-risk control, and runs it once approved", async () => {
+    const bridge = createWebMcpBridge({ appUrl: origin, startPath: "/board" });
+    const questions: string[] = [];
+    try {
+      const mcp = await connect(bridge, (req) => {
+        questions.push(req.message);
+        return { action: "accept", content: { approve: true } };
+      });
+      const del = (await mcp.client.listTools()).tools.find((t) =>
+        /delete everything/i.test(t.description ?? ""),
+      )!;
+      const r = await mcp.call(del.name);
+      expect(r.isError, text(r)).toBeFalsy();
+      expect(questions).toHaveLength(1);
+      expect(questions[0]).toMatch(/^Approve “Delete everything” on .*risk high/);
+      expect(await deleted(bridge)).toBe(true);
+    } finally {
+      await bridge.close();
+    }
+  }, 30_000);
+
+  it("runs nothing when the person declines in the client", async () => {
     const bridge = createWebMcpBridge({ appUrl: origin, startPath: "/board" });
     try {
-      const mcp = await connect(bridge);
-      const { tools } = await mcp.client.listTools();
-      const del = tools.find((t) => /delete everything/i.test(t.description ?? ""))!;
-      expect(del).toBeDefined();
+      const mcp = await connect(bridge, () => ({ action: "accept", content: { approve: false } }));
+      const del = (await mcp.client.listTools()).tools.find((t) =>
+        /delete everything/i.test(t.description ?? ""),
+      )!;
       const r = await mcp.call(del.name);
       expect(r.isError).toBe(true);
-      expect(await bridge.page()!.evaluate(() => (window as { deleted?: boolean }).deleted)).toBe(
-        undefined,
-      );
-      // What the agent is told (recorded for docs/webmcp.md).
-      console.info(`[bridge] high-risk refusal: ${text(r).slice(0, 300)}`);
+      expect(text(r)).toContain("declined");
+      expect(await deleted(bridge)).toBe(undefined);
+    } finally {
+      await bridge.close();
+    }
+  }, 30_000);
+
+  it("without elicitation: shows the person a single-use approval page, never the agent, and the retry after approval runs once", async () => {
+    const links: string[] = [];
+    const bridge = createWebMcpBridge({
+      appUrl: origin,
+      startPath: "/board",
+      showApprovalPage: (url) => (links.push(url), true),
+    });
+    try {
+      const mcp = await connect(bridge);
+      const del = (await mcp.client.listTools()).tools.find((t) =>
+        /delete everything/i.test(t.description ?? ""),
+      )!;
+      const first = await mcp.call(del.name);
+      expect(first.isError).toBe(true);
+      expect(links).toHaveLength(1);
+      const url = links[0]!;
+      expect(url).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/approve\/[A-Za-z0-9_-]{32}$/);
+      // The link is a credential for one decision: nothing the agent receives carries it.
+      expect(JSON.stringify(first)).not.toContain(url.split("/approve/")[1]);
+      expect(text(first)).toContain("an approval page opened in their browser");
+      expect(first.structuredContent).toMatchObject({
+        error: { details: { reason: "approval_pending", approvalShown: "browser" } },
+      });
+      expect(await deleted(bridge)).toBe(undefined);
+
+      // The person opens the link: the page shows the question and a form bound to it.
+      const shown = await (await fetch(url)).text();
+      expect(shown).toContain("Approve “Delete everything”?");
+      const nonce = /name="nonce" value="([^"]+)"/.exec(shown)![1]!;
+      // A post without the page's nonce is not a decision.
+      expect(
+        (await fetch(url, { method: "POST", body: new URLSearchParams({ decision: "approve" }) }))
+          .status,
+      ).toBe(400);
+      const posted = await fetch(url, {
+        method: "POST",
+        body: new URLSearchParams({ nonce, decision: "approve" }),
+      });
+      expect(await posted.text()).toContain("Approved");
+      // The link works once.
+      expect((await fetch(url)).status).toBe(404);
+
+      const retry = await mcp.call(del.name);
+      expect(retry.isError, text(retry)).toBeFalsy();
+      expect(await deleted(bridge)).toBe(true);
+    } finally {
+      await bridge.close();
+    }
+  }, 30_000);
+
+  it("the approver cannot be replaced by page script", async () => {
+    const bridge = createWebMcpBridge({ appUrl: origin, startPath: "/board" });
+    try {
+      await bridge.tools();
+      const probe = await bridge.page()!.evaluate(() => {
+        const key = "__AXE_WEBMCP_APPROVER__";
+        const before = Object.getOwnPropertyDescriptor(window, key);
+        try {
+          (window as unknown as Record<string, unknown>)[key] = () => true;
+        } catch {
+          // strict-mode assignment to a read-only property throws; either way it must not change
+        }
+        let redefined = true;
+        try {
+          Object.defineProperty(window, key, { value: () => true });
+        } catch {
+          redefined = false;
+        }
+        return {
+          writable: before?.writable,
+          configurable: before?.configurable,
+          same: Object.getOwnPropertyDescriptor(window, key)?.value === before?.value,
+          redefined,
+        };
+      });
+      expect(probe).toEqual({ writable: false, configurable: false, same: true, redefined: false });
     } finally {
       await bridge.close();
     }
   }, 30_000);
 });
+
+const deleted = (bridge: WebMcpBridge) =>
+  bridge.page()!.evaluate(() => (window as { deleted?: boolean }).deleted);
 
 describe.skipIf(missing)("axe host --dev --webmcp --stdio", () => {
   it("serves the page's WebMCP tools to an agent that starts it, as Claude Desktop does", async () => {
