@@ -14,7 +14,7 @@
  *   axe surface init|coverage|prompt add Surface to an existing app and check what agents see
  */
 import { parseArgs } from "node:util";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import * as WIRE from "@summationai/axe-core/vocabulary";
@@ -128,9 +128,14 @@ export async function run(
   }
 }
 
+// Installed, the command is a symlink (node_modules/.bin/axe, npx): Node resolves it for
+// import.meta.url but leaves argv[1] as given, so the comparison is between real paths.
 const isMain = (() => {
   try {
-    return process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
+    return (
+      process.argv[1] !== undefined &&
+      realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])
+    );
   } catch {
     return false;
   }

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -312,6 +312,22 @@ describe("axe CLI", () => {
     expect((r.structuredContent as { status: string }).status).toBe("ok");
     await client.close();
   }, 30_000);
+
+  it("runs when started through a symlink, as node_modules/.bin/axe and npx start it", async () => {
+    const link = join(mkdtempSync(join(tmpdir(), "axe-bin-")), "axe.ts");
+    symlinkSync(join(__dirname, "../src/index.ts"), link);
+    const env = { ...process.env };
+    delete env["AXE_CLI_MAIN"];
+    const child = spawn(process.execPath, ["--import", "tsx", link, "--version"], {
+      env,
+      cwd: join(__dirname, ".."),
+    });
+    const stdout: string[] = [];
+    child.stdout.on("data", (d: Buffer) => stdout.push(d.toString()));
+    const code = await new Promise<number | null>((r) => child.on("exit", (c) => r(c)));
+    expect(code).toBe(0);
+    expect(stdout.join("").trim()).toMatch(/^\d+\.\d+\.\d+/);
+  }, 20_000);
 
   it("the stdio process exits when the client disconnects", async () => {
     const child = spawn(
