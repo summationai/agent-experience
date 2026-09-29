@@ -108,6 +108,49 @@ export interface WebMcpApprovalDecision {
   actor?: string;
 }
 
+/**
+ * The global a host that runs the page for a person defines before any page code runs:
+ * `window.__AXE_WEBMCP_APPROVER__`, a non-writable, non-configurable function. A headless page has
+ * no one to see the application's own approval UI, so when this global is present the adapter asks
+ * the host instead, and the host asks the person through its own channel.
+ */
+export const INJECTED_APPROVER_GLOBAL = "__AXE_WEBMCP_APPROVER__";
+
+/** What the adapter asks a host-injected approver: plain data, nothing the page could not show. */
+export interface HostApprovalRequest {
+  /** The tool the agent called. */
+  tool: string;
+  entryId: string;
+  /** The entry's accessible name, as the person sees it on the page. */
+  name: string;
+  /** The surface's application name. */
+  app: string;
+  risk: string;
+  mutates: string;
+  reversible: boolean | null;
+  /** The revision the act is bound to. */
+  expectedRev: number;
+}
+
+/**
+ * The host's answer. `unanswered` means the host could not put the question to the person during
+ * this call (its client cannot show one): nothing runs, no decision is recorded, and the agent is
+ * told `message`, with `details` such as an approval link, and to call again after the person
+ * decided.
+ */
+export type HostApprovalDecision =
+  | boolean
+  | WebMcpApprovalDecision
+  | { unanswered: { message: string; details?: Record<string, unknown> } };
+
+/** The host's approver, only when a host installed it before page code (it cannot be replaced). */
+function injectedApprover(): ((r: HostApprovalRequest) => Promise<HostApprovalDecision>) | null {
+  const d = Object.getOwnPropertyDescriptor(globalThis, INJECTED_APPROVER_GLOBAL);
+  return d && typeof d.value === "function" && d.writable === false && d.configurable === false
+    ? (d.value as (r: HostApprovalRequest) => Promise<HostApprovalDecision>)
+    : null;
+}
+
 export interface WebMcpHandle {
   /** Whether a WebMCP object was found and tools are being registered. */
   readonly supported: boolean;
@@ -647,7 +690,10 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
           request.text = typeof input["text"] === "string" ? input["text"] : "";
         if (input["confirm"] === true) request.confirm = true;
         if (needsApproval(liveRow)) {
-          if (!options.requestApproval) {
+          // A host running this page for the person comes first: in a headless page, the
+          // application's own approval UI has no one to see it.
+          const host = injectedApprover();
+          if (!host && !options.requestApproval) {
             const result = approvalError(liveRow, "approval_channel_missing");
             return {
               content: [{ type: "text", text: result.error.message }],
@@ -655,11 +701,43 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
               isError: true,
             } satisfies WebMcpToolResult;
           }
-          let answer: boolean | WebMcpApprovalDecision;
+          let answer: HostApprovalDecision;
           try {
-            answer = await options.requestApproval({ entry: liveRow, act: request, input });
+            answer = host
+              ? await host({
+                  tool: name,
+                  entryId: liveRow.id,
+                  name: liveRow.name,
+                  app: surface.observe().app,
+                  risk: liveRow.effect?.risk ?? "high",
+                  mutates: liveRow.effect?.mutates ?? "state",
+                  reversible: liveRow.effect?.reversible ?? null,
+                  expectedRev,
+                })
+              : await options.requestApproval!({ entry: liveRow, act: request, input });
           } catch {
             const result = approvalError(liveRow, "approval_channel_failed");
+            return {
+              content: [{ type: "text", text: result.error.message }],
+              structuredContent: result as unknown as Record<string, unknown>,
+              isError: true,
+            } satisfies WebMcpToolResult;
+          }
+          if (answer != null && typeof answer === "object" && "unanswered" in answer) {
+            // Not a decision: nothing runs and nothing is recorded; the agent asks again later.
+            const result: ErrorResult = {
+              status: "error",
+              error: {
+                code: "unavailable",
+                message: `Not done: ${liveRow.name}. ${answer.unanswered.message}`,
+                retryable: true,
+                details: {
+                  reason: "approval_pending",
+                  entryId: liveRow.id,
+                  ...(answer.unanswered.details ?? {}),
+                } as NonNullable<ErrorResult["error"]["details"]>,
+              },
+            };
             return {
               content: [{ type: "text", text: result.error.message }],
               structuredContent: result as unknown as Record<string, unknown>,

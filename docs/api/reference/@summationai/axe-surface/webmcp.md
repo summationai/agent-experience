@@ -4,6 +4,88 @@
 
 ## Interfaces
 
+<a id="hostapprovalrequest"></a>
+
+### HostApprovalRequest
+
+What the adapter asks a host-injected approver: plain data, nothing the page could not show.
+
+#### Properties
+
+<a id="app"></a>
+
+##### app
+
+```ts
+app: string;
+```
+
+The surface's application name.
+
+<a id="entryid"></a>
+
+##### entryId
+
+```ts
+entryId: string;
+```
+
+<a id="expectedrev"></a>
+
+##### expectedRev
+
+```ts
+expectedRev: number;
+```
+
+The revision the act is bound to.
+
+<a id="mutates"></a>
+
+##### mutates
+
+```ts
+mutates: string;
+```
+
+<a id="name"></a>
+
+##### name
+
+```ts
+name: string;
+```
+
+The entry's accessible name, as the person sees it on the page.
+
+<a id="reversible"></a>
+
+##### reversible
+
+```ts
+reversible: boolean | null;
+```
+
+<a id="risk"></a>
+
+##### risk
+
+```ts
+risk: string;
+```
+
+<a id="tool"></a>
+
+##### tool
+
+```ts
+tool: string;
+```
+
+The tool the agent called.
+
+***
+
 <a id="modelcontextlike"></a>
 
 ### ModelContextLike
@@ -438,7 +520,7 @@ execute: (input, options?) => Promise<unknown>;
 inputSchema: Record<string, unknown>;
 ```
 
-<a id="name"></a>
+<a id="name-1"></a>
 
 ##### name
 
@@ -533,6 +615,44 @@ optional isError?: boolean;
 ```ts
 structuredContent: Record<string, unknown>;
 ```
+
+## Type Aliases
+
+<a id="hostapprovaldecision"></a>
+
+### HostApprovalDecision
+
+```ts
+type HostApprovalDecision = 
+  | boolean
+  | WebMcpApprovalDecision
+  | {
+  unanswered: {
+     details?: Record<string, unknown>;
+     message: string;
+  };
+};
+```
+
+The host's answer. `unanswered` means the host could not put the question to the person during
+this call (its client cannot show one): nothing runs, no decision is recorded, and the agent is
+told `message`, with `details` such as an approval link, and to call again after the person
+decided.
+
+## Variables
+
+<a id="injected_approver_global"></a>
+
+### INJECTED\_APPROVER\_GLOBAL
+
+```ts
+const INJECTED_APPROVER_GLOBAL: "__AXE_WEBMCP_APPROVER__" = "__AXE_WEBMCP_APPROVER__";
+```
+
+The global a host that runs the page for a person defines before any page code runs:
+`window.__AXE_WEBMCP_APPROVER__`, a non-writable, non-configurable function. A headless page has
+no one to see the application's own approval UI, so when this global is present the adapter asks
+the host instead, and the host asks the person through its own channel.
 
 ## Functions
 
