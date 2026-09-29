@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-fetch",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Mount an AXE server in any Web-standard handler: Hono, Remix, Cloudflare Workers, Bun, Deno, SvelteKit.",
   "license": "Apache-2.0",
   "type": "module",

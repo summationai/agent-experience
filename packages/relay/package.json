@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-relay",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Let an agent outside the browser drive a signed-in person's live tab through its Surface, over MCP: a browser client, a relay server, and short-lived relay tokens.",
   "license": "Apache-2.0",
   "type": "module",
