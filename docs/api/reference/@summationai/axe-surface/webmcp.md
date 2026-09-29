@@ -352,6 +352,31 @@ optional content?: boolean;
 
 Register `<prefix>read` and `<prefix>wait` when the surface has page content. Default true.
 
+<a id="domains"></a>
+
+##### domains?
+
+```ts
+optional domains?: DomainActionSpec[];
+```
+
+The domain actions for `granularity: "domain"`, in the order an entry is matched. Default:
+`domainActions`' own set.
+
+<a id="granularity"></a>
+
+##### granularity?
+
+```ts
+optional granularity?: "control" | "domain";
+```
+
+`control` (default): one tool per control, whose description carries its live state. `domain`:
+a fixed set of tools, one per domain action (`<prefix>set-field`, `<prefix>run-control`,
+`<prefix>load-more`), each taking an `entryId`
+from the observe tool. The set does not change as the page does, and its size does not grow
+with the page: use it for pages with many controls, and wherever tool lists are costly.
+
 <a id="modelcontext"></a>
 
 ##### modelContext?
@@ -372,6 +397,16 @@ optional observe?: boolean;
 ```
 
 Register the observe tool (`<prefix>observe`). Default true.
+
+<a id="observepagesize"></a>
+
+##### observePageSize?
+
+```ts
+optional observePageSize?: number;
+```
+
+Rows the observe tool returns when the call gives no `limit`. Default 100; at most 500.
 
 <a id="onerror"></a>
 

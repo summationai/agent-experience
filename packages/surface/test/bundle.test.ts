@@ -79,6 +79,10 @@ describe("browser bundle", () => {
     console.log(`@summationai/axe-surface/axe: ${out.bytes} bytes minified for the browser`);
   });
 
+  // The bound grew from 50 to 58 kB with the domain granularity ([S-WEB-7]) and observe's filters
+  // and pages: about 6 kB of tool definitions, the shared cursor paging, and domainActions'
+  // default specs. They keep the tool list fixed and small however large the page is, which is
+  // what an agent pays for on every turn, so they ship in the adapter.
   it("@summationai/axe-surface/webmcp bundles for the browser alone, small, without Zod or React", async () => {
     const out = await bundle(
       `import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
@@ -88,7 +92,7 @@ describe("browser bundle", () => {
     expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
     expect(out.inputs.filter((f) => /react/.test(f))).toEqual([]);
     console.log(`@summationai/axe-surface/webmcp: ${out.bytes} bytes minified for the browser`);
-    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(58 * 1024);
   });
 
   // The bound grew from 100 kB / 35 kB gzipped when the handle gained read() and wait()
@@ -114,7 +118,8 @@ describe("browser bundle", () => {
 
   // The bound grew from 44 to 47 kB when the provider's WebMCP adapter gained the auto surface's
   // read/wait loop and registration diagnostics. The DOM reader was already in this bundle; the
-  // increase is the two schemas, tool handlers, and diagnostic state.
+  // increase is the two schemas, tool handlers, and diagnostic state. It grew to 50 kB with the
+  // adapter's domain granularity and observe paging (about 2 kB gzipped; see the bound above).
   it("SurfaceProvider from @summationai/axe-surface/react carries the derivation and nothing server-side", async () => {
     const out = await bundle(
       `import { SurfaceProvider } from "@summationai/axe-surface/react";
@@ -125,6 +130,6 @@ describe("browser bundle", () => {
     console.log(
       `SurfaceProvider: ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(47 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(50 * 1024);
   });
 });
