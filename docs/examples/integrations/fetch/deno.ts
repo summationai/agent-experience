@@ -1,6 +1,6 @@
 // main.ts — run with `deno run --allow-net --allow-env main.ts`.
 // #region all
-import { axeFetch, isAxePath } from "@axe/fetch";
+import { axeFetch, isAxePath } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom } from "./session";
 

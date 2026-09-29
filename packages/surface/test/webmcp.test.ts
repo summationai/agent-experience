@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * `@axe/surface/webmcp` against a fake `document.modelContext` that implements the shape the
+ * `@summationai/axe-surface/webmcp` against a fake `document.modelContext` that implements the shape the
  * WebMCP draft documents (Community Group draft of 2026-09-17; Chrome's imperative API page of
  * 2026-09-21): `registerTool(tool, { signal })` rejects an invalid or duplicate name and an empty
  * description, aborting the signal unregisters, and a tool's result is serialized to JSON for the
@@ -91,7 +91,7 @@ function page() {
   return { s, lock, approved };
 }
 
-describe("@axe/surface/webmcp", () => {
+describe("@summationai/axe-surface/webmcp", () => {
   it("without WebMCP: registers nothing, says so, and leaves the page and expose() working", async () => {
     const { s, approved } = page();
     expect("modelContext" in document).toBe(false);

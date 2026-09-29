@@ -3,7 +3,7 @@ import { AXEClient, discover, findLinkHref, isOk, isNeedsHuman, isNeedsInput } f
 import type { Fulfiller } from "../src/index";
 import { present, toMarkdown, toHTML, formatValue } from "../src/present";
 import { apartmentsAXE, UNITS } from "../../core/test/fixtures/apartments";
-import { WIRE } from "@axe/core/vocabulary";
+import { WIRE } from "@summationai/axe-core/vocabulary";
 
 /** Route fetch calls into the in-process server, adding a fake HTML home page. */
 function fetchFor(

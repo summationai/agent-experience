@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { jsonlFileSink } from "../src/node";
 import type { AXEActionEvent } from "../src/types";
 
-describe("@axe/core/node", () => {
+describe("@summationai/axe-core/node", () => {
   it("jsonlFileSink appends one JSON line per event, in order", async () => {
     const dir = await mkdtemp(join(tmpdir(), "axe-node-"));
     const path = join(dir, "events.jsonl");

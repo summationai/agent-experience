@@ -10,12 +10,12 @@ Verified at `d51c88e`:
 
 - `surfaceActions` was the only bridge. It published `<ns>.observe`, `<ns>.ledger`, and one action per entry ([S-AXE-1]); `packages/surface/test/axe.test.ts` pinned a 300-row surface as a 302-action manifest and showed the set is rebuilt only when `registryVersion` moves ([S-AXE-9]). That cache saves the server's work; the manifest, `/axe/state`, and the MCP tool list still carry every action.
 - `<ns>.observe` took no input (a strict empty object) and returned every row, so the only way to learn one row's availability or the revision was to read the whole table, or `axe_state`, which has one entry per action.
-- The bridge's `onChange` fires whenever `registryVersion` moves, and every `register` moves it, including a re-registration of an existing id that changes nothing a tool shows. An application that re-registers a row on each edit (the documented pattern, [S-REV-5]) therefore sends a `notifications/tools/list_changed` per edit through `@axe/mcp`.
+- The bridge's `onChange` fires whenever `registryVersion` moves, and every `register` moves it, including a re-registration of an existing id that changes nothing a tool shows. An application that re-registers a row on each edit (the documented pattern, [S-REV-5]) therefore sends a `notifications/tools/list_changed` per edit through `@summationai/axe-mcp`.
 - `DECISIONS.md` ("One AXE action per control, not a generic `act`") accepted the growth with the table and relied on the cache to bound the cost.
 
 ## Change
 
-### `domainActions` in `@axe/surface/axe`
+### `domainActions` in `@summationai/axe-surface/axe`
 
 `packages/surface/src/axe.ts`. The shared machinery (caller resolution, the act with its `surface.act` event, the ladder, continue and resume, the read side) moved into one internal core used by both public functions; `surfaceActions` behaves as before apart from the observe input below.
 

@@ -16,7 +16,7 @@ Checked in this checkout at `7284f6a`:
 
 ## Change
 
-`@axe/core` (reuses the resume token, `completeHandoff`'s checks, the operation claim, and replay from phase 1; adds bindings, invalidation, and cancel):
+`@summationai/axe-core` (reuses the resume token, `completeHandoff`'s checks, the operation claim, and replay from phase 1; adds bindings, invalidation, and cancel):
 
 - `requestApproval({ url, instructions, whatAgentShouldSayToUser, preview?, ttlSeconds?, reason? })`, also on every handler's helpers: a handoff with `reason: "approval_required"`, `requireCompletion`, a one-hour default expiry (`APPROVAL_TTL_SECONDS`), and an approval marker.
 - `action({ approvalState })`: the state an approval is bound to, called by the runtime at the request, at the approval, and at the resume, compared as canonical JSON. `action()` refuses it on a `readOnly` action or without `onResume`; the manifest gains `humanHandoff: { reasons: ["approval_required"] }`. Returning `requestApproval` without it, from `onContinue`, `onResume`, `onPoll`, or as a `needs_input` fallback is `internal` with an `onError` report. A throwing `approvalState` runs nothing and leaves the request as it was.

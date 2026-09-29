@@ -1,6 +1,6 @@
 // #region all
-import { createAXE, fail } from "@axe/core";
-import type { HookContext } from "@axe/core";
+import { createAXE, fail } from "@summationai/axe-core";
+import type { HookContext } from "@summationai/axe-core";
 
 // #region bucket
 // A token bucket per caller, in one process. Behind more than one instance, keep the

@@ -2,7 +2,7 @@
  * Analytics events (spec/EVENTS.md) and the sinks that receive them.
  * Events carry no PII and no payloads by construction: the type has no field for them.
  * This module is platform-neutral; `jsonlFileSink`, which needs the file system, lives in
- * `@axe/core/node`.
+ * `@summationai/axe-core/node`.
  */
 import type { AXEActionEvent, AXEEvent, EventAgent } from "./types";
 
@@ -23,7 +23,7 @@ export function consoleSink(
   };
 }
 
-/** Structural subset of an OpenTelemetry `Meter`, so `@axe/core` needs no OTel dependency. */
+/** Structural subset of an OpenTelemetry `Meter`, so `@summationai/axe-core` needs no OTel dependency. */
 export interface MeterLike {
   createCounter(
     name: string,

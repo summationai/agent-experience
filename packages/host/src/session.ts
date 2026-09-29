@@ -7,8 +7,8 @@
  * "Production"). Nothing here logs a cookie, a header, or a token.
  */
 import { readFile } from "node:fs/promises";
-import type { AuthInfo } from "@axe/mcp";
-import type { RelayPrincipal } from "@axe/relay/server";
+import type { AuthInfo } from "@summationai/axe-mcp";
+import type { RelayPrincipal } from "@summationai/axe-relay/server";
 
 /** Who a hosted session is for: one principal in one tenant, as the agent's sign-in named them. */
 export type HostIdentity = RelayPrincipal;

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Generates spec/schemas/*.schema.json and spec/schemas/kinds/*.schema.json from @axe/core.
-// Usage: node scripts/gen-schemas.mjs [--check]   (requires `pnpm --filter @axe/core build` first)
+// Generates spec/schemas/*.schema.json and spec/schemas/kinds/*.schema.json from @summationai/axe-core.
+// Usage: node scripts/gen-schemas.mjs [--check]   (requires `pnpm --filter @summationai/axe-core build` first)
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

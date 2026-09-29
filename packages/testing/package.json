@@ -1,5 +1,5 @@
 {
-  "name": "@axe/testing",
+  "name": "@summationai/axe-testing",
   "version": "0.1.0",
   "description": "Conformance suite, AXE audit, and test helpers for AXE servers.",
   "license": "Apache-2.0",
@@ -31,8 +31,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*",
-    "@axe/client": "workspace:*"
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-client": "workspace:*"
   },
   "repository": {
     "type": "git",

@@ -1,5 +1,5 @@
 // #region limits
-import { AXEClient, AXEClientError, isPending } from "@axe/client";
+import { AXEClient, AXEClientError, isPending } from "@summationai/axe-client";
 
 const client = await AXEClient.discover("https://oakridge-rentals.example", {
   auth: () => process.env.OAKRIDGE_TOKEN,

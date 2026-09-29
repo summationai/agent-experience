@@ -1,5 +1,5 @@
 /**
- * @axe/mcp: derive a Model Context Protocol server from any AXE server or manifest.
+ * @summationai/axe-mcp: derive a Model Context Protocol server from any AXE server or manifest.
  * Every action becomes a tool with the same JSON Schema; `needs_input` results list
  * the accepted kinds and point at `axe_continue`; `needs_human` results carry the
  * handoff text and point at `axe_resume`; `pending` points at `axe_poll`.
@@ -30,7 +30,7 @@ import type {
   ElicitResult,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import type { AdapterContext } from "@axe/core";
+import type { AdapterContext } from "@summationai/axe-core";
 import type {
   ActionDefinition,
   Brand,
@@ -38,12 +38,12 @@ import type {
   Manifest,
   Result,
   Revision,
-} from "@axe/core/types";
-import { validateJsonSchema } from "@axe/core/schemas";
-import * as WIRE from "@axe/core/vocabulary";
-import { AXEClient, isOk } from "@axe/client";
-import type { ClientOptions } from "@axe/client";
-import { present, stateToMarkdown, toHTML, toMarkdown } from "@axe/client/present";
+} from "@summationai/axe-core/types";
+import { validateJsonSchema } from "@summationai/axe-core/schemas";
+import * as WIRE from "@summationai/axe-core/vocabulary";
+import { AXEClient, isOk } from "@summationai/axe-client";
+import type { ClientOptions } from "@summationai/axe-client";
+import { present, stateToMarkdown, toHTML, toMarkdown } from "@summationai/axe-client/present";
 import { elicitationModes, isOpenableUrl, payloadFrom, planElicitation } from "./elicitation";
 import type { ElicitationModes } from "./elicitation";
 import {
@@ -69,7 +69,7 @@ export type { AuthInfo, OAuthTokenVerifier, CallToolResult, Tool };
 
 type MaybePromise<T> = T | Promise<T>;
 
-/** Anything with `handle(Request)`: an `AXE` instance from `@axe/core`. */
+/** Anything with `handle(Request)`: an `AXE` instance from `@summationai/axe-core`. */
 export interface AxeLike {
   /**
    * Serve one AXE request. The second argument is the adapter context: an `identity` or `tenant`

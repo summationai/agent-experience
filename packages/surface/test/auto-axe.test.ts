@@ -5,8 +5,8 @@
  * page's own events, and the approval gate reaches the agent as a refusal with a handoff.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { createAXE } from "@axe/core";
-import type { ErrorResult, OkResult } from "@axe/core/types";
+import { createAXE } from "@summationai/axe-core";
+import type { ErrorResult, OkResult } from "@summationai/axe-core/types";
 import { autoSurface } from "../src/auto";
 import type { AutoSurfaceHandle, SurfaceConfig } from "../src/auto";
 import { autoActions } from "../src/axe";

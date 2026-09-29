@@ -16,7 +16,7 @@ Node 20 or newer. pnpm is pinned in `package.json` (`packageManager`), so `corep
 
 ## Repository layout
 
-- `spec/` — normative documents. `VOCABULARY.md` is the source of every wire name; `packages/core/src/vocabulary.ts` is generated from it (`pnpm gen:vocabulary`). `schemas/` is generated from `@axe/core` (`pnpm gen:schemas`).
+- `spec/` — normative documents. `VOCABULARY.md` is the source of every wire name; `packages/core/src/vocabulary.ts` is generated from it (`pnpm gen:vocabulary`). `schemas/` is generated from `@summationai/axe-core` (`pnpm gen:schemas`).
 - `packages/` — `core`, `client`, `mcp`, `express`, `next`, `fetch`, `testing`, `cli`.
 - `docs/` — the product. Every TypeScript code block lives in `docs/examples/**` and is pulled in by `pnpm gen:snippets`; `pnpm -r typecheck` typechecks the examples.
 - `scripts/` — generators and CI helpers.

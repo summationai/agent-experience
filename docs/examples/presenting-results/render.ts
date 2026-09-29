@@ -4,8 +4,8 @@
  * Run it: pnpm --filter body-spray-docs exec tsx examples/presenting-results/render.ts
  */
 // #region imports
-import { present, toMarkdown, toHTML } from "@axe/client/present";
-import type { Result } from "@axe/core/types";
+import { present, toMarkdown, toHTML } from "@summationai/axe-client/present";
+import type { Result } from "@summationai/axe-core/types";
 import { axe } from "../apartments/site.js";
 // #endregion imports
 

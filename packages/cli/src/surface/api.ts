@@ -1,20 +1,20 @@
 /**
  * The names `axe surface init` writes into an application and `axe surface coverage` reads from a
- * page, in one place: the names and props of `@axe/surface/auto`, `@axe/surface/react`, and
- * `@axe/relay/client` that generated code uses. Keep it, and the type stubs in
+ * page, in one place: the names and props of `@summationai/axe-surface/auto`, `@summationai/axe-surface/react`, and
+ * `@summationai/axe-relay/client` that generated code uses. Keep it, and the type stubs in
  * test/fixtures/_stubs that typecheck generated code, in step with those packages.
  */
 
 /** Module specifiers the generated code imports from. */
 export const MODULES = {
   /** `SurfaceProvider` (React). */
-  react: "@axe/surface/react",
+  react: "@summationai/axe-surface/react",
   /** `autoSurface`, `SurfaceConfig`, `formatCoverage`. */
-  auto: "@axe/surface/auto",
+  auto: "@summationai/axe-surface/auto",
   /** `exposeWebMcp` for plain-HTML setup; React uses the provider prop. */
-  webMcp: "@axe/surface/webmcp",
+  webMcp: "@summationai/axe-surface/webmcp",
   /** `connectRelay`, `injectedRelay`, `devToken`, `localMcpService`. */
-  relayClient: "@axe/relay/client",
+  relayClient: "@summationai/axe-relay/client",
 } as const;
 
 /** Exported names the generated code uses. */
@@ -55,10 +55,10 @@ export const DEV_RELAY_URL = "http://127.0.0.1:4717";
 
 /** Packages `--install` adds. */
 export const PACKAGES = {
-  surface: "@axe/surface",
-  relay: "@axe/relay",
+  surface: "@summationai/axe-surface",
+  relay: "@summationai/axe-relay",
   /** A dependency of both; named in overrides for tarball installs. */
-  core: "@axe/core",
+  core: "@summationai/axe-core",
 } as const;
 
 /** What `expose` publishes on the page, and what coverage reads. */

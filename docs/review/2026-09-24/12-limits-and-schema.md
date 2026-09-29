@@ -10,7 +10,7 @@ Every finding below was reproduced on `ce6ef1d` before any change, with a script
 
 - `MemoryTokenStore` and `MemoryIdempotencyStore` dropped an expired entry only when that key was read again. Continuation, handoff, and poll tokens an agent abandons, and idempotency keys (unique by design), are never read again: 1000 claims with a 1-second TTL, then a write 10 seconds later, left 1001 entries. `MemoryTokenStore` also read `Date.now` directly, so it could not be tested with a clock.
 - `SqliteIdempotencyStore.prune()` existed, undocumented, without a cutoff or an index on `expires`.
-- Other in-memory structures, checked: the server's per-request `callers` map is a `WeakMap` keyed by `Request` (released with the request); handoff records live in the `TokenStore` (now bounded); Surface's ledger is already bounded (`ledger.max`, default 1000) and `scopedSurfaces` has `idleMs` and `onEvict`. `@axe/mcp`'s issued-poll-URL set is bounded to the most recent 1000 (owned by the MCP item; not edited here). `AXE.changeListeners` grows only with the application's own `onActionsChanged` calls, each of which returns an unsubscribe.
+- Other in-memory structures, checked: the server's per-request `callers` map is a `WeakMap` keyed by `Request` (released with the request); handoff records live in the `TokenStore` (now bounded); Surface's ledger is already bounded (`ledger.max`, default 1000) and `scopedSurfaces` has `idleMs` and `onEvict`. `@summationai/axe-mcp`'s issued-poll-URL set is bounded to the most recent 1000 (owned by the MCP item; not edited here). `AXE.changeListeners` grows only with the application's own `onActionsChanged` calls, each of which returns an unsubscribe.
 
 ### Change
 
@@ -42,10 +42,10 @@ Every finding below was reproduced on `ce6ef1d` before any change, with a script
 
 ### Finding
 
-- The core read every body with `request.text()`: a 5 MiB body to a read-only action returned 200 after buffering all of it. There was no limit anywhere in `@axe/core`.
+- The core read every body with `request.text()`: a 5 MiB body to a read-only action returned 200 after buffering all of it. There was no limit anywhere in `@summationai/axe-core`.
 - A body of 100000 nested arrays (about 200 KB) crashed `handle()` with `RangeError: Maximum call stack size exceeded` in canonicalJson (the fingerprint hash), before any schema ran; the adapters turned it into a 500 or an unhandled rejection.
-- `@axe/express` and `@axe/next` (Pages) read an unread Node stream to its end with no limit before calling the core.
-- `@axe/client` read every response with `res.json()`, unbounded.
+- `@summationai/axe-express` and `@summationai/axe-next` (Pages) read an unread Node stream to its end with no limit before calling the core.
+- `@summationai/axe-client` read every response with `res.json()`, unbounded.
 - Found by the new conformance checks against the getting-started Express server: behind `express.json()`, a 20000-level body parsed fine and then overflowed `JSON.stringify` in the adapter (HTTP 500); the Next Pages adapter did the same and never answered. And `express.json()` in front refuses a large body with its own HTML 413, which is no AXE envelope.
 
 ### Change
@@ -110,12 +110,12 @@ isResult checked only that `status` was one of the five values, and looksLikeMan
 - `{ "status": "needs_input", ... }` without `accepts`: `run()` crashed with a `TypeError` inside `fulfill` (`accepts` is not iterable).
 - `ok` without `output`, `error` without `error`, `needs_human` without `handoff.url`, `pending` with `retryAfter: "soon"` (a polling loop, see c), a numeric `error.code`, an object `rev`: all returned to the caller as if valid, reaching the agent loop and `present()`.
 - A manifest with `actions: [null]` crashed `client.action(name)`; `policies.agents.deny: "acme"` crashed `allowed()` for a client with a vendor; a live-state document `{ "actions": null }` was returned from `state()`.
-- `__proto__` keys: `JSON.parse` makes them own data properties, and the client never merged server objects, so nothing was polluted; but getPointer in `@axe/core/display` (used by `present`) followed `"/constructor"` and `"/__proto__"` into the prototype chain.
+- `__proto__` keys: `JSON.parse` makes them own data properties, and the client never merged server objects, so nothing was polluted; but getPointer in `@summationai/axe-core/display` (used by `present`) followed `"/constructor"` and `"/__proto__"` into the prototype chain.
 
 ### Change
 
 - `packages/client/src/index.ts`: resultProblem, manifestProblem, liveStateProblem, compact hand checks of own members, per status: `needs_input` requires `reason`, `message`, `continuationToken`, `expiresAt`, and a non-empty `accepts` of `{ kind, title, description, schema, sensitive, instructions? }`; `needs_human` a full handoff; `pending` a string `pollUrl` and a finite `retryAfter`; `error` `{ code, message, retryable, details? }`; `rev` a string or finite number. Manifests: `protocol`, `name`, `description`, `baseUrl`, and each action's `name`, `title`, `description`, `input`, `output`, `readOnly`, with `display`, `affordances`, `live`, and `policies.agents` typed when present. A failure is `AXEClientError` naming the member ("... is not an AXE result envelope: accepts must be a non-empty array"); discovery lists rejected candidates under "Not usable".
-- Decision: hand checks rather than `@axe/core/schemas`, which would pull Zod into the dependency-free client (DECISIONS.md). Bundle: 12.1 kB to 16.0 kB minified with (c) and (d); budget raised from 15 kB to 18 kB in `bundle-size.test.ts`.
+- Decision: hand checks rather than `@summationai/axe-core/schemas`, which would pull Zod into the dependency-free client (DECISIONS.md). Bundle: 12.1 kB to 16.0 kB minified with (c) and (d); budget raised from 15 kB to 18 kB in `bundle-size.test.ts`.
 - `packages/core/src/pointer.ts`: getPointer and schema stepping follow own members only.
 - Huge arrays are bounded by `maxResponseBytes`; deeply nested JSON parses (V8's parser is iterative) and nothing in the client or `present` recurses on it.
 
@@ -140,7 +140,7 @@ Reproduced against `validateJsonSchema` on `ce6ef1d`:
 - `format: "ipv4"` (and any unknown format): silently accepted `"not-an-ip"`.
 - `patternProperties`, `propertyNames`, `minProperties`, `if`/`then`/`else`, `uniqueItems`, `contains`, `dependentRequired`, `unevaluatedProperties`, and every other unimplemented keyword: silently ignored, so the value passed.
 - `multipleOf` used an absolute tolerance of 1e-9 on the quotient.
-- `@axe/generate`: a `format` replaced the string schema, dropping `minLength`, `maxLength`, and `pattern` (`{ format: "email", maxLength: 20 }` accepted any length); an `additionalProperties` schema beside `properties` became `.loose()` (anything); a pattern that did not compile was dropped silently; unknown formats and unsupported keywords were dropped without a warning.
+- `@summationai/axe-generate`: a `format` replaced the string schema, dropping `minLength`, `maxLength`, and `pattern` (`{ format: "email", maxLength: 20 }` accepted any length); an `additionalProperties` schema beside `properties` became `.loose()` (anything); a pattern that did not compile was dropped silently; unknown formats and unsupported keywords were dropped without a warning.
 - `toJsonSchema` (Zod 4's converter with `unrepresentable: "any"`): `.refine`/`.superRefine` are dropped, `z.custom` and `z.date()` become `{}`, and `z.preprocess` publishes the inner schema; the manifest claimed a looser schema than the server enforced, silently.
 - Fingerprints: phase 1 hashed the parsed input. With `z.string().transform((s) => new Date(s))`, every input hashed as `{}`: reusing an `idempotencyKey` with a different date returned the first date's result instead of `conflict` ([P-IDEM-3] violated). replayForUnknown hashed the raw input, inconsistent with the rest. A login handoff stored the parsed input and parsed it again at resume, so a transform ran twice (the resume failed with `invalid_input`).
 
@@ -158,7 +158,7 @@ Reproduced against `validateJsonSchema` on `ce6ef1d`:
 
 ### The supported subset
 
-| Keyword | Validator | Zod to JSON Schema | `@axe/generate` |
+| Keyword | Validator | Zod to JSON Schema | `@summationai/axe-generate` |
 | --- | --- | --- | --- |
 | `type`, `enum`, `const` | checked | emitted | converted (primitive `enum`/`const` only) |
 | `properties`, `required`, `additionalProperties` | checked, own members | emitted | converted; schema-valued `additionalProperties` is a record or catchall |
@@ -177,7 +177,7 @@ Reproduced against `validateJsonSchema` on `ce6ef1d`:
 | `unevaluated*`, `$dynamicRef`, `dependencies`, `additionalItems`, array `items`, anything else | refuses | never emitted | warning, dropped |
 | annotations, `x-` keywords | ignored | `description`, `default`, `x-axe-refined` | `description`, `default` used |
 
-Measured sizes (esbuild, minified, browser, Node 24): `@axe/core/json-schema` 10072 bytes (3566 gzipped); Ajv 8.20 draft 2020-12 entry 133746 (40273); with `ajv-formats` 148303 (43816). The Surface browser bundle (`@axe/surface` and `/react`) went from 25290 to 30351 bytes with the new validator, under its 50 kB bound; the client bundle does not include the validator.
+Measured sizes (esbuild, minified, browser, Node 24): `@summationai/axe-core/json-schema` 10072 bytes (3566 gzipped); Ajv 8.20 draft 2020-12 entry 133746 (40273); with `ajv-formats` 148303 (43816). The Surface browser bundle (`@summationai/axe-surface` and `/react`) went from 25290 to 30351 bytes with the new validator, under its 50 kB bound; the client bundle does not include the validator.
 
 ### Tests
 
@@ -190,7 +190,7 @@ Measured sizes (esbuild, minified, browser, Node 24): `@axe/core/json-schema` 10
 - Zod refinements on `accepts[].schema` are still not applied on `/axe/continue` (the stored schema is JSON); `x-axe-refined` tells the agent, and the site checks in `onContinue`.
 - The backtracking check is a heuristic (overlapping alternatives pass), and patterns run with no time limit.
 - `$id` inside a schema does not change the base for `$ref`; refs resolve against the document root.
-- `oneOf` from `@axe/generate` is converted as a union, so a value matching two alternatives is accepted there (the JSON validator enforces exactly one).
+- `oneOf` from `@summationai/axe-generate` is converted as a union, so a value matching two alternatives is accepted there (the JSON validator enforces exactly one).
 - Migration: a retry across the upgrade whose raw input differs from its parsed input (a stripped unknown member, a spelled-out default) gets `conflict` once. A hand-written JSON Schema that used an unsupported keyword, or a format with no checker and no pattern, now refuses every payload instead of ignoring it; `schemaProblems` or the lint finds these.
 
 ## Status

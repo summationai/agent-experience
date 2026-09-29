@@ -8,7 +8,7 @@ import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import * as WIRE from "@axe/core/vocabulary";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import type { CommandContext } from "../index";
 import { parse, requireUrl } from "../commands/shared";
 import { MODULES, NAMES, PAGE_GLOBAL } from "./api";
@@ -193,7 +193,7 @@ export interface CoverageOptions {
   waitMs?: number;
   /** Injected for tests; default loads Playwright. */
   launcher?: BrowserLauncher;
-  /** Where to look for Playwright and `@axe/surface/auto` (default: cwd, then the CLI). */
+  /** Where to look for Playwright and `@summationai/axe-surface/auto` (default: cwd, then the CLI). */
   resolveFrom?: string[];
 }
 
@@ -252,7 +252,7 @@ export function explainMissing(
   );
 }
 
-/** Tolerant Markdown for a report whose exact shape comes from `@axe/surface/auto`. */
+/** Tolerant Markdown for a report whose exact shape comes from `@summationai/axe-surface/auto`. */
 export function formatReport(report: unknown): string {
   if (report === null || report === undefined) return "_The page returned an empty report._\n";
   if (typeof report !== "object") return `${String(report)}\n`;
@@ -327,7 +327,7 @@ export function formatBasic(r: BasicReport): string {
   return out.join("\n") + "\n";
 }
 
-/** `formatCoverage` from `@axe/surface/auto`, when it resolves from one of `bases`. */
+/** `formatCoverage` from `@summationai/axe-surface/auto`, when it resolves from one of `bases`. */
 async function loadFormatter(bases: string[]): Promise<((r: unknown) => string) | undefined> {
   for (const base of bases) {
     try {

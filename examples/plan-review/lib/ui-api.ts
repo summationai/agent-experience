@@ -5,8 +5,8 @@
 // which writes the history; the approval decisions reach the history through the runtime's
 // approval events. Nothing here is logged automatically: each handler that changes state goes
 // through a domain function or an approval call that records it.
-import { isAcceptedOrigin, isJsonContentType, normalizeOrigin } from "@axe/core";
-import type { HandoffView } from "@axe/core";
+import { isAcceptedOrigin, isJsonContentType, normalizeOrigin } from "@summationai/axe-core";
+import type { HandoffView } from "@summationai/axe-core";
 import type { Actor } from "./model";
 import { BASE_URL, SESSION_COOKIE, TRUSTED_ORIGINS, getAXE, readCookie } from "./axe";
 import { lock, reopen, setFrozen, setValues, submit, whyNot } from "./domain";

@@ -1,7 +1,7 @@
 // Generic tools for a derived surface: a fixed set of domain actions, not one tool per widget.
 // #region serve
-import { createAXE } from "@axe/core";
-import { autoActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { autoActions } from "@summationai/axe-surface/axe";
 import { handle } from "./start";
 
 const axe = createAXE({

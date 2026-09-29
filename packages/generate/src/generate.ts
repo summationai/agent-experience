@@ -2,12 +2,12 @@
  * `generate()`: merge sources, apply overrides and policy, refuse to invent, lint, and hand back
  * actions ready for `axe.register()` together with every warning that explains a gap.
  */
-import type { z } from "@axe/core";
-import { action, ActionDefinitionError, DisplayValidationError } from "@axe/core";
-import type { ActionSpec, RegisteredAction } from "@axe/core";
-import type { Risk } from "@axe/core/types";
-import { lintAction } from "@axe/core/lint";
-import { WIRE } from "@axe/core/vocabulary";
+import type { z } from "@summationai/axe-core";
+import { action, ActionDefinitionError, DisplayValidationError } from "@summationai/axe-core";
+import type { ActionSpec, RegisteredAction } from "@summationai/axe-core";
+import type { Risk } from "@summationai/axe-core/types";
+import { lintAction } from "@summationai/axe-core/lint";
+import { WIRE } from "@summationai/axe-core/vocabulary";
 import type {
   ActionOverride,
   ActionSource,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toJsonSchema } from "@axe/core";
+import { toJsonSchema } from "@summationai/axe-core";
 import { jsonSchemaToZod, resolveLocalRef } from "../src/index";
 
 describe("jsonSchemaToZod", () => {

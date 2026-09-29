@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { toWebRequest, sendWebResponse } from "@axe/express";
+import { toWebRequest, sendWebResponse } from "@summationai/axe-express";
 import { run } from "../src/index";
 import { affordanceGraph } from "../src/commands/inspect";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
@@ -63,7 +63,7 @@ describe("axe CLI", () => {
     expect(err.join("\n")).toContain('Unknown command "bogus"');
   });
 
-  it("axe host is wired to @axe/host: help, and development only from the command line", async () => {
+  it("axe host is wired to @summationai/axe-host: help, and development only from the command line", async () => {
     reset();
     expect(await run([], io)).toBe(1);
     expect(out.join("\n")).toContain("axe host --dev --app <url>");
@@ -83,7 +83,7 @@ describe("axe CLI", () => {
       expect(existsSync(join(dir, "axe.ts"))).toBe(true);
       expect(readFileSync(join(dir, "axe.ts"), "utf8")).toContain('action("classes.search"');
       expect(out.join("\n")).toContain("Next steps:");
-      expect(out.join("\n")).toContain(`@axe/${fw}`);
+      expect(out.join("\n")).toContain(`@summationai/axe-${fw}`);
     }
     reset();
     expect(
@@ -104,9 +104,9 @@ describe("axe CLI", () => {
   it("validate loads a TypeScript module, validates, and lints", async () => {
     const dir = mkdtempSync(join(tmpdir(), "axe-validate-"));
     await run(["init", "--framework", "express", "--dir", dir, "--yes"], io);
-    // Point the scaffold at the workspace build of @axe/core.
+    // Point the scaffold at the workspace build of @summationai/axe-core.
     const src = readFileSync(join(dir, "axe.ts"), "utf8").replace(
-      'from "@axe/core"',
+      'from "@summationai/axe-core"',
       `from "${join(__dirname, "../../core/src/index.ts")}"`,
     );
     writeFileSync(join(dir, "axe.ts"), src);
@@ -221,7 +221,7 @@ describe("axe CLI", () => {
   });
 
   it("generate derives actions from an OpenAPI document, writes a manifest and a starter module", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "axe-generate-"));
+    const dir = mkdtempSync(join(tmpdir(), "summationai-axe-generate-"));
     const doc = join(dir, "openapi.json");
     writeFileSync(doc, JSON.stringify(storeDocument));
     reset();
@@ -256,9 +256,12 @@ describe("axe CLI", () => {
     writeFileSync(
       join(dir, "axe.ts"),
       module
-        .replace('from "@axe/core"', `from "${join(__dirname, "../../core/src/index.ts")}"`)
         .replace(
-          /from "@axe\/generate"/g,
+          'from "@summationai/axe-core"',
+          `from "${join(__dirname, "../../core/src/index.ts")}"`,
+        )
+        .replace(
+          /from "@summationai\/axe-generate"/g,
           `from "${join(__dirname, "../../generate/src/index.ts")}"`,
         ),
     );

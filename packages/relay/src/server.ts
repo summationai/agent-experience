@@ -1,12 +1,12 @@
 /**
- * @axe/relay/server: the broker between a signed-in person's live browser tab and an agent
+ * @summationai/axe-relay/server: the broker between a signed-in person's live browser tab and an agent
  * outside the browser (spec/SURFACE.md §9.1, [S-RELAY-1] to [S-RELAY-13]).
  *
- * Tabs connect with `connectRelay` from `@axe/relay/client` and authenticate with a short-lived
+ * Tabs connect with `connectRelay` from `@summationai/axe-relay/client` and authenticate with a short-lived
  * relay token the application's backend minted for the signed-in person. For each tab the relay
  * keeps a mirror of its surface (`TabMirror`) and presents it to the existing bridge: the tools
- * an agent sees are `domainActions` from `@axe/surface/axe` on a `createAXE` server, derived to
- * MCP by `@axe/mcp`, over HTTP (`serveHttp` with sessions and an OAuth `verifier`) or stdio.
+ * an agent sees are `domainActions` from `@summationai/axe-surface/axe` on a `createAXE` server, derived to
+ * MCP by `@summationai/axe-mcp`, over HTTP (`serveHttp` with sessions and an OAuth `verifier`) or stdio.
  * Nothing about tool mapping, the ladder, the ledger, or the action events is reimplemented here:
  * the relay supplies a per-caller surface resolver whose surfaces forward `act` to the tab.
  *
@@ -20,10 +20,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { WebSocketServer } from "ws";
 import type { WebSocket as NodeWebSocket, RawData } from "ws";
-import { action, createAXE, z } from "@axe/core";
-import type { AdapterContext, AXE, Identity } from "@axe/core";
-import type { ErrorResult, JsonValue } from "@axe/core/types";
-import { checkSurfaceProfile, createSurface } from "@axe/surface";
+import { action, createAXE, z } from "@summationai/axe-core";
+import type { AdapterContext, AXE, Identity } from "@summationai/axe-core";
+import type { ErrorResult, JsonValue } from "@summationai/axe-core/types";
+import { checkSurfaceProfile, createSurface } from "@summationai/axe-surface";
 import type {
   ActRequest,
   ActResult,
@@ -33,11 +33,11 @@ import type {
   RecordRequest,
   Surface,
   SurfaceProfile,
-} from "@axe/surface";
-import { domainActions } from "@axe/surface/axe";
-import type { DomainSpec, SurfaceContext } from "@axe/surface/axe";
-import type { PageRead, ReadOptions, WaitResult } from "@axe/surface/auto";
-import { createMcpServer, serveHttp, serveStdio } from "@axe/mcp";
+} from "@summationai/axe-surface";
+import { domainActions } from "@summationai/axe-surface/axe";
+import type { DomainSpec, SurfaceContext } from "@summationai/axe-surface/axe";
+import type { PageRead, ReadOptions, WaitResult } from "@summationai/axe-surface/auto";
+import { createMcpServer, serveHttp, serveStdio } from "@summationai/axe-mcp";
 import type {
   AuthInfo,
   AxeLike,
@@ -45,7 +45,7 @@ import type {
   McpHttpHandler,
   OAuthTokenVerifier,
   ToolCallContext,
-} from "@axe/mcp";
+} from "@summationai/axe-mcp";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { TabMirror } from "./mirror";
 import type { TabLink } from "./mirror";
@@ -83,7 +83,7 @@ export interface TabAuthContext {
 
 /** How the relay authenticates the agent side over HTTP: an OAuth 2.1 resource server. */
 export interface RelayAgentAuth {
-  /** Verifies the bearer access token on every MCP request (`@axe/mcp`'s `auth.verifier`). */
+  /** Verifies the bearer access token on every MCP request (`@summationai/axe-mcp`'s `auth.verifier`). */
   verifier: OAuthTokenVerifier;
   /** The principal and tenant a verified token speaks for, or null to refuse it. */
   identify: (authInfo: AuthInfo) => MaybePromise<RelayPrincipal | null>;
@@ -221,7 +221,7 @@ export interface RelayOptions {
   namespace?: string;
   /**
    * The parameterized actions for every tab. Default: `domainActions`' own set (`set-field`,
-   * `run-control`, `load-more`). `autoDomains()` from `@axe/surface/auto` fits here.
+   * `run-control`, `load-more`). `autoDomains()` from `@summationai/axe-surface/auto` fits here.
    */
   domains?: DomainSpec[];
   /**
@@ -315,7 +315,7 @@ export interface Relay {
    * Serve one AXE request of an agent tool call, as the relay's own MCP front does: `adapter`
    * from `relayAgentContext`, and `call` (the `AxeLike.handle` third argument), which carries
    * approvals to the agent's client. For a front end that serves the relay's tools itself
-   * (`@axe/host`); pass it `createMcpServer` as the `AxeLike`'s `handle`.
+   * (`@summationai/axe-host`); pass it `createMcpServer` as the `AxeLike`'s `handle`.
    */
   handleAgent(request: Request, adapter: AdapterContext, call?: ToolCallContext): Promise<Response>;
   /**
@@ -334,7 +334,7 @@ export function relayActor(principal: string): string {
 
 /**
  * The adapter context the relay's AXE server (`relay.axe`) expects for an agent acting as `who`,
- * for a front end that serves the relay's tools itself (`@axe/host` does). `agent` keys the
+ * for a front end that serves the relay's tools itself (`@summationai/axe-host` does). `agent` keys the
  * agent's tab selection; give each agent its own. Never build it from anything but the agent's
  * own verified identity: it decides which tabs the agent reaches ([S-RELAY-3]).
  */

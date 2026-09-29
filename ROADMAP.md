@@ -26,7 +26,7 @@ This repository will not build a hosted registry, billing, an identity provider,
 
 **What exists.** `axe inspect` prints the manifest and the affordance graph (`packages/cli/src/commands/inspect.ts`). `GET /axe/state` reports availability and reasons per caller (spec §21). The Surface bridge assigns an auth mode per entry and for the read side (`auth` and `authFor` in `packages/surface/src/axe.ts`; review item 05). Principals are resolved in one place (`packages/core/src/principal.ts`; review item 07).
 
-**Next step.** An `axe inspect --as <principal>` mode, and the same as a library function in `@axe/testing`: for a given credential (anonymous, a site key, a user token) and tenant, list each action and Surface entry with its auth mode, whether this caller may call it, its availability and reason, its risk metadata, and whether it requires approval. Snapshot-testable, so a pull request that widens what an anonymous caller can do shows up as a diff.
+**Next step.** An `axe inspect --as <principal>` mode, and the same as a library function in `@summationai/axe-testing`: for a given credential (anonymous, a site key, a user token) and tenant, list each action and Surface entry with its auth mode, whether this caller may call it, its availability and reason, its risk metadata, and whether it requires approval. Snapshot-testable, so a pull request that widens what an anonymous caller can do shows up as a diff.
 
 **Label.** Open SDK primitive. A hosted view across many apps and environments is a commercial hypothesis.
 
@@ -36,7 +36,7 @@ This repository will not build a hosted registry, billing, an identity provider,
 
 **What exists.** The scripted evaluation harness from review item 17 runs tasks against the reference app and scores outcomes ([docs/evaluation.md](docs/evaluation.md), [item 17](docs/review/2026-09-24/17-evaluation.md)). It is scripted, so it measures whether the application's interface still supports the task, not how well a model performs. The reference app's Node and browser suites (`examples/plan-review`) pin the paths it depends on.
 
-**Next step.** Run the harness as a CI gate on changes to the reference app's UI and to `@axe/surface`, with a checked-in baseline of task outcomes and a failure that names the task and the step that broke. Then document how an integrator writes tasks for their own app.
+**Next step.** Run the harness as a CI gate on changes to the reference app's UI and to `@summationai/axe-surface`, with a checked-in baseline of task outcomes and a failure that names the task and the step that broke. Then document how an integrator writes tasks for their own app.
 
 **Label.** The harness and the CI gate: open SDK primitive. Hosted evaluation (model-driven runs across agents and model versions, trend history, comparison between releases): commercial hypothesis.
 
@@ -44,7 +44,7 @@ This repository will not build a hosted registry, billing, an identity provider,
 
 **Why.** Operations that survive a restart, and a record of what agents did that lands in the application's own audit log, are preconditions for letting agents write to anything that matters. The in-memory defaults lose every open continuation, handoff, and idempotency record on restart.
 
-**What exists.** `IdempotencyStore` and `TokenStore` interfaces with atomic claims (review item 02); `SqliteIdempotencyStore` in `@axe/core/node`, single host; a Redis pattern in [Deploying](docs/deploying.md#secrets-and-stores); retention limits (item 12). Events (spec/EVENTS.md) with console, JSON-lines, and OpenTelemetry sinks, including spans when `otelSink` is given a tracer. Action events for Surface acts and the approval lifecycle. The Surface ledger (spec/SURFACE.md [S-LED-1] to [S-LED-7]).
+**What exists.** `IdempotencyStore` and `TokenStore` interfaces with atomic claims (review item 02); `SqliteIdempotencyStore` in `@summationai/axe-core/node`, single host; a Redis pattern in [Deploying](docs/deploying.md#secrets-and-stores); retention limits (item 12). Events (spec/EVENTS.md) with console, JSON-lines, and OpenTelemetry sinks, including spans when `otelSink` is given a tracer. Action events for Surface acts and the approval lifecycle. The Surface ledger (spec/SURFACE.md [S-LED-1] to [S-LED-7]).
 
 **Next step.** A PostgreSQL adapter for both stores, tested with the same barrier-driven concurrency suite as SQLite; a documented recipe for writing action events and the ledger into an application's existing audit table; trace context carried from the incoming request through the handler and the MCP bridge, so one agent task is one trace.
 
@@ -64,7 +64,7 @@ This repository will not build a hosted registry, billing, an identity provider,
 
 **Why.** Publishing a manifest and waiting for agents to find it does not work: no agent is obliged to look. Discovery that works is discovery the application's owner controls: the MCP server configuration a team hands its agents, a registry the customer runs, WebMCP tools on the page the user is already on.
 
-**What exists.** `/.well-known/axe.json`, `robots.txt` directives, and `axe-index.json` for AXE clients and platforms. `axe mcp <url>` and `serveHttp` for MCP clients, with RFC 9728 metadata. `exposeWebMcp` for pages (`@axe/surface/webmcp`, review item 14).
+**What exists.** `/.well-known/axe.json`, `robots.txt` directives, and `axe-index.json` for AXE clients and platforms. `axe mcp <url>` and `serveHttp` for MCP clients, with RFC 9728 metadata. `exposeWebMcp` for pages (`@summationai/axe-surface/webmcp`, review item 14).
 
 **Next step.** A command that prints a ready MCP server configuration for common hosts from a manifest URL, with the auth it needs; documentation of a customer-run registry built on `axe-index.json` (a file the customer serves, not a service this repository runs); and filtering, so a configuration exposes only the actions a given agent should see.
 
@@ -74,7 +74,7 @@ This repository will not build a hosted registry, billing, an identity provider,
 
 **Why.** Surface's promise, that an agent sees what a person sees because both come from the same components, holds only where there is a binding for the UI toolkit. Today that is React.
 
-**What exists.** `@axe/surface` is framework-independent; `@axe/surface/react` binds it to React (review item 11). Server adapters for Express, Next, and Web-standard handlers.
+**What exists.** `@summationai/axe-surface` is framework-independent; `@summationai/axe-surface/react` binds it to React (review item 11). Server adapters for Express, Next, and Web-standard handlers.
 
 **Next step.** One more UI binding, chosen by what the first pilot uses (Vue, Svelte, or Angular), written against the same mounted-behavior tests as React. Native mobile and desktop toolkits after that, if a pilot needs them.
 
@@ -90,7 +90,7 @@ What v0 deliberately leaves out, why, and what v0 does instead.
 
 ### OAuth 2.1 authorization server
 
-**Deferred because** running an authorization server (client registration, consent screens, refresh tokens, device flow) is its own product, and most sites already have one or use a vendor. **v0 instead** supports pass-through of a bearer token the human already granted the agent, and a `login_required` handoff to the site's own login page that binds a resume token to the authenticated user. `@axe/mcp` over HTTP is an OAuth resource server: it verifies access tokens your authorization server issued and publishes the metadata that points clients at it. `docs/auth.md` shows where an OAuth server plugs in: `authenticate` validates its access tokens, and `userLoginUrl` becomes its authorization endpoint.
+**Deferred because** running an authorization server (client registration, consent screens, refresh tokens, device flow) is its own product, and most sites already have one or use a vendor. **v0 instead** supports pass-through of a bearer token the human already granted the agent, and a `login_required` handoff to the site's own login page that binds a resume token to the authenticated user. `@summationai/axe-mcp` over HTTP is an OAuth resource server: it verifies access tokens your authorization server issued and publishes the metadata that points clients at it. `docs/auth.md` shows where an OAuth server plugs in: `authenticate` validates its access tokens, and `userLoginUrl` becomes its authorization endpoint.
 
 ### Payment execution and tokenization
 
@@ -102,7 +102,7 @@ What v0 deliberately leaves out, why, and what v0 does instead.
 
 ### Site-hosted embeddable result cards
 
-**Deferred because** executing site-supplied HTML inside an agent surface is a prompt-injection and XSS vector, and the agent, not the site, knows its rendering surface. **v0 instead** is data-only: `display` describes which fields matter and how to compare them; the agent renders. Two reference renderers (`toMarkdown`, `toHTML`) show what a faithful rendering looks like, and `@axe/mcp` shows the escaped `toHTML` output in an MCP Apps view, with scripts removed, for hosts that negotiate the extension.
+**Deferred because** executing site-supplied HTML inside an agent surface is a prompt-injection and XSS vector, and the agent, not the site, knows its rendering surface. **v0 instead** is data-only: `display` describes which fields matter and how to compare them; the agent renders. Two reference renderers (`toMarkdown`, `toHTML`) show what a faithful rendering looks like, and `@summationai/axe-mcp` shows the escaped `toHTML` output in an MCP Apps view, with scripts removed, for hosts that negotiate the extension.
 
 ### Saved searches and alerts
 

@@ -22,8 +22,8 @@ In every case the application's own logic could have done the work. What was mis
 
 The SDK does not ask agents to adopt a new protocol before anything works. The same application logic is published through the interfaces agents already use:
 
-- **MCP.** `@axe/mcp` derives an MCP server from the actions: one tool per action, the requirement and handoff flow through `axe_continue`, `axe_resume`, and `axe_poll`, and, where the client supports them, MCP elicitation for requirements and the Apps extension for results. See [MCP](mcp.md).
-- **WebMCP.** `@axe/surface/webmcp` registers a page's live controls as WebMCP tools where the browser provides the API, and registers nothing where it does not. See [WebMCP](webmcp.md).
+- **MCP.** `@summationai/axe-mcp` derives an MCP server from the actions: one tool per action, the requirement and handoff flow through `axe_continue`, `axe_resume`, and `axe_poll`, and, where the client supports them, MCP elicitation for requirements and the Apps extension for results. See [MCP](mcp.md).
+- **WebMCP.** `@summationai/axe-surface/webmcp` registers a page's live controls as WebMCP tools where the browser provides the API, and registers nothing where it does not. See [WebMCP](webmcp.md).
 - **Browser agents.** A Surface's controls carry the same names, states, and reasons in the DOM, and `expose` publishes the registry on the page, so an agent that reads the page sees what a person sees. See [Surface](surface.md).
 - **AXE over HTTP.** A client that speaks `axe/0.1` reads the manifest and calls actions directly. This is the most complete representation (typed kinds, tokens, live state), and it is optional.
 

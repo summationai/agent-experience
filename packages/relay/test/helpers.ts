@@ -11,7 +11,7 @@ import type { ElicitRequest, ElicitResult } from "@modelcontextprotocol/sdk/type
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
-import type { Surface } from "@axe/surface";
+import type { Surface } from "@summationai/axe-surface";
 import type {
   connectRelay,
   devToken,
@@ -21,7 +21,7 @@ import type {
   RelayConnection,
   RelayStatus,
 } from "../src/client";
-import type { autoSurface } from "@axe/surface/auto";
+import type { autoSurface } from "@summationai/axe-surface/auto";
 import { createRelay } from "../src/server";
 import type { Relay, RelayAddress, RelayOptions } from "../src/server";
 

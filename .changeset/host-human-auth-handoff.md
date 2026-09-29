@@ -1,6 +1,6 @@
 ---
-"@axe/host": minor
-"@axe/relay": minor
+"@summationai/axe-host": minor
+"@summationai/axe-relay": minor
 ---
 
 Add a provider-owned, session-bound human authentication view for unattended browsers. A Surface

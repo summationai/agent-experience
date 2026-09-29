@@ -10,7 +10,7 @@ flowchart LR
   H -. sessionFor: the app's session .-> B
 ```
 
-`@axe/host` is the host. For each principal and tenant an agent authenticates as, it starts an isolated Playwright browser context on the agent's first tool call, applies an application session when `sessionFor` returns one, injects the relay connection before any page script runs, opens the application, and waits until the page's surface is connected. Every tool call then routes to that person's private tab. The rules are [S-HOST-1] to [S-HOST-10] in [spec/SURFACE.md](../spec/SURFACE.md) §9.2.
+`@summationai/axe-host` is the host. For each principal and tenant an agent authenticates as, it starts an isolated Playwright browser context on the agent's first tool call, applies an application session when `sessionFor` returns one, injects the relay connection before any page script runs, opens the application, and waits until the page's surface is connected. Every tool call then routes to that person's private tab. The rules are [S-HOST-1] to [S-HOST-10] in [spec/SURFACE.md](../spec/SURFACE.md) §9.2.
 
 ## What the application needs
 
@@ -63,7 +63,7 @@ The host needs a Chromium that Playwright can start. The repository's Playwright
 2. Sign in once, in a visible browser the host opens for you:
 
    ```sh
-   npx axe host login http://localhost:5173
+   npx @summationai/axe host login http://localhost:5173
    ```
 
    Sign in as you normally would, then press Enter in the terminal (or close the window). The signed-in session (cookies and `localStorage`, a Playwright storage state) is saved to `.axe/host-state.json`, readable only by you. It is your session: keep it out of version control (add `.axe/` to `.gitignore`) and log in again when it expires. `--state <file>` saves it elsewhere.
@@ -71,13 +71,13 @@ The host needs a Chromium that Playwright can start. The repository's Playwright
 3. Connect the agent. Let Claude Code start the host itself:
 
    ```sh
-   claude mcp add summation -- npx axe host --dev --stdio --app http://localhost:5173
+   claude mcp add summation -- npx @summationai/axe host --dev --stdio --app http://localhost:5173
    ```
 
    Or start it in a terminal, which prints the exact commands and configuration for your machine, with absolute paths to Node, the CLI, and the saved session:
 
    ```sh
-   npx axe host --dev --app http://localhost:5173 --name summation
+   npx @summationai/axe host --dev --app http://localhost:5173 --name summation
    ```
 
    ```text
@@ -197,7 +197,7 @@ The SDK does not issue application sessions and never sees a password. `sessionF
 If this is a valid identity that still needs to sign in to the application, throw `SessionLoginRequired` with a trusted, short-lived application URL:
 
 ```ts
-import { SessionLoginRequired, type SessionFor } from "@axe/host";
+import { SessionLoginRequired, type SessionFor } from "@summationai/axe-host";
 
 const sessionFor: SessionFor = async ({ principal, tenant }) => {
   const exchange = await appSessions.exchange({ principal, tenant });
@@ -253,7 +253,7 @@ Either way, bind it to the identity the verified token names, keep it short-live
 
 ### Generic sign-in fallback: the same hosted browser
 
-An application does not need a session broker to participate. When its live Surface profile reports `authentication.state: "signed-out"`, the host pauses the agent's request and returns an `application_login_required` handoff. The linked page is served by `@axe/host` and presents the ordinary, visible HTML fields and actions from the exact Playwright page and browser context the agent will use as a clean provider-branded form. It does not imitate the application page or show a screenshot. Each step is bound to the exact current document and form revision; one submit applies all values and the chosen action to that private page, and a page change makes an old step unusable. Polls never overlap, a submission stays visibly in progress while the application advances, and a temporary connection failure preserves the current fields and retries instead of claiming the link expired. This handles standard first-party sign-in forms and common multi-step forms without a remote-control toolbar.
+An application does not need a session broker to participate. When its live Surface profile reports `authentication.state: "signed-out"`, the host pauses the agent's request and returns an `application_login_required` handoff. The linked page is served by `@summationai/axe-host` and presents the ordinary, visible HTML fields and actions from the exact Playwright page and browser context the agent will use as a clean provider-branded form. It does not imitate the application page or show a screenshot. Each step is bound to the exact current document and form revision; one submit applies all values and the chosen action to that private page, and a page change makes an old step unusable. Polls never overlap, a submission stays visibly in progress while the application advances, and a temporary connection failure preserves the current fields and retries instead of claiming the link expired. This handles standard first-party sign-in forms and common multi-step forms without a remote-control toolbar.
 
 The MCP client presents the handoff through its native URL mode when available, producing a Sign in action instead of exposing the capability URL as chat text. The agent presents it once. While its page is actively polling, another application call receives `application_login_pending` without another URL; if the page was closed and has stopped polling, the same URL can be presented again. Framework-only DOM remounts preserve the person's entered value and do not become a new visible step; the page waits for changed authentication semantics to settle before replacing the form. Password visibility is a local eye control inside the field, never a primary action, and toggling it preserves the value. If the application renders or enables its submit button only after processing the field's input event, the host re-reads the same semantic form after filling and uses that newly available primary action; otherwise it submits the exact bound form. All detection is based on standard HTML and accessibility semantics, with no connector-specific selectors or labels.
 
@@ -276,8 +276,8 @@ The handoff URL is an expiring capability bound in memory to the verified princi
 ### Deployment
 
 - The host runs one Chromium and one browser context per active person, in one process, with its relay inside on loopback. Each context holds a full page of your application: measure one, size `maxSessions` from it, and route each person to one host process.
-- Install a browser where the host runs (`npx playwright install chromium --with-deps` in the image), or pass `browser.executablePath`, or `browser.launch` for a remote browser. `playwright-core` is a dependency of `@axe/host` only; the application's pages never load it.
-- With a relay you run yourself, pass it as `relay` with `relayUrl` and `relaySecret`, and forward its events to `relayEvent` so Stop there closes the hosted session. `extraTools` (in `@axe/mcp`) and `handleAgent` with `relayAgentContext` (in `@axe/relay/server`) are the pieces the host builds its MCP server from.
+- Install a browser where the host runs (`npx playwright install chromium --with-deps` in the image), or pass `browser.executablePath`, or `browser.launch` for a remote browser. `playwright-core` is a dependency of `@summationai/axe-host` only; the application's pages never load it.
+- With a relay you run yourself, pass it as `relay` with `relayUrl` and `relaySecret`, and forward its events to `relayEvent` so Stop there closes the hosted session. `extraTools` (in `@summationai/axe-mcp`) and `handleAgent` with `relayAgentContext` (in `@summationai/axe-relay/server`) are the pieces the host builds its MCP server from.
 
 ## Security model
 

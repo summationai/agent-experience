@@ -1,5 +1,5 @@
 /**
- * @axe/surface: an application's registry of its own live controls, for agents.
+ * @summationai/axe-surface: an application's registry of its own live controls, for agents.
  *
  * Every control that matters registers one entry: a stable id, a name that states the outcome,
  * the object it belongs to, its availability with a reason (and, optionally, what would make it
@@ -20,11 +20,11 @@ import type {
   Result,
   Risk,
   ValidationIssue,
-} from "@axe/core/types";
-import type { AcceptInput } from "@axe/core/kinds";
-import type { HandoffSpec as WireHandoffSpec } from "@axe/core/types";
-import { validateJsonSchema } from "@axe/core/json-schema";
-import * as WIRE from "@axe/core/vocabulary";
+} from "@summationai/axe-core/types";
+import type { AcceptInput } from "@summationai/axe-core/kinds";
+import type { HandoffSpec as WireHandoffSpec } from "@summationai/axe-core/types";
+import { validateJsonSchema } from "@summationai/axe-core/json-schema";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 
 export type MaybePromise<T> = T | Promise<T>;
 export type Op = "CLICK" | "TOGGLE" | "TYPE_TEXT" | "SCROLL_DOWN";
@@ -61,7 +61,7 @@ export interface SchemaLike {
 }
 
 /**
- * Renders a Zod schema as JSON Schema for `observe()`. `toJsonSchema` from `@axe/core` fits as it
+ * Renders a Zod schema as JSON Schema for `observe()`. `toJsonSchema` from `@summationai/axe-core` fits as it
  * is; the parameter is typed `never` so that a converter over any concrete schema type fits too.
  */
 export type SchemaConverter = (schema: never, io: "input") => JsonSchema;
@@ -486,7 +486,7 @@ export interface SurfaceOptions {
    */
   revision?: RevisionMode;
   /**
-   * Converts a Zod schema to JSON Schema for `observe()`: pass `toJsonSchema` from `@axe/core`.
+   * Converts a Zod schema to JSON Schema for `observe()`: pass `toJsonSchema` from `@summationai/axe-core`.
    * Required only when an entry carries a Zod schema (`edit.schema`, `requires.accepts[].schema`);
    * the surface does not import Zod itself, so a browser bundle without Zod stays without it.
    */
@@ -652,7 +652,7 @@ function isSensitive(e: Entry | ObservedEntry): boolean {
 }
 
 const NEEDS_CONVERTER =
-  "is a Zod schema; pass toJsonSchema from @axe/core as createSurface({ toJsonSchema }) or configure({ toJsonSchema }), or register a JSON Schema.";
+  "is a Zod schema; pass toJsonSchema from @summationai/axe-core as createSurface({ toJsonSchema }) or configure({ toJsonSchema }), or register a JSON Schema.";
 
 function errorResult(
   code: ErrorResult["error"]["code"],

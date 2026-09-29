@@ -1,9 +1,9 @@
 // The page side of the relay: connect the page's surface for the signed-in person. Runs in the
 // browser, after the controls are registered.
-import { createSurface } from "@axe/surface";
-import type { Surface } from "@axe/surface";
-import { connectRelay, localMcpService, relayOptions } from "@axe/relay/client";
-import type { RelayConnection, RelayStatus } from "@axe/relay/client";
+import { createSurface } from "@summationai/axe-surface";
+import type { Surface } from "@summationai/axe-surface";
+import { connectRelay, localMcpService, relayOptions } from "@summationai/axe-relay/client";
+import type { RelayConnection, RelayStatus } from "@summationai/axe-relay/client";
 
 const surface = createSurface({ app: "studio-schedule" });
 
@@ -61,7 +61,8 @@ export function connectWithOwnIndicator(
 // With server-side rendering, load the client in an effect: importing it touches no window,
 // document, or WebSocket, and connecting happens only in the browser.
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
-  const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
+  const { connectRelay: connect, localMcpService: local } =
+    await import("@summationai/axe-relay/client");
   const connection = connect(s, local());
   return () => connection.disconnect();
 }

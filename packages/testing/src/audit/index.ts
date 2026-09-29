@@ -3,11 +3,11 @@
  * Deterministic for a given manifest and set of responses. Weights live in
  * `weights.json` so a team can tune them in one place.
  */
-import type { ActionDefinition, Manifest } from "@axe/core/types";
-import { lintManifest, isBareQuerySearch } from "@axe/core/lint";
-import { resolveDisplay } from "@axe/core/display";
-import { getPointer } from "@axe/core";
-import * as WIRE from "@axe/core/vocabulary";
+import type { ActionDefinition, Manifest } from "@summationai/axe-core/types";
+import { lintManifest, isBareQuerySearch } from "@summationai/axe-core/lint";
+import { resolveDisplay } from "@summationai/axe-core/display";
+import { getPointer } from "@summationai/axe-core";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import weightsJson from "./weights.json";
 import { runConformance } from "../conformance/index";
 import type { ConformanceOptions, ConformanceReport } from "../conformance/index";

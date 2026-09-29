@@ -19,11 +19,11 @@ new file mode 100644
 +// Always on after a provider browser handoff or in an optional `axe host` session (both are read by
 +// `injectedRelay()`).
 +//
-+// @axe/surface/auto is a bare module specifier: load this file through your bundler, or map
++// @summationai/axe-surface/auto is a bare module specifier: load this file through your bundler, or map
 +// the specifier with an import map to the package's built files.
-+import { autoSurface } from "@axe/surface/auto";
-+import { exposeWebMcp } from "@axe/surface/webmcp";
-+import { connectRelay, injectedRelay } from "@axe/relay/client";
++import { autoSurface } from "@summationai/axe-surface/auto";
++import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
++import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";
 +import surfaceConfig from "./surface.config.js";
 +
 +const development =
@@ -52,7 +52,7 @@ new file mode 100644
 +// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
 +// page alone cannot tell it. An empty overlay is a working start.
 +
-+/** @type {import("@axe/surface/auto").SurfaceConfig} */
++/** @type {import("@summationai/axe-surface/auto").SurfaceConfig} */
 +const surfaceConfig = {
 +  profile: {
 +    id: "application",

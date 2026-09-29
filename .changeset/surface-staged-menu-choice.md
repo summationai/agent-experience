@@ -1,5 +1,5 @@
 ---
-"@axe/surface": patch
+"@summationai/axe-surface": patch
 ---
 
 Treat a menu item as reversible form state when it is staged inside a dialog and a separate

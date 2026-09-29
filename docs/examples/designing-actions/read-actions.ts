@@ -2,7 +2,7 @@
  * An online shop: the order-history read action, first as a search box, then with
  * the filters the agent already holds.
  */
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Harbor Goods",

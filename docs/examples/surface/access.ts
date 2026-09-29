@@ -1,8 +1,8 @@
 // Who can observe and act through the bridge: the modes, one surface per caller, and privacy.
-import { createAXE } from "@axe/core";
-import { createSurface } from "@axe/surface";
-import type { Surface } from "@axe/surface";
-import { scopedSurfaces, surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { createSurface } from "@summationai/axe-surface";
+import type { Surface } from "@summationai/axe-surface";
+import { scopedSurfaces, surfaceActions } from "@summationai/axe-surface/axe";
 
 declare function verifySession(request: Request): Promise<{ userId: string } | null>;
 declare function loadNotes(userId: string): { note: string; accountNumber: string };

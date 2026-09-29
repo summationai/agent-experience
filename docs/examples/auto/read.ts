@@ -1,9 +1,9 @@
 // Reading what the page shows, and waiting for slow work, on an auto surface.
-import type { SurfaceConfig } from "@axe/surface/auto";
+import type { SurfaceConfig } from "@summationai/axe-surface/auto";
 import { handle } from "./start";
 
 // #region read
-import { formatRead } from "@axe/surface/auto";
+import { formatRead } from "@summationai/axe-surface/auto";
 
 // The whole page, as sections by heading: text, fields, tables, lists.
 const page = handle.read();

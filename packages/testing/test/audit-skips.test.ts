@@ -4,10 +4,10 @@
  * Every test here failed before review item 18 (see docs/review/2026-09-24/18-claims-and-roadmap.md).
  */
 import { describe, expect, it } from "vitest";
-import type { Manifest } from "@axe/core/types";
+import type { Manifest } from "@summationai/axe-core/types";
 import { runAudit } from "../src/audit/index";
 import { formatAuditTable, formatAuditHtml } from "../src/audit/format";
-import { createAXE, action, handoff, z } from "@axe/core";
+import { createAXE, action, handoff, z } from "@summationai/axe-core";
 import { formatConformanceTable, runConformance } from "../src/conformance/index";
 import { BAD_MANIFEST, badFetch } from "./fixtures/bad-manifest";
 

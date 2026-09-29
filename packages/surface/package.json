@@ -1,5 +1,5 @@
 {
-  "name": "@axe/surface",
+  "name": "@summationai/axe-surface",
   "version": "0.1.0",
   "description": "Surface: an application's registry of its own live controls, observed and acted on under one revision, with AXE risk metadata, kinds, and result envelopes.",
   "license": "Apache-2.0",
@@ -88,7 +88,7 @@
     "test:browser": "node test/browser/run.mjs"
   },
   "dependencies": {
-    "@axe/core": "workspace:*"
+    "@summationai/axe-core": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -99,7 +99,7 @@
     }
   },
   "devDependencies": {
-    "@axe/testing": "workspace:*",
+    "@summationai/axe-testing": "workspace:*",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "esbuild": "^0.25.12",

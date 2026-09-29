@@ -10,7 +10,7 @@
 // button's visible label and moves the item column to the end. The registrations are the same.
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSurfaceProps } from "@axe/surface/react";
+import { useSurfaceProps } from "@summationai/axe-surface/react";
 import { pageSurface } from "../../lib/browser-surface";
 import { cellKey, monthLabel, planTotal } from "../../lib/model";
 import type { PageState } from "../../lib/ui-api";

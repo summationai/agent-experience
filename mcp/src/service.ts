@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
-import { createRelay } from "@axe/relay/server";
-import type { Relay, RelayAddress } from "@axe/relay/server";
+import { createRelay } from "@summationai/axe-relay/server";
+import type { Relay, RelayAddress } from "@summationai/axe-relay/server";
 import { assertLocalMcpHost, serviceConfig } from "./config";
 import type { McpServiceConfig } from "./config";
 

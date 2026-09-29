@@ -236,7 +236,7 @@ A requirement is what an action returns when it cannot finish because something 
 
 **Always offer `accepts` before reaching for a handoff.** If a payment, a document, an address, or a consent would unblock the action, return `needs_input` with those options. Agents increasingly hold wallets and credential stores; an action that goes straight to `needs_human` for a deposit forces every one of them to bother the user.
 
-**Prefer well-known kinds over custom ones.** Import `kinds` and `accept` from `@axe/core/kinds`. A well-known kind such as `payment.ach-debit` is what an agent wallet can fulfill without a human; a custom `x-oakridge.guarantor-form` kind can only be fulfilled by an agent that has read your manifest and knows how to build the payload. Use custom kinds for genuinely site-specific data, and never for something the registry already names (the audit flags a custom kind whose schema is structurally identical to a well-known one).
+**Prefer well-known kinds over custom ones.** Import `kinds` and `accept` from `@summationai/axe-core/kinds`. A well-known kind such as `payment.ach-debit` is what an agent wallet can fulfill without a human; a custom `x-oakridge.guarantor-form` kind can only be fulfilled by an agent that has read your manifest and knows how to build the payload. Use custom kinds for genuinely site-specific data, and never for something the registry already names (the audit flags a custom kind whose schema is structurally identical to a well-known one).
 
 **Order options from most automatable to least.** Agents try `accepts` in order. An ACH authorization the wallet can produce comes before a wire confirmation that requires a human to send money first.
 

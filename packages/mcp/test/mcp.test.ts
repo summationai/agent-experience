@@ -22,7 +22,7 @@ function text(r: Awaited<ReturnType<Client["callTool"]>>): string {
   return content.map((c) => c.text ?? "").join("\n");
 }
 
-describe("@axe/mcp", () => {
+describe("@summationai/axe-mcp", () => {
   it("lists one tool per action plus the reserved tools, with schemas and annotations", async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();

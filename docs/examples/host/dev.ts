@@ -1,5 +1,5 @@
 // Unattended mode in development, in code: what `axe host --dev` does.
-import { createHost, storageStateSession } from "@axe/host";
+import { createHost, storageStateSession } from "@summationai/axe-host";
 
 // #region dev
 // Loopback only, one identity ("dev"), the session `axe host login` saved, and a key for /mcp.

@@ -1,13 +1,13 @@
 # Next.js
 
-`@axe/next` mounts an AXE server in a Next.js app. `axeNext` is for the App Router: it hands the Web `Request` that Next gives a route handler straight to `@axe/core` and returns the `Response`, with no conversion at all. `axeNextPages` is for the Pages API: it converts Next's Node request into a Web `Request`, calls the same handler, and writes the `Response` back. Pick the one that matches where your routes live; both can coexist during a migration.
+`@summationai/axe-next` mounts an AXE server in a Next.js app. `axeNext` is for the App Router: it hands the Web `Request` that Next gives a route handler straight to `@summationai/axe-core` and returns the `Response`, with no conversion at all. `axeNextPages` is for the Pages API: it converts Next's Node request into a Web `Request`, calls the same handler, and writes the `Response` back. Pick the one that matches where your routes live; both can coexist during a migration.
 
 The example is Northgate University Admissions, whose `applications.status` action ([Concepts](../concepts.md#action)) needs a signed-in applicant.
 
 ## Install
 
 ```sh
-npm install @axe/core @axe/next
+npm install @summationai/axe-core @summationai/axe-next
 ```
 
 ## Where the declaration goes
@@ -16,7 +16,7 @@ Put `axe.ts` at the project root, next to `next.config.js`, not inside `app/` or
 
 <!-- include: examples/integrations/next/axe.ts#create -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Northgate University Admissions",
@@ -37,7 +37,7 @@ Create a catch-all route at `app/axe/[...axe]/route.ts` and export the three han
 
 <!-- include: examples/integrations/next/app/axe/[...axe]/route.ts#all -->
 ```ts
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 import { applicantFromRequest } from "../../../lib/session";
 
@@ -52,7 +52,7 @@ The session helper is yours. This one parses a cookie and looks it up; with next
 
 <!-- include: examples/integrations/next/lib/session.ts#all -->
 ```ts
-import type { Identity } from "@axe/core";
+import type { Identity } from "@summationai/axe-core";
 
 const SESSIONS = new Map<string, string>([["s_demo", "applicant_0142"]]);
 
@@ -101,7 +101,7 @@ Create a catch-all at `pages/api/axe/[...axe].ts` with a default export. Here `c
 
 <!-- include: examples/integrations/next/pages/api/axe/[...axe].ts#all -->
 ```ts
-import { axeNextPages } from "@axe/next";
+import { axeNextPages } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 import { applicantFromCookieHeader } from "../../../lib/session";
 
@@ -148,7 +148,7 @@ If `context` reads a session cookie (from `cookies()` or the request headers), t
 
 ## Edge runtime
 
-`@axe/core` is written against Web-standard `Request`, `Response`, `URL`, and Web Crypto, so `export const runtime = "edge"` in the route file works with `axeNext` as it is. Two things change when you do that:
+`@summationai/axe-core` is written against Web-standard `Request`, `Response`, `URL`, and Web Crypto, so `export const runtime = "edge"` in the route file works with `axeNext` as it is. Two things change when you do that:
 
 - Every isolate has its own memory. The default token store and idempotency store are in-memory, so a continuation token minted on one isolate is unknown to the next, and an idempotent replay may run twice. Configure `tokenStore` and `idempotencyStore` with something durable (Vercel KV, Upstash, a database) before enabling the Edge runtime. [Deploying](../deploying.md) shows the two interfaces.
 - The random fallback `secret` is per isolate, too. Set `secret` explicitly or no token will verify.

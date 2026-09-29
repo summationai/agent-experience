@@ -1,6 +1,6 @@
 // axe.ts — at the project root, next to next.config.js and outside app/ and pages/.
 // #region create
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Northgate University Admissions",

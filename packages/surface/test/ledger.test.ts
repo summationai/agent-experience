@@ -6,9 +6,9 @@
  * whose description said every refusal was in it.
  */
 import { describe, expect, it } from "vitest";
-import { createAXE } from "@axe/core";
-import type { AuthConfig, AXEActionEvent } from "@axe/core";
-import type { ErrorResult, OkResult } from "@axe/core/types";
+import { createAXE } from "@summationai/axe-core";
+import type { AuthConfig, AXEActionEvent } from "@summationai/axe-core";
+import type { ErrorResult, OkResult } from "@summationai/axe-core/types";
 import { createSurface } from "../src/index";
 import type { LedgerEntry, Surface } from "../src/index";
 import { domainActions, scopedSurfaces, surfaceActions } from "../src/axe";

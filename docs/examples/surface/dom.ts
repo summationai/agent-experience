@@ -1,8 +1,8 @@
 // The DOM mirror: the names an agent reads through observe() are the accessible names a browser
 // agent or a screen reader reads on the page, from the same entries.
 // #region attributes
-import { describeEntry, surfaceAttributes, surfaceSelector } from "@axe/surface";
-import type { Entry } from "@axe/surface";
+import { describeEntry, surfaceAttributes, surfaceSelector } from "@summationai/axe-surface";
+import type { Entry } from "@summationai/axe-surface";
 import { surface } from "./board";
 
 // Rendering by hand: carry every attribute the helper returns on the element that receives the

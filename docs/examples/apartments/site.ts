@@ -3,7 +3,7 @@
  * search → present → select → transact, with a real requirement ladder and one genuine handoff.
  */
 // #region imports
-import { createAXE, action, z, accept, kinds } from "@axe/core";
+import { createAXE, action, z, accept, kinds } from "@summationai/axe-core";
 // #endregion imports
 
 // #region db

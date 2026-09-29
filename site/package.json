@@ -23,8 +23,8 @@
     "pngjs": "^7.0.0",
     "shiki": "^4.4.3",
     "esbuild": "^0.25.0",
-    "@axe/core": "workspace:*",
-    "@axe/client": "workspace:*",
-    "@axe/testing": "workspace:*"
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-client": "workspace:*",
+    "@summationai/axe-testing": "workspace:*"
   }
 }

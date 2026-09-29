@@ -3,13 +3,13 @@ import type { Plugin } from "esbuild";
 import { base } from "../../tsup.base";
 
 /**
- * `@axe/surface/react` imports the main entry at runtime instead of inlining a copy of it. Inlined,
+ * `@summationai/axe-surface/react` imports the main entry at runtime instead of inlining a copy of it. Inlined,
  * the hooks' default target was a second module-level `surface`, so `useSurface(entry, deps)`
- * registered in a table that `surface.expose(window)` from `@axe/surface` never showed (review
+ * registered in a table that `surface.expose(window)` from `@summationai/axe-surface` never showed (review
  * item 13). The import keeps the output's own extension, so ESM loads `./index.js` and CommonJS
  * `./index.cjs`: one registry per format, as for any package. `./auto` is shared the same way, so
- * `@axe/surface/react`'s `SurfaceProvider` and `@axe/surface/axe`'s `autoActions` load the one
- * `@axe/surface/auto` rather than carrying copies of it.
+ * `@summationai/axe-surface/react`'s `SurfaceProvider` and `@summationai/axe-surface/axe`'s `autoActions` load the one
+ * `@summationai/axe-surface/auto` rather than carrying copies of it.
  */
 const sharedIndex: Plugin = {
   name: "surface-shared-index",

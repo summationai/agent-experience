@@ -2,9 +2,9 @@
  * A surface served through AXE with the surface's revision as the site's revision.
  */
 // #region serve
-import { createAXE } from "@axe/core";
-import { createSurface } from "@axe/surface";
-import { surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { createSurface } from "@summationai/axe-surface";
+import { surfaceActions } from "@summationai/axe-surface/axe";
 
 export const surface = createSurface({ app: "fantasy-draft" });
 

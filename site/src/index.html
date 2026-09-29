@@ -71,7 +71,7 @@
           <a class="btn btn-secondary" href="docs/spec/AXE-PROTOCOL.html">Read the spec</a>
         </div>
         <div class="install">
-          <code>npm i @axe/core</code
+          <code>npm i @summationai/axe-core</code
           ><button class="copy" type="button" aria-label="Copy install command">Copy</button>
         </div>
         <ul class="chips" aria-label="Facts">
@@ -228,9 +228,9 @@
           <p>
             Most agent journeys start with a read. The site declares which fields matter for
             comparison and what can be done with each result; the agent renders. The search results
-            shown here are the output of the reference renderer in <code>@axe/client/present</code>,
-            produced at build time from the docs' Bellevue example. Choose a unit and the ladder
-            above binds that unit's id.
+            shown here are the output of the reference renderer in
+            <code>@summationai/axe-client/present</code>, produced at build time from the docs'
+            Bellevue example. Choose a unit and the ladder above binds that unit's id.
           </p>
         </div>
         <div class="arc">
@@ -389,21 +389,21 @@
         <h3 style="margin-top: 2rem">Then three commands</h3>
         <div class="commands">
           <div class="cmd">
-            <code>npx axe init</code>
+            <code>npx @summationai/axe init</code>
             <p>
               Writes an <code>axe.ts</code> with one read-only action and the mount file for your
               framework.
             </p>
           </div>
           <div class="cmd">
-            <code>npx axe conformance http://localhost:3000</code>
+            <code>npx @summationai/axe conformance http://localhost:3000</code>
             <p>
               Runs the protocol suite against your server and prints a pass/fail table. This is how
               you know you are done.
             </p>
           </div>
           <div class="cmd">
-            <code>npx axe mcp http://localhost:3000</code>
+            <code>npx @summationai/axe mcp http://localhost:3000</code>
             <p>
               Serves your site to Claude Desktop or Claude Code as an MCP server, one tool per
               action.

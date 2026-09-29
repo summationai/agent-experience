@@ -1,6 +1,6 @@
 // A configuration overlay: reviewed in a diff, applied over what the page derives.
 // #region config
-import type { SurfaceConfig } from "@axe/surface/auto";
+import type { SurfaceConfig } from "@summationai/axe-surface/auto";
 
 export const surfaceConfig: SurfaceConfig = {
   app: "Acme back office",

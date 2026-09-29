@@ -1,6 +1,6 @@
 // pages/api/axe/[...axe].ts — with rewrites for /.well-known/axe.json and /axe/:path* in next.config.js.
 // #region all
-import { axeNextPages } from "@axe/next";
+import { axeNextPages } from "@summationai/axe-next";
 import { axe } from "../../../axe";
 import { applicantFromCookieHeader } from "../../../lib/session";
 

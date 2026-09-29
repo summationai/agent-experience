@@ -3,9 +3,15 @@
  * WebSocket the page opens. Types only, plus the constants both sides agree on; nothing here
  * imports a runtime dependency, so the browser client stays small.
  */
-import type { ActRequest, ActResult, LedgerEntry, Observation, RecordRequest } from "@axe/surface";
-import type { ErrorResult, JsonValue } from "@axe/core/types";
-import type { ReadOptions, WaitCondition } from "@axe/surface/auto";
+import type {
+  ActRequest,
+  ActResult,
+  LedgerEntry,
+  Observation,
+  RecordRequest,
+} from "@summationai/axe-surface";
+import type { ErrorResult, JsonValue } from "@summationai/axe-core/types";
+import type { ReadOptions, WaitCondition } from "@summationai/axe-surface/auto";
 
 /** A wait condition as it crosses the wire: texts are strings (`/pattern/flags` for an expression). */
 export type WireWaitCondition = Omit<WaitCondition, "text" | "gone" | "any" | "all"> & {
@@ -19,7 +25,7 @@ export type WireWaitCondition = Omit<WaitCondition, "text" | "gone" | "any" | "a
 export const RELAY_PROTOCOL = "axe-relay.v1";
 
 /** Prefix used in `window.name` by the relay's cross-origin connection handoff page. */
-export const RELAY_HANDOFF_WINDOW_PREFIX = "axe-relay-handoff:";
+export const RELAY_HANDOFF_WINDOW_PREFIX = "summationai-axe-relay-handoff:";
 
 /** WebSocket close codes the relay uses (4000 to 4999 are application codes). */
 export const CLOSE = {
@@ -39,7 +45,7 @@ export const CLOSE = {
 
 /**
  * `attended`: a person is looking at the tab (the default). `unattended`: the tab runs in a hidden
- * browser session a host started for the person (`@axe/host`), and no one is looking at it.
+ * browser session a host started for the person (`@summationai/axe-host`), and no one is looking at it.
  */
 export type RelayMode = "attended" | "unattended";
 

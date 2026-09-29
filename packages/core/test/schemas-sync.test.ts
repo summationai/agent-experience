@@ -6,7 +6,7 @@ import { WELL_KNOWN_KINDS, kindJsonSchema } from "../src/kinds";
 
 const root = join(__dirname, "../../..");
 
-describe("spec/schemas are generated from @axe/core", () => {
+describe("spec/schemas are generated from @summationai/axe-core", () => {
   it("every published schema matches the Zod definitions", () => {
     for (const [name, schema] of Object.entries(specJsonSchemas())) {
       const path = join(root, "spec/schemas", `${name}.schema.json`);

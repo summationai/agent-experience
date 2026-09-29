@@ -1,6 +1,6 @@
 # Relay: an agent in a live tab
 
-A surface lives in the browser tab that created it ([Surface](surface.md), "Where a surface runs"). An agent outside the browser, such as Claude Code, cannot reach it: the controls are closures over that page's state, acting with that page's session. `@axe/relay` is the SDK's broker for exactly this: the page connects to a relay server, the relay presents the page's surface to agents over MCP, and every act runs in the page, through the page's own `surface.act`.
+A surface lives in the browser tab that created it ([Surface](surface.md), "Where a surface runs"). An agent outside the browser, such as Claude Code, cannot reach it: the controls are closures over that page's state, acting with that page's session. `@summationai/axe-relay` is the SDK's broker for exactly this: the page connects to a relay server, the relay presents the page's surface to agents over MCP, and every act runs in the page, through the page's own `surface.act`.
 
 ```mermaid
 flowchart LR
@@ -9,18 +9,18 @@ flowchart LR
   R <-- MCP: stdio or HTTP + OAuth --> A[Agent]
 ```
 
-Desktop agents need the service path on this page. The customer application installs only `@axe/surface` and the browser-only `@axe/relay/client`; the separately operated service owns the MCP SDK, WebSocket server, agent authentication, and relay records. Browser-native WebMCP remains an additional direct path where the browser supports it.
+Desktop agents need the service path on this page. The customer application installs only `@summationai/axe-surface` and the browser-only `@summationai/axe-relay/client`; the separately operated service owns the MCP SDK, WebSocket server, agent authentication, and relay records. Browser-native WebMCP remains an additional direct path where the browser supports it.
 
 There are three connection shapes. **Browser handoff** is the recommended provider path: the agent's OAuth identity mints a one-time URL, the client opens the application's ordinary sign-in/page flow, and the installed package connects that attended tab automatically with no pairing code or application backend endpoint. **Development pairing** is the local diagnostic path: the person opens the tab and copies its temporary code. **Unattended host** ([Unattended mode](host.md)) is optional: a host runs a hidden browser session and therefore requires the application to provide a browser-session boundary.
 
-The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@axe/surface/axe` on a `createAXE` server, and `@axe/mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-14] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
+The relay reuses the rest of the SDK: each tab is served through `domainActions` from `@summationai/axe-surface/axe` on a `createAXE` server, and `@summationai/axe-mcp` derives the tools. The revision check, the escalation ladder, the ledger, and the action events are the ones you already have. The normative rules are [S-RELAY-1] to [S-RELAY-14] in [spec/SURFACE.md](../spec/SURFACE.md) §9.1.
 
 ## Self-hosted attended mode in four steps
 
 For an application operating its own relay and identity boundary. The provider-operated browser-handoff path below removes steps 2 and 3 from the consuming application's installation.
 
-1. Add the packages: `pnpm add @axe/surface @axe/relay`.
-2. In the page, register the controls on a surface (or let `@axe/surface/auto` do it) and connect it:
+1. Add the packages: `pnpm add @summationai/axe-surface @summationai/axe-relay`.
+2. In the page, register the controls on a surface (or let `@summationai/axe-surface/auto` do it) and connect it:
 
 <!-- include: examples/relay/page.ts#connect -->
 ```ts
@@ -62,7 +62,7 @@ app.post("/api/relay-token", async (req, res) => {
 
 The Agent Experience service can bind the browser tab directly to the already-authenticated MCP caller. With `RelayOptions.handoff`, an empty `relay_tabs` call returns a short-lived `needs_human` URL. A URL-capable MCP client opens the relay's `/connect/<token>` page; it places a bootstrap in `window.name` and redirects immediately to the configured application URL. After the normal application login completes, `injectedRelay()` recognizes that bootstrap, exchanges it once with `/connect/exchange`, and `connectRelay` attaches the page.
 
-The one-time value is an Agent Experience relay capability, not an application session or API credential. It never appears in the application URL, is exchangeable only from the configured application origin, and is bound to the principal and tenant whose OAuth-authenticated tool call created it. The consuming application installs `@axe/surface` and `@axe/relay/client` but adds no token route, session broker, secret, or MCP service. See [`mcp/README.md`](../mcp/README.md#run-the-browser-handoff-service).
+The one-time value is an Agent Experience relay capability, not an application session or API credential. It never appears in the application URL, is exchangeable only from the configured application origin, and is bound to the principal and tenant whose OAuth-authenticated tool call created it. The consuming application installs `@summationai/axe-surface` and `@summationai/axe-relay/client` but adds no token route, session broker, secret, or MCP service. See [`mcp/README.md`](../mcp/README.md#run-the-browser-handoff-service).
 
 ## Local development
 
@@ -150,7 +150,7 @@ The injected connection replaces the fallback's `url`, token, `mode`, `approvals
 | `surface_read`        | What the page shows the person (headings, text, fields, tables), redacted and bounded, with a cursor.     |
 | `surface_wait`        | Wait until a condition on the page holds (text appears, the page goes quiet), at most two minutes.        |
 
-These are `domainActions`' default set: a fixed tool list whatever the page holds. `surface_read` and `surface_wait` are answered by the tab's auto surface ([Reading the page](auto-surface.md#reading-the-page)); a tab without one answers them with the reason, and `content: false` on `createRelay` leaves them out. Pass `domains` to `createRelay` for the application's own parameterized actions (for example the set `@axe/surface/auto` builds). The usual `axe_state`, `axe_continue`, and `axe_resume` tools are there too, so a control that declares `requires` or a handoff climbs the ladder exactly as it does on a server.
+These are `domainActions`' default set: a fixed tool list whatever the page holds. `surface_read` and `surface_wait` are answered by the tab's auto surface ([Reading the page](auto-surface.md#reading-the-page)); a tab without one answers them with the reason, and `content: false` on `createRelay` leaves them out. Pass `domains` to `createRelay` for the application's own parameterized actions (for example the set `@summationai/axe-surface/auto` builds). The usual `axe_state`, `axe_continue`, and `axe_resume` tools are there too, so a control that declares `requires` or a handoff climbs the ladder exactly as it does on a server.
 
 An act whose click navigates the page (a link, a form that posts and reloads) is answered `ok` with `navigated: true` just before the page unloads: the tab sees the navigation begin (`beforeunload`) and says so before its connection closes. An act the page never answers for any other reason (it crashed or closed, or `actTimeoutMs` passed) is `unavailable` with `details.reason: "outcome_unknown"` and `retryable: false`: the act was sent and may have taken effect, so the agent is told to observe before acting again, nothing retries it automatically, and a retry with the same `idempotencyKey` returns the same answer instead of running it twice ([S-RELAY-14]).
 
@@ -266,7 +266,7 @@ export function connectWithOwnIndicator(
 <!-- /include -->
 
 
-The indicator is kept out of an auto-derived surface: its host carries `data-surface-ignore`, and `@axe/surface/auto` never reads it. An agent cannot press Approve, Deny, or Stop. If you render your own indicator, mark its root `data-surface-ignore` too.
+The indicator is kept out of an auto-derived surface: its host carries `data-surface-ignore`, and `@summationai/axe-surface/auto` never reads it. An agent cannot press Approve, Deny, or Stop. If you render your own indicator, mark its root `data-surface-ignore` too.
 ## Tenant switches and server rendering
 
 When the person changes tenant (or signs in as someone else) without a reload, call `rekey`. The client leaves the relay under the old identity, which drops the tab's record and revokes its token, then connects with a fresh token:
@@ -281,14 +281,15 @@ export function onStudioSwitched(): void {
 ```
 <!-- /include -->
 
-Importing `@axe/relay/client` touches no `window`, `document`, or `WebSocket`, so a page rendered on the server can load it in an effect:
+Importing `@summationai/axe-relay/client` touches no `window`, `document`, or `WebSocket`, so a page rendered on the server can load it in an effect:
 
 <!-- include: examples/relay/page.ts#dynamic -->
 ```ts
 // With server-side rendering, load the client in an effect: importing it touches no window,
 // document, or WebSocket, and connecting happens only in the browser.
 export async function startRelayInBrowser(s: Surface): Promise<() => void> {
-  const { connectRelay: connect, localMcpService: local } = await import("@axe/relay/client");
+  const { connectRelay: connect, localMcpService: local } =
+    await import("@summationai/axe-relay/client");
   const connection = connect(s, local());
   return () => connection.disconnect();
 }
@@ -301,7 +302,7 @@ person to end agent access.
 
 ## Production
 
-The browser side needs only `@axe/relay` (its `client` entry imports nothing at runtime) alongside `@axe/surface`. The standalone service under [`mcp/`](../mcp/README.md) owns `@axe/mcp`, the MCP SDK, `ws`, and the relay server. A web application that only connects its tabs installs none of those server dependencies.
+The browser side needs only `@summationai/axe-relay` (its `client` entry imports nothing at runtime) alongside `@summationai/axe-surface`. The standalone service under [`mcp/`](../mcp/README.md) owns `@summationai/axe-mcp`, the MCP SDK, `ws`, and the relay server. A web application that only connects its tabs installs none of those server dependencies.
 
 A production relay authenticates both sides: tabs with relay tokens your backend minted, agents with OAuth access tokens.
 

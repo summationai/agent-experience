@@ -1,6 +1,6 @@
 # Easy mode: derive, then refine
 
-A [Surface](surface.md) is exact when every control registers itself, and that takes work in every component. Easy mode starts from the other end. `@axe/surface/auto` reads what your page already tells screen readers (roles, accessible names, disabled states and their descriptions, values, the dialogs and headings controls sit in) and registers an entry for each control. An agent then observes the page as a table with reasons and one revision, and acts through the same events a person's click or typing causes.
+A [Surface](surface.md) is exact when every control registers itself, and that takes work in every component. Easy mode starts from the other end. `@summationai/axe-surface/auto` reads what your page already tells screen readers (roles, accessible names, disabled states and their descriptions, values, the dialogs and headings controls sit in) and registers an entry for each control. An agent then observes the page as a table with reasons and one revision, and acts through the same events a person's click or typing causes.
 
 Installation alone should get you most of a good surface. What the page cannot say (a better name, what a button really changes, that a field is private, that a control needs the person's approval) goes in a configuration you review in a diff. What must be exact (a write that checks the revision on the server) you declare. The contract is `spec/SURFACE.md` §10.
 
@@ -8,7 +8,7 @@ Installation alone should get you most of a good surface. What the page cannot s
 
 <!-- include: examples/auto/start.ts#start -->
 ```ts
-import { autoSurface, formatCoverage } from "@axe/surface/auto";
+import { autoSurface, formatCoverage } from "@summationai/axe-surface/auto";
 
 export const handle = autoSurface({ expose: true });
 
@@ -23,7 +23,7 @@ console.log(formatCoverage(handle.coverage()));
 ```ts
 import { createElement } from "react";
 import type { ReactNode } from "react";
-import { SurfaceProvider } from "@axe/surface/react";
+import { SurfaceProvider } from "@summationai/axe-surface/react";
 import { surfaceConfig } from "./config";
 
 export function AgentReady({ children, on }: { children: ReactNode; on: boolean }) {
@@ -110,7 +110,7 @@ A `SurfaceConfig` is a plain object: keep it in a JSON or TypeScript file and re
 
 <!-- include: examples/auto/config.ts#config -->
 ```ts
-import type { SurfaceConfig } from "@axe/surface/auto";
+import type { SurfaceConfig } from "@summationai/axe-surface/auto";
 
 export const surfaceConfig: SurfaceConfig = {
   app: "Acme back office",
@@ -167,8 +167,8 @@ A rule's handler is how a derived control becomes declared without touching the 
 
 <!-- include: examples/auto/handler.ts#handler -->
 ```ts
-import { SurfaceConflict } from "@axe/surface";
-import type { SurfaceConfig } from "@axe/surface/auto";
+import { SurfaceConflict } from "@summationai/axe-surface";
+import type { SurfaceConfig } from "@summationai/axe-surface/auto";
 
 declare function archiveOrder(
   id: string,
@@ -221,7 +221,7 @@ Controls are half of what a page says. The other half is its content: the projec
 
 <!-- include: examples/auto/read.ts#read -->
 ```ts
-import { formatRead } from "@axe/surface/auto";
+import { formatRead } from "@summationai/axe-surface/auto";
 
 // The whole page, as sections by heading: text, fields, tables, lists.
 const page = handle.read();
@@ -332,8 +332,8 @@ A page with three hundred controls would be three hundred tools if each were its
 
 <!-- include: examples/auto/serve.ts#serve -->
 ```ts
-import { createAXE } from "@axe/core";
-import { autoActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { autoActions } from "@summationai/axe-surface/axe";
 import { handle } from "./start";
 
 const axe = createAXE({

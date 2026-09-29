@@ -1,5 +1,5 @@
 // #region refresh
-import { AXEClient } from "@axe/client";
+import { AXEClient } from "@summationai/axe-client";
 
 const client = await AXEClient.discover("https://oakridge-rentals.example", {
   // Never use a manifest older than two minutes, or the site's Cache-Control max-age if shorter.

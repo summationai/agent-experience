@@ -1,11 +1,11 @@
 /**
- * Shared types for `@axe/generate`: what a source yields, what `generate()` returns, and the
+ * Shared types for `@summationai/axe-generate`: what a source yields, what `generate()` returns, and the
  * warnings that carry every decision the generator declined to make on the author's behalf.
  */
-import type { z } from "@axe/core";
-import type { ActionSpec, RegisteredAction } from "@axe/core";
-import type { Risk } from "@axe/core/types";
-import type { LintIssue } from "@axe/core/lint";
+import type { z } from "@summationai/axe-core";
+import type { ActionSpec, RegisteredAction } from "@summationai/axe-core";
+import type { Risk } from "@summationai/axe-core/types";
+import type { LintIssue } from "@summationai/axe-core/lint";
 
 /** Where a generated action came from, so a reviewer can find the definition it mirrors. */
 export interface Provenance {

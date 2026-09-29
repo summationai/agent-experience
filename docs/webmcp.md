@@ -1,8 +1,8 @@
 # WebMCP
 
-WebMCP is a browser API through which a page registers tools for an agent built into the browser. `@axe/surface/webmcp` offers a [Surface](surface.md) through it: the page's controls become tools the browser's agent can call, each one running through the page's own surface with its revision guard, availability, and ledger. This page covers the status of the API, what the adapter registers, what it never registers, and what to use where the browser has no WebMCP.
+WebMCP is a browser API through which a page registers tools for an agent built into the browser. `@summationai/axe-surface/webmcp` offers a [Surface](surface.md) through it: the page's controls become tools the browser's agent can call, each one running through the page's own surface with its revision guard, availability, and ledger. This page covers the status of the API, what the adapter registers, what it never registers, and what to use where the browser has no WebMCP.
 
-For React easy mode, `<SurfaceProvider webMcp>` enables this direct route. It needs only `@axe/surface`; no MCP server or relay participates in that route. The recommended desktop-agent integration also installs `@axe/relay` and connects the same page-held Surface to the separately operated [Agent Experience MCP service](../mcp/README.md), because a generic desktop or headless-browser session does not receive a page's WebMCP tools automatically.
+For React easy mode, `<SurfaceProvider webMcp>` enables this direct route. It needs only `@summationai/axe-surface`; no MCP server or relay participates in that route. The recommended desktop-agent integration also installs `@summationai/axe-relay` and connects the same page-held Surface to the separately operated [Agent Experience MCP service](../mcp/README.md), because a generic desktop or headless-browser session does not receive a page's WebMCP tools automatically.
 
 ## Status
 
@@ -18,7 +18,7 @@ Treat the adapter as experimental for as long as the API is. It reaches the brow
 
 <!-- include: examples/webmcp/page.ts#expose -->
 ```ts
-import { exposeWebMcp } from "@axe/surface/webmcp";
+import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
 import { surface } from "../surface/board";
 
 // Browser-driving agents keep reading window.__surface, whatever the browser supports.
@@ -123,13 +123,13 @@ Do not implement this callback with a DOM control included in the surface, a Web
 Nothing is registered, `supported` is false, and the page works as before. The other ways in stay available:
 
 - **Browser-driving agents** read and operate the ordinary page, or use `window.__surface` when their browser channel has JavaScript/CDP access and the application called `surface.expose(window)` ([S-DOM-2](../spec/SURFACE.md#7-browser-agents)). Generic browser clicks are not Surface calls.
-- **Server-side agents** reach the same controls through the AXE bridge (`surfaceActions` from `@axe/surface/axe`, see [Surface](surface.md)) and, for MCP hosts, `@axe/mcp` ([MCP](mcp.md)), with the authorization rules those need.
+- **Server-side agents** reach the same controls through the AXE bridge (`surfaceActions` from `@summationai/axe-surface/axe`, see [Surface](surface.md)) and, for MCP hosts, `@summationai/axe-mcp` ([MCP](mcp.md)), with the authorization rules those need.
 
 An application that exposes its browser surface from one module with `expose(window)`, as the reference application under `examples/` is built to, adds the WebMCP adapter on the next line, as in the example above.
 
 ## Bundle
 
-`@axe/surface/webmcp` remains a separate entry for framework-free use. `SurfaceProvider` imports the small adapter so its `webMcp` prop works without another application dependency; ordinary hooks from `@axe/surface/react` still tree-shake it when the provider is not used.
+`@summationai/axe-surface/webmcp` remains a separate entry for framework-free use. `SurfaceProvider` imports the small adapter so its `webMcp` prop works without another application dependency; ordinary hooks from `@summationai/axe-surface/react` still tree-shake it when the provider is not used.
 
 ## Next steps
 

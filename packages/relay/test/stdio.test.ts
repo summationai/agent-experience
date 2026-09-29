@@ -1,5 +1,5 @@
 // The relay as its own process, driven over stdio by the MCP SDK's client, as Claude Code runs
-// `claude mcp add surface -- npx axe relay --dev --stdio`. The page (jsdom) connects to the
+// `claude mcp add surface -- npx @summationai/axe relay --dev --stdio`. The page (jsdom) connects to the
 // child's WebSocket port, which the child reports on stderr.
 import { afterEach, describe, expect, it } from "vitest";
 import { join } from "node:path";

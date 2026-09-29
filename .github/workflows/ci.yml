@@ -25,7 +25,7 @@ jobs:
         name: Vocabulary is generated from spec/VOCABULARY.md
       - run: pnpm -r build
       - run: node scripts/gen-schemas.mjs --check
-        name: spec/schemas match @axe/core
+        name: spec/schemas match @summationai/axe-core
       - run: pnpm check:snippets
         name: Doc code blocks match docs/examples
       - run: pnpm lint

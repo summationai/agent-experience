@@ -1,5 +1,5 @@
 /**
- * @axe/next: mount an AXE server in Next.js.
+ * @summationai/axe-next: mount an AXE server in Next.js.
  *
  * App Router (`app/axe/[...axe]/route.ts` and `app/.well-known/axe.json/route.ts`):
  * ```ts
@@ -11,7 +11,7 @@
  * ```
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { AXE, AdapterContext, MaybePromise } from "@axe/core";
+import type { AXE, AdapterContext, MaybePromise } from "@summationai/axe-core";
 
 export interface NextAdapterOptions {
   /** Inject the app's session or tenant. */

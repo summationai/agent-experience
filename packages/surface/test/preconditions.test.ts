@@ -3,8 +3,8 @@
 // expectedRev into its own conditional write and may refuse with a conflict; a stale report never
 // overwrites a newer revision. Every interleaving below is driven by barriers the test resolves.
 import { describe, expect, it } from "vitest";
-import { createAXE } from "@axe/core";
-import type { ErrorResult, OkResult } from "@axe/core/types";
+import { createAXE } from "@summationai/axe-core";
+import type { ErrorResult, OkResult } from "@summationai/axe-core/types";
 import { createSurface, SurfaceConflict } from "../src/index";
 import type { ActContext, ActResult, Surface } from "../src/index";
 import { surfaceActions } from "../src/axe";

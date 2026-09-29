@@ -2,7 +2,7 @@
  * Well-known requirement kinds (spec/KINDS.md), as Zod schemas with metadata.
  *
  * ```ts
- * import { kinds, accept } from "@axe/core/kinds";
+ * import { kinds, accept } from "@summationai/axe-core/kinds";
  * needsInput({
  *   reason: "payment_required",
  *   message: "A $500 refundable deposit is required.",

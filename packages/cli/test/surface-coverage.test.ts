@@ -20,7 +20,7 @@ import {
 const site = join(__dirname, "../../../site");
 const tsx = pathToFileURL(createRequire(__filename).resolve("tsx")).href;
 
-// A stand-in for what @axe/surface/auto's coverage() returns (TODO(merge): the real shape).
+// A stand-in for what @summationai/axe-surface/auto's coverage() returns (TODO(merge): the real shape).
 const REPORT = {
   summary: { controls: 4, named: 3, withReasons: 0 },
   gaps: [

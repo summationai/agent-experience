@@ -4,13 +4,13 @@ Every schema you publish (an action's `input` and `output`, each `accepts[].sche
 
 Three pieces of the SDK handle schemas:
 
-- **The validator**, `validateJsonSchema` in `@axe/core/json-schema`. It checks continuation payloads on the server, a Surface field's `edit.schema` in the browser, tool arguments in the derived MCP server, and examples in the conformance suite. Action inputs are validated by your Zod schema, not by it.
-- **Zod to JSON Schema**, `toJsonSchema` in `@axe/core`, which publishes your Zod schemas in the manifest. It uses Zod 4's own converter.
-- **JSON Schema to Zod**, `jsonSchemaToZod` in `@axe/generate`, which turns an OpenAPI document's schemas into Zod when you [generate actions](generating.md).
+- **The validator**, `validateJsonSchema` in `@summationai/axe-core/json-schema`. It checks continuation payloads on the server, a Surface field's `edit.schema` in the browser, tool arguments in the derived MCP server, and examples in the conformance suite. Action inputs are validated by your Zod schema, not by it.
+- **Zod to JSON Schema**, `toJsonSchema` in `@summationai/axe-core`, which publishes your Zod schemas in the manifest. It uses Zod 4's own converter.
+- **JSON Schema to Zod**, `jsonSchemaToZod` in `@summationai/axe-generate`, which turns an OpenAPI document's schemas into Zod when you [generate actions](generating.md).
 
 ## The supported subset
 
-| Keyword                                                                 | Validator                                                                                                        | Zod to JSON Schema                                              | `@axe/generate`                                                                    |
+| Keyword                                                                 | Validator                                                                                                        | Zod to JSON Schema                                              | `@summationai/axe-generate`                                                                    |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `type` (one or a list; `integer`)                                       | Checked                                                                                                          | Emitted                                                         | Converted, `nullable` too                                                          |
 | `enum`, `const`                                                         | Checked, deep equality                                                                                           | Emitted                                                         | Primitive values; anything else becomes unknown, with a warning                    |
@@ -35,7 +35,7 @@ Three pieces of the SDK handle schemas:
 | `unevaluatedProperties`, `unevaluatedItems`, `$dynamicRef`, `dependencies`, `additionalItems`, an array `items`, any other keyword | Refuses every value                                          | Never emitted                                                   | Dropped, with a warning                                                            |
 | Annotations (`title`, `description`, `default`, `examples`, `readOnly`, `deprecated`, `$comment`, `$id`, `content*`) and `x-` keywords | Ignored                                                        | `description` and `default` emitted; `x-axe-refined` added (below) | `description` and `default` used                                                   |
 
-`SUPPORTED_SCHEMA_KEYWORDS` in `@axe/core/json-schema` lists the validator's assertions, annotations, and formats, for tools that need the list.
+`SUPPORTED_SCHEMA_KEYWORDS` in `@summationai/axe-core/json-schema` lists the validator's assertions, annotations, and formats, for tools that need the list.
 
 ## How unsupported constructs fail
 
@@ -146,11 +146,11 @@ Ajv is the mature choice for full JSON Schema. It was measured against the in-ho
 
 | Validator                                   | Minified | Gzipped |
 | ------------------------------------------- | -------- | ------- |
-| `@axe/core/json-schema` (this subset)       | 10 kB    | 3.6 kB  |
+| `@summationai/axe-core/json-schema` (this subset)       | 10 kB    | 3.6 kB  |
 | Ajv 8, draft 2020-12 entry                  | 134 kB   | 40 kB   |
 | Ajv 8, draft 2020-12 entry and `ajv-formats` | 148 kB   | 44 kB   |
 
-The validator ships in the browser entry of `@axe/surface` (for `edit.schema`), which is held under 50 kB with no Zod, and Ajv compiles schemas with `new Function`, which a strict Content Security Policy and Cloudflare Workers refuse. The subset covers what Zod emits and what the well-known kinds use; what it does not cover, it refuses. The decision is recorded in [DECISIONS.md](../DECISIONS.md).
+The validator ships in the browser entry of `@summationai/axe-surface` (for `edit.schema`), which is held under 50 kB with no Zod, and Ajv compiles schemas with `new Function`, which a strict Content Security Policy and Cloudflare Workers refuse. The subset covers what Zod emits and what the well-known kinds use; what it does not cover, it refuses. The decision is recorded in [DECISIONS.md](../DECISIONS.md).
 
 ## Next steps
 

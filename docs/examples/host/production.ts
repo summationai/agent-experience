@@ -1,8 +1,8 @@
 // Unattended mode in production: the agent signs in with OAuth; the application issues the
 // browser session for the verified person; the host runs the app for them.
-import { createHost } from "@axe/host";
-import type { SessionFor } from "@axe/host";
-import type { OAuthTokenVerifier } from "@axe/mcp";
+import { createHost } from "@summationai/axe-host";
+import type { SessionFor } from "@summationai/axe-host";
+import type { OAuthTokenVerifier } from "@summationai/axe-mcp";
 
 declare const verifier: OAuthTokenVerifier;
 /** Your backend: a short-lived application session for a verified user (your IdP's API). */

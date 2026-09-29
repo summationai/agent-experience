@@ -1,8 +1,8 @@
 /**
- * @axe/generate: derive AXE actions from definitions an application already has.
+ * @summationai/axe-generate: derive AXE actions from definitions an application already has.
  *
  * ```ts
- * import { fromOpenAPI, generate, registerGenerated } from "@axe/generate";
+ * import { fromOpenAPI, generate, registerGenerated } from "@summationai/axe-generate";
  *
  * const generated = generate([fromOpenAPI(document, { baseUrl: "https://api.example" })], {
  *   overrides: { "orders.get": { description: "..." } },

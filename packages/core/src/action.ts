@@ -75,7 +75,7 @@ export interface TenantInfo {
   updatedAt?: string;
 }
 
-/** The helpers every handler receives. They are also importable from `@axe/core`. */
+/** The helpers every handler receives. They are also importable from `@summationai/axe-core`. */
 export interface ResultHelpers {
   ok: typeof ok;
   needsInput: typeof needsInput;

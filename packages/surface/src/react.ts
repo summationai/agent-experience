@@ -1,5 +1,5 @@
 /**
- * @axe/surface/react: keep one entry registered while a component is mounted.
+ * @summationai/axe-surface/react: keep one entry registered while a component is mounted.
  *
  * Refresh replaces the entry in place rather than unregister-then-register: the table is an
  * insertion-ordered map, and delete-then-set would move a row to the end every time a sibling
@@ -10,7 +10,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore }
 import type { DependencyList } from "react";
 import type { Entry, JsonValue, Surface } from "./index";
 import { surface as defaultSurface, surfaceAttributes } from "./index";
-import * as WIRE from "@axe/core/vocabulary";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 
 // Layout effects register before the browser paints, so a control never shows a frame with the
 // previous registration's attributes. On the server neither kind runs; `useEffect` avoids React's

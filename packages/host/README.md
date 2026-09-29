@@ -1,4 +1,4 @@
-# `@axe/host`
+# `@summationai/axe-host`
 
 Runs an application in a private browser session for the identity an agent authenticated as, injects a scoped relay connection, and serves the page’s live Surface without pairing.
 

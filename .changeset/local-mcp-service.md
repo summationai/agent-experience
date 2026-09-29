@@ -1,5 +1,5 @@
 ---
-"@axe/relay": minor
+"@summationai/axe-relay": minor
 "axe": minor
 ---
 

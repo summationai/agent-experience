@@ -2,8 +2,8 @@
  * A source of your own: any registry with typed inputs and a function to call can yield candidates.
  */
 // #region source
-import { z } from "@axe/core";
-import type { ActionSource, GeneratedAction } from "@axe/generate";
+import { z } from "@summationai/axe-core";
+import type { ActionSource, GeneratedAction } from "@summationai/axe-generate";
 
 interface Command {
   id: string;

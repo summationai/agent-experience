@@ -2,8 +2,8 @@
  * A tRPC router read structurally: queries become read actions, mutations need a risk in their meta.
  */
 // #region router
-import { fromTRPCRouter, generate } from "@axe/generate";
-import type { TRPCRouterLike } from "@axe/generate";
+import { fromTRPCRouter, generate } from "@summationai/axe-generate";
+import type { TRPCRouterLike } from "@summationai/axe-generate";
 
 // Your router, for example `export const appRouter = router({ classes: router({ ... }) })`.
 // The adapter needs only `_def.procedures` and `createCaller`, so no tRPC types are imported here.

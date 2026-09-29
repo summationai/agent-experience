@@ -32,7 +32,7 @@ const SKIP_OG = args.includes("--skip-og");
 
 /** One place for the repository location. */
 export const GITHUB_REPO = "https://github.com/summationai/agent-experience";
-export const NPM_URL = "https://www.npmjs.com/package/@axe/core";
+export const NPM_URL = "https://www.npmjs.com/package/@summationai/axe-core";
 const SITE_NAME = "Body Spray";
 const TAGLINE =
   "Agentic eXperience Engineering — because your site should smell good to agents too.";

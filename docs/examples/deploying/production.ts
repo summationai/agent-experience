@@ -1,5 +1,5 @@
 // #region all
-import { createAXE } from "@axe/core";
+import { createAXE } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Oakridge Rentals",

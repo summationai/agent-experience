@@ -1,7 +1,7 @@
 // A draft board registers its controls with a surface. Nothing here is a second API: the handlers
 // are the ones the buttons call.
 // #region create
-import { createSurface } from "@axe/surface";
+import { createSurface } from "@summationai/axe-surface";
 
 export const surface = createSurface({ app: "fantasy-draft" });
 // #endregion create

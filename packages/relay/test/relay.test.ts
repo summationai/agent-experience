@@ -244,7 +244,7 @@ describe.skipIf(noJsdom)("relay: zero-backend browser handoff", () => {
     const landing = await fetch(new URL(path, r.address.url));
     expect(landing.status).toBe(200);
     const html = await landing.text();
-    expect(html).toContain("axe-relay-handoff:");
+    expect(html).toContain("summationai-axe-relay-handoff:");
     expect(html).toContain(`${APP_ORIGIN}/plan`);
     const token = path.split("/").at(-1)!;
 

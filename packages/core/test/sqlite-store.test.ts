@@ -1,7 +1,7 @@
 /**
  * `SqliteIdempotencyStore` over `node:sqlite` (Node 22.5 or newer, without a flag from 22.13).
  * On Node 20, and on a Node 22 that needs `--experimental-sqlite`, the import fails and the suite
- * is skipped with a message; nothing else in `@axe/core` depends on it.
+ * is skipped with a message; nothing else in `@summationai/axe-core` depends on it.
  */
 import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";

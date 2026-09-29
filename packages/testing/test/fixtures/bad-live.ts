@@ -3,7 +3,7 @@
  * an action, envelopes carry no rev, a stale expectedRev is accepted, an unavailable action's
  * reason instructs the agent, and it completes with ok anyway.
  */
-import type { Manifest } from "@axe/core/types";
+import type { Manifest } from "@summationai/axe-core/types";
 
 const MANIFEST: Manifest = {
   protocol: "axe/0.1",

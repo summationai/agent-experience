@@ -13,10 +13,10 @@ Four kinds of evidence are easy to confuse, and these docs keep them apart:
 
 None of these is evidence of production readiness, agent adoption, or commercial value.
 
-Everything here ships in `@axe/testing`:
+Everything here ships in `@summationai/axe-testing`:
 
 ```sh
-npm install -D @axe/testing
+npm install -D @summationai/axe-testing
 ```
 
 ## Unit testing your actions
@@ -184,7 +184,7 @@ Narrow on `status` before touching members. `Result` is a discriminated union, s
 `axe conformance` runs the protocol suite against a live URL and prints one line per check:
 
 ```sh
-npx axe conformance http://localhost:3000
+npx @summationai/axe conformance http://localhost:3000
 ````
 
 ```
@@ -224,7 +224,7 @@ Flags:
 A typical staging run for Oakridge Rentals, whose application flow needs a signed-in renter and a deposit:
 
 ```sh
-npx axe conformance https://staging.oakridge-rentals.example \
+npx @summationai/axe conformance https://staging.oakridge-rentals.example \
   --auth "$AXE_TEST_TOKEN" \
   --ladder applications.submit --ladder-input '{"unitId":"u_204"}'
 ```
@@ -262,10 +262,10 @@ jobs:
           done
 
       - name: Conformance
-        run: npx axe conformance http://localhost:3000
+        run: npx @summationai/axe conformance http://localhost:3000
 
       - name: Audit
-        run: npx axe audit http://localhost:3000 --min-score 80 --html axe-audit.html
+        run: npx @summationai/axe audit http://localhost:3000 --min-score 80 --html axe-audit.html
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -429,7 +429,7 @@ The getting-started example skips 27 checks. That is expected, not a problem. Ea
 - **Unmentioned entries.** Vocabulary names no page mentions.
 - **Unused entries.** Vocabulary names no source file uses.
 - **Missing from types.** `field` and `api` entries that appear in no package's public `.d.ts`, which means the docs describe an API that does not exist.
-- **Literals.** Source files that spell a path, header, or tool name as a string literal instead of reading it from `@axe/core/vocabulary`.
+- **Literals.** Source files that spell a path, header, or tool name as a string literal instead of reading it from `@summationai/axe-core/vocabulary`.
 
 The check passes only when all five lists are empty and the allowlist is shorter than its limit. The allowlist exists for tokens like a file name that happen to match a pattern; the limit keeps it from becoming a way around the check. The reasoning is recorded in [`DECISIONS.md`](../DECISIONS.md#vocabulary-and-drift-prevention).
 
@@ -463,7 +463,7 @@ Run it from your test suite or as a CI step. The first run against an existing s
 Every numbered requirement in [`spec/AXE-PROTOCOL.md`](../spec/AXE-PROTOCOL.md) is mapped to a check or a test, and a test proves the map is complete. A requirement mapped to a conformance check is verified for a given site only when that check runs and passes against it; one mapped to a named test is verified for the SDK's code path that test exercises. `packages/testing/src/conformance/requirements.ts` maps each requirement id to one or more of:
 
 - a conformance check id, when the requirement can be observed from outside against any URL (for example P-IDEM-2 maps to `runtime.idempotency-replay`);
-- a named test in `@axe/core` or `@axe/client`, when the requirement is about behavior only the implementation can show (for example P-TOK-4, "the wire token carries only binding fields", maps to a test in the core token suite).
+- a named test in `@summationai/axe-core` or `@summationai/axe-client`, when the requirement is about behavior only the implementation can show (for example P-TOK-4, "the wire token carries only binding fields", maps to a test in the core token suite).
 
 `packages/testing/test/requirements.test.ts` asserts three things: every `[P-...]` identifier that appears in the spec is in the map and nothing in the map is absent from the spec; every check id the map references is emitted by a real run of the suite against the Oakridge Rentals fixture; and every test name the map references is the title of a real test. Add a requirement to the spec without covering it and the build fails. The map is summarized in the spec's [Appendix B](../spec/AXE-PROTOCOL.md#appendix-b-requirement-index).
 

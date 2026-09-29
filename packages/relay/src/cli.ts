@@ -127,7 +127,7 @@ export async function runRelayCli(argv: string[], io: RelayCliIo = {}): Promise<
     say("Development relay: loopback only, agents pair with the code shown in the tab.");
     say("");
     say("1. In your page (development builds only):");
-    say(`     import { connectRelay, devToken } from "@axe/relay/client";`);
+    say(`     import { connectRelay, devToken } from "@summationai/axe-relay/client";`);
     say(
       `     connectRelay(surface, { url: "${address.tabUrl}", getToken: devToken("${address.url}") });`,
     );
@@ -140,7 +140,7 @@ export async function runRelayCli(argv: string[], io: RelayCliIo = {}): Promise<
         `     claude mcp add --transport http surface ${address.mcpUrl} --header "Authorization: Bearer ${relay.devAgentKey}"`,
       );
       say("   Or let Claude Code start the relay itself (stop this one first):");
-      say(`     claude mcp add surface -- npx axe relay --dev --stdio`);
+      say(`     claude mcp add surface -- npx @summationai/axe relay --dev --stdio`);
     }
     say("");
     say(

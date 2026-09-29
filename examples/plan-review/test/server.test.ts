@@ -5,8 +5,8 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { AXEClient } from "@axe/client";
-import { createMcpServer } from "@axe/mcp";
+import { AXEClient } from "@summationai/axe-client";
+import { createMcpServer } from "@summationai/axe-mcp";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BASE_URL, getAXE, resetAXE } from "../lib/axe";
@@ -557,10 +557,10 @@ describe("reconnect", () => {
 });
 
 describe("execution modes", () => {
-  it("the built @axe/surface/react uses @axe/surface's registry instead of carrying a second one", () => {
+  it("the built @summationai/axe-surface/react uses @summationai/axe-surface's registry instead of carrying a second one", () => {
     // Before the fix, dist/react.js inlined index.ts: the hooks' default target was a second
     // module-level surface that `surface.expose(window)` never showed.
-    const dist = dirname(createRequire(import.meta.url).resolve("@axe/surface/react"));
+    const dist = dirname(createRequire(import.meta.url).resolve("@summationai/axe-surface/react"));
     for (const [file, index] of [
       ["react.js", "./index.js"],
       ["react.cjs", "./index.cjs"],

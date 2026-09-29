@@ -1,4 +1,4 @@
-// `@axe/relay/client` ships in application bundles: no Node built-ins, no Zod, no framework,
+// `@summationai/axe-relay/client` ships in application bundles: no Node built-ins, no Zod, no framework,
 // small, and nothing touched at import time (pages load it with a dynamic import under SSR).
 import { describe, expect, it } from "vitest";
 import { build } from "esbuild";
@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 describe("browser bundle", () => {
-  it("@axe/relay/client bundles for the browser without Node built-ins, Zod, or ws, under 16 kB minified", async () => {
+  it("@summationai/axe-relay/client bundles for the browser without Node built-ins, Zod, or ws, under 16 kB minified", async () => {
     const result = await build({
       stdin: {
         contents: `export { connectRelay, devToken, localMcpService, injectedRelay, relayOptions } from "${join(__dirname, "../src/client.ts").replace(/\\/g, "/")}";`,
@@ -31,7 +31,7 @@ describe("browser bundle", () => {
     // The client imports nothing from the surface at runtime: types only.
     expect(inputs.filter((f) => /packages\/(surface|core)\//.test(f))).toEqual([]);
     const bytes = result.outputFiles[0]!.contents.byteLength;
-    console.log(`@axe/relay/client: ${bytes} bytes minified for the browser`);
+    console.log(`@summationai/axe-relay/client: ${bytes} bytes minified for the browser`);
     expect(bytes, `${bytes} bytes`).toBeLessThan(16 * 1024);
   });
 

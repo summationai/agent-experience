@@ -1,7 +1,7 @@
 /**
  * The files `axe surface init` writes. Each generated file carries MARKER so a second run knows
- * the file is its own. Every name taken from `@axe/surface/auto`, `@axe/surface/react`, or
- * `@axe/relay/client` comes from ./api, so reconciling those packages is one file.
+ * the file is its own. Every name taken from `@summationai/axe-surface/auto`, `@summationai/axe-surface/react`, or
+ * `@summationai/axe-relay/client` comes from ./api, so reconciling those packages is one file.
  */
 import { AUTO_OPTIONS, MODULES, NAMES, PAGE_GLOBAL, PROVIDER_PROPS } from "./api";
 import type { Framework } from "./detect";

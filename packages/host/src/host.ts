@@ -1,5 +1,5 @@
 /**
- * @axe/host: unattended mode (spec/SURFACE.md §9.2, [S-HOST-1] to [S-HOST-9]).
+ * @summationai/axe-host: unattended mode (spec/SURFACE.md §9.2, [S-HOST-1] to [S-HOST-9]).
  *
  * The agent signs in (MCP OAuth, in the agent's own UI). For the principal and tenant its token
  * names, the host runs the application in a headless browser: one shared Chromium, one isolated
@@ -16,9 +16,14 @@ import type { IncomingMessage, Server as HttpServer, ServerResponse } from "node
 import type { AddressInfo, Socket } from "node:net";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Browser, BrowserContext, Page, Route, Request as PwRequest } from "playwright-core";
-import { WIRE } from "@axe/core";
-import type { AdapterContext } from "@axe/core";
-import { createMcpServer, protectedResourceMetadata, serveHttp, serveStdio } from "@axe/mcp";
+import { WIRE } from "@summationai/axe-core";
+import type { AdapterContext } from "@summationai/axe-core";
+import {
+  createMcpServer,
+  protectedResourceMetadata,
+  serveHttp,
+  serveStdio,
+} from "@summationai/axe-mcp";
 import type {
   AuthInfo,
   AxeLike,
@@ -29,17 +34,22 @@ import type {
   OAuthTokenVerifier,
   ProtectedResourceOptions,
   ToolCallContext,
-} from "@axe/mcp";
+} from "@summationai/axe-mcp";
 import {
   createRelay,
   isLoopbackAddress,
   mintRelayToken,
   originMatcher,
   relayAgentContext,
-} from "@axe/relay/server";
-import type { Relay, RelayAgentAuth, RelayEvent, RelayOptions } from "@axe/relay/server";
+} from "@summationai/axe-relay/server";
+import type {
+  Relay,
+  RelayAgentAuth,
+  RelayEvent,
+  RelayOptions,
+} from "@summationai/axe-relay/server";
 // The browser client's constant: importing it runs nothing (the client module touches no DOM at import).
-import { INJECTED_RELAY_GLOBAL } from "@axe/relay/client";
+import { INJECTED_RELAY_GLOBAL } from "@summationai/axe-relay/client";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { contextStorageState, SessionLoginRequired } from "./session";
 import type { AppSession, HostIdentity, SessionFor } from "./session";
@@ -259,7 +269,7 @@ export interface Host {
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const BINDING = "__axeHostRelayToken";
-/** The relay client keeps its tab id under this sessionStorage key (`@axe/relay/client`). */
+/** The relay client keeps its tab id under this sessionStorage key (`@summationai/axe-relay/client`). */
 const TAB_ID_KEY = "axe-relay:tab-id";
 /** Cloud metadata endpoints: never reachable from a hosted page, whatever the configuration. */
 const METADATA_HOSTS = new Set(["169.254.169.254", "metadata.google.internal", "[fd00:ec2::254]"]);

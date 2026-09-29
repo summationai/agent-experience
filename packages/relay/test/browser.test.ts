@@ -1,7 +1,7 @@
 // A real browser: Chromium (Playwright) loads a page from a loopback server, runs a Surface and
 // connectRelay over the browser's own WebSocket, and an MCP client drives it through the relay.
 // The person presses the indicator's Stop in the real DOM. Skipped with a message when no
-// Chromium build is installed (`pnpm --filter @axe/relay exec playwright install chromium`).
+// Chromium build is installed (`pnpm --filter @summationai/axe-relay exec playwright install chromium`).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";

@@ -68,7 +68,7 @@ describe("requirement coverage", () => {
     for (const list of Object.values(REQUIREMENTS))
       for (const c of list) if ("test" in c) names.add(c.test);
     const missing = [...names].filter((n) => {
-      const title = n.replace(/^(@axe\/(core|client|mcp)|plan-review) /, "");
+      const title = n.replace(/^(@summationai\/axe-(core|client|mcp)|plan-review) /, "");
       const words = title.split(/[:;,]/)[0]!.trim();
       return !testFiles.includes(words);
     });

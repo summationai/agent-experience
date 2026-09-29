@@ -2,7 +2,7 @@
 // long as the process runs, are scoped to the caller's user and tenant by the runtime, and call
 // the same handlers as the app's own pages (lib/domain.ts). Nothing here depends on a browser:
 // no closure registered in a page is ever called from this file.
-import { action, createAXE, requestApproval, unavailable, z } from "@axe/core";
+import { action, createAXE, requestApproval, unavailable, z } from "@summationai/axe-core";
 import type {
   AXE,
   AXEActionEvent,
@@ -12,7 +12,7 @@ import type {
   Identity,
   ResultHelpers,
   TenantInfo,
-} from "@axe/core";
+} from "@summationai/axe-core";
 import type { Actor } from "./model";
 import { describeActor, monthLabel, planTotal } from "./model";
 import { lock, setValues, submit, whyNot } from "./domain";

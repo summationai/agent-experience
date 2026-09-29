@@ -17,7 +17,7 @@ There was also no way to host one surface per user on a server: the bridge took 
 
 ## Change
 
-`@axe/surface/axe` (`packages/surface/src/axe.ts`):
+`@summationai/axe-surface/axe` (`packages/surface/src/axe.ts`):
 
 - `surfaceActions(source, options)` declares `auth` on every action. Options: `auth` (default `user`), `read` (mode of `<ns>.observe` and `<ns>.ledger`, default `auth`), `authFor(entry)` (one entry's mode, undefined keeps `auth`). A mode outside `none`, `site`, `user` throws at construction.
 - The default rule: every action the bridge generates carries `auth: "user"` unless the integrator writes otherwise, so a server whose `auth.modes` lacks `user` (including `createAXE`'s public default `{ modes: ["none"] }`) refuses the bridge on its first request through the existing [P-AUTH-1] check, and a surface is public over HTTP only when `auth: "none"` is written.
@@ -27,7 +27,7 @@ There was also no way to host one surface per user on a server: the bridge took 
 - `redactEvent(details, { action, entryId })` rewrites `surface.act` event details; events never carried text or values and still do not.
 - Output schemas carry `sensitive` on observed rows and `textHash` on ledger entries.
 
-`@axe/surface` (`packages/surface/src/index.ts`, additive, outside `act()` except one line in its ledger `record` closure):
+`@summationai/axe-surface` (`packages/surface/src/index.ts`, additive, outside `act()` except one line in its ledger `record` closure):
 
 - `FieldEntry.sensitive`: the row carries `sensitive: true` and no `value` in `observe()` (so also through `expose` and `<ns>.observe`); `describeEntry` says `value hidden`; the ledger never keeps its text.
 - `createSurface({ ledger: { max, text: "keep" | "hash" | "omit", redact } })`; `LedgerEntry.textHash` (hex SHA-256, a synchronous in-package implementation so the browser bundle stays free of Node built-ins). The policy applies to every ledger write: ok, refusals, and thrown handlers. An unresolved target is treated as sensitive while any sensitive entry is registered.

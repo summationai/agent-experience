@@ -1,5 +1,5 @@
 {
-  "name": "@axe/next",
+  "name": "@summationai/axe-next",
   "version": "0.1.0",
   "description": "Mount an AXE server in Next.js App Router route handlers or Pages API routes.",
   "license": "Apache-2.0",
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*"
+    "@summationai/axe-core": "workspace:*"
   },
   "repository": {
     "type": "git",

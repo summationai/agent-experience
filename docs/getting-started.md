@@ -9,7 +9,7 @@ Out of the box Surface discovers the page's controls and keeps their authoritati
 ### 1. Install
 
 ```sh
-npm install @axe/surface @axe/relay
+npm install @summationai/axe-surface @summationai/axe-relay
 ```
 
 While the packages are unpublished, `axe surface init --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the provider-operated Agent Experience service.
@@ -17,7 +17,7 @@ While the packages are unpublished, `axe surface init --vendor <dir> --install` 
 ### 2. Run `axe surface init`
 
 ```sh
-npx axe surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-run
+npx @summationai/axe surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-run
 ```
 
 `axe surface init` detects the framework, the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root component, and prints the diff it would make. For a React Router 7 app it is two lines in `app/root.tsx` plus two new files:
@@ -38,10 +38,10 @@ It is also the upgrade entry point: rerunning it applies narrowly defined safe m
  }
 ```
 
-`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@axe/surface/react` with WebMCP enabled and an injected provider connection through `@axe/relay/client`. It is enabled by default; add an explicit `--flag` only when product rollout requires one. The generated structured profile publishes the stable application id and name plus live authentication/context facts. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
+`app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@summationai/axe-surface/react` with WebMCP enabled and an injected provider connection through `@summationai/axe-relay/client`. It is enabled by default; add an explicit `--flag` only when product rollout requires one. The generated structured profile publishes the stable application id and name plus live authentication/context facts. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
 
 ```sh
-npx axe surface init --app-id acme-analytics --app-name "Acme Analytics" --yes
+npx @summationai/axe surface init --app-id acme-analytics --app-name "Acme Analytics" --yes
 ```
 
 Options that matter on a real app:
@@ -76,8 +76,8 @@ When an authenticated agent has no application session, the provider uses the se
 Run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
 
 ```sh
-npx axe surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
-npx axe surface prompt > integrate-surface.md
+npx @summationai/axe surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
+npx @summationai/axe surface prompt > integrate-surface.md
 ```
 
 The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page, and lists what the page could not say with the rule to paste for each. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout.
@@ -87,9 +87,9 @@ The report opens the app in headless Chromium through Playwright (install it wit
 To exercise the lower-level host directly instead of the provider registry:
 
 ```sh
-npx axe surface init --yes --install
-npx axe host login http://localhost:5173
-claude mcp add myapp -- npx axe host --dev --stdio --app http://localhost:5173
+npx @summationai/axe surface init --yes --install
+npx @summationai/axe host login http://localhost:5173
+claude mcp add myapp -- npx @summationai/axe host --dev --stdio --app http://localhost:5173
 ```
 
 The host runs the app in a private browser and presents the surface over MCP. A brokered session may start it signed in; otherwise a `signed-out` Surface produces a secure view of that same browser for the person to authenticate without sending credentials through chat. The authoritative surface and every agent act remain in the page. This is useful for SDK development; production uses the provider registry and stable MCP endpoint described above. See [Unattended mode](host.md).
@@ -108,11 +108,11 @@ This tutorial uses a yoga studio. Nothing in it is specific to yoga; swap in you
 ### 1. Install
 
 ```sh
-npm install @axe/core @axe/express
-npm install -D axe tsx
+npm install @summationai/axe-core @summationai/axe-express
+npm install -D @summationai/axe tsx
 ```
 
-Use `@axe/next` or `@axe/fetch` instead of `@axe/express` for those frameworks. The `axe` package is the CLI; `tsx` lets the CLI load your TypeScript directly.
+Use `@summationai/axe-next` or `@summationai/axe-fetch` instead of `@summationai/axe-express` for those frameworks. The `@summationai/axe` package is the CLI (its command is `axe`); `tsx` lets the CLI load your TypeScript directly.
 
 ### 2. Declare one action
 
@@ -120,7 +120,7 @@ Create `axe.ts`. It creates the server object and registers a single read-only a
 
 <!-- include: examples/getting-started/axe.ts#all -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Sunrise Yoga Studio",
@@ -236,7 +236,7 @@ You can also scaffold this file with `axe init`, which asks for your framework a
 <!-- include: examples/getting-started/server-express.ts#all -->
 ```ts
 import express from "express";
-import { axeExpress } from "@axe/express";
+import { axeExpress } from "@summationai/axe-express";
 import { axe } from "./axe";
 
 const app = express();
@@ -274,7 +274,7 @@ Create `app/axe/[...axe]/route.ts` and `app/.well-known/axe.json/route.ts`, each
 
 <!-- include: examples/getting-started/route.ts#all -->
 ```ts
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { axe } from "./axe";
 
 export const { GET, POST, OPTIONS } = axeNext(axe);
@@ -289,7 +289,7 @@ See [Next.js integration](integrations/next.md) for the Pages API and for passin
 ```ts
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 
 const app = new Hono();
@@ -308,7 +308,7 @@ See [fetch integration](integrations/fetch.md) for each framework's exact mount.
 ### 4. Look at it the way an agent does
 
 ```sh
-npx axe inspect http://localhost:3000
+npx @summationai/axe inspect http://localhost:3000
 ````
 
 ```
@@ -365,7 +365,7 @@ Every response is a result envelope with a `status`. The five statuses and when 
 `axe validate` loads your file, validates the manifest against the schema, and lints the agent-read text:
 
 ```sh
-npx axe validate ./axe.ts
+npx @summationai/axe validate ./axe.ts
 ```
 
 ```
@@ -380,7 +380,7 @@ npx axe validate ./axe.ts
 `axe conformance` runs the protocol suite against the live server. This is how you know you are done:
 
 ```sh
-npx axe conformance http://localhost:3000
+npx @summationai/axe conformance http://localhost:3000
 ```
 
 ```
@@ -407,7 +407,7 @@ The skipped checks exercise mutating actions and the escalation ladder; they run
 `axe audit` gives you the AXE Score and a fix list, in the style of Lighthouse:
 
 ```sh
-npx axe audit http://localhost:3000
+npx @summationai/axe audit http://localhost:3000
 ```
 
 ```
@@ -443,7 +443,7 @@ Restart Claude Desktop. It now has a `classes_search` tool (dots become undersco
 
 > What yin classes does Sunrise Yoga have on October 1st?
 
-Claude calls `classes_search` with `{ "from": "2026-10-01", "style": "yin" }`, and because the action declares `display`, the tool result includes a comparison table with a link to each class alongside the raw JSON. For Claude Code, run `claude mcp add sunrise-yoga -- npx -y axe mcp http://localhost:3000`. Details and the full mapping are in [MCP](mcp.md).
+Claude calls `classes_search` with `{ "from": "2026-10-01", "style": "yin" }`, and because the action declares `display`, the tool result includes a comparison table with a link to each class alongside the raw JSON. For Claude Code, run `claude mcp add sunrise-yoga -- npx -y @summationai/axe mcp http://localhost:3000`. Details and the full mapping are in [MCP](mcp.md).
 
 ### What you have
 

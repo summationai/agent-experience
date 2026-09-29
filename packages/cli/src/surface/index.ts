@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as WIRE from "@axe/core/vocabulary";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import type { CommandContext } from "../index";
 import { surfaceInit } from "./init";
 import { surfaceCoverage } from "./coverage";

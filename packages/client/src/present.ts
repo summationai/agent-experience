@@ -1,5 +1,5 @@
 /**
- * @axe/client/present: turn an `ok` result into a `PresentedResult` and render it
+ * @summationai/axe-client/present: turn an `ok` result into a `PresentedResult` and render it
  * for chat (Markdown) or a self-contained page (HTML). Nothing site-specific runs:
  * every string is escaped, URLs are validated, and the only script is the SDK's own.
  */
@@ -10,17 +10,21 @@ import type {
   Manifest,
   OkResult,
   Result,
-} from "@axe/core/types";
-import type { PresentedAttribute, PresentedItem, PresentedResult } from "@axe/core/display";
-import { resolveDisplay } from "@axe/core/display";
-import * as WIRE from "@axe/core/vocabulary";
+} from "@summationai/axe-core/types";
+import type {
+  PresentedAttribute,
+  PresentedItem,
+  PresentedResult,
+} from "@summationai/axe-core/display";
+import { resolveDisplay } from "@summationai/axe-core/display";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 
 export type {
   PresentedResult,
   PresentedItem,
   PresentedAttribute,
   ResolvedAffordance,
-} from "@axe/core/display";
+} from "@summationai/axe-core/display";
 
 /** Apply an action's `display` to an `ok` result. Throws when the result is not `ok`. */
 export function present(

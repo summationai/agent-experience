@@ -1,8 +1,8 @@
 // Two granularities over one surface: one action per control, or a few parameterized actions.
 // Both run the same handlers through `surface.act`, under the same revision, into the same ledger.
 // #region domain
-import { createAXE } from "@axe/core";
-import { domainActions, surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { domainActions, surfaceActions } from "@summationai/axe-surface/axe";
 import { surface } from "./board";
 
 export const axe = createAXE({

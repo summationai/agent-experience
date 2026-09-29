@@ -1,5 +1,5 @@
 {
-  "name": "axe",
+  "name": "@summationai/axe",
   "version": "0.1.0",
   "description": "Command-line tool for AXE and Surface: init, validate, inspect, preview, conformance, audit, mcp, generate, relay, host, surface init, surface coverage.",
   "license": "Apache-2.0",
@@ -24,14 +24,14 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*",
-    "@axe/client": "workspace:*",
-    "@axe/mcp": "workspace:*",
-    "@axe/testing": "workspace:*",
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-client": "workspace:*",
+    "@summationai/axe-mcp": "workspace:*",
+    "@summationai/axe-testing": "workspace:*",
     "tsx": "^4.23.15",
-    "@axe/generate": "workspace:*",
-    "@axe/relay": "workspace:*",
-    "@axe/host": "workspace:*"
+    "@summationai/axe-generate": "workspace:*",
+    "@summationai/axe-relay": "workspace:*",
+    "@summationai/axe-host": "workspace:*"
   },
   "repository": {
     "type": "git",
@@ -48,7 +48,7 @@
     "axe": "./dist/index.js"
   },
   "devDependencies": {
-    "@axe/express": "workspace:*",
+    "@summationai/axe-express": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.1"
   }
 }

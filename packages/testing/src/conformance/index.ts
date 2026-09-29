@@ -12,7 +12,7 @@ import type {
   Result,
   JsonValue,
   JsonSchema,
-} from "@axe/core/types";
+} from "@summationai/axe-core/types";
 import {
   LiveStateSchema,
   ManifestSchema,
@@ -20,7 +20,7 @@ import {
   ResultSchema,
   validateJsonSchema,
   schemasStructurallyEqual,
-} from "@axe/core/schemas";
+} from "@summationai/axe-core/schemas";
 import {
   resolveDisplay,
   validateDisplay,
@@ -29,11 +29,16 @@ import {
   validateFreshness,
   schemaMentionsReserved,
   validateAffordanceBinding,
-} from "@axe/core/display";
-import { lintManifest, isBareQuerySearch, lintAgentText } from "@axe/core/lint";
-import { WELL_KNOWN_KINDS, isCustomKind, kindJsonSchema, suggestedReason } from "@axe/core/kinds";
-import { getPointer } from "@axe/core";
-import * as WIRE from "@axe/core/vocabulary";
+} from "@summationai/axe-core/display";
+import { lintManifest, isBareQuerySearch, lintAgentText } from "@summationai/axe-core/lint";
+import {
+  WELL_KNOWN_KINDS,
+  isCustomKind,
+  kindJsonSchema,
+  suggestedReason,
+} from "@summationai/axe-core/kinds";
+import { getPointer } from "@summationai/axe-core";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import { samplePayload } from "../helpers";
 
 export type CheckStatus = "pass" | "fail" | "warn" | "skip";

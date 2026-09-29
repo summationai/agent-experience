@@ -5,7 +5,7 @@
 // #region all
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
-import { axeExpress } from "@axe/express";
+import { axeExpress } from "@summationai/axe-express";
 import { axe } from "./axe";
 
 const app = express();

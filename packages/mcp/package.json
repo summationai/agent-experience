@@ -1,5 +1,5 @@
 {
-  "name": "@axe/mcp",
+  "name": "@summationai/axe-mcp",
   "version": "0.1.0",
   "description": "Derive a Model Context Protocol server from any AXE manifest or server.",
   "license": "Apache-2.0",
@@ -31,8 +31,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/client": "workspace:*",
-    "@axe/core": "workspace:*",
+    "@summationai/axe-client": "workspace:*",
+    "@summationai/axe-core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "zod": "^4.6.5"
   },

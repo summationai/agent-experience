@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAXE, toJsonSchema, z } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
+import { createAXE, toJsonSchema, z } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
 import type {
   AXEActionEvent,
   ActionDefinition,
@@ -10,9 +10,9 @@ import type {
   NeedsHumanResult,
   NeedsInputResult,
   OkResult,
-} from "@axe/core/types";
-import { ManifestSchema } from "@axe/core/schemas";
-import { runConformance, formatConformanceTable } from "@axe/testing";
+} from "@summationai/axe-core/types";
+import { ManifestSchema } from "@summationai/axe-core/schemas";
+import { runConformance, formatConformanceTable } from "@summationai/axe-testing";
 import { createSurface } from "../src/index";
 import type { Surface } from "../src/index";
 import { entrySlug, surfaceActions } from "../src/axe";

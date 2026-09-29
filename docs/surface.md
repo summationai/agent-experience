@@ -1,6 +1,6 @@
 # Surface: live state for agents
 
-The protocol in [Concepts](concepts.md) is outside-in: a site declares actions for the world's agents, with discovery, requirements, and handoff. Surface is the inside-out half: a running application publishes its live controls, with availability and reasons, under one revision, and an agent acts through the application's own handlers. `@axe/surface` implements it and `@axe/surface/axe` serves any surface as an AXE manifest, so the two halves share kinds, risk metadata, the result envelope, and the ladder. The normative text is [`spec/SURFACE.md`](../spec/SURFACE.md).
+The protocol in [Concepts](concepts.md) is outside-in: a site declares actions for the world's agents, with discovery, requirements, and handoff. Surface is the inside-out half: a running application publishes its live controls, with availability and reasons, under one revision, and an agent acts through the application's own handlers. `@summationai/axe-surface` implements it and `@summationai/axe-surface/axe` serves any surface as an AXE manifest, so the two halves share kinds, risk metadata, the result envelope, and the ladder. The normative text is [`spec/SURFACE.md`](../spec/SURFACE.md).
 
 ## Why a second shape
 
@@ -37,7 +37,7 @@ Every control that matters registers one entry: a stable `id`, a `kind` (`action
 
 <!-- include: examples/surface/board.ts#create -->
 ```ts
-import { createSurface } from "@axe/surface";
+import { createSurface } from "@summationai/axe-surface";
 
 export const surface = createSurface({ app: "fantasy-draft" });
 ```
@@ -85,7 +85,7 @@ export function registerRow(
 
 `effect` is AXE's risk metadata: `mutates` names the state that changes, and `idempotent`, `reversible`, and `risk` mean what they mean on an [action](designing-actions.md#choosing-risk). `confirm` makes the act require explicit confirmation; `text` is the prompt for free text the handler takes ("reason for the lock").
 
-Fields register a `value` and an `edit` descriptor (read-only with a reason, or editable with a `maxLength` and an optional `schema`). The schema is a JSON Schema for the text, or a Zod schema: the surface validates a Zod schema by calling its `safeParse` and never imports Zod itself, so a browser bundle of `@axe/surface` carries none. To publish a Zod schema in `observe()` the surface needs a converter: pass `toJsonSchema` from `@axe/core` as `createSurface({ toJsonSchema })` (or `configure({ toJsonSchema })`); registering a Zod schema without one throws with that instruction. The same converter renders the `requires` schemas below, which `accept()` from `@axe/core/kinds` builds with Zod. A JSON Schema needs nothing. Collections register `total`, `loaded`, `filter`, and `sort`, and are actionable when they can load more.
+Fields register a `value` and an `edit` descriptor (read-only with a reason, or editable with a `maxLength` and an optional `schema`). The schema is a JSON Schema for the text, or a Zod schema: the surface validates a Zod schema by calling its `safeParse` and never imports Zod itself, so a browser bundle of `@summationai/axe-surface` carries none. To publish a Zod schema in `observe()` the surface needs a converter: pass `toJsonSchema` from `@summationai/axe-core` as `createSurface({ toJsonSchema })` (or `configure({ toJsonSchema })`); registering a Zod schema without one throws with that instruction. The same converter renders the `requires` schemas below, which `accept()` from `@summationai/axe-core/kinds` builds with Zod. A JSON Schema needs nothing. Collections register `total`, `loaded`, `filter`, and `sort`, and are actionable when they can load more.
 
 Each of them also receives the act's context as its last argument (`ActContext`: the entry `id`, the `op`, the `expectedRev` the agent presented, and the `actor`), for a write that has to carry the revision; see [Writing under a precondition](#writing-under-a-precondition). A handler, a field's `set`, or a collection's `more` may return `{ changed, rev }` (or a promise of it): `changed` names the entries the act moved and `rev` is the application's revision after the change. The surface folds both into the act result and the ledger. An application that bumps the revision itself can return nothing: `changed` is then the entry when the revision moved during the handler.
 
@@ -106,7 +106,7 @@ surface.expose(typeof window !== "undefined" ? window : null);
 
 `expose` publishes `observe`, `act`, `ledger`, and `rev` on the page for browser-driving agents. It is browser-local: anything running in the page can already read what the page shows and call its handlers, so `expose` gives no one access they did not have, and it needs no auth. Serving the same surface over HTTP is different; see [Who can observe and act](#who-can-observe-and-act). The names those agents read on the page come from the same entries; see [Accessible names](#accessible-names). In the first trial, two of three gains came from the names alone.
 
-In a browser with WebMCP, the page can also offer the same controls to the browser's own agent as tools: use `<SurfaceProvider webMcp>` in React, or `exposeWebMcp(surface)` from `@axe/surface/webmcp` directly. Both register nothing where the browser has no WebMCP. See [WebMCP](webmcp.md).
+In a browser with WebMCP, the page can also offer the same controls to the browser's own agent as tools: use `<SurfaceProvider webMcp>` in React, or `exposeWebMcp(surface)` from `@summationai/axe-surface/webmcp` directly. Both register nothing where the browser has no WebMCP. See [WebMCP](webmcp.md).
 
 ## Observe and act
 
@@ -116,7 +116,7 @@ In a browser with WebMCP, the page can also offer the same controls to the brows
 
 <!-- include: examples/surface/agent.ts#loop -->
 ```ts
-import type { Surface } from "@axe/surface";
+import type { Surface } from "@summationai/axe-surface";
 
 export async function draftBestAvailable(
   surface: Surface,
@@ -156,7 +156,7 @@ The surface's checks guard one surface. Two tabs of a server-state application e
 
 <!-- include: examples/surface/precondition.ts#precondition -->
 ```ts
-import { createSurface, SurfaceConflict } from "@axe/surface";
+import { createSurface, SurfaceConflict } from "@summationai/axe-surface";
 
 interface Plan {
   revision: number;
@@ -312,9 +312,9 @@ An unavailable action can declare `requires`, the same `accepts` list an AXE `ne
 
 <!-- include: examples/surface/requires.ts#lock -->
 ```ts
-import { createSurface } from "@axe/surface";
-import { toJsonSchema } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
+import { createSurface } from "@summationai/axe-surface";
+import { toJsonSchema } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
 
 const plan = { approved: false, locked: false, revision: 129 };
 // The server owns the revision (adopted as is with setRev), and the kinds below carry Zod
@@ -379,8 +379,8 @@ Every entry becomes its own AXE action, and every action the bridge generates is
 
 <!-- include: examples/surface/serve.ts#serve -->
 ```ts
-import { createAXE } from "@axe/core";
-import { surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { surfaceActions } from "@summationai/axe-surface/axe";
 import { surface } from "./board";
 
 export const axe = createAXE({
@@ -440,8 +440,8 @@ The set is rebuilt only when the registry changed shape (`registryVersion` moved
 
 <!-- include: examples/surface/granularity.ts#domain -->
 ```ts
-import { createAXE } from "@axe/core";
-import { domainActions, surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { domainActions, surfaceActions } from "@summationai/axe-surface/axe";
 import { surface } from "./board";
 
 export const axe = createAXE({
@@ -712,8 +712,8 @@ export function mirror(element: Element, id: string): void {
 
 <!-- include: examples/surface/dom.ts#attributes -->
 ```ts
-import { describeEntry, surfaceAttributes, surfaceSelector } from "@axe/surface";
-import type { Entry } from "@axe/surface";
+import { describeEntry, surfaceAttributes, surfaceSelector } from "@summationai/axe-surface";
+import type { Entry } from "@summationai/axe-surface";
 import { surface } from "./board";
 
 // Rendering by hand: carry every attribute the helper returns on the element that receives the
@@ -760,7 +760,7 @@ export function logSurface(): void {
 `useSurfaceProps(entry, deps)` registers the same way and returns the [accessible-name attributes](#accessible-names) as props: `aria-label`, `data-surface-id`, `data-surface-kind`, `data-surface-object`, and `aria-disabled` or `aria-readonly` as booleans with `data-surface-reason`. The props follow the surface's live availability, so a frozen surface shows on every mounted control and the component re-renders when that changes. Spread them onto the element that receives the interaction and keep your own `disabled`; `deps` are the values the entry was computed from, as with `useSurface`.
 
 ```tsx
-import { useSurfaceProps } from "@axe/surface/react";
+import { useSurfaceProps } from "@summationai/axe-surface/react";
 
 function DraftButton({ player, available, reason, onDraft }: RowProps) {
   const props = useSurfaceProps(
@@ -801,13 +801,13 @@ A surface lives in the JavaScript realm that created it ([S-MODE-1] to [S-MODE-4
 - **Browser-local.** A surface created in the page, with entries registered by the page's components through `useSurface` or `useSurfaceProps`, belongs to that tab and that page instance. Its handlers close over the page's state and act with the page's session. Code in the page reaches it through `expose(window)` or an in-page adapter; nothing else does. When a component unmounts or the person navigates away, its entries leave the table, and nothing changes on the server.
 - **Server-side.** A surface created in a server process, or hand-written `action()`s, lives as long as the process and is served through AXE with `surfaceActions`, scoped to the caller's user and tenant by the runtime (`scopedSurfaces` gives one surface per caller). It must not depend on anything a browser registered.
 
-Importing the same module in a Next route handler and in a page does not make one surface: the route gets its own, empty. The SDK carries entries and acts between a page and anything outside it in one way only: `@axe/relay`, which the page connects explicitly and which serves the page's surface to agents authenticated as the same person ([Relay](relay.md)). Nothing else carries entries, acts, or sessions between a page and a server, between tabs, or between devices. State several people or agents share belongs on the server, changed through server-side capabilities that write conditionally; a page surface in `app` revision mode adopts the server's revision with `setRev`, so an agent in the page and an agent on the server present the same `expectedRev`.
+Importing the same module in a Next route handler and in a page does not make one surface: the route gets its own, empty. The SDK carries entries and acts between a page and anything outside it in one way only: `@summationai/axe-relay`, which the page connects explicitly and which serves the page's surface to agents authenticated as the same person ([Relay](relay.md)). Nothing else carries entries, acts, or sessions between a page and a server, between tabs, or between devices. State several people or agents share belongs on the server, changed through server-side capabilities that write conditionally; a page surface in `app` revision mode adopts the server's revision with `setRev`, so an agent in the page and an agent on the server present the same `expectedRev`.
 
 The [reference application](reference-app.md) has both: the plan's domain actions on the server, the page's drafts, Save, scrolling, and dialog on a page surface, and a table of who owns what.
 
 ## What Surface does not do
 
-It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. `surface.observe()` returns every row; the bridge's `<ns>.observe` filters and pages ([Choosing granularity](#choosing-granularity)), but nothing limits a local caller to the visible window of a long list. The revision is per application instance, and there is no shared registry between tabs or between a page and a server (see [Where a surface runs](#where-a-surface-runs)). It does not bundle Zod: `@axe/surface` and `@axe/surface/react` bundle for the browser at about 26 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@axe/surface/axe` is the server side and carries Zod through `@axe/core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
+It does not authorize inside the application: the bridge's `auth` decides which callers reach the surface at all, and the handlers still decide what each caller may do. It does not decide anything, run without the application (the handlers are the application's), or replace the manifest for actions that have no control on screen. `surface.observe()` returns every row; the bridge's `<ns>.observe` filters and pages ([Choosing granularity](#choosing-granularity)), but nothing limits a local caller to the visible window of a long list. The revision is per application instance, and there is no shared registry between tabs or between a page and a server (see [Where a surface runs](#where-a-surface-runs)). It does not bundle Zod: `@summationai/axe-surface` and `@summationai/axe-surface/react` bundle for the browser at about 26 kB minified, and the bundle test in `packages/surface/test` keeps them free of Node built-ins and of Zod; `@summationai/axe-surface/axe` is the server side and carries Zod through `@summationai/axe-core`. While the packages are unpublished, [Consume from a checkout](deploying.md#consume-from-a-checkout) says how to install them from tarballs.
 
 ## Next steps
 

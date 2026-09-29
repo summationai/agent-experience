@@ -3,13 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "SurfaceProvider and autoSurface on React 19: the built @axe/surface packages, mounted in jsdom against React 19, acting through React's own onChange and onClick.",
+  "description": "SurfaceProvider and autoSurface on React 19: the built @summationai/axe-surface packages, mounted in jsdom against React 19, acting through React's own onChange and onClick.",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
-    "@axe/surface": "workspace:*",
+    "@summationai/axe-surface": "workspace:*",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

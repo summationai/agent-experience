@@ -24,7 +24,7 @@ Every term in these docs, alphabetically, linking to the page that defines it. C
 
 **display** — The optional `display` object on an action: where the list is, the item's `id`, `title`, `url`, `price`, `attributes`, and the `disclaimer` that must accompany any rendering. Data about data, never markup. See [Presenting results](presenting-results.md#annotating-an-output-schema).
 
-**drift test** — The `@axe/testing` check (`checkVocabularyDrift`) that scans every Markdown page for inline code spans that look like wire names and fails when one is not in the vocabulary. See [Testing and conformance](testing-and-conformance.md).
+**drift test** — The `@summationai/axe-testing` check (`checkVocabularyDrift`) that scans every Markdown page for inline code spans that look like wire names and fails when one is not in the vocabulary. See [Testing and conformance](testing-and-conformance.md).
 
 **escalation ladder** — The order a site responds in when an action cannot complete: `ok`; otherwise ask the agent for something it may hold (`needs_input`); otherwise hand off to the human (`needs_human`). See [Concepts](concepts.md#the-escalation-ladder).
 
@@ -56,7 +56,7 @@ Every term in these docs, alphabetically, linking to the page that defines it. C
 
 **pointer** — An RFC 6901 JSON Pointer such as `/units` or `/price/amount`. Every `display` location and static affordance binding is one. See [Presenting results](presenting-results.md).
 
-**presented result** — An `ok` result with its `display` applied: items with resolved title, URL, price, attributes, badges, and affordances, ready for `toMarkdown` or `toHTML`. Produced by `present` in `@axe/client/present`. See [Presenting results](presenting-results.md).
+**presented result** — An `ok` result with its `display` applied: items with resolved title, URL, price, attributes, badges, and affordances, ready for `toMarkdown` or `toHTML`. Produced by `present` in `@summationai/axe-client/present`. See [Presenting results](presenting-results.md).
 
 **primary affordance** — The one affordance per item marked `primary`: the default next step. At most one per item. See [Presenting results](presenting-results.md#affordances).
 

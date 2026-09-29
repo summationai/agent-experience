@@ -1,5 +1,5 @@
 {
-  "name": "@axe/mcp-service",
+  "name": "@summationai/summationai-axe-mcp-service",
   "version": "0.1.0",
   "private": true,
   "description": "Company-operated MCP and browser relay service for Agent Experience Surface integrations.",
@@ -18,9 +18,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/host": "workspace:*",
-    "@axe/mcp": "workspace:*",
-    "@axe/relay": "workspace:*",
+    "@summationai/axe-host": "workspace:*",
+    "@summationai/axe-mcp": "workspace:*",
+    "@summationai/axe-relay": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "ws": "^8.21.3"
   },

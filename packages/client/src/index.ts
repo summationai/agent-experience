@@ -1,5 +1,5 @@
 /**
- * @axe/client: the agent side of AXE. Discover a manifest, invoke actions, satisfy
+ * @summationai/axe-client: the agent side of AXE. Discover a manifest, invoke actions, satisfy
  * requirements from registered fulfillers, hand off to humans, resume, poll.
  * No runtime dependencies; runs in Node 20+ and browsers.
  */
@@ -20,8 +20,8 @@ import type {
   Result,
   Revision,
   Accept,
-} from "@axe/core/types";
-import * as WIRE from "@axe/core/vocabulary";
+} from "@summationai/axe-core/types";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 
 export type {
   ActionDefinition,
@@ -39,7 +39,7 @@ export type {
   Live,
   LiveState,
   Revision,
-} from "@axe/core/types";
+} from "@summationai/axe-core/types";
 
 type MaybePromise<T> = T | Promise<T>;
 type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;

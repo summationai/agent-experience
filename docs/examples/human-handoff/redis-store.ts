@@ -4,7 +4,7 @@
  * ioredis satisfies it as written.
  */
 // #region all
-import type { TokenRecord, TokenStore } from "@axe/core";
+import type { TokenRecord, TokenStore } from "@summationai/axe-core";
 
 /** The three calls this store needs from a Redis client. */
 export interface RedisLike {

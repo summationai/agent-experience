@@ -34,7 +34,7 @@ export const LANES = [
   {
     variant: "v2 + WebMCP",
     agent:
-      "a browser agent that reads the page surface through document.modelContext (@axe/surface/webmcp), only where the browser provides the API",
+      "a browser agent that reads the page surface through document.modelContext (@summationai/axe-surface/webmcp), only where the browser provides the API",
   },
 ] as const;
 

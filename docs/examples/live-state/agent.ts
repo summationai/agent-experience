@@ -2,9 +2,9 @@
  * An agent that reads the state it is about to act on, acts with `expectedRev`, and reads again
  * when someone else moved first.
  */
-import type { AXEClient } from "@axe/client";
-import { isError, isOk } from "@axe/client";
-import { stateToMarkdown } from "@axe/client/present";
+import type { AXEClient } from "@summationai/axe-client";
+import { isError, isOk } from "@summationai/axe-client";
+import { stateToMarkdown } from "@summationai/axe-client/present";
 
 // #region loop
 export async function bookWhenOpen(client: AXEClient, classId: string): Promise<string> {

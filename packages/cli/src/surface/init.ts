@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { createInterface } from "node:readline/promises";
-import * as WIRE from "@axe/core/vocabulary";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import type { CommandContext } from "../index";
 import { parse } from "../commands/shared";
 import { DEV_RELAY_URL, PACKAGES } from "./api";
@@ -311,8 +311,8 @@ function tarballs(vendorAbs: string | undefined): Record<string, string> {
   const names = vendorAbs && existsSync(vendorAbs) ? readdirSync(vendorAbs) : [];
   for (const pkg of ["core", "surface", "relay"]) {
     out[pkg] =
-      names.find((n) => n.startsWith(`axe-${pkg}-`) && n.endsWith(".tgz")) ??
-      `axe-${pkg}-0.1.0.tgz`;
+      names.find((n) => n.startsWith(`summationai-axe-${pkg}-`) && n.endsWith(".tgz")) ??
+      `summationai-axe-${pkg}-0.1.0.tgz`;
   }
   return out;
 }
@@ -441,8 +441,8 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
           {
             text: `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward). The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
             more: [
-              `npx ${WIRE.cli.host} login ${devUrl}`,
-              `npx ${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
+              `npx @summationai/${WIRE.cli.host} login ${devUrl}`,
+              `npx @summationai/${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
             ],
           },
         ]
@@ -451,9 +451,11 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
             text: "Open the app in an agent browser that implements WebMCP and delivers Site tools to the task. For desktop MCP agents, re-run with --relay-dev to connect the page to the separately operated local service.",
           },
         ]),
-    { text: `See what an agent sees: npx ${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]` },
     {
-      text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: npx ${WIRE.cli.surface} prompt`,
+      text: `See what an agent sees: npx @summationai/${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]`,
+    },
+    {
+      text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: npx @summationai/${WIRE.cli.surface} prompt`,
     },
     {
       text: !remote

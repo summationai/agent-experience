@@ -3,8 +3,8 @@
  * with the shop's session cookie, while agents call it server to server with bearer tokens.
  */
 import express from "express";
-import { createAXE, action, z } from "@axe/core";
-import { axeExpress } from "@axe/express";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { axeExpress } from "@summationai/axe-express";
 
 // Stand-in for your session store.
 const sessions = new Map<string, string>([["s_4c9e", "cust_8812"]]);

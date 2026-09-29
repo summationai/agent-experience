@@ -1,10 +1,10 @@
 # MCP
 
-Every AXE manifest is also a Model Context Protocol server. `@axe/mcp` derives one from an `AXE` instance, a manifest object, or a URL, so the actions you declared once are callable from Claude Desktop, Claude Code, and any other MCP client without a second integration. This page is the exact mapping between the two protocols, how to connect clients, and what the derived server does not do.
+Every AXE manifest is also a Model Context Protocol server. `@summationai/axe-mcp` derives one from an `AXE` instance, a manifest object, or a URL, so the actions you declared once are callable from Claude Desktop, Claude Code, and any other MCP client without a second integration. This page is the exact mapping between the two protocols, how to connect clients, and what the derived server does not do.
 
 ## What it is
 
-`createMcpServer` takes one of three sources and returns the MCP `Server`, the `@axe/client` instance it uses to make calls, the manifest, and the tool list:
+`createMcpServer` takes one of three sources and returns the MCP `Server`, the `@summationai/axe-client` instance it uses to make calls, the manifest, and the tool list:
 
 - An `AXE` instance from `createAXE`. Tool calls go to its fetch handler in-process; no network, no discovery.
 - A manifest object. Tool calls go over HTTP to the manifest's `baseUrl`.
@@ -16,7 +16,7 @@ In-process over stdio:
 
 <!-- include: examples/mcp/serve.ts#stdio -->
 ```ts
-import { createMcpServer, serveStdio } from "@axe/mcp";
+import { createMcpServer, serveStdio } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 // In-process: every tool call goes straight to axe.handle(); nothing touches the network.
@@ -35,8 +35,8 @@ Mounted at `/mcp` in Hono, beside the AXE endpoints themselves:
 ```ts
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
-import { createMcpServer, serveHttp } from "@axe/mcp";
+import { axeFetch } from "@summationai/axe-fetch";
+import { createMcpServer, serveHttp } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 const app = new Hono();
@@ -59,7 +59,7 @@ For a site you do not run, the CLI does the same from the command line: `axe mcp
 
 ## The mapping table
 
-The derived server is a bridge, not a second model of your site. Each row below is exactly what `@axe/mcp` does in v0.
+The derived server is a bridge, not a second model of your site. Each row below is exactly what `@summationai/axe-mcp` does in v0.
 
 | AXE                                                     | MCP                                                                                                                                                                                                                                              |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -89,7 +89,7 @@ MCP already has counterparts for several things AXE defines, and the bridge uses
 
 - **Asking the user for something.** MCP elicitation (specification 2025-11-25) lets a server ask the user through the client in the middle of a tool call: a form of primitive fields, or a URL the user opens. The bridge uses a form for a `needs_input` whose kind is not sensitive and URL mode for sensitive kinds and `needs_human` steps. See [Elicitation](#elicitation).
 - **Presenting results.** The MCP Apps extension (`io.modelcontextprotocol/ui`, stable version 2026-01-26) lets a host render a server's HTML view beside a tool result. The bridge offers one for actions with `display`. See [MCP Apps view](#mcp-apps-view-experimental).
-- **Authorization.** MCP makes an HTTP server an OAuth 2.1 resource server: it verifies access tokens that an authorization server issued and publishes RFC 9728 protected-resource metadata. `@axe/mcp` does both ([Authentication over HTTP](#authentication-over-http)). Issuing tokens is the authorization server's job, and this package deliberately does not do it.
+- **Authorization.** MCP makes an HTTP server an OAuth 2.1 resource server: it verifies access tokens that an authorization server issued and publishes RFC 9728 protected-resource metadata. `@summationai/axe-mcp` does both ([Authentication over HTTP](#authentication-over-http)). Issuing tokens is the authorization server's job, and this package deliberately does not do it.
 
 What AXE adds on top of those, and the bridge carries through:
 
@@ -117,7 +117,7 @@ MCP elicitation lets the server ask the user a question through the client while
 
 <!-- include: examples/mcp/elicitation.ts#elicitation -->
 ```ts
-import { createMcpServer, serveHttp } from "@axe/mcp";
+import { createMcpServer, serveHttp } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 // Elicitation and the Apps view are on by default and used only with clients that declare them.
@@ -176,10 +176,10 @@ For actions with `auth: "user"`, add the user's bearer token so it is sent on ev
 Claude Code registers the same command:
 
 ```sh
-claude mcp add oakridge-rentals -- npx -y axe mcp https://oakridge-rentals.example
+claude mcp add oakridge-rentals -- npx -y @summationai/axe mcp https://oakridge-rentals.example
 ```
 
-Any stdio MCP client works the same way: run `npx -y axe mcp <url>` as the server command. Streamable HTTP clients point at your `/mcp` mount from the Hono example above. `axe mcp` writes one status line to standard error when it starts (site name and tool count), nothing else, and exits when the client closes standard input.
+Any stdio MCP client works the same way: run `npx -y @summationai/axe mcp <url>` as the server command. Streamable HTTP clients point at your `/mcp` mount from the Hono example above. `axe mcp` writes one status line to standard error when it starts (site name and tool count), nothing else, and exits when the client closes standard input.
 
 ## HTTP: requests, sessions, and cleanup
 
@@ -194,16 +194,16 @@ A request whose `Origin` header is neither the endpoint's own origin nor in `all
 
 ## Authentication over HTTP
 
-The MCP authorization model makes an HTTP MCP server an OAuth 2.1 resource server: an authorization server you already run issues access tokens for the MCP endpoint, and the MCP server checks each one. `@axe/mcp` does the checking; it does not issue tokens.
+The MCP authorization model makes an HTTP MCP server an OAuth 2.1 resource server: an authorization server you already run issues access tokens for the MCP endpoint, and the MCP server checks each one. `@summationai/axe-mcp` does the checking; it does not issue tokens.
 
 <!-- include: examples/mcp/oauth.ts#resource-server -->
 ```ts
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
-import { axeFetch } from "@axe/fetch";
-import { createMcpServer, protectedResourceMetadata, serveHttp } from "@axe/mcp";
-import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
+import { axeFetch } from "@summationai/axe-fetch";
+import { createMcpServer, protectedResourceMetadata, serveHttp } from "@summationai/axe-mcp";
+import type { AuthInfo, OAuthTokenVerifier } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 const MCP_URL = "https://oakridge-rentals.example/mcp";
@@ -282,8 +282,8 @@ What `serveHttp` does with `auth` and `clientFor` ([P-MCP-2](../spec/AXE-PROTOCO
 
 <!-- include: examples/mcp/remote.ts#remote -->
 ```ts
-import { createMcpServer, serveHttp } from "@axe/mcp";
-import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
+import { createMcpServer, serveHttp } from "@summationai/axe-mcp";
+import type { AuthInfo, OAuthTokenVerifier } from "@summationai/axe-mcp";
 
 declare const verifier: OAuthTokenVerifier;
 
@@ -338,7 +338,7 @@ When a `user` action is called without a valid token, the site returns a `login_
 
 A server built from a URL or a manifest object keeps a copy of the site's manifest. The copy is refreshed under these rules ([P-MCP-4](../spec/AXE-PROTOCOL.md#22-mcp-mapping)):
 
-- **Bound.** On `tools/list` and on each tool call, a copy older than its bound is revalidated first: a conditional `GET` with `If-None-Match` when the site sent an `ETag`, which a `@axe/core` site answers 304 when nothing changed. The bound is the smaller of the client option `manifestMaxAgeMs` (default five minutes) and the manifest's `Cache-Control` max-age (`no-cache` means every time). A `@axe/core` site sends max-age 300 unless `manifestCacheSeconds` says otherwise.
+- **Bound.** On `tools/list` and on each tool call, a copy older than its bound is revalidated first: a conditional `GET` with `If-None-Match` when the site sent an `ETag`, which a `@summationai/axe-core` site answers 304 when nothing changed. The bound is the smaller of the client option `manifestMaxAgeMs` (default five minutes) and the manifest's `Cache-Control` max-age (`no-cache` means every time). A `@summationai/axe-core` site sends max-age 300 unless `manifestCacheSeconds` says otherwise.
 - **Unknown tool.** A call naming a tool the copy does not have refreshes once, then runs the tool if the action now exists. Concurrent refreshes share one request.
 - **Removed action.** When the site answers `not_found` for a tool's action, the server refreshes once; if the action is gone, the call returns an error saying the site removed it, and later listings omit the tool.
 - **Notifications.** When a refresh changes the derived tools, every connected session gets `notifications/tools/list_changed`. A change to `live.rev` alone changes no tool and sends nothing. Stateless HTTP clients have no stream for it and see the change on their next `tools/list`.

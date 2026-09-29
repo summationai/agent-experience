@@ -1,4 +1,4 @@
-import { runConformance, formatConformanceTable } from "@axe/testing";
+import { runConformance, formatConformanceTable } from "@summationai/axe-testing";
 import type { CommandContext } from "../index";
 import { parse, parseJsonArg, requireUrl } from "./shared";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 import { axeFetch, isAxePath } from "../src/index";
 
 function server() {

@@ -31,7 +31,7 @@ export interface UseAutoSurfaceOptions extends Omit<
   webMcp?: boolean | WebMcpOptions;
   /** Derive from this element instead of `document.body`. */
   root?: RefObject<Element | null>;
-  /** The surface to register on. Default the module-level `surface` of `@axe/surface`, the one `useSurface` registers on, so declared and derived entries share one table. */
+  /** The surface to register on. Default the module-level `surface` of `@summationai/axe-surface`, the one `useSurface` registers on, so declared and derived entries share one table. */
   surface?: Surface;
   /**
    * The router's location, when the app has one (`useLocation()` of React Router, `usePathname()`

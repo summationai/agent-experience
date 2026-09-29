@@ -30,7 +30,7 @@ A manifest is an invitation, not a promise of unlimited capacity. An agent loop 
 
 Volume is one side; the size of each request is the other. The runtime refuses a body over `maxBodyBytes` (1 MiB by default) before reading it in full, refuses nesting deeper than 64 levels before hashing or validating it, and caps what its in-memory stores hold so abandoned flows cannot grow memory without bound ([Deploying](deploying.md#limits-and-retention)). A schema `pattern` is your regular expression running on the agent's text in a backtracking engine; a nested repetition such as `(\w+\s?)*` can take seconds on a short crafted string. The lint warns on that shape ([Schemas](schemas.md#patterns)); rewrite such patterns rather than rely on the body limit.
 
-The same applies in the other direction when you run an agent: a site can stall a response, send an endless body, or answer `retryAfter: 0` forever. `@axe/client` times out every request, caps every response, and budgets polling ([For agent builders](for-agent-builders.md#timeouts-cancellation-and-budgets)).
+The same applies in the other direction when you run an agent: a site can stall a response, send an endless body, or answer `retryAfter: 0` forever. `@summationai/axe-client` times out every request, caps every response, and budgets polling ([For agent builders](for-agent-builders.md#timeouts-cancellation-and-budgets)).
 
 ### Over-permissioned actions
 
@@ -42,7 +42,7 @@ A requirement marked `sensitive` will be answered with bank details, identity do
 
 ### HTML in results
 
-Site output is data. The reference renderers in `@axe/client/present` escape every string and validate every URL before emitting it; `toHTML` contains one static script, identical for every render, that reads only data attributes. No markup from a site executes in an agent surface, and no site should rely on markup reaching a user.
+Site output is data. The reference renderers in `@summationai/axe-client/present` escape every string and validate every URL before emitting it; `toHTML` contains one static script, identical for every render, that reads only data attributes. No markup from a site executes in an agent surface, and no site should rely on markup reaching a user.
 
 ### Cloaking and parity
 
@@ -98,9 +98,9 @@ On a platform, one runtime serves many tenants. Tokens are bound to the tenant i
 
 The threats above face the site. This one faces the agent. A manifest discovered at one origin can name a `baseUrl`, `live.url`, or `pollUrl` on another, and a naive client sends its bearer token wherever it is told. Redirects are the same problem one hop later: Node's `fetch` drops `Authorization` on a cross-origin redirect but forwards every other header, so an API key in a custom header reaches the redirect target.
 
-`@axe/client` binds `auth` and `headers` to the origin it discovered from plus the origins in `trust.origins`. Other origins are refused, or contacted without credentials when `allowCrossOrigin` is set. Redirects are followed by hand and each hop is checked again; credentials never cross an origin on a redirect, and an https-to-http redirect is refused. Plain http is allowed only for loopback origins you chose. The table is in [For agent builders](for-agent-builders.md#where-the-client-sends-credentials).
+`@summationai/axe-client` binds `auth` and `headers` to the origin it discovered from plus the origins in `trust.origins`. Other origins are refused, or contacted without credentials when `allowCrossOrigin` is set. Redirects are followed by hand and each hop is checked again; credentials never cross an origin on a redirect, and an https-to-http redirect is refused. Plain http is allowed only for loopback origins you chose. The table is in [For agent builders](for-agent-builders.md#where-the-client-sends-credentials).
 
-The MCP server derived by `@axe/mcp` exposes polling to a model as the `axe_poll` tool. A tool argument is model-supplied, so prompt-injected text could name any URL; the tool polls only a `pollUrl` the server itself returned in a `pending` result.
+The MCP server derived by `@summationai/axe-mcp` exposes polling to a model as the `axe_poll` tool. A tool argument is model-supplied, so prompt-injected text could name any URL; the tool polls only a `pollUrl` the server itself returned in a `pending` result.
 
 An MCP server served over HTTP is used by many people at once. `serveHttp` authenticates every request (not only the one that opened a session), binds each session to the principal that opened it, and resolves the AXE identity for every tool call from that request's verified token through `clientFor`; it refuses to start when one user's credentials would act for every caller. The MCP access token itself is not forwarded to the site unless it was issued for the site too. Issued poll URLs are remembered per session or per principal. See [MCP](mcp.md#authentication-over-http).
 
@@ -112,8 +112,8 @@ The client's defaults narrow this. Without `trust.origins` or `allowCrossOrigin`
 
 <!-- include: examples/security/agent-destinations.ts#egress -->
 ```ts
-import { AXEClient } from "@axe/client";
-import type { DestinationRequest } from "@axe/client";
+import { AXEClient } from "@summationai/axe-client";
+import type { DestinationRequest } from "@summationai/axe-client";
 
 // A client running inside an MCP server on a company network. The site is untrusted, and the
 // server's network access is not the site's to borrow. Every outbound URL, redirects included,
@@ -140,11 +140,11 @@ export const client = await AXEClient.discover("https://oakridge-rentals.example
 URL checks do not stop request forgery. They see names, not addresses: a public name can resolve to a private address, and DNS rebinding can change the answer between a check and the connection. Only a check at connection time sees the address actually used. Run a host-side client behind an egress policy (a forward proxy or firewall that refuses private ranges and metadata endpoints), or inject a `fetch` whose connector refuses private addresses after resolution. Treat `destinationPolicy` as the application-level half of that boundary, not all of it.
 ### Surfaces served over HTTP
 
-A surface holds field values, domain objects, and the text agents typed. In the browser (`expose`) that is the page's own data and adds no reader. Served through `@axe/surface/axe` it is published to whoever the server admits, so the bridge declares `auth` on every action it generates and defaults to `user`: a server that lists no `user` mode, including the public default, refuses the bridge rather than serving it, and a public surface is an explicit `auth: "none"`. Anonymous callers of a protected surface are refused by the runtime before the surface sees them, and the manifest and anonymous `/axe/state` never read it. A server hosting many users' surfaces resolves one per caller from a template (`scopedSurfaces`), so one user's values, reasons, and ledger never reach another. Fields marked `sensitive` never publish their value or keep their typed text, and the ledger's text policy (`keep`, `hash`, `omit`, `redact`) covers the rest. What each handler lets a caller do inside the application is still the handler's check. See [Surface](surface.md#who-can-observe-and-act).
+A surface holds field values, domain objects, and the text agents typed. In the browser (`expose`) that is the page's own data and adds no reader. Served through `@summationai/axe-surface/axe` it is published to whoever the server admits, so the bridge declares `auth` on every action it generates and defaults to `user`: a server that lists no `user` mode, including the public default, refuses the bridge rather than serving it, and a public surface is an explicit `auth: "none"`. Anonymous callers of a protected surface are refused by the runtime before the surface sees them, and the manifest and anonymous `/axe/state` never read it. A server hosting many users' surfaces resolves one per caller from a template (`scopedSurfaces`), so one user's values, reasons, and ledger never reach another. Fields marked `sensitive` never publish their value or keep their typed text, and the ledger's text policy (`keep`, `hash`, `omit`, `redact`) covers the rest. What each handler lets a caller do inside the application is still the handler's check. See [Surface](surface.md#who-can-observe-and-act).
 
 ### A live tab reached through the relay
 
-`@axe/relay` lets an agent outside the browser act in a signed-in person's open tab ([Relay](relay.md), spec [S-RELAY-1] to [S-RELAY-13]). It puts a page that holds a live session within reach of software the person does not see, so each threat has a mitigation:
+`@summationai/axe-relay` lets an agent outside the browser act in a signed-in person's open tab ([Relay](relay.md), spec [S-RELAY-1] to [S-RELAY-13]). It puts a page that holds a live session within reach of software the person does not see, so each threat has a mitigation:
 
 | Threat | Mitigation |
 | --- | --- |
@@ -168,7 +168,7 @@ What remains yours: minting relay tokens only for the signed-in person in a requ
 
 ### A hosted browser acting as the person
 
-In unattended mode `@axe/host` runs the application in a private browser on your server for the person the agent authenticated as ([Unattended mode](host.md), [S-HOST-1] to [S-HOST-10]). That browser holds a real session and acts with it, from your network.
+In unattended mode `@summationai/axe-host` runs the application in a private browser on your server for the person the agent authenticated as ([Unattended mode](host.md), [S-HOST-1] to [S-HOST-10]). That browser holds a real session and acts with it, from your network.
 
 | Threat | Mitigation |
 | --- | --- |
@@ -189,31 +189,31 @@ What remains yours: TLS and access-log redaction for handoff URLs; issuing any a
 
 | Threat                               | Mechanism                                                                                                                              | Where                                      |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Forged or altered tokens             | HMAC-SHA256 over type, id, action, input hash, user, tenant, expiry; verified before the store is read                                 | `@axe/core`, `TokenSigner`                 |
-| Token reuse                          | Atomic claim per token use; a repeat returns the stored envelope, a different payload `conflict`; unknown, tampered, expired, wrong-tenant, or wrong-principal tokens return `not_found` | `@axe/core`, continue, resume, and poll    |
-| Token use by the wrong caller        | Tenant and principal checked on every presentation before any hook or stored result; site keys re-verified                             | `@axe/core`, token endpoints               |
-| Private poll results                 | A poll is authorized as the call that produced it, terminal results included                                                           | `@axe/core`, poll endpoint                 |
-| State leakage through tokens         | `state` stored server-side under the token id, never encoded in the token                                                              | `@axe/core`, `TokenStore`                  |
-| Weak or missing secret               | `secret` under 16 characters throws at startup; an absent one produces a random per-process secret and a console warning               | `@axe/core`, `createAXE`                   |
-| Identity spoofing in the body        | `context` is sanitized on read; `onBehalfOf` is overwritten with the identity from `authenticate` or the adapter                       | `@axe/core`, request pipeline              |
-| Duplicate mutations                  | `idempotencyKey` required for mutating actions; atomic claim before the handler; replay returns the stored result, different input returns `conflict` | `@axe/core`, `IdempotencyStore`            |
-| Malformed input                      | Zod validation before any handler; `invalid_input` with a JSON Pointer per problem; `_axe` stripped before output validation           | `@axe/core`, action pipeline               |
-| Oversized or deeply nested bodies    | `maxBodyBytes` enforced from `Content-Length` and while streaming, 413 before parsing; nesting over 64 levels refused; raw Node streams read only to the limit | `@axe/core`, `@axe/express`, `@axe/next`   |
-| Unbounded store growth               | In-memory stores sweep expired entries and cap `maxEntries` without evicting a running claim; `SqliteIdempotencyStore.prune()` | `@axe/core`, `@axe/core/node`              |
-| Schema constructs silently ignored   | The JSON Schema validator refuses values under keywords, formats, patterns, and refs it cannot apply; own members only; the lint reports each construct; refined Zod nodes marked `x-axe-refined` | `@axe/core/json-schema`, `@axe/core/lint`  |
-| A site that stalls, floods, or sends garbage to an agent | Per-request timeout and caller signal, response size cap, polling budget with a one-second floor, every document checked before use | `@axe/client`                              |
-| Internal details reaching agents     | Thrown errors replaced by a generic `internal` error and delivered to `onError`; output that fails its schema is replaced the same way | `@axe/core`, `onError`                     |
-| Prompt injection from your own text  | Agent-directive patterns rejected when `action` is called; audit hard failure on live manifests                                        | `@axe/core/lint`, `axe audit`              |
-| Unwanted agents                      | `policies.agents` allow and deny lists enforced per request; deny wins                                                                 | `@axe/core`, request pipeline              |
-| Cross-origin browser calls           | CORS off unless `cors` is configured; no CORS headers emitted otherwise                                                                | `@axe/core`, `cors`                        |
-| Cross-site request forgery           | Non-JSON writes refused; cookie-carrying POSTs from untrusted origins refused before any body, identity, or token is read | `@axe/core`, `requestPolicy` |
-| Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                 | `@axe/client/present`, `toHTML`            |
-| Agent credentials sent to other origins | Credentials bound to the discovery origin plus `trust.origins`; redirects checked per hop; no credentials across origins; https downgrade refused | `@axe/client`, `trust` |
-| Model-chosen poll URLs | `axe_poll` polls only a `pollUrl` the server returned | `@axe/mcp` |
-| One MCP endpoint shared by many users | Per-request token verification; sessions bound to their principal; per-call AXE identity from `clientFor`; shared credentials refused; poll URLs scoped per session or principal | `@axe/mcp`, `serveHttp` |
-| Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@axe/core/events`                         |
-| Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@axe/core`, tokens and idempotency        |
-| Anonymous or cross-user surface reads | Bridge actions default to `auth: "user"`; per-caller surfaces from a template; `sensitive` fields and the ledger text policy | `@axe/surface/axe`, `@axe/surface`        |
+| Forged or altered tokens             | HMAC-SHA256 over type, id, action, input hash, user, tenant, expiry; verified before the store is read                                 | `@summationai/axe-core`, `TokenSigner`                 |
+| Token reuse                          | Atomic claim per token use; a repeat returns the stored envelope, a different payload `conflict`; unknown, tampered, expired, wrong-tenant, or wrong-principal tokens return `not_found` | `@summationai/axe-core`, continue, resume, and poll    |
+| Token use by the wrong caller        | Tenant and principal checked on every presentation before any hook or stored result; site keys re-verified                             | `@summationai/axe-core`, token endpoints               |
+| Private poll results                 | A poll is authorized as the call that produced it, terminal results included                                                           | `@summationai/axe-core`, poll endpoint                 |
+| State leakage through tokens         | `state` stored server-side under the token id, never encoded in the token                                                              | `@summationai/axe-core`, `TokenStore`                  |
+| Weak or missing secret               | `secret` under 16 characters throws at startup; an absent one produces a random per-process secret and a console warning               | `@summationai/axe-core`, `createAXE`                   |
+| Identity spoofing in the body        | `context` is sanitized on read; `onBehalfOf` is overwritten with the identity from `authenticate` or the adapter                       | `@summationai/axe-core`, request pipeline              |
+| Duplicate mutations                  | `idempotencyKey` required for mutating actions; atomic claim before the handler; replay returns the stored result, different input returns `conflict` | `@summationai/axe-core`, `IdempotencyStore`            |
+| Malformed input                      | Zod validation before any handler; `invalid_input` with a JSON Pointer per problem; `_axe` stripped before output validation           | `@summationai/axe-core`, action pipeline               |
+| Oversized or deeply nested bodies    | `maxBodyBytes` enforced from `Content-Length` and while streaming, 413 before parsing; nesting over 64 levels refused; raw Node streams read only to the limit | `@summationai/axe-core`, `@summationai/axe-express`, `@summationai/axe-next`   |
+| Unbounded store growth               | In-memory stores sweep expired entries and cap `maxEntries` without evicting a running claim; `SqliteIdempotencyStore.prune()` | `@summationai/axe-core`, `@summationai/axe-core/node`              |
+| Schema constructs silently ignored   | The JSON Schema validator refuses values under keywords, formats, patterns, and refs it cannot apply; own members only; the lint reports each construct; refined Zod nodes marked `x-axe-refined` | `@summationai/axe-core/json-schema`, `@summationai/axe-core/lint`  |
+| A site that stalls, floods, or sends garbage to an agent | Per-request timeout and caller signal, response size cap, polling budget with a one-second floor, every document checked before use | `@summationai/axe-client`                              |
+| Internal details reaching agents     | Thrown errors replaced by a generic `internal` error and delivered to `onError`; output that fails its schema is replaced the same way | `@summationai/axe-core`, `onError`                     |
+| Prompt injection from your own text  | Agent-directive patterns rejected when `action` is called; audit hard failure on live manifests                                        | `@summationai/axe-core/lint`, `axe audit`              |
+| Unwanted agents                      | `policies.agents` allow and deny lists enforced per request; deny wins                                                                 | `@summationai/axe-core`, request pipeline              |
+| Cross-origin browser calls           | CORS off unless `cors` is configured; no CORS headers emitted otherwise                                                                | `@summationai/axe-core`, `cors`                        |
+| Cross-site request forgery           | Non-JSON writes refused; cookie-carrying POSTs from untrusted origins refused before any body, identity, or token is read | `@summationai/axe-core`, `requestPolicy` |
+| Markup or script in rendered results | Every value escaped, every URL required to be http or https, one static script reading data attributes                                 | `@summationai/axe-client/present`, `toHTML`            |
+| Agent credentials sent to other origins | Credentials bound to the discovery origin plus `trust.origins`; redirects checked per hop; no credentials across origins; https downgrade refused | `@summationai/axe-client`, `trust` |
+| Model-chosen poll URLs | `axe_poll` polls only a `pollUrl` the server returned | `@summationai/axe-mcp` |
+| One MCP endpoint shared by many users | Per-request token verification; sessions bound to their principal; per-call AXE identity from `clientFor`; shared credentials refused; poll URLs scoped per session or principal | `@summationai/axe-mcp`, `serveHttp` |
+| Payloads in telemetry                | The event type has no field for input, output, payload, or `onBehalfOf`                                                                | `@summationai/axe-core/events`                         |
+| Cross-tenant token and key reuse     | Tenant id in token bindings and idempotency key prefixes                                                                               | `@summationai/axe-core`, tokens and idempotency        |
+| Anonymous or cross-user surface reads | Bridge actions default to `auth: "user"`; per-caller surfaces from a template; `sensitive` fields and the ledger text policy | `@summationai/axe-surface/axe`, `@summationai/axe-surface`        |
 
 Each row is pinned by tests in the SDK's own suites, run by `pnpm -r test`. The [review checklist](review/2026-09-24/README.md) names the tests per property, with what each one fails on without the change: token binding (item 01), atomic operations (02), client trust (03), poll authorization (04), Surface authorization (05), CSRF (06), site principals (07), write preconditions (08), MCP HTTP identity (09), capability freshness (10), mounted React behavior (11), and limits and schema boundaries (12). A test pins the code path it exercises, in this repository; it does not show that a deployment configured the mechanism, and it does not test your handlers. `axe conformance` and `axe audit` observe a few of these from outside (tampered tokens, principal binding with `--auth`, error hygiene, request policy); they are not a security test of your site.
 

@@ -19,7 +19,7 @@
  * `needs_human` handoff) the user is offered the page; otherwise the result goes to the model as
  * text, as before ([P-MCP-6], [P-MCP-7]).
  */
-import type { Accept, JsonSchema, JsonValue } from "@axe/core/types";
+import type { Accept, JsonSchema, JsonValue } from "@summationai/axe-core/types";
 
 /** The client's declared elicitation modes (spec: `{}` means form only). */
 export interface ElicitationModes {

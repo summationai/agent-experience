@@ -1,6 +1,6 @@
 # Generating actions from what you already have
 
-[Designing actions](designing-actions.md) assumes you write each action by hand. That is right for a site whose agent interface differs from its developer API, and it is how the worked examples in these docs are built. It has a cost: the actions are a second description of operations the application already defines, and two descriptions drift the first time one changes without the other. The audit catches drift after the fact. `@axe/generate` removes the second description: it derives the manifest from a definition the application already has and regenerates it on every build.
+[Designing actions](designing-actions.md) assumes you write each action by hand. That is right for a site whose agent interface differs from its developer API, and it is how the worked examples in these docs are built. It has a cost: the actions are a second description of operations the application already defines, and two descriptions drift the first time one changes without the other. The audit catches drift after the fact. `@summationai/axe-generate` removes the second description: it derives the manifest from a definition the application already has and regenerates it on every build.
 
 Three sources ship:
 
@@ -30,9 +30,14 @@ Every one of these is a `GenerateWarning` in the result, with the action name, t
 <!-- include: examples/generating/openapi.ts#generate -->
 ```ts
 import { readFileSync } from "node:fs";
-import { createAXE } from "@axe/core";
-import { formatWarnings, fromOpenAPI, generate, registerGenerated } from "@axe/generate";
-import type { OpenAPIDocument } from "@axe/generate";
+import { createAXE } from "@summationai/axe-core";
+import {
+  formatWarnings,
+  fromOpenAPI,
+  generate,
+  registerGenerated,
+} from "@summationai/axe-generate";
+import type { OpenAPIDocument } from "@summationai/axe-generate";
 
 const document = JSON.parse(
   readFileSync(new URL("./openapi.json", import.meta.url), "utf8"),
@@ -168,7 +173,7 @@ Anything else, a recursive `$ref`, an allOf mixing types, a schema with no type,
 `axe generate` runs the same source from the command line, prints the actions and the warnings, and writes files for review:
 
 ```sh
-npx axe generate openapi.json --base-url https://api.northwind.example/v1 --out axe.json --code axe.ts
+npx @summationai/axe generate openapi.json --base-url https://api.northwind.example/v1 --out axe.json --code axe.ts
 ```
 
 `--out` writes a static manifest JSON with the generated actions and the document's title and description, so a reviewer can read what agents would see without running anything. `--code` writes an `axe.ts` that calls `fromOpenAPI` with an overrides block holding one TODO per operation that was left out, and comments marking the members you still have to decide (the server's own `baseUrl`, the login URL for `user` mode). Run `axe validate axe.ts` when the TODOs are gone. `--json` prints everything as one JSON object for tooling.
@@ -219,8 +224,8 @@ The adapter reads the router's flat procedure table and calls procedures through
 
 <!-- include: examples/generating/trpc.ts#router -->
 ```ts
-import { fromTRPCRouter, generate } from "@axe/generate";
-import type { TRPCRouterLike } from "@axe/generate";
+import { fromTRPCRouter, generate } from "@summationai/axe-generate";
+import type { TRPCRouterLike } from "@summationai/axe-generate";
 
 // Your router, for example `export const appRouter = router({ classes: router({ ... }) })`.
 // The adapter needs only `_def.procedures` and `createCaller`, so no tRPC types are imported here.
@@ -262,8 +267,8 @@ A source is an object with a name and a method that yields candidates. A candida
 
 <!-- include: examples/generating/custom-source.ts#source -->
 ```ts
-import { z } from "@axe/core";
-import type { ActionSource, GeneratedAction } from "@axe/generate";
+import { z } from "@summationai/axe-core";
+import type { ActionSource, GeneratedAction } from "@summationai/axe-generate";
 
 interface Command {
   id: string;

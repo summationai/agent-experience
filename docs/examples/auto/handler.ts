@@ -1,8 +1,8 @@
 // The declared tier inside a configuration: a real application function in place of the click,
 // so the write can carry the revision the agent presented.
 // #region handler
-import { SurfaceConflict } from "@axe/surface";
-import type { SurfaceConfig } from "@axe/surface/auto";
+import { SurfaceConflict } from "@summationai/axe-surface";
+import type { SurfaceConfig } from "@summationai/axe-surface/auto";
 
 declare function archiveOrder(
   id: string,

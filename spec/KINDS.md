@@ -1,6 +1,6 @@
 # AXE Well-Known Kinds
 
-**Version:** `axe/0.1`. Normative. Schemas in this file are generated into [`schemas/kinds/`](./schemas/kinds/) from `@axe/core/kinds` and a test asserts they match.
+**Version:** `axe/0.1`. Normative. Schemas in this file are generated into [`schemas/kinds/`](./schemas/kinds/) from `@summationai/axe-core/kinds` and a test asserts they match.
 
 A **kind** names the type of payload an agent can submit to satisfy a `needs_input` requirement. Well-known kinds exist so that an agent's wallet or credential store can fulfill a requirement automatically: when a site asks for `payment.ach-debit`, every conforming agent knows the shape without reading prose.
 
@@ -181,4 +181,4 @@ The `accepts[]` entry for a `consent.terms` requirement SHOULD carry, in `instru
 
 ## Adding to this registry
 
-The registry is governed informally in v0 (see `ROADMAP.md`). Proposals add a section here, a definition in `@axe/core/kinds`, a row in `VOCABULARY.md`, and a regenerated schema, in one change.
+The registry is governed informally in v0 (see `ROADMAP.md`). Proposals add a section here, a definition in `@summationai/axe-core/kinds`, a row in `VOCABULARY.md`, and a regenerated schema, in one change.

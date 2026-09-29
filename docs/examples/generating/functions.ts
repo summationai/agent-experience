@@ -1,8 +1,8 @@
 /**
  * Sunrise Yoga Studio: server functions that already exist, exposed as actions through a table.
  */
-import { createAXE, z } from "@axe/core";
-import { fromFunctions, generate, registerGenerated } from "@axe/generate";
+import { createAXE, z } from "@summationai/axe-core";
+import { fromFunctions, generate, registerGenerated } from "@summationai/axe-generate";
 
 // The studio's existing service layer.
 declare function findClasses(

@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import { ManifestSchema } from "@axe/core/schemas";
-import type { AuthMode, Manifest } from "@axe/core/types";
-import * as WIRE from "@axe/core/vocabulary";
-import { fromOpenAPI, generate, formatWarnings } from "@axe/generate";
-import type { GenerateWarning, OpenAPIDocument, OpenAPIOptions } from "@axe/generate";
+import { ManifestSchema } from "@summationai/axe-core/schemas";
+import type { AuthMode, Manifest } from "@summationai/axe-core/types";
+import * as WIRE from "@summationai/axe-core/vocabulary";
+import { fromOpenAPI, generate, formatWarnings } from "@summationai/axe-generate";
+import type { GenerateWarning, OpenAPIDocument, OpenAPIOptions } from "@summationai/axe-generate";
 import type { CommandContext } from "../index";
 import { parse } from "./shared";
 
@@ -210,9 +210,9 @@ export function renderModule(r: RenderInput): string {
  * \`${WIRE.cli.validate} <this file>\`.
  */
 import { readFileSync } from "node:fs";
-import { createAXE } from "@axe/core";
-import { formatWarnings, fromOpenAPI, generate, registerGenerated } from "@axe/generate";
-import type { OpenAPIDocument } from "@axe/generate";
+import { createAXE } from "@summationai/axe-core";
+import { formatWarnings, fromOpenAPI, generate, registerGenerated } from "@summationai/axe-generate";
+import type { OpenAPIDocument } from "@summationai/axe-generate";
 
 const document = JSON.parse(
   readFileSync(new URL(${q(r.documentPath.startsWith(".") ? r.documentPath : `./${r.documentPath}`)}, import.meta.url), "utf8"),

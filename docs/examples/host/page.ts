@@ -1,7 +1,7 @@
 // The page side of unattended mode: nothing new. The provider `axe surface init` mounted
 // connects with the connection a host injected, and nothing connects anywhere else.
-import { autoSurface } from "@axe/surface/auto";
-import { connectRelay, injectedRelay } from "@axe/relay/client";
+import { autoSurface } from "@summationai/axe-surface/auto";
+import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";
 
 // #region page
 const handle = autoSurface({ root: document.body });

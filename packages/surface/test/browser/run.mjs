@@ -2,7 +2,7 @@
 // Layout-dependent behavior of autoSurface in a real browser (headless Chromium through the
 // site's Playwright install): stylesheet visibility through checkVisibility, focus after an act,
 // and a scrolling list that loads more. Not part of `pnpm -r test`, since it needs a browser:
-//   pnpm --filter @axe/surface test:browser
+//   pnpm --filter @summationai/axe-surface test:browser
 // (first run: pnpm --filter body-spray-site exec playwright install chromium)
 import { build } from "esbuild";
 import { createRequire } from "node:module";

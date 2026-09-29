@@ -1,8 +1,8 @@
 // #region http
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { axeFetch } from "@axe/fetch";
-import { createMcpServer, serveHttp } from "@axe/mcp";
+import { axeFetch } from "@summationai/axe-fetch";
+import { createMcpServer, serveHttp } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 const app = new Hono();

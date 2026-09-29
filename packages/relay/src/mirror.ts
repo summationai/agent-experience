@@ -1,7 +1,7 @@
 /**
  * The server-side mirror of one tab's surface. It implements the `Surface` interface the bridges
  * read (`observe`, `ledger`, `get`, `entries`, `availability`, `currentRev`, `act`), so
- * `domainActions` from `@axe/surface/axe`, `createAXE`, and `@axe/mcp` serve a tab exactly as
+ * `domainActions` from `@summationai/axe-surface/axe`, `createAXE`, and `@summationai/axe-mcp` serve a tab exactly as
  * they serve an in-process surface. Reads come from the latest snapshot the tab sent; `act`
  * forwards to the tab, whose own surface is authoritative: its act queue, revision check,
  * availability, handlers, and ledger decide. The mirror's registration methods throw, since the
@@ -22,18 +22,18 @@ import type {
   RecordRequest,
   ObservedEntry,
   Surface,
-} from "@axe/surface";
-import type { ErrorResult, JsonValue } from "@axe/core/types";
+} from "@summationai/axe-surface";
+import type { ErrorResult, JsonValue } from "@summationai/axe-core/types";
 import type {
   PageContent,
   PageRead,
   ReadOptions,
   WaitCondition,
   WaitResult,
-} from "@axe/surface/auto";
+} from "@summationai/axe-surface/auto";
 import type { WireWaitCondition } from "./protocol";
 
-/** Where a surface keeps its page-content reader (`CONTENT` in `@axe/surface/auto`). */
+/** Where a surface keeps its page-content reader (`CONTENT` in `@summationai/axe-surface/auto`). */
 const CONTENT = Symbol.for("axe.surface.content");
 
 /** How the mirror reaches its tab. Implemented by the relay's tab record. */

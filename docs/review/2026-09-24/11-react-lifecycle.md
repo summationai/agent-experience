@@ -37,7 +37,7 @@ Contract: `spec/SURFACE.md` v0.6. This is a contract change because of the new r
 
 Docs: `docs/surface.md` "Accessible names" (`subscribe` versus `onChange`, new `docs/examples/surface/dom.ts#follow`, typechecked), "Using it from React" (what the hooks own), and the bundle size (about 26 kB). `CHANGELOG.md` and `DECISIONS.md` are updated.
 
-Migration for React consumers (fantasy-draft `lib/useSurface.js` is its own copy and is unaffected until it adopts `@axe/surface/react`): nothing is required. Handler inputs listed in `deps` only to keep the closure fresh can be dropped. `deps` still carry every value the entry reports (availability, reason, name, value). A mirror outside React that re-applies `attributesFor` on `onChange` should use `subscribe` under an application-owned revision, where `onChange` does not fire on a re-registration.
+Migration for React consumers (fantasy-draft `lib/useSurface.js` is its own copy and is unaffected until it adopts `@summationai/axe-surface/react`): nothing is required. Handler inputs listed in `deps` only to keep the closure fresh can be dropped. `deps` still carry every value the entry reports (availability, reason, name, value). A mirror outside React that re-applies `attributesFor` on `onChange` should use `subscribe` under an application-owned revision, where `onChange` does not fire on a re-registration.
 
 ## Tests
 
@@ -47,7 +47,7 @@ Failing on the original: an id change moves the registration; a target change mo
 
 Passing on both (no-regression checks for refuted hypotheses): registers on mount, refreshes in place, unregisters on unmount; re-rendering or refreshing one row keeps every row where it was [S-ENT-5]; is safe under Strict Mode (useSurface and useSurfaceProps); freeze and thaw, surface and app mode; availability that returns removes the stale attributes; a live name change; a change in app mode with setRev and no bump.
 
-Bundle: `@axe/surface` plus `/react` went from 25,290 to 26,308 bytes minified, no Node built-ins, no Zod, no jsdom.
+Bundle: `@summationai/axe-surface` plus `/react` went from 25,290 to 26,308 bytes minified, no Node built-ins, no Zod, no jsdom.
 
 No browser integration was added. jsdom settled every hypothesis. Tearing under concurrent rendering (startTransition with a store change mid-render) is not tested; useSyncExternalStore is React's own guarantee against it, and the snapshot is a string.
 

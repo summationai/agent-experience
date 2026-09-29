@@ -321,7 +321,7 @@ A third suite is not a test: `pnpm eval` builds the app and runs the evaluation 
 
 ## Supported behavior and deliberate limits
 
-- **No browser-session broker.** This app does not connect its page to anything outside it: it does not use `@axe/relay` ([Relay](relay.md)), the SDK's one broker, and nothing else in the SDK carries a page's controls, session, or state to a server, another tab, or another device. An agent outside the browser uses the server actions; an agent inside the page uses `window.__surface`. The in-page Save works because it runs in the page with the person's cookie, exactly like the button.
+- **No browser-session broker.** This app does not connect its page to anything outside it: it does not use `@summationai/axe-relay` ([Relay](relay.md)), the SDK's one broker, and nothing else in the SDK carries a page's controls, session, or state to a server, another tab, or another device. An agent outside the browser uses the server actions; an agent inside the page uses `window.__surface`. The in-page Save works because it runs in the page with the person's cookie, exactly like the button.
 - **One process, in memory.** Plans, sessions, the history, AXE tokens, and idempotency records live in the server's memory. A restart resets the demo and loses open approval requests. Two server instances would not share them; production needs a database with the same conditional write and durable AXE stores ([Deploying](deploying.md)).
 - **Demo credentials.** Sign-in has no password, and agent tokens are fixed strings. The session is still a real `HttpOnly` cookie under the request policy.
 - **Polling, not push.** The page polls every 1.5 seconds. A change made by an agent shows up on the next poll.

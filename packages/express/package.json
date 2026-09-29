@@ -1,5 +1,5 @@
 {
-  "name": "@axe/express",
+  "name": "@summationai/axe-express",
   "version": "0.1.0",
   "description": "Mount an AXE server in Express or any Connect-style framework.",
   "license": "Apache-2.0",
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*"
+    "@summationai/axe-core": "workspace:*"
   },
   "repository": {
     "type": "git",

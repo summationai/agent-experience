@@ -1,6 +1,6 @@
 # Add Agent Experience Surface to this application
 
-You are a coding agent adding `@axe/surface` to the application in this repository. Make local changes only: do not create a branch, commit, push, or open a pull request. Keep the integration small and use the application’s existing controls, state, authorization, validation, and sign-in.
+You are a coding agent adding `@summationai/axe-surface` to the application in this repository. Make local changes only: do not create a branch, commit, push, or open a pull request. Keep the integration small and use the application’s existing controls, state, authorization, validation, and sign-in.
 
 The architecture has one hard boundary:
 
@@ -24,7 +24,7 @@ The consuming application installs browser packages only. It does not run an MCP
 2. Preview the generated integration from the application directory:
 
    ```sh
-   npx axe surface init --dry-run
+   npx @summationai/axe surface init --dry-run
    ```
 
    The default installation supports both browser-native agents through WebMCP and a provider-injected hosted connection for desktop/mobile agents. It does not connect to a relay on an ordinary page load.
@@ -32,7 +32,7 @@ The consuming application installs browser packages only. It does not run an MCP
    If the detected root renders both public and signed-in pages, choose the application shell that remains mounted through login and context selection:
 
    ```sh
-   npx axe surface init --mount <layout-file> --dry-run
+   npx @summationai/axe surface init --mount <layout-file> --dry-run
    ```
 
    Supply `--app-id <stable-id>` and `--app-name <display-name>` when the inferred package name is not the provider connector’s identity. The Surface `profile.id` and provider connector `surfaceId` must match.
@@ -41,7 +41,7 @@ The consuming application installs browser packages only. It does not run an MCP
 4. Apply and install:
 
    ```sh
-   npx axe surface init --yes --install
+   npx @summationai/axe surface init --yes --install
    ```
 
    Run the command again and verify it reports that nothing needs to change. If the packages are being tested before registry publication, use the repository’s documented packed-tarball workflow; do not copy SDK source into this application.
@@ -87,7 +87,7 @@ Use the application’s own noun: workspace, organization, account, project, ten
 Run coverage on the important routes:
 
 ```sh
-npx axe surface coverage <development-url> --out coverage-before.md
+npx @summationai/axe surface coverage <development-url> --out coverage-before.md
 ```
 
 Refine the highest-value gaps in `surface.config`:

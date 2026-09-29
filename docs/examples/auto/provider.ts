@@ -3,7 +3,7 @@
 // #region provider
 import { createElement } from "react";
 import type { ReactNode } from "react";
-import { SurfaceProvider } from "@axe/surface/react";
+import { SurfaceProvider } from "@summationai/axe-surface/react";
 import { surfaceConfig } from "./config";
 
 export function AgentReady({ children, on }: { children: ReactNode; on: boolean }) {

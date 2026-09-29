@@ -1,7 +1,7 @@
 ---
-"@axe/surface": minor
-"@axe/relay": minor
-"@axe/host": minor
+"@summationai/axe-surface": minor
+"@summationai/axe-relay": minor
+"@summationai/axe-host": minor
 "axe": minor
 ---
 

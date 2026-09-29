@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createServer, request as httpRequest, type IncomingMessage } from "node:http";
-import { createAXE, action, z } from "@axe/core";
-import type { AXEConfig } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
+import type { AXEConfig } from "@summationai/axe-core";
 import { axeNext, axeNextPages } from "../src/index";
 
 function server(overrides: Partial<AXEConfig> = {}) {

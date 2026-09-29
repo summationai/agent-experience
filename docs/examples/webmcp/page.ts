@@ -1,7 +1,7 @@
 // Offer the draft board's controls to the browser's own agent through WebMCP, where the browser
 // has it. Runs in the page, next to the code that registers the controls.
 // #region expose
-import { exposeWebMcp } from "@axe/surface/webmcp";
+import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
 import { surface } from "../surface/board";
 
 // Browser-driving agents keep reading window.__surface, whatever the browser supports.

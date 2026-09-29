@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createAXE } from "@axe/core";
-import type { RegisteredAction } from "@axe/core";
-import { ManifestSchema } from "@axe/core/schemas";
-import { lintManifest, hasLintErrors } from "@axe/core/lint";
-import type { ErrorResult, OkResult } from "@axe/core/types";
-import { invokeAction } from "@axe/testing";
+import { createAXE } from "@summationai/axe-core";
+import type { RegisteredAction } from "@summationai/axe-core";
+import { ManifestSchema } from "@summationai/axe-core/schemas";
+import { lintManifest, hasLintErrors } from "@summationai/axe-core/lint";
+import type { ErrorResult, OkResult } from "@summationai/axe-core/types";
+import { invokeAction } from "@summationai/axe-testing";
 import {
   actionNameFromOperationId,
   derivedActionName,

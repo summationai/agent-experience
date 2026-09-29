@@ -1,5 +1,5 @@
 {
-  "name": "@axe/host",
+  "name": "@summationai/axe-host",
   "version": "0.1.0",
   "description": "Unattended mode: the SDK runs a headless browser session of the application for the person the agent authenticated as, and the agent drives the app's real UI through its Surface over MCP, with no pairing and no tab of the person's own.",
   "license": "Apache-2.0",
@@ -51,15 +51,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*",
-    "@axe/mcp": "workspace:*",
-    "@axe/relay": "workspace:*",
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-mcp": "workspace:*",
+    "@summationai/axe-relay": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.30.1",
     "playwright-core": "^1.63.0",
     "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@axe/surface": "workspace:*",
+    "@summationai/axe-surface": "workspace:*",
     "esbuild": "^0.25.12"
   },
   "repository": {

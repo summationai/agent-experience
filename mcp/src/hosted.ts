@@ -1,7 +1,14 @@
 import { Buffer } from "node:buffer";
-import { createHost, SessionLoginRequired } from "@axe/host";
-import type { AppSession, Host, HostAddress, HostEvent, HostOptions, SessionFor } from "@axe/host";
-import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
+import { createHost, SessionLoginRequired } from "@summationai/axe-host";
+import type {
+  AppSession,
+  Host,
+  HostAddress,
+  HostEvent,
+  HostOptions,
+  SessionFor,
+} from "@summationai/axe-host";
+import type { AuthInfo, OAuthTokenVerifier } from "@summationai/axe-mcp";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { connectorRegistryFromFile, createConnectorRegistry } from "./connectors";
 import type { ConnectorDescriptor, ConnectorRegistry } from "./connectors";

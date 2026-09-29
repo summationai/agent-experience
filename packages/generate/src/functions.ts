@@ -2,9 +2,14 @@
  * `fromFunctions`: actions from a table of zod-typed functions (server actions, service methods,
  * the procedures behind a tRPC router). The table is the definition; nothing is written twice.
  */
-import { z } from "@axe/core";
-import type { ActionSpec, HandlerContext, HandlerReturn, MaybePromise } from "@axe/core";
-import type { AuthMode, Risk } from "@axe/core/types";
+import { z } from "@summationai/axe-core";
+import type {
+  ActionSpec,
+  HandlerContext,
+  HandlerReturn,
+  MaybePromise,
+} from "@summationai/axe-core";
+import type { AuthMode, Risk } from "@summationai/axe-core/types";
 import type { ActionSource, GeneratedAction, GeneratedSpec, GenerateWarning } from "./types";
 
 type SpecExtras = Pick<

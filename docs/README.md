@@ -38,9 +38,9 @@ Start at the top and read down. Each page ends with next steps.
 2. [Getting started](getting-started.md) — add Surface to an existing app through the company-side MCP service, or build one read-only AXE action and connect it to an agent.
 3. [Concepts](concepts.md) — manifest, actions, display and affordances, the result envelope, the escalation ladder, requirements and kinds, handoff and resume, idempotency, auth, flows, risk.
 4. [Surface](surface.md) — live state for agents: an application's registry of its own controls, with reasons and one revision, served as AXE actions.
-5. [Easy mode: derive, then refine](auto-surface.md) — `@axe/surface/auto`: a surface read from the rendered page, the three guarantee tiers, safety defaults and approval, the configuration overlay, coverage, and generic tools.
+5. [Easy mode: derive, then refine](auto-surface.md) — `@summationai/axe-surface/auto`: a surface read from the rendered page, the three guarantee tiers, safety defaults and approval, the configuration overlay, coverage, and generic tools.
 6. [Designing actions](designing-actions.md) — the most important guide: decomposing a human flow, writing descriptions for a model, choosing risk, designing requirements, designing read actions, anti-patterns, a worked example.
-7. [Schemas: the supported subset](schemas.md) — the JSON Schema keywords the validator, the Zod converter, and `@axe/generate` support, how unsupported constructs fail, patterns and backtracking, refinements, and input as sent versus input as parsed.
+7. [Schemas: the supported subset](schemas.md) — the JSON Schema keywords the validator, the Zod converter, and `@summationai/axe-generate` support, how unsupported constructs fail, patterns and backtracking, refinements, and input as sent versus input as parsed.
 8. [Generating actions](generating.md) — derive actions from what you already have: an OpenAPI document, a zod-typed function table, a tRPC router; overrides, policy, what the generator refuses to invent, `axe generate`.
 9. [Presenting results](presenting-results.md) — the search → present → select arc: `display`, pointers, attributes, disclaimer and url, brand, affordances, pagination and freshness, the reference renderers.
 10. [Requirements and kinds](requirements-and-kinds.md) — the `needs_input` contract, the well-known kind registry, custom kinds, validation, chaining, security of sensitive payloads.
@@ -54,10 +54,10 @@ Start at the top and read down. Each page ends with next steps.
 18. Integrations: [Express](integrations/express.md), [Next.js](integrations/next.md), [fetch-based frameworks](integrations/fetch.md) (Hono, Remix, Workers, Bun, SvelteKit).
 19. [MCP](mcp.md) — the derived MCP server, the mapping table, elicitation and the Apps view, connecting clients, limits.
 20. [Relay](relay.md) — an agent outside the browser (Claude Code over MCP) driving a signed-in person's live tab: the page connects its surface, the relay serves it; development pairing in one command, production with relay tokens and OAuth, Stop, approvals, and the security model.
-21. [Unattended mode](host.md) — the remote path for an agent outside the browser: the SDK runs the application in a private browser for that person (`@axe/host`) with no pairing; a brokered session can sign it in silently, or a provider-served view lets the person authenticate that exact session without application backend work; development, production OAuth, security, and limits.
+21. [Unattended mode](host.md) — the remote path for an agent outside the browser: the SDK runs the application in a private browser for that person (`@summationai/axe-host`) with no pairing; a brokered session can sign it in silently, or a provider-served view lets the person authenticate that exact session without application backend work; development, production OAuth, security, and limits.
 22. [ChatGPT consumer path](chatgpt-plugin.md) — the installable plugin, hosted MCP service, OAuth and application-session exchange, the phone experience, deployment boundary, and what cannot be made zero-consent.
 23. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
-24. [For agent builders](for-agent-builders.md) — `@axe/client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+24. [For agent builders](for-agent-builders.md) — `@summationai/axe-client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
 25. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
 26. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
 27. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.

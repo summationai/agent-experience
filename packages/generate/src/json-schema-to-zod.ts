@@ -8,8 +8,8 @@
  * is dropped; either way a warning names the path, so the author sees exactly what the generated
  * action will not enforce (docs/schemas.md).
  */
-import { z } from "@axe/core";
-import type { JsonSchema } from "@axe/core/types";
+import { z } from "@summationai/axe-core";
+import type { JsonSchema } from "@summationai/axe-core/types";
 import type { GenerateWarning } from "./types";
 
 export interface JsonSchemaToZodOptions {

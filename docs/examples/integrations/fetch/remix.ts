@@ -1,6 +1,6 @@
 // app/routes/axe.$.ts — a Remix resource route that owns /axe/*.
 // #region all
-import { axeFetch } from "@axe/fetch";
+import { axeFetch } from "@summationai/axe-fetch";
 import { axe } from "./axe";
 import { customerFrom } from "./session";
 

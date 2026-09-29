@@ -6,9 +6,9 @@
 import { describe, expect, it } from "vitest";
 import { act as reactAct, createElement as h, useState, version } from "react";
 import { createRoot } from "react-dom/client";
-import { createSurface } from "@axe/surface";
-import type { Surface } from "@axe/surface";
-import { SurfaceProvider } from "@axe/surface/react";
+import { createSurface } from "@summationai/axe-surface";
+import type { Surface } from "@summationai/axe-surface";
+import { SurfaceProvider } from "@summationai/axe-surface/react";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

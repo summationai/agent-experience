@@ -1,9 +1,9 @@
 // Type stubs for typechecking the code `axe surface init` generates, in a fixture copied to a
-// temporary directory. The @axe/surface/auto, @axe/surface/react (SurfaceProvider) and
-// @axe/relay/client blocks pin the API shapes packages/cli/src/surface/api.ts guesses;
-// Kept in step with the real packages by hand (checked against @axe/surface and @axe/relay at merge).
+// temporary directory. The @summationai/axe-surface/auto, @summationai/axe-surface/react (SurfaceProvider) and
+// @summationai/axe-relay/client blocks pin the API shapes packages/cli/src/surface/api.ts guesses;
+// Kept in step with the real packages by hand (checked against @summationai/axe-surface and @summationai/axe-relay at merge).
 
-declare module "@axe/surface/auto" {
+declare module "@summationai/axe-surface/auto" {
   export type Risk = "none" | "low" | "medium" | "high";
   export interface SurfaceMatch {
     key?: string;
@@ -57,9 +57,9 @@ declare module "@axe/surface/auto" {
   export function formatCoverage(report: unknown): string;
 }
 
-declare module "@axe/surface/react" {
+declare module "@summationai/axe-surface/react" {
   import type { ReactNode } from "react";
-  import type { AutoSurfaceHandle, SurfaceConfig } from "@axe/surface/auto";
+  import type { AutoSurfaceHandle, SurfaceConfig } from "@summationai/axe-surface/auto";
   export function SurfaceProvider(props: {
     config?: SurfaceConfig;
     flag?: boolean;
@@ -70,11 +70,11 @@ declare module "@axe/surface/react" {
   }): ReactNode;
 }
 
-declare module "@axe/surface/webmcp" {
+declare module "@summationai/axe-surface/webmcp" {
   export function exposeWebMcp(surface: unknown): { close(): void };
 }
 
-declare module "@axe/relay/client" {
+declare module "@summationai/axe-relay/client" {
   export interface ConnectRelayOptions {
     url: string;
     token?: string;

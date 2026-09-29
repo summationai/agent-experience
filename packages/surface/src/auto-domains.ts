@@ -2,7 +2,7 @@
  * The generic tools of a derived surface ([S-AUTO-11]): a fixed set of parameterized domain
  * actions instead of one tool per widget, so the tool list stays the same size however many
  * controls the page renders. Plain data (each spec's `covers` reads the entry), so the in-page
- * relay can use it without the AXE runtime; `autoActions` in `@axe/surface/axe` passes it to
+ * relay can use it without the AXE runtime; `autoActions` in `@summationai/axe-surface/axe` passes it to
  * `domainActions`.
  */
 import type { ContentActionSpec, DomainActionSpec, DomainSpec } from "./axe";
@@ -10,7 +10,7 @@ import type { Entry, Risk } from "./index";
 import type { SurfaceGroup } from "./auto-config";
 
 /** The key under which an auto surface marks the entries it registered (a global symbol, so every bundle of the package reads the same one). */
-export const AUTO_META = Symbol.for("@axe/surface/auto");
+export const AUTO_META = Symbol.for("@summationai/axe-surface/auto");
 
 /** What an auto surface records on each entry it registers. */
 export interface AutoEntryMark {

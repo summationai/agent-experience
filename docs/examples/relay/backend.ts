@@ -1,6 +1,6 @@
 // The application's backend mints the relay token, in a request its own session authenticated.
 import express from "express";
-import { mintRelayToken } from "@axe/relay/token";
+import { mintRelayToken } from "@summationai/axe-relay/token";
 
 declare function currentUser(
   req: express.Request,

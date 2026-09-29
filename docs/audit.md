@@ -3,7 +3,7 @@
 `axe audit` gives a site one number from 0 to 100, a per-category breakdown, and a fix list ordered by how many points each fix recovers. It is the Lighthouse of AXE: not a pass/fail gate, but a way to see how legible your manifest and responses are to an agent and what to change first. It is a lint with a live smoke test, not a certification; [What a score does not mean](#what-a-score-does-not-mean) lists what it cannot tell you.
 
 ```sh
-npx axe audit <url> [--auth <token>] [--no-mutate] [--vendor <name>] [--browser] [--json] [--html <file>] [--min-score <n>]
+npx @summationai/axe audit <url> [--auth <token>] [--no-mutate] [--vendor <name>] [--browser] [--json] [--html <file>] [--min-score <n>]
 ```
 
 The audit runs the [conformance suite](testing-and-conformance.md) first and reuses what it observed: the manifest, live outputs from example runs, every `needs_input` and `needs_human` seen, whether idempotency replay worked, whether a tampered token was rejected, and which discovery hint was found. Everything the conformance flags control (`--auth`, `--no-mutate`, `--vendor`) applies here too, and the same warning applies: the audit calls mutating actions, so run it against staging.
@@ -31,7 +31,7 @@ Scoring works the same way in every category:
 5. A hard failure zeroes its category regardless of the other checks. There is one: instructions to the agent in agent-read text.
 6. The fix list contains every failed or partial check, with the points recoverable by fixing it completely, sorted highest first. A hard failure is listed at the full category maximum.
 
-The weights below are the shipped defaults from `weights.json` in `@axe/testing`.
+The weights below are the shipped defaults from `weights.json` in `@summationai/axe-testing`.
 
 ### Discoverable
 
@@ -237,7 +237,7 @@ What a score is good for: a diff. A drop on a pull request points at the manifes
 
 ## Tuning the weights
 
-Every weight lives in one file, `packages/testing/src/audit/weights.json`, exported as `WEIGHTS` from `@axe/testing`. It has three sections: the categories with their titles and maximums, the checks with their weight, title, and doc link, and the list of hard failures.
+Every weight lives in one file, `packages/testing/src/audit/weights.json`, exported as `WEIGHTS` from `@summationai/axe-testing`. It has three sections: the categories with their titles and maximums, the checks with their weight, title, and doc link, and the list of hard failures.
 
 ```json
 {
@@ -259,7 +259,7 @@ Every weight lives in one file, `packages/testing/src/audit/weights.json`, expor
 }
 ````
 
-A fork can change the numbers: an industry group that cares more about presentation than discovery can move points between categories, and a team can raise the weight of the check it keeps failing to make the fix list reflect its priorities. Two constraints. The category maximums must sum to 100, or the score is no longer out of 100. And every check the audit scores must keep its entry, with the category prefix matching: the scorer throws on an id it cannot find, and a test in `@axe/testing` asserts every id has the form category.check. Within a category, weights are ratios, so their sum does not need to equal the maximum.
+A fork can change the numbers: an industry group that cares more about presentation than discovery can move points between categories, and a team can raise the weight of the check it keeps failing to make the fix list reflect its priorities. Two constraints. The category maximums must sum to 100, or the score is no longer out of 100. And every check the audit scores must keep its entry, with the category prefix matching: the scorer throws on an id it cannot find, and a test in `@summationai/axe-testing` asserts every id has the form category.check. Within a category, weights are ratios, so their sum does not need to equal the maximum.
 
 Changing the weights changes what "88" means. If you publish scores for other people's sites, publish the weights file next to them.
 

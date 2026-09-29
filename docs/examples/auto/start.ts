@@ -1,7 +1,7 @@
 // Easy mode in a page: derive the surface from what the page renders, publish it for browser
 // agents, and read what it could not tell.
 // #region start
-import { autoSurface, formatCoverage } from "@axe/surface/auto";
+import { autoSurface, formatCoverage } from "@summationai/axe-surface/auto";
 
 export const handle = autoSurface({ expose: true });
 

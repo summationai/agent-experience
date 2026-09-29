@@ -1,5 +1,5 @@
 /**
- * @axe/surface/auto: derive a surface from the rendered page, then refine it with configuration.
+ * @summationai/axe-surface/auto: derive a surface from the rendered page, then refine it with configuration.
  *
  * `autoSurface()` reads the page's accessibility semantics (roles, accessible names, disabled
  * states and their reasons, values, the dialogs and landmarks controls sit in) and registers one

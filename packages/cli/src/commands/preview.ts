@@ -1,8 +1,8 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawn } from "node:child_process";
-import { AXEClient } from "@axe/client";
-import { present, toHTML } from "@axe/client/present";
+import { AXEClient } from "@summationai/axe-client";
+import { present, toHTML } from "@summationai/axe-client/present";
 import type { CommandContext } from "../index";
 import { parse, parseJsonArg, requireUrl } from "./shared";
 

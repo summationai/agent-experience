@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import express from "express";
 import { request as httpRequest } from "node:http";
 import type { Server } from "node:http";
-import { createAXE, action, z } from "@axe/core";
-import type { AXEConfig } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
+import type { AXEConfig } from "@summationai/axe-core";
 import { axeExpress } from "../src/index";
 
 function server(overrides: Partial<AXEConfig> = {}) {

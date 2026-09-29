@@ -3,11 +3,18 @@
  * the flags, the schemas, and the HTTP call; the author decides, through overrides, everything
  * the document cannot honestly say (a missing description, a display shape, a human URL).
  */
-import { z } from "@axe/core";
-import type { HandlerContext } from "@axe/core";
-import { fail, ACTION_NAME_PATTERN } from "@axe/core";
-import type { AuthMode, ErrorCode, JsonObject, JsonSchema, JsonValue, Risk } from "@axe/core/types";
-import { WIRE } from "@axe/core/vocabulary";
+import { z } from "@summationai/axe-core";
+import type { HandlerContext } from "@summationai/axe-core";
+import { fail, ACTION_NAME_PATTERN } from "@summationai/axe-core";
+import type {
+  AuthMode,
+  ErrorCode,
+  JsonObject,
+  JsonSchema,
+  JsonValue,
+  Risk,
+} from "@summationai/axe-core/types";
+import { WIRE } from "@summationai/axe-core/vocabulary";
 import { jsonSchemaToZod, resolveLocalRef } from "./json-schema-to-zod";
 import type {
   ActionSource,

@@ -1,7 +1,7 @@
 // Serve a surface as an AXE manifest: every entry becomes its own action; refusals become the ladder.
 // #region serve
-import { createAXE } from "@axe/core";
-import { surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { surfaceActions } from "@summationai/axe-surface/axe";
 import { surface } from "./board";
 
 export const axe = createAXE({

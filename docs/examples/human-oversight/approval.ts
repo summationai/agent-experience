@@ -1,7 +1,7 @@
 // An approval request: the agent asks, a person approves on the site's own page, the resume runs
 // the approved call once and returns a receipt. The reference app (examples/plan-review) is the
 // full version, with sessions, a conditional write, and a history.
-import { action, createAXE, requestApproval, z } from "@axe/core";
+import { action, createAXE, requestApproval, z } from "@summationai/axe-core";
 
 // Stands in for the site's database: one invoice per id, with a revision column.
 const invoices = new Map([["inv_1042", { rev: 3, status: "draft", amount: 12_400 }]]);

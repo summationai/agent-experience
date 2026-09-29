@@ -122,6 +122,6 @@ The server itself emits the lifecycle of an approval request (`AXE-PROTOCOL.md` 
 
 ## Sinks
 
-`@axe/core` ships three sinks that accept `AXEEvent` objects: `consoleSink()` (one JSON line per event on stdout) and `otelSink({ meter, tracer? })` in `@axe/core/events`, and `jsonlFileSink(path)` (append-only JSON lines, Node only) in `@axe/core/node`. `otelSink` records an `axe.requests` counter with `action`, `status`, `ladder`, `vendor`, and `tenant` attributes, an `axe.latency` histogram in milliseconds, and an optional span per event. Any function `(event: AXEEvent) => void | Promise<void>` is a sink. `consoleSink()` and `jsonlFileSink(path)` also accept action events, so they can be passed to `onActionEvent`; `otelSink` is for request events only.
+`@summationai/axe-core` ships three sinks that accept `AXEEvent` objects: `consoleSink()` (one JSON line per event on stdout) and `otelSink({ meter, tracer? })` in `@summationai/axe-core/events`, and `jsonlFileSink(path)` (append-only JSON lines, Node only) in `@summationai/axe-core/node`. `otelSink` records an `axe.requests` counter with `action`, `status`, `ladder`, `vendor`, and `tenant` attributes, an `axe.latency` histogram in milliseconds, and an optional span per event. Any function `(event: AXEEvent) => void | Promise<void>` is a sink. `consoleSink()` and `jsonlFileSink(path)` also accept action events, so they can be passed to `onActionEvent`; `otelSink` is for request events only.
 
 `docs/analytics.md` holds the day-one queries against this shape.

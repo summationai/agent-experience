@@ -3,7 +3,7 @@
  * existing login with two additions: the hidden handoff id and one `completeHandoff` call.
  */
 import express from "express";
-import type { AXE } from "@axe/core";
+import type { AXE } from "@summationai/axe-core";
 
 // Stand-in for your existing credential check and session issuance.
 async function signIn(email: string, password: string) {

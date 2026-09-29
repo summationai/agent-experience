@@ -47,7 +47,7 @@ export type ClaimOutcome =
  * Storage for operation claims. Keys arrive already scoped by operation type, tenant, action, and
  * acting principal. Every method must be atomic with respect to every other caller sharing the
  * store, across processes: a `get` followed by a `set` is not a claim. See `MemoryIdempotencyStore`
- * (one process) and `SqliteIdempotencyStore` in `@axe/core/node` (a shared SQLite file, and the
+ * (one process) and `SqliteIdempotencyStore` in `@summationai/axe-core/node` (a shared SQLite file, and the
  * SQL to port to another database).
  */
 export interface IdempotencyStore {

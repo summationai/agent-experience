@@ -1,5 +1,5 @@
 /**
- * @axe/relay/client: let an agent outside the browser drive this tab's surface, through a relay
+ * @summationai/axe-relay/client: let an agent outside the browser drive this tab's surface, through a relay
  * server the page connects to.
  *
  * `connectRelay(surface, options)` opens one WebSocket from the page to the relay, authenticates
@@ -16,8 +16,14 @@
  *
  * Browser-native only: no framework, no Zod, no Node built-ins. See docs/relay.md.
  */
-import type { ActRequest, ActResult, LedgerEntry, ObservedEntry, Surface } from "@axe/surface";
-import type { ErrorResult, JsonValue } from "@axe/core/types";
+import type {
+  ActRequest,
+  ActResult,
+  LedgerEntry,
+  ObservedEntry,
+  Surface,
+} from "@summationai/axe-surface";
+import type { ErrorResult, JsonValue } from "@summationai/axe-core/types";
 import { CLOSE, ID_PATTERN, RELAY_HANDOFF_WINDOW_PREFIX, RELAY_PROTOCOL } from "./protocol";
 import type { RelayApprovalChannel, RelayMessage, RelayMode, TabMessage } from "./protocol";
 
@@ -343,7 +349,7 @@ export function relayOptions(fallback: ConnectRelayOptions): ConnectRelayOptions
 
 /** The surface's own approval gate (an auto-derived surface's policy), shared by symbol. */
 const APPROVER = Symbol.for("axe.surface.approver");
-/** The surface's page-content reader (`read`, `wait`; `CONTENT` in `@axe/surface/auto`). */
+/** The surface's page-content reader (`read`, `wait`; `CONTENT` in `@summationai/axe-surface/auto`). */
 const CONTENT = Symbol.for("axe.surface.content");
 
 interface PageContentLike {
@@ -823,7 +829,7 @@ export function connectRelay(surface: Surface, options: ConnectRelayOptions): Re
             ];
             if (!content)
               throw new Error(
-                "this page does not publish its content: it runs no auto surface (autoSurface from @axe/surface/auto)",
+                "this page does not publish its content: it runs no auto surface (autoSurface from @summationai/axe-surface/auto)",
               );
             if (status.state === "connected") publish({ state: "acting" });
             const result =

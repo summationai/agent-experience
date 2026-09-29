@@ -1,5 +1,5 @@
 /**
- * @axe/surface/webmcp: offer a surface's live controls to a browser's own agent through WebMCP.
+ * @summationai/axe-surface/webmcp: offer a surface's live controls to a browser's own agent through WebMCP.
  *
  * EXPERIMENTAL. WebMCP is a draft browser API (W3C Web Machine Learning Community Group report,
  * draft of 17 September 2026) that Chrome ships behind a flag and an origin trial (from Chrome 149,
@@ -21,7 +21,7 @@
  * `SurfaceProvider` includes it so the provider's `webMcp` option needs no second integration.
  */
 import type { Surface, ObservedEntry, ActRequest, ActResult, Op, MaybePromise } from "./index";
-import type { ErrorResult } from "@axe/core/types";
+import type { ErrorResult } from "@summationai/axe-core/types";
 import { describeEntry } from "./index";
 import { CONTENT, READ_LIMITS, WAIT_LIMITS, checkCondition } from "./auto-content";
 import type { PageContent, ReadOptions, WaitCondition } from "./auto-content";
@@ -482,7 +482,7 @@ function fingerprint(tool: Omit<WebMcpTool, "execute">): string {
  *
  * Feature-detected: without a WebMCP object nothing is registered and the handle says
  * `supported: false` with the reason. Browser-driving agents can still use `surface.expose()`,
- * and server-side agents the AXE bridge (`@axe/surface/axe`) and `@axe/mcp`.
+ * and server-side agents the AXE bridge (`@summationai/axe-surface/axe`) and `@summationai/axe-mcp`.
  */
 export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): WebMcpHandle {
   const mc = options.modelContext === undefined ? resolveModelContext() : options.modelContext;

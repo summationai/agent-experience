@@ -4,8 +4,8 @@
  */
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { createAXE, action, z } from "@axe/core";
-import { axeFetch } from "@axe/fetch";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { axeFetch } from "@summationai/axe-fetch";
 
 // #region verify
 // Stand-in for token verification. In production this is your JWT library (for example

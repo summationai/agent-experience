@@ -3,8 +3,8 @@
  * member or the front desk makes; per-action availability computed for the caller; handlers that
  * refuse with the same reason the manifest shows.
  */
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
 
 // The studio's own store. `revision` moves with every booking, cancellation, or roster change,
 // whoever made it, so an agent's `expectedRev` catches a front-desk edit made in the meantime.

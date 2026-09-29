@@ -1,6 +1,6 @@
 # For agent builders
 
-`@axe/client` is the agent side of AXE: discover a manifest, invoke actions, satisfy requirements from a wallet or credential store, hand off to the human when nothing else works, resume, poll. It has no runtime dependencies and runs in Node 20+ and browsers. This page shows how to drive it from any agent framework, how to handle each result status honestly, and how to talk to your user when the site needs them.
+`@summationai/axe-client` is the agent side of AXE: discover a manifest, invoke actions, satisfy requirements from a wallet or credential store, hand off to the human when nothing else works, resume, poll. It has no runtime dependencies and runs in Node 20+ and browsers. This page shows how to drive it from any agent framework, how to handle each result status honestly, and how to talk to your user when the site needs them.
 
 If your agent already speaks MCP and you only want the tools, [MCP](mcp.md) covers the derived server. That server also asks the user through MCP elicitation and shows `display` through MCP Apps when your client declares them. Read on when you are building the loop yourself.
 
@@ -8,7 +8,7 @@ If your agent already speaks MCP and you only want the tools, [MCP](mcp.md) cove
 
 <!-- include: examples/for-agent-builders/basic.ts#all -->
 ```ts
-import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@axe/client";
+import { AXEClient, discover, isOk, isNeedsHuman, isError } from "@summationai/axe-client";
 
 // Start from any URL on the site. discover() tries /.well-known/axe.json, then /axe/manifest,
 // then the AXE-Manifest header, then <link rel="axe-manifest"> in the page.
@@ -79,7 +79,7 @@ Sites add, remove, and change actions while your agent runs. A client keeps the 
 
 <!-- include: examples/for-agent-builders/refresh.ts#refresh -->
 ```ts
-import { AXEClient } from "@axe/client";
+import { AXEClient } from "@summationai/axe-client";
 
 const client = await AXEClient.discover("https://oakridge-rentals.example", {
   // Never use a manifest older than two minutes, or the site's Cache-Control max-age if shorter.
@@ -111,7 +111,7 @@ A manifest, a result, and a discovery hint are data from the site, and each can 
 
 <!-- include: examples/for-agent-builders/trust.ts#trust -->
 ```ts
-import { AXEClient, AXETrustError } from "@axe/client";
+import { AXEClient, AXETrustError } from "@summationai/axe-client";
 
 // The site's pages live on oakridge-rentals.example; its manifest names
 // baseUrl https://api.oakridge-rentals.example. The token goes to the origin you discovered
@@ -624,9 +624,9 @@ The manifest is framework-neutral. A function that turns it into `{ name, descri
 
 <!-- include: examples/for-agent-builders/tools.ts#all -->
 ```ts
-import type { AXEClient, RunOutcome } from "@axe/client";
-import { present, toMarkdown } from "@axe/client/present";
-import type { JsonSchema } from "@axe/core/types";
+import type { AXEClient, RunOutcome } from "@summationai/axe-client";
+import { present, toMarkdown } from "@summationai/axe-client/present";
+import type { JsonSchema } from "@summationai/axe-core/types";
 
 /** The shape every framework wants: OpenAI `functions`, LangChain tools, MCP tools. */
 export interface ToolDefinition {

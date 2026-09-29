@@ -1,5 +1,5 @@
 ---
-"@axe/surface": minor
+"@summationai/axe-surface": minor
 "axe": minor
 ---
 

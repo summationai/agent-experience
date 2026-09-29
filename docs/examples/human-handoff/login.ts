@@ -4,8 +4,8 @@
  */
 import express from "express";
 import type { Response } from "express";
-import { createAXE, action, z } from "@axe/core";
-import { axeExpress } from "@axe/express";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { axeExpress } from "@summationai/axe-express";
 
 // #region config
 export const axe = createAXE({

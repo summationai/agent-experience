@@ -65,7 +65,7 @@ The difference between `description` and `instructions`: `description` tells the
 
 ## The well-known kind registry
 
-Thirteen kinds in five namespaces, normative in [`spec/KINDS.md`](../spec/KINDS.md). Every kind's payload is an object with no additional properties; strings are non-empty; money is a number in major units with an ISO 4217 `currency`. The JSON Schemas under [`spec/schemas/kinds/`](../spec/schemas/kinds/) are generated from `@axe/core/kinds`, and a test fails if the two drift.
+Thirteen kinds in five namespaces, normative in [`spec/KINDS.md`](../spec/KINDS.md). Every kind's payload is an object with no additional properties; strings are non-empty; money is a number in major units with an ISO 4217 `currency`. The JSON Schemas under [`spec/schemas/kinds/`](../spec/schemas/kinds/) are generated from `@summationai/axe-core/kinds`, and a test fails if the two drift.
 
 The registry exists so agents can hold credentials keyed by kind. If your requirement fits one of these, use it: an agent that holds a `payment.card` token can fulfill your requirement in one confirmation, and cannot fulfill `x-yourorg.card` at all.
 
@@ -216,7 +216,7 @@ The registry's `sensitive` values are minimums. You may mark any kind sensitive;
 
 ## Using kinds in code
 
-Everything is in `@axe/core/kinds` (also re-exported from `@axe/core`).
+Everything is in `@summationai/axe-core/kinds` (also re-exported from `@summationai/axe-core`).
 
 - `kinds` is the registry as typed definitions grouped by namespace: `kinds.document.url`, `kinds.consent.terms`, and so on. Each definition carries the wire name, a title, a description, a Zod schema, and the default `sensitive`.
 - `accept` builds an `accepts` entry from a definition. Pass `description` (what this requirement is for here), and optionally `title`, `instructions`, and `sensitive: true`.
@@ -227,8 +227,8 @@ Northgate admissions accepts a transcript by URL or inline, PDF only, and treats
 
 <!-- include: examples/requirements-and-kinds/transcript.ts#imports -->
 ```ts
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept, withMimeTypes } from "@axe/core/kinds";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept, withMimeTypes } from "@summationai/axe-core/kinds";
 ```
 <!-- /include -->
 
@@ -395,7 +395,7 @@ The waiver entry is built by hand rather than with `accept` so that the schema p
 
 ## How agents fulfill kinds
 
-An agent that supports AXE can hold a wallet and a credential store keyed by kind; this is the design the client supports, not a description of agents that exist today. When a `needs_input` arrives, it walks `accepts` in order and asks each store whether it can produce a payload for that kind. `@axe/client` models this as a `Fulfiller`: a list of kinds and a function that returns a payload or nothing. The client's `run` drives the whole ladder: invoke, try each `accepts` entry against the registered `fulfillers`, call `/axe/continue`, follow a further `needs_input`, poll `pending`, and surface a handoff only when nothing else works.
+An agent that supports AXE can hold a wallet and a credential store keyed by kind; this is the design the client supports, not a description of agents that exist today. When a `needs_input` arrives, it walks `accepts` in order and asks each store whether it can produce a payload for that kind. `@summationai/axe-client` models this as a `Fulfiller`: a list of kinds and a function that returns a payload or nothing. The client's `run` drives the whole ladder: invoke, try each `accepts` entry against the registered `fulfillers`, call `/axe/continue`, follow a further `needs_input`, poll `pending`, and surface a handoff only when nothing else works.
 
 Before any payload for an entry marked `sensitive` is sent, the client calls its `confirm` callback with the action, the entry, the payload, and your `message`. The agent shows the user a summary ("Oakridge needs a $500 refundable deposit by bank transfer. Use your checking account ending 4471?") and sends only on a yes. A client with no `confirm` skips sensitive options entirely, which is why a requirement that offers only sensitive kinds should carry a `fallback`.
 
@@ -466,7 +466,7 @@ The validator is the SDK's own JSON Schema validator, running against the schema
 
 ## Chaining requirements
 
-`onContinue` may return anything a handler may return. Returning another `needsInput` mints a new `continuationToken` and consumes the one just used; the agent sees a second `needs_input` and repeats. Returning `handoff` produces `needs_human`; returning `pending` starts a poll. `@axe/client` follows chains up to a configurable step limit.
+`onContinue` may return anything a handler may return. Returning another `needsInput` mints a new `continuationToken` and consumes the one just used; the agent sees a second `needs_input` and repeats. Returning `handoff` produces `needs_human`; returning `pending` starts a poll. `@summationai/axe-client` follows chains up to a configurable step limit.
 
 Northgate verifies identity before asking for a FERPA release:
 

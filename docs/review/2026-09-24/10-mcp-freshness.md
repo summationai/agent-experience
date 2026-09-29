@@ -37,7 +37,7 @@ Migration: none required. Mutating tools' input schemas gain an optional propert
 
 ### Freshness contract
 
-A remote bridge never derives tools from a manifest older than `min(manifestMaxAgeMs, site max-age)` (default five minutes; a `@axe/core` site sends 300 s unless `manifestCacheSeconds` says otherwise), checked at each `tools/list` and tool call. A new action is callable by name at once (one refresh on the miss) and listed within the bound, or at once after `refresh()`, which also notifies sessions. A removed action is dropped within the bound, or at its first call (`not_found` triggers one refresh and a "removed" error). Each call triggers at most one forced refresh; concurrent refreshes coalesce; revalidation is a conditional request.
+A remote bridge never derives tools from a manifest older than `min(manifestMaxAgeMs, site max-age)` (default five minutes; a `@summationai/axe-core` site sends 300 s unless `manifestCacheSeconds` says otherwise), checked at each `tools/list` and tool call. A new action is callable by name at once (one refresh on the miss) and listed within the bound, or at once after `refresh()`, which also notifies sessions. A removed action is dropped within the bound, or at its first call (`not_found` triggers one refresh and a "removed" error). Each call triggers at most one forced refresh; concurrent refreshes coalesce; revalidation is a conditional request.
 
 ### Retry contract
 

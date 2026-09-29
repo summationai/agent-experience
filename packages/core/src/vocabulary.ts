@@ -2,7 +2,7 @@
 // Source: spec/VOCABULARY.md. Regenerate with `pnpm gen:vocabulary`.
 
 // Each category is its own export so bundlers can drop the ones a package does not use.
-// `import * as WIRE from "@axe/core/vocabulary"` and `import { WIRE }` both read as WIRE.<category>.<key>.
+// `import * as WIRE from "@summationai/axe-core/vocabulary"` and `import { WIRE }` both read as WIRE.<category>.<key>.
 
 /** `protocol` names. */
 export const protocol = /* @__PURE__ */ Object.freeze({
@@ -1174,7 +1174,7 @@ export const api = /* @__PURE__ */ Object.freeze({
   registerTool: "registerTool",
   /** Tool annotation for an effect that cannot be undone; set on a control that is not reversible. */
   consequentialHint: "consequentialHint",
-  /** The flat JSON Schema of a form-mode elicitation; built by `@axe/mcp` from a kind's payload schema. */
+  /** The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema. */
   requestedSchema: "requestedSchema",
   /** Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind. */
   isSensitiveAccept: "isSensitiveAccept",

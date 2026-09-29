@@ -10,8 +10,8 @@
 // Server capabilities (edit, submit, approve and lock) are AXE actions in lib/axe.ts; the
 // browser-local ones below either change only this page (scroll, open a dialog, an unsaved draft)
 // or call the app's own endpoint with this person's session, exactly as the page's button does.
-import { createSurface } from "@axe/surface";
-import type { Surface } from "@axe/surface";
+import { createSurface } from "@summationai/axe-surface";
+import type { Surface } from "@summationai/axe-surface";
 
 /** The app name `observe()` reports for the page's surface. */
 export const PAGE_SURFACE_APP = "plan-review-page";

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSurface } from "../src/index";
 import type { ActResult, LedgerEntry, LedgerQuery } from "../src/index";
-import { kinds, accept } from "@axe/core/kinds";
-import { toJsonSchema, z } from "@axe/core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
+import { toJsonSchema, z } from "@summationai/axe-core";
 import { board } from "./fixtures/board";
 
 const okOf = (r: ActResult) => (r.status === "ok" ? r.output : undefined);

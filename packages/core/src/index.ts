@@ -1,9 +1,9 @@
 /**
- * @axe/core: protocol types, schemas, well-known kinds, and the framework-free
+ * @summationai/axe-core: protocol types, schemas, well-known kinds, and the framework-free
  * server runtime.
  *
  * ```ts
- * import { createAXE, action, z } from "@axe/core";
+ * import { createAXE, action, z } from "@summationai/axe-core";
  * ```
  */
 /** Zod, re-exported so integrators use one version. @hidden */

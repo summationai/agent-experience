@@ -1,5 +1,5 @@
 // #region all
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 // #region flags
 // Stand-in for your feature-flag client (LaunchDarkly, Unleash, a database table).

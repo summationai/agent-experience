@@ -1,6 +1,6 @@
 /**
- * @axe/testing: conformance suite, AXE audit, vocabulary drift check, and unit-test
- * helpers for sites built with @axe/core.
+ * @summationai/axe-testing: conformance suite, AXE audit, vocabulary drift check, and unit-test
+ * helpers for sites built with @summationai/axe-core.
  */
 export { runConformance, formatConformanceTable } from "./conformance/index";
 export type {

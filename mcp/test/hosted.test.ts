@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SessionLoginRequired } from "@axe/host";
+import { SessionLoginRequired } from "@summationai/axe-host";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";

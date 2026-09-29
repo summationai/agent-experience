@@ -1,5 +1,5 @@
 {
-  "name": "@axe/generate",
+  "name": "@summationai/axe-generate",
   "version": "0.1.0",
   "description": "Derive AXE actions from definitions an application already has: an OpenAPI 3.x document, a table of zod-typed functions, or a tRPC router. Overrides, policy, honesty lints, and provenance.",
   "license": "Apache-2.0",
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*"
+    "@summationai/axe-core": "workspace:*"
   },
   "repository": {
     "type": "git",
@@ -46,6 +46,6 @@
     "codegen"
   ],
   "devDependencies": {
-    "@axe/testing": "workspace:*"
+    "@summationai/axe-testing": "workspace:*"
   }
 }

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import { createHost, storageStateSession } from "@axe/host";
-import type { HostAddress, HostEvent, HostOptions } from "@axe/host";
+import { createHost, storageStateSession } from "@summationai/axe-host";
+import type { HostAddress, HostEvent, HostOptions } from "@summationai/axe-host";
 
 const DEFAULT_AGENT_KEY = "axd_agent_experience_local";
 const DEFAULT_PORT = 4717;

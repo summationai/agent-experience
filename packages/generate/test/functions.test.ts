@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createAXE, z } from "@axe/core";
-import { ManifestSchema } from "@axe/core/schemas";
-import type { OkResult } from "@axe/core/types";
-import { invokeAction } from "@axe/testing";
+import { createAXE, z } from "@summationai/axe-core";
+import { ManifestSchema } from "@summationai/axe-core/schemas";
+import type { OkResult } from "@summationai/axe-core/types";
+import { invokeAction } from "@summationai/axe-testing";
 import {
   fromFunctions,
   fromTRPCRouter,

@@ -1,7 +1,7 @@
 /**
  * An online shop: retiring an action without breaking the agents that call it.
  */
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Harbor Goods",

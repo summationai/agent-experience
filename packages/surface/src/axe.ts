@@ -1,5 +1,5 @@
 /**
- * @axe/surface/axe: the seam between Surface and AXE. Two granularities, served by two functions
+ * @summationai/axe-surface/axe: the seam between Surface and AXE. Two granularities, served by two functions
  * over the same machinery ([S-AXE-1], [S-AXE-10]):
  *
  * - `surfaceActions` (per control): every entry on the surface becomes its own AXE action, named
@@ -32,7 +32,7 @@
  * `auth: "none"`. A server that hosts one surface per user or tenant passes a resolver instead of
  * a surface (`scopedSurfaces` builds one with a bounded cache) and a `template` for the action set.
  */
-import { action, lintAgentText, z } from "@axe/core";
+import { action, lintAgentText, z } from "@summationai/axe-core";
 import type {
   ActionProvider,
   AvailabilityInput,
@@ -40,9 +40,15 @@ import type {
   ProviderResultContext,
   RegisteredAction,
   TenantInfo,
-} from "@axe/core";
-import type { AuthMode, AXEActionEventInput, JsonValue, Result, Risk } from "@axe/core/types";
-import * as WIRE from "@axe/core/vocabulary";
+} from "@summationai/axe-core";
+import type {
+  AuthMode,
+  AXEActionEventInput,
+  JsonValue,
+  Result,
+  Risk,
+} from "@summationai/axe-core/types";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import { READ_LIMITS, WAIT_LIMITS, checkCondition, contentOf } from "./auto-content";
 import type { PageRead, WaitCondition } from "./auto-content";
 import { formatRead } from "./auto-read";
@@ -1512,7 +1518,7 @@ function defined<T extends object>(o: T): { [K in keyof T]: Exclude<T[K], undefi
 }
 
 const NO_CONTENT =
-  "This page does not publish its content: it runs no auto surface (autoSurface from @axe/surface/auto). Use observe for its controls.";
+  "This page does not publish its content: it runs no auto surface (autoSurface from @summationai/axe-surface/auto). Use observe for its controls.";
 
 /** A read-only action over the page's content ([S-AUTO-16]): `<ns>.read` or `<ns>.wait`. */
 function buildContentAction(
@@ -1989,5 +1995,5 @@ export function scopedSurfaces(options: ScopedSurfacesOptions): ScopedSurfaces {
   };
 }
 
-// The recommended bridge for a surface derived by `@axe/surface/auto` ([S-AUTO-11]).
+// The recommended bridge for a surface derived by `@summationai/axe-surface/auto` ([S-AUTO-11]).
 export { autoActions } from "./auto-actions";

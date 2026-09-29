@@ -60,7 +60,7 @@ Application controls, routes, login fields, account/workspace choices, tables, r
 Configure the provider-wide MCP authentication boundary and either a connector file or the single-connector variables in [`.env.example`](.env.example), then build and run:
 
 ```sh
-pnpm --filter @axe/mcp-service build
+pnpm --filter @summationai/summationai-axe-mcp-service build
 AXE_MCP_MODE=hosted node mcp/dist/index.js
 ```
 

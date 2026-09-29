@@ -1,9 +1,9 @@
 // An unavailable control can say what would unblock it. Through the AXE bridge this becomes
 // needs_input (kinds an agent may hold) with an optional human fallback.
 // #region lock
-import { createSurface } from "@axe/surface";
-import { toJsonSchema } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
+import { createSurface } from "@summationai/axe-surface";
+import { toJsonSchema } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
 
 const plan = { approved: false, locked: false, revision: 129 };
 // The server owns the revision (adopted as is with setRev), and the kinds below carry Zod

@@ -1,11 +1,11 @@
 /**
- * Unit-test helpers for sites built with @axe/core.
+ * Unit-test helpers for sites built with @summationai/axe-core.
  */
-import type { Manifest, Result, JsonValue } from "@axe/core/types";
-import { AXEClient } from "@axe/client";
-import type { ClientOptions } from "@axe/client";
-import * as WIRE from "@axe/core/vocabulary";
-import { WELL_KNOWN_KINDS } from "@axe/core/kinds";
+import type { Manifest, Result, JsonValue } from "@summationai/axe-core/types";
+import { AXEClient } from "@summationai/axe-client";
+import type { ClientOptions } from "@summationai/axe-client";
+import * as WIRE from "@summationai/axe-core/vocabulary";
+import { WELL_KNOWN_KINDS } from "@summationai/axe-core/kinds";
 
 /** The subset of an `AXE` instance the helpers need. */
 export interface AxeLike {

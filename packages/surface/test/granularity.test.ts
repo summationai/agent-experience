@@ -4,8 +4,8 @@
  * handlers, and the filtered, paged `<ns>.observe` both share ([S-AXE-10], [S-OBS-5]).
  */
 import { describe, expect, it, vi } from "vitest";
-import { createAXE, toJsonSchema } from "@axe/core";
-import { kinds, accept } from "@axe/core/kinds";
+import { createAXE, toJsonSchema } from "@summationai/axe-core";
+import { kinds, accept } from "@summationai/axe-core/kinds";
 import type {
   AXEActionEvent,
   ErrorResult,
@@ -13,13 +13,13 @@ import type {
   NeedsHumanResult,
   NeedsInputResult,
   OkResult,
-} from "@axe/core/types";
-import { ManifestSchema } from "@axe/core/schemas";
-import { runConformance, formatConformanceTable } from "@axe/testing";
+} from "@summationai/axe-core/types";
+import { ManifestSchema } from "@summationai/axe-core/schemas";
+import { runConformance, formatConformanceTable } from "@summationai/axe-testing";
 import { createSurface } from "../src/index";
 import type { Surface } from "../src/index";
 import { domainActions, surfaceActions } from "../src/axe";
-import type { ActionProvider } from "@axe/core";
+import type { ActionProvider } from "@summationai/axe-core";
 
 const BASE = "http://localhost:5173";
 

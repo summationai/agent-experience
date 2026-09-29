@@ -1,12 +1,12 @@
 // Variants v3 and v4: an agent that calls MCP tools. v3 talks to the basic tool set (no
 // revision, no availability, no handoff, no idempotency key). v4 talks to the MCP server that
-// @axe/mcp derives from the app's AXE manifest (the same thing `axe mcp <url>` serves): it reads
+// @summationai/axe-mcp derives from the app's AXE manifest (the same thing `axe mcp <url>` serves): it reads
 // availability and the revision from axe_state, presents expectedRev on every write, passes an
 // idempotency key it can repeat, and follows needs_human through axe_resume.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { createMcpServer } from "@axe/mcp";
+import { createMcpServer } from "@summationai/axe-mcp";
 import { cellKey } from "../lib/model";
 import { agentTokenFor } from "../lib/store";
 import { basicMcpServer } from "./basic-mcp";

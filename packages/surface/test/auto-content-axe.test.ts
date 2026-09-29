@@ -5,8 +5,8 @@
  * (redacted, bounded) and wait on a condition, and never move the revision.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { createAXE } from "@axe/core";
-import type { ErrorResult, OkResult } from "@axe/core/types";
+import { createAXE } from "@summationai/axe-core";
+import type { ErrorResult, OkResult } from "@summationai/axe-core/types";
 import { autoSurface } from "../src/auto";
 import type { AutoSurfaceHandle, PageRead, WaitResult } from "../src/auto";
 import { autoActions, domainActions } from "../src/axe";

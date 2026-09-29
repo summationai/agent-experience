@@ -4,9 +4,14 @@
  */
 // #region generate
 import { readFileSync } from "node:fs";
-import { createAXE } from "@axe/core";
-import { formatWarnings, fromOpenAPI, generate, registerGenerated } from "@axe/generate";
-import type { OpenAPIDocument } from "@axe/generate";
+import { createAXE } from "@summationai/axe-core";
+import {
+  formatWarnings,
+  fromOpenAPI,
+  generate,
+  registerGenerated,
+} from "@summationai/axe-generate";
+import type { OpenAPIDocument } from "@summationai/axe-generate";
 
 const document = JSON.parse(
   readFileSync(new URL("./openapi.json", import.meta.url), "utf8"),

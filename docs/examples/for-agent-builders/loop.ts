@@ -1,5 +1,5 @@
-import type { AXEClient, RunOutcome, ActionDefinition, Result } from "@axe/client";
-import { present, toMarkdown } from "@axe/client/present";
+import type { AXEClient, RunOutcome, ActionDefinition, Result } from "@summationai/axe-client";
+import { present, toMarkdown } from "@summationai/axe-client/present";
 
 /** The conversation surface your agent talks through. */
 interface Conversation {

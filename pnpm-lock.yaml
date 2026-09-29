@@ -53,42 +53,42 @@ importers:
 
   docs:
     dependencies:
-      '@axe/client':
-        specifier: workspace:*
-        version: link:../packages/client
-      '@axe/core':
-        specifier: workspace:*
-        version: link:../packages/core
-      '@axe/express':
-        specifier: workspace:*
-        version: link:../packages/express
-      '@axe/fetch':
-        specifier: workspace:*
-        version: link:../packages/fetch
-      '@axe/generate':
-        specifier: workspace:*
-        version: link:../packages/generate
-      '@axe/host':
-        specifier: workspace:*
-        version: link:../packages/host
-      '@axe/mcp':
-        specifier: workspace:*
-        version: link:../packages/mcp
-      '@axe/next':
-        specifier: workspace:*
-        version: link:../packages/next
-      '@axe/relay':
-        specifier: workspace:*
-        version: link:../packages/relay
-      '@axe/surface':
-        specifier: workspace:*
-        version: link:../packages/surface
-      '@axe/testing':
-        specifier: workspace:*
-        version: link:../packages/testing
-      axe:
+      '@summationai/axe':
         specifier: workspace:*
         version: link:../packages/cli
+      '@summationai/axe-client':
+        specifier: workspace:*
+        version: link:../packages/client
+      '@summationai/axe-core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@summationai/axe-express':
+        specifier: workspace:*
+        version: link:../packages/express
+      '@summationai/axe-fetch':
+        specifier: workspace:*
+        version: link:../packages/fetch
+      '@summationai/axe-generate':
+        specifier: workspace:*
+        version: link:../packages/generate
+      '@summationai/axe-host':
+        specifier: workspace:*
+        version: link:../packages/host
+      '@summationai/axe-mcp':
+        specifier: workspace:*
+        version: link:../packages/mcp
+      '@summationai/axe-next':
+        specifier: workspace:*
+        version: link:../packages/next
+      '@summationai/axe-relay':
+        specifier: workspace:*
+        version: link:../packages/relay
+      '@summationai/axe-surface':
+        specifier: workspace:*
+        version: link:../packages/surface
+      '@summationai/axe-testing':
+        specifier: workspace:*
+        version: link:../packages/testing
     devDependencies:
       '@anthropic-ai/sdk':
         specifier: ^0.128.0
@@ -123,7 +123,7 @@ importers:
 
   examples/auto-react19:
     dependencies:
-      '@axe/surface':
+      '@summationai/axe-surface':
         specifier: workspace:*
         version: link:../../packages/surface
       react:
@@ -145,13 +145,13 @@ importers:
 
   examples/plan-review:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@axe/next':
+      '@summationai/axe-next':
         specifier: workspace:*
         version: link:../../packages/next
-      '@axe/surface':
+      '@summationai/axe-surface':
         specifier: workspace:*
         version: link:../../packages/surface
       next:
@@ -164,18 +164,18 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
     devDependencies:
-      '@axe/client':
-        specifier: workspace:*
-        version: link:../../packages/client
-      '@axe/mcp':
-        specifier: workspace:*
-        version: link:../../packages/mcp
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
+      '@summationai/axe-client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@summationai/axe-mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@types/react':
         specifier: ^19.2.0
         version: 19.3.0
@@ -185,18 +185,18 @@ importers:
 
   mcp:
     dependencies:
-      '@axe/host':
-        specifier: workspace:*
-        version: link:../packages/host
-      '@axe/mcp':
-        specifier: workspace:*
-        version: link:../packages/mcp
-      '@axe/relay':
-        specifier: workspace:*
-        version: link:../packages/relay
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
+      '@summationai/axe-host':
+        specifier: workspace:*
+        version: link:../packages/host
+      '@summationai/axe-mcp':
+        specifier: workspace:*
+        version: link:../packages/mcp
+      '@summationai/axe-relay':
+        specifier: workspace:*
+        version: link:../packages/relay
       ws:
         specifier: ^8.21.3
         version: 8.21.3
@@ -207,41 +207,41 @@ importers:
 
   packages/cli:
     dependencies:
-      '@axe/client':
+      '@summationai/axe-client':
         specifier: workspace:*
         version: link:../client
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
-      '@axe/generate':
+      '@summationai/axe-generate':
         specifier: workspace:*
         version: link:../generate
-      '@axe/host':
+      '@summationai/axe-host':
         specifier: workspace:*
         version: link:../host
-      '@axe/mcp':
+      '@summationai/axe-mcp':
         specifier: workspace:*
         version: link:../mcp
-      '@axe/relay':
+      '@summationai/axe-relay':
         specifier: workspace:*
         version: link:../relay
-      '@axe/testing':
+      '@summationai/axe-testing':
         specifier: workspace:*
         version: link:../testing
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
     devDependencies:
-      '@axe/express':
-        specifier: workspace:*
-        version: link:../express
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
+      '@summationai/axe-express':
+        specifier: workspace:*
+        version: link:../express
 
   packages/client:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -257,7 +257,7 @@ importers:
 
   packages/express:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -273,7 +273,7 @@ importers:
 
   packages/fetch:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -283,28 +283,28 @@ importers:
 
   packages/generate:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
-      '@axe/testing':
+      '@summationai/axe-testing':
         specifier: workspace:*
         version: link:../testing
 
   packages/host:
     dependencies:
-      '@axe/core':
-        specifier: workspace:*
-        version: link:../core
-      '@axe/mcp':
-        specifier: workspace:*
-        version: link:../mcp
-      '@axe/relay':
-        specifier: workspace:*
-        version: link:../relay
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
+      '@summationai/axe-core':
+        specifier: workspace:*
+        version: link:../core
+      '@summationai/axe-mcp':
+        specifier: workspace:*
+        version: link:../mcp
+      '@summationai/axe-relay':
+        specifier: workspace:*
+        version: link:../relay
       playwright-core:
         specifier: ^1.63.0
         version: 1.63.0
@@ -312,7 +312,7 @@ importers:
         specifier: ^8.21.3
         version: 8.21.3
     devDependencies:
-      '@axe/surface':
+      '@summationai/axe-surface':
         specifier: workspace:*
         version: link:../surface
       esbuild:
@@ -321,15 +321,15 @@ importers:
 
   packages/mcp:
     dependencies:
-      '@axe/client':
-        specifier: workspace:*
-        version: link:../client
-      '@axe/core':
-        specifier: workspace:*
-        version: link:../core
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
+      '@summationai/axe-client':
+        specifier: workspace:*
+        version: link:../client
+      '@summationai/axe-core':
+        specifier: workspace:*
+        version: link:../core
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -340,25 +340,25 @@ importers:
 
   packages/next:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
 
   packages/relay:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
-      '@axe/surface':
+      '@summationai/axe-surface':
         specifier: workspace:*
         version: link:../surface
     devDependencies:
-      '@axe/mcp':
-        specifier: workspace:*
-        version: link:../mcp
       '@modelcontextprotocol/sdk':
         specifier: ^1.30.1
         version: 1.30.1(zod@4.6.5)
+      '@summationai/axe-mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@types/jsdom':
         specifier: ^30.0.0
         version: 30.0.0
@@ -380,11 +380,11 @@ importers:
 
   packages/surface:
     dependencies:
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
-      '@axe/testing':
+      '@summationai/axe-testing':
         specifier: workspace:*
         version: link:../testing
       '@types/react':
@@ -408,30 +408,30 @@ importers:
 
   packages/testing:
     dependencies:
-      '@axe/client':
+      '@summationai/axe-client':
         specifier: workspace:*
         version: link:../client
-      '@axe/core':
+      '@summationai/axe-core':
         specifier: workspace:*
         version: link:../core
 
   site:
     devDependencies:
-      '@axe/client':
-        specifier: workspace:*
-        version: link:../packages/client
-      '@axe/core':
-        specifier: workspace:*
-        version: link:../packages/core
-      '@axe/testing':
-        specifier: workspace:*
-        version: link:../packages/testing
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
+      '@summationai/axe-client':
+        specifier: workspace:*
+        version: link:../packages/client
+      '@summationai/axe-core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@summationai/axe-testing':
+        specifier: workspace:*
+        version: link:../packages/testing
       beautiful-mermaid:
         specifier: ^1.1.3
         version: 1.1.3

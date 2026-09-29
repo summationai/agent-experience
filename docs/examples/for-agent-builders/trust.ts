@@ -1,5 +1,5 @@
 // #region trust
-import { AXEClient, AXETrustError } from "@axe/client";
+import { AXEClient, AXETrustError } from "@summationai/axe-client";
 
 // The site's pages live on oakridge-rentals.example; its manifest names
 // baseUrl https://api.oakridge-rentals.example. The token goes to the origin you discovered

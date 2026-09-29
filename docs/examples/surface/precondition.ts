@@ -2,7 +2,7 @@
 // itself is the second gate. The handler carries the revision the agent presented into its
 // conditional write and refuses with a SurfaceConflict when the server has moved on.
 // #region precondition
-import { createSurface, SurfaceConflict } from "@axe/surface";
+import { createSurface, SurfaceConflict } from "@summationai/axe-surface";
 
 interface Plan {
   revision: number;

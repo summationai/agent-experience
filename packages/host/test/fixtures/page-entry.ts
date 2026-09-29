@@ -1,8 +1,8 @@
 // The fixture application's page script: easy mode (`autoSurface`) plus the relay connection an
 // app's generated code makes, preferring the connection a host injected (`injectedRelay()` reads
 // `window.__AXE_RELAY__`). Bundled for the browser, as an application would ship it.
-import { autoSurface } from "@axe/surface/auto";
-import { connectRelay, injectedRelay } from "@axe/relay/client";
+import { autoSurface } from "@summationai/axe-surface/auto";
+import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";
 
 const handle = autoSurface({
   expose: true,

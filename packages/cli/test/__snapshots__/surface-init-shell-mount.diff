@@ -37,8 +37,8 @@ new file mode 100644
 +// after a provider browser handoff or in an optional `axe host` session (both are read by
 +// `injectedRelay()`).
 +import type { ReactNode } from "react";
-+import { SurfaceProvider } from "@axe/surface/react";
-+import { connectRelay, injectedRelay } from "@axe/relay/client";
++import { SurfaceProvider } from "@summationai/axe-surface/react";
++import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";
 +import { useFeatureFlag } from "~/feature-flags";
 +import surfaceConfig from "./surface.config";
 +
@@ -77,7 +77,7 @@ new file mode 100644
 +//
 +// The overlay on what autoSurface discovers: names, reasons, risk, and approvals that the
 +// page alone cannot tell it. An empty overlay is a working start.
-+import type { SurfaceConfig } from "@axe/surface/auto";
++import type { SurfaceConfig } from "@summationai/axe-surface/auto";
 +
 +const surfaceConfig: SurfaceConfig = {
 +    profile: {

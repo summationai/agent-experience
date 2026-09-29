@@ -1,6 +1,6 @@
 // The AXE endpoints: /axe/actions/{name}, /axe/continue, /axe/resume, /axe/poll, /axe/state.
 // They answer in evaluation variant v4 and as shipped (lib/variant.ts).
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { getAXE } from "../../../lib/axe";
 import { axeEnabled, notFound } from "../../../lib/variant";
 

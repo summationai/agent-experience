@@ -1,5 +1,5 @@
 // #region shown
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 export const axe = createAXE({
   name: "Sunrise Yoga Studio",

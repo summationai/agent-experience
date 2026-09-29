@@ -215,9 +215,9 @@ A comparison before the handler is not concurrency control on its own: two reque
 
 <!-- include: examples/live-state/surface.ts#serve -->
 ```ts
-import { createAXE } from "@axe/core";
-import { createSurface } from "@axe/surface";
-import { surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { createSurface } from "@summationai/axe-surface";
+import { surfaceActions } from "@summationai/axe-surface/axe";
 
 export const surface = createSurface({ app: "fantasy-draft" });
 

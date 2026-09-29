@@ -3,7 +3,7 @@
  * the wholesaler issued; each key is scoped to the actions that partner may call.
  */
 import { createHash } from "node:crypto";
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 // #region keys
 // Stand-in for your API-key table. Store a hash of each key, never the key itself.

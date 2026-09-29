@@ -15,25 +15,35 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-DISC-2": [{ check: "discovery.alias" }],
   "P-DISC-3": [{ check: "discovery.headers" }],
   "P-DISC-13": [
-    { test: "@axe/core carries an ETag and answers a matching If-None-Match with 304 [P-DISC-13]" },
-    { test: "@axe/client refresh() revalidates with If-None-Match and reports added, removed" },
-    { test: "@axe/client run() refetches the manifest once for an action it does not know" },
+    {
+      test: "@summationai/axe-core carries an ETag and answers a matching If-None-Match with 304 [P-DISC-13]",
+    },
+    {
+      test: "@summationai/axe-client refresh() revalidates with If-None-Match and reports added, removed",
+    },
+    {
+      test: "@summationai/axe-client run() refetches the manifest once for an action it does not know",
+    },
   ],
   "P-DISC-4": [
-    { test: "@axe/client discover: falls back to the AXE-Manifest header, then the link tag" },
+    {
+      test: "@summationai/axe-client discover: falls back to the AXE-Manifest header, then the link tag",
+    },
   ],
   "P-DISC-5": [
-    { test: "@axe/client discover: falls back to the AXE-Manifest header, then the link tag" },
+    {
+      test: "@summationai/axe-client discover: falls back to the AXE-Manifest header, then the link tag",
+    },
   ],
   "P-DISC-6": [{ check: "discovery.hints" }],
-  "P-DISC-7": [{ test: "@axe/client discover" }],
+  "P-DISC-7": [{ test: "@summationai/axe-client discover" }],
   "P-DISC-8": [{ check: "manifest.index" }],
   "P-DISC-9": [{ check: "manifest.index" }],
   "P-DISC-10": [{ check: "manifest.index" }],
   "P-DISC-11": [{ check: "manifest.agents-policy" }],
   "P-DISC-12": [
     { check: "manifest.agents-policy" },
-    { test: "@axe/client refuses to call a site whose policies deny the vendor" },
+    { test: "@summationai/axe-client refuses to call a site whose policies deny the vendor" },
   ],
   "P-MAN-1": [{ check: "manifest.schema" }],
   "P-MAN-2": [{ check: "manifest.https" }],
@@ -47,26 +57,28 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-ACT-7": [{ check: "manifest.description-length" }, { check: "manifest.honesty" }],
   "P-INV-1": [{ check: "runtime.missing-input" }],
   "P-INV-2": [{ check: "runtime.invalid-input" }],
-  "P-INV-3": [{ test: "@axe/core onBehalfOf in the body is ignored" }],
+  "P-INV-3": [{ test: "@summationai/axe-core onBehalfOf in the body is ignored" }],
   "P-INV-4": [{ check: "runtime.get-definition" }],
   "P-INV-5": [{ check: "runtime.unknown-action" }],
   "P-INV-6": [{ check: "runtime.unknown-action" }, { check: "runtime.invalid-input" }],
-  "P-INV-7": [{ test: "@axe/client narrows on status, never HTTP status" }],
+  "P-INV-7": [{ test: "@summationai/axe-client narrows on status, never HTTP status" }],
   "P-INV-8": [
-    { test: "@axe/core onRequest can short-circuit with rate_limited and Retry-After is set" },
+    {
+      test: "@summationai/axe-core onRequest can short-circuit with rate_limited and Retry-After is set",
+    },
   ],
   "P-INV-9": [{ check: "runtime.cors" }],
   "P-TRANS-1": [
     { check: "runtime.json-content-type" },
-    { test: "@axe/core request policy: state-changing POSTs must be JSON" },
+    { test: "@summationai/axe-core request policy: state-changing POSTs must be JSON" },
   ],
   "P-TRANS-2": [
     {
-      test: "@axe/core request policy: cross-origin writes with cookies are refused before anything runs",
+      test: "@summationai/axe-core request policy: cross-origin writes with cookies are refused before anything runs",
     },
   ],
-  "P-TRANS-3": [{ test: "@axe/core request policy: intended callers keep working" }],
-  "P-TRANS-4": [{ test: "@axe/core request policy: intended callers keep working" }],
+  "P-TRANS-3": [{ test: "@summationai/axe-core request policy: intended callers keep working" }],
+  "P-TRANS-4": [{ test: "@summationai/axe-core request policy: intended callers keep working" }],
   "P-RES-1": [{ check: "runtime.envelope-schema" }],
   "P-RES-2": [{ check: "ladder.needs-human-avoidable" }],
   "P-REQ-1": [{ check: "ladder.needs-input-shape" }],
@@ -80,346 +92,392 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-REQ-9": [
     { check: "ladder.continue-replay" },
     {
-      test: "@axe/core concurrent uses of one continuation token run onContinue once; a lost response is recovered; an altered payload conflicts",
+      test: "@summationai/axe-core concurrent uses of one continuation token run onContinue once; a lost response is recovered; an altered payload conflicts",
     },
   ],
-  "P-REQ-10": [{ test: "@axe/core events contain no payloads" }],
+  "P-REQ-10": [{ test: "@summationai/axe-core events contain no payloads" }],
   "P-HAND-1": [{ check: "ladder.handoff-shape" }],
   "P-HAND-2": [{ check: "ladder.needs-human-avoidable" }],
   "P-HAND-3": [{ check: "manifest.honesty" }],
   "P-HAND-4": [{ check: "runtime.resume-endpoint" }, { check: "ladder.fallback-resume" }],
   "P-HAND-5": [
-    { test: "@axe/core a gated handoff refuses resume until completeHandoff is called" },
+    {
+      test: "@summationai/axe-core a gated handoff refuses resume until completeHandoff is called",
+    },
   ],
   "P-HAND-6": [{ check: "ladder.resume-replay" }],
   "P-HAND-7": [
     {
-      test: "@axe/core login handoff: returns login_required, then runs the action as the signed-in user",
+      test: "@summationai/axe-core login handoff: returns login_required, then runs the action as the signed-in user",
     },
   ],
   "P-APPR-1": [
     {
-      test: "@axe/core an approval request returns needs_human and records the exact call for the site's page [P-APPR-1] [P-APPR-2]",
+      test: "@summationai/axe-core an approval request returns needs_human and records the exact call for the site's page [P-APPR-1] [P-APPR-2]",
     },
     {
-      test: "@axe/core requestApproval outside the handler, or without approvalState, is internal and reported [P-APPR-1]",
+      test: "@summationai/axe-core requestApproval outside the handler, or without approvalState, is internal and reported [P-APPR-1]",
     },
   ],
   "P-APPR-2": [
     {
-      test: "@axe/core an approval request returns needs_human and records the exact call for the site's page [P-APPR-1] [P-APPR-2]",
+      test: "@summationai/axe-core an approval request returns needs_human and records the exact call for the site's page [P-APPR-1] [P-APPR-2]",
     },
     {
-      test: "@axe/core the approval is bound to the principal and tenant: another user or tenant cannot read, approve, or resume it [P-APPR-2]",
+      test: "@summationai/axe-core the approval is bound to the principal and tenant: another user or tenant cannot read, approve, or resume it [P-APPR-2]",
     },
   ],
   "P-APPR-3": [
     {
-      test: "@axe/core a resume before approval is a retryable conflict and runs nothing; nothing the agent sends approves [P-APPR-3]",
+      test: "@summationai/axe-core a resume before approval is a retryable conflict and runs nothing; nothing the agent sends approves [P-APPR-3]",
     },
     { test: "plan-review an agent's confirm or approve flag is not consent" },
   ],
   "P-APPR-4": [
     {
-      test: "@axe/core approved: the resume runs onResume once with the approved input and approver; a repeat replays the receipt [P-APPR-4] [P-APPR-7]",
+      test: "@summationai/axe-core approved: the resume runs onResume once with the approved input and approver; a repeat replays the receipt [P-APPR-4] [P-APPR-7]",
     },
   ],
   "P-APPR-5": [
     {
-      test: "@axe/core a cancelled request, open or approved, is refused with handoffStatus cancelled and nothing runs [P-APPR-5]",
+      test: "@summationai/axe-core a cancelled request, open or approved, is refused with handoffStatus cancelled and nothing runs [P-APPR-5]",
     },
   ],
   "P-APPR-6": [
     {
-      test: "@axe/core a state change after the request invalidates the approval, at approval and at resume, for good [P-APPR-6]",
+      test: "@summationai/axe-core a state change after the request invalidates the approval, at approval and at resume, for good [P-APPR-6]",
     },
   ],
   "P-APPR-7": [
     {
-      test: "@axe/core approved: the resume runs onResume once with the approved input and approver; a repeat replays the receipt [P-APPR-4] [P-APPR-7]",
+      test: "@summationai/axe-core approved: the resume runs onResume once with the approved input and approver; a repeat replays the receipt [P-APPR-4] [P-APPR-7]",
     },
   ],
   "P-APPR-8": [
     {
-      test: "@axe/core an expired approval request is not_found and tells the agent to start again; it cannot be approved [P-APPR-8]",
+      test: "@summationai/axe-core an expired approval request is not_found and tells the agent to start again; it cannot be approved [P-APPR-8]",
     },
   ],
   "P-APPR-9": [
     {
-      test: "@axe/core approval lifecycle events name the actors and the handoff, never the input or the state [P-APPR-9]",
+      test: "@summationai/axe-core approval lifecycle events name the actors and the handoff, never the input or the state [P-APPR-9]",
     },
     {
       test: "plan-review the agent's request becomes a page a person approves; the resume locks the plan and returns a receipt; the history tells one story",
     },
   ],
-  "P-PEND-1": [{ test: "@axe/core pending and poll" }],
-  "P-PEND-2": [{ test: "@axe/core pending and poll" }],
-  "P-PEND-3": [{ test: "@axe/client poll honors maxWaitMs" }],
+  "P-PEND-1": [{ test: "@summationai/axe-core pending and poll" }],
+  "P-PEND-2": [{ test: "@summationai/axe-core pending and poll" }],
+  "P-PEND-3": [{ test: "@summationai/axe-client poll honors maxWaitMs" }],
   "P-POLL-1": [
     {
-      test: "@axe/core a user-authenticated terminal result is not returned anonymously or to another user",
+      test: "@summationai/axe-core a user-authenticated terminal result is not returned anonymously or to another user",
     },
-    { test: "@axe/core a site-authenticated terminal result needs the same site key" },
+    { test: "@summationai/axe-core a site-authenticated terminal result needs the same site key" },
     {
-      test: "@axe/core the terminal result of an action that has since been removed is still authorized",
+      test: "@summationai/axe-core the terminal result of an action that has since been removed is still authorized",
     },
     {
-      test: "@axe/core a poll token minted on tenant A is not_found on tenant B, pending and terminal",
+      test: "@summationai/axe-core a poll token minted on tenant A is not_found on tenant B, pending and terminal",
     },
   ],
   "P-POLL-2": [
     {
-      test: "@axe/core concurrent polls run onPoll once; the other poll is pending; both then see one terminal result",
+      test: "@summationai/axe-core concurrent polls run onPoll once; the other poll is pending; both then see one terminal result",
     },
   ],
   "P-ERR-1": [{ check: "runtime.envelope-schema" }],
   "P-ERR-2": [{ check: "runtime.error-hygiene" }],
   "P-ERR-3": [{ check: "runtime.invalid-input" }],
-  "P-TOK-1": [{ test: "@axe/client treats tokens as opaque strings" }],
-  "P-TOK-2": [{ test: "@axe/core tokens bound to a user are rejected for another user" }],
+  "P-TOK-1": [{ test: "@summationai/axe-client treats tokens as opaque strings" }],
+  "P-TOK-2": [
+    { test: "@summationai/axe-core tokens bound to a user are rejected for another user" },
+  ],
   "P-TOK-3": [
     { check: "runtime.token-tamper" },
     { check: "runtime.continue-endpoint" },
     { check: "runtime.resume-endpoint" },
   ],
   "P-TOK-4": [
-    { test: "@axe/core token record holds state; wire token carries only binding fields" },
+    {
+      test: "@summationai/axe-core token record holds state; wire token carries only binding fields",
+    },
   ],
   "P-TOK-5": [{ check: "ladder.token-ttl" }],
   "P-TOK-6": [
     { check: "ladder.token-principal" },
     {
-      test: "@axe/core a continuation minted on tenant A is not_found on tenant B for the same local user id, and nothing runs",
+      test: "@summationai/axe-core a continuation minted on tenant A is not_found on tenant B for the same local user id, and nothing runs",
     },
     {
-      test: "@axe/core a resume token minted on tenant A is not_found on tenant B, before and after use",
+      test: "@summationai/axe-core a resume token minted on tenant A is not_found on tenant B, before and after use",
     },
     {
-      test: "@axe/core wrong user and anonymous presentations get exactly the unknown-token response, and nothing runs",
+      test: "@summationai/axe-core wrong user and anonymous presentations get exactly the unknown-token response, and nothing runs",
     },
     {
-      test: "@axe/core the login handoff is the one identity transition: anonymous to the user the site recorded",
+      test: "@summationai/axe-core the login handoff is the one identity transition: anonymous to the user the site recorded",
     },
-    { test: "@axe/core completeHandoff refuses a handoff minted for another tenant" },
+    { test: "@summationai/axe-core completeHandoff refuses a handoff minted for another tenant" },
   ],
   "P-TOK-7": [
     {
-      test: "@axe/core a workflow started with a site key continues with the same key and the handler sees its id",
+      test: "@summationai/axe-core a workflow started with a site key continues with the same key and the handler sees its id",
     },
     {
-      test: "@axe/core another partner, a revoked key, a narrowed key, or no key gets the unknown-token response",
+      test: "@summationai/axe-core another partner, a revoked key, a narrowed key, or no key gets the unknown-token response",
     },
     {
-      test: "@axe/core keys verified as `true` or without an id are scoped by a keyed hash, never shared, never stored raw",
+      test: "@summationai/axe-core keys verified as `true` or without an id are scoped by a keyed hash, never shared, never stored raw",
     },
     {
-      test: "@axe/core a site key with a forwarded user binds both: the same key with another user, or without the user, is refused",
+      test: "@summationai/axe-core a site key with a forwarded user binds both: the same key with another user, or without the user, is refused",
     },
     {
-      test: "@axe/core a resume token obtained with one site key is not_found with another key, open or consumed",
+      test: "@summationai/axe-core a resume token obtained with one site key is not_found with another key, open or consumed",
     },
   ],
   "P-IDEM-1": [{ check: "runtime.idempotency-required" }],
   "P-IDEM-2": [{ check: "runtime.idempotency-replay" }],
   "P-IDEM-3": [{ check: "runtime.idempotency-conflict" }],
-  "P-IDEM-4": [{ test: "@axe/core DEFAULT_IDEMPOTENCY_TTL_SECONDS is 24 hours" }],
+  "P-IDEM-4": [{ test: "@summationai/axe-core DEFAULT_IDEMPOTENCY_TTL_SECONDS is 24 hours" }],
   "P-OP-1": [
     { check: "ladder.continue-replay" },
     { check: "ladder.resume-replay" },
     {
-      test: "@axe/core run once; the concurrent caller gets a retryable conflict with Retry-After, then the stored envelope",
+      test: "@summationai/axe-core run once; the concurrent caller gets a retryable conflict with Retry-After, then the stored envelope",
     },
-    { test: "@axe/core two runtime instances sharing the stores run the operation once" },
     {
-      test: "@axe/core two runtimes on one database run a call once, and a crash after the business commit is recovered by operationId",
+      test: "@summationai/axe-core two runtime instances sharing the stores run the operation once",
+    },
+    {
+      test: "@summationai/axe-core two runtimes on one database run a call once, and a crash after the business commit is recovered by operationId",
     },
   ],
   "P-OP-2": [
     {
-      test: "@axe/core run once; the concurrent caller gets a retryable conflict with Retry-After, then the stored envelope",
+      test: "@summationai/axe-core run once; the concurrent caller gets a retryable conflict with Retry-After, then the stored envelope",
     },
   ],
   "P-OP-3": [
     {
-      test: "@axe/core a handler that throws releases the claim: the retry runs again and its success is stored",
+      test: "@summationai/axe-core a handler that throws releases the claim: the retry runs again and its success is stored",
     },
     {
-      test: "@axe/core an abandoned claim blocks retries until its lease passes, then the same operation takes it over",
+      test: "@summationai/axe-core an abandoned claim blocks retries until its lease passes, then the same operation takes it over",
     },
   ],
   "P-OP-4": [
     {
-      test: "@axe/core a crash after the business commit and before the result is stored: the retry re-runs, and operationId keeps the effect single",
+      test: "@summationai/axe-core a crash after the business commit and before the result is stored: the retry re-runs, and operationId keeps the effect single",
     },
   ],
   "P-LIM-1": [
     { check: "runtime.body-limit" },
     {
-      test: "@axe/core a body without Content-Length is read only up to the limit, then the stream is cancelled",
+      test: "@summationai/axe-core a body without Content-Length is read only up to the limit, then the stream is cancelled",
     },
   ],
   "P-LIM-2": [
     { check: "runtime.nesting-limit" },
-    { test: "@axe/core a deeply nested body is invalid_input, not a crash" },
+    { test: "@summationai/axe-core a deeply nested body is invalid_input, not a crash" },
   ],
   "P-LIM-3": [
-    { test: "@axe/client a request that never answers fails with a timeout after timeoutMs" },
-    { test: "@axe/client a body without Content-Length is read up to the limit, then cancelled" },
     {
-      test: "@axe/client a site that says retryAfter 0 is polled at most once a second, not in a loop",
+      test: "@summationai/axe-client a request that never answers fails with a timeout after timeoutMs",
     },
-    { test: "@axe/client discover() rejects malformed manifests and says why" },
+    {
+      test: "@summationai/axe-client a body without Content-Length is read up to the limit, then cancelled",
+    },
+    {
+      test: "@summationai/axe-client a site that says retryAfter 0 is polled at most once a second, not in a loop",
+    },
+    { test: "@summationai/axe-client discover() rejects malformed manifests and says why" },
   ],
   "P-LIM-4": [
     {
-      test: "@axe/core MemoryIdempotencyStore sweeps abandoned unique keys, and evicts completed entries before a running claim",
+      test: "@summationai/axe-core MemoryIdempotencyStore sweeps abandoned unique keys, and evicts completed entries before a running claim",
     },
     {
-      test: "@axe/core MemoryTokenStore sweeps expired records on a later write, whether or not they are read again",
+      test: "@summationai/axe-core MemoryTokenStore sweeps expired records on a later write, whether or not they are read again",
     },
   ],
-  "P-SCHEMA-1": [{ test: "@axe/core a required key is not satisfied by the prototype chain" }],
+  "P-SCHEMA-1": [
+    { test: "@summationai/axe-core a required key is not satisfied by the prototype chain" },
+  ],
   "P-SCHEMA-2": [
     {
-      test: "@axe/core a keyword the validator does not implement refuses the value; annotations and x- keys are ignored",
+      test: "@summationai/axe-core a keyword the validator does not implement refuses the value; annotations and x- keys are ignored",
     },
-    { test: "@axe/core a $ref loop that consumes nothing is an issue, not a stack overflow" },
+    {
+      test: "@summationai/axe-core a $ref loop that consumes nothing is an issue, not a stack overflow",
+    },
   ],
-  "P-SCHEMA-3": [{ test: "@axe/core is exact on the decimal values as written" }],
+  "P-SCHEMA-3": [{ test: "@summationai/axe-core is exact on the decimal values as written" }],
   "P-SCHEMA-4": [
     {
-      test: "@axe/core flags quantified groups whose body ends in a loose repetition, and not Zod's built-in patterns",
+      test: "@summationai/axe-core flags quantified groups whose body ends in a loose repetition, and not Zod's built-in patterns",
     },
   ],
   "P-SCHEMA-5": [
     {
-      test: "@axe/core toJsonSchema marks every input node the server checks beyond JSON Schema with x-axe-refined",
+      test: "@summationai/axe-core toJsonSchema marks every input node the server checks beyond JSON Schema with x-axe-refined",
     },
   ],
   "P-SCHEMA-6": [
     {
-      test: "@axe/core the same key with a different date is conflict, even though both parse to a Date",
+      test: "@summationai/axe-core the same key with a different date is conflict, even though both parse to a Date",
     },
   ],
   "P-DISP-1": [{ check: "manifest.display-pointers" }],
   "P-DISP-2": [{ check: "manifest.display-pointers" }, { check: "runtime.example-roundtrip" }],
   "P-DISP-3": [{ check: "manifest.display-pointers" }],
-  "P-DISP-4": [{ test: "@axe/client toMarkdown and toHTML always include the disclaimer" }],
-  "P-DISP-5": [{ test: "@axe/client toHTML escapes everything" }],
-  "P-DISP-6": [{ test: "@axe/client toHTML ignores unsafe URLs" }],
+  "P-DISP-4": [
+    { test: "@summationai/axe-client toMarkdown and toHTML always include the disclaimer" },
+  ],
+  "P-DISP-5": [{ test: "@summationai/axe-client toHTML escapes everything" }],
+  "P-DISP-6": [{ test: "@summationai/axe-client toHTML ignores unsafe URLs" }],
   "P-DISP-7": [{ check: "manifest.schema" }],
   "P-AFF-1": [{ check: "manifest.affordances" }],
   "P-AFF-2": [{ check: "manifest.affordances" }],
-  "P-AFF-3": [{ test: "@axe/core resolveDisplay binds partial inputs" }],
-  "P-AFF-4": [{ test: "@axe/core dynamic _axe.affordances replace static ones" }],
+  "P-AFF-3": [{ test: "@summationai/axe-core resolveDisplay binds partial inputs" }],
+  "P-AFF-4": [{ test: "@summationai/axe-core dynamic _axe.affordances replace static ones" }],
   "P-AFF-5": [{ check: "manifest.reserved-key" }],
-  "P-AFF-6": [{ test: "@axe/core resolveDisplay tolerates affordance spam" }],
+  "P-AFF-6": [{ test: "@summationai/axe-core resolveDisplay tolerates affordance spam" }],
   "P-AFF-7": [{ check: "manifest.pagination" }, { check: "runtime.pagination-roundtrip" }],
   "P-AFF-8": [{ check: "manifest.freshness" }],
   "P-AFF-9": [{ check: "manifest.structured-filters" }],
   "P-FLOW-1": [{ check: "manifest.flows" }],
   "P-AUTH-1": [{ check: "manifest.auth-modes" }],
   "P-AUTH-2": [
-    { test: "@axe/core site auth: missing key is unauthorized, disallowed key is forbidden" },
+    {
+      test: "@summationai/axe-core site auth: missing key is unauthorized, disallowed key is forbidden",
+    },
   ],
-  "P-AUTH-3": [{ test: "@axe/core handlers see the authenticated identity" }],
-  "P-AUTH-4": [{ test: "@axe/core login handoff" }],
-  "P-AUTH-5": [{ test: "@axe/core onBehalfOf in the body is ignored" }],
-  "P-AGENT-1": [{ test: "@axe/client sends User-Agent and context.agent" }],
+  "P-AUTH-3": [{ test: "@summationai/axe-core handlers see the authenticated identity" }],
+  "P-AUTH-4": [{ test: "@summationai/axe-core login handoff" }],
+  "P-AUTH-5": [{ test: "@summationai/axe-core onBehalfOf in the body is ignored" }],
+  "P-AGENT-1": [{ test: "@summationai/axe-client sends User-Agent and context.agent" }],
   "P-AGENT-2": [{ check: "runtime.rate-limit-header" }],
-  "P-AGENT-3": [{ test: "@axe/client honors Retry-After on rate_limited" }],
+  "P-AGENT-3": [{ test: "@summationai/axe-client honors Retry-After on rate_limited" }],
   "P-AGENT-4": [
-    { test: "@axe/client refuses a discovered manifest whose baseUrl is on another origin" },
-    { test: "@axe/client sends credentials to a cross-origin baseUrl listed in trust.origins" },
+    {
+      test: "@summationai/axe-client refuses a discovered manifest whose baseUrl is on another origin",
+    },
+    {
+      test: "@summationai/axe-client sends credentials to a cross-origin baseUrl listed in trust.origins",
+    },
   ],
   "P-AGENT-5": [
-    { test: "@axe/client refuses live.url and pollUrl on unauthorized origins" },
-    { test: "@axe/client allowCrossOrigin contacts other https origins without auth or headers" },
+    { test: "@summationai/axe-client refuses live.url and pollUrl on unauthorized origins" },
     {
-      test: "@axe/client does not follow an AXE-Manifest header or link tag to an unauthorized origin",
+      test: "@summationai/axe-client allowCrossOrigin contacts other https origins without auth or headers",
+    },
+    {
+      test: "@summationai/axe-client does not follow an AXE-Manifest header or link tag to an unauthorized origin",
     },
   ],
   "P-AGENT-6": [
-    { test: "@axe/client does not follow a redirect to an unauthorized origin" },
-    { test: "@axe/client refuses an https-to-http redirect" },
+    { test: "@summationai/axe-client does not follow a redirect to an unauthorized origin" },
+    { test: "@summationai/axe-client refuses an https-to-http redirect" },
   ],
-  "P-AGENT-7": [{ test: "@axe/client allows http only for loopback origins the caller chose" }],
+  "P-AGENT-7": [
+    { test: "@summationai/axe-client allows http only for loopback origins the caller chose" },
+  ],
   "P-AGENT-8": [
-    { test: "@axe/client destinationPolicy sees every outbound URL, redirects included" },
+    {
+      test: "@summationai/axe-client destinationPolicy sees every outbound URL, redirects included",
+    },
   ],
-  "P-AGENT-9": [{ test: "@axe/mcp axe_poll polls only a pollUrl this server returned" }],
+  "P-AGENT-9": [
+    { test: "@summationai/axe-mcp axe_poll polls only a pollUrl this server returned" },
+  ],
   "P-MCP-1": [
-    { test: "@axe/mcp stateless: a real HTTP client initializes, lists tools, and calls tools" },
-    { test: "@axe/mcp sessions: separate clients get separate sessions" },
-    { test: "@axe/mcp sessions: an idle session expires with 404, and the client re-initializes" },
+    {
+      test: "@summationai/axe-mcp stateless: a real HTTP client initializes, lists tools, and calls tools",
+    },
+    { test: "@summationai/axe-mcp sessions: separate clients get separate sessions" },
+    {
+      test: "@summationai/axe-mcp sessions: an idle session expires with 404, and the client re-initializes",
+    },
   ],
   "P-MCP-2": [
     {
-      test: "@axe/mcp two authenticated users are isolated: each call reaches AXE as its own principal",
+      test: "@summationai/axe-mcp two authenticated users are isolated: each call reaches AXE as its own principal",
     },
     {
-      test: "@axe/mcp a URL source: every call reaches the AXE site with the caller's own credential",
+      test: "@summationai/axe-mcp a URL source: every call reaches the AXE site with the caller's own credential",
     },
-    { test: "@axe/mcp acts as an OAuth resource server: 401 with resource metadata" },
-    { test: "@axe/mcp refuses to share one identity among HTTP callers unless told to" },
+    { test: "@summationai/axe-mcp acts as an OAuth resource server: 401 with resource metadata" },
+    {
+      test: "@summationai/axe-mcp refuses to share one identity among HTTP callers unless told to",
+    },
   ],
   "P-MCP-3": [
     {
-      test: "@axe/mcp two authenticated users are isolated: each call reaches AXE as its own principal",
+      test: "@summationai/axe-mcp two authenticated users are isolated: each call reaches AXE as its own principal",
     },
-    { test: "@axe/mcp sessions: separate clients get separate sessions" },
+    { test: "@summationai/axe-mcp sessions: separate clients get separate sessions" },
   ],
   "P-MCP-4": [
     {
-      test: "@axe/mcp a newly registered action becomes discoverable and callable; the session is told",
+      test: "@summationai/axe-mcp a newly registered action becomes discoverable and callable; the session is told",
     },
     {
-      test: "@axe/mcp within the refresh bound, tools/list shows an added action and drops a removed one",
+      test: "@summationai/axe-mcp within the refresh bound, tools/list shows an added action and drops a removed one",
     },
     {
-      test: "@axe/mcp a call to a tool added since the last fetch refreshes once and runs; a removed tool",
+      test: "@summationai/axe-mcp a call to a tool added since the last fetch refreshes once and runs; a removed tool",
     },
   ],
   "P-MCP-5": [
     {
-      test: "@axe/mcp an uncertain call retried with the same idempotencyKey runs the handler once; a second",
+      test: "@summationai/axe-mcp an uncertain call retried with the same idempotencyKey runs the handler once; a second",
     },
-    { test: "@axe/mcp axe_continue and axe_resume take expectedRev; a stale one applies nothing" },
+    {
+      test: "@summationai/axe-mcp axe_continue and axe_resume take expectedRev; a stale one applies nothing",
+    },
   ],
   "P-MCP-6": [
     {
-      test: "@axe/mcp a form-capable client is asked for a non-sensitive kind in a flat form, and the answer continues the action",
+      test: "@summationai/axe-mcp a form-capable client is asked for a non-sensitive kind in a flat form, and the answer continues the action",
     },
     {
-      test: "@axe/mcp decline and cancel return the needs_input result to the model, whose axe_continue still works",
+      test: "@summationai/axe-mcp decline and cancel return the needs_input result to the model, whose axe_continue still works",
     },
-    { test: "@axe/mcp a client without the capability gets the needs_input text as before" },
     {
-      test: "@axe/mcp over HTTP sessions the form reaches the calling client mid-call, and the continuation runs as that caller",
+      test: "@summationai/axe-mcp a client without the capability gets the needs_input text as before",
     },
-    { test: "@axe/mcp stateless HTTP cannot carry a server request, so the client gets the text" },
+    {
+      test: "@summationai/axe-mcp over HTTP sessions the form reaches the calling client mid-call, and the continuation runs as that caller",
+    },
+    {
+      test: "@summationai/axe-mcp stateless HTTP cannot carry a server request, so the client gets the text",
+    },
   ],
   "P-MCP-7": [
     {
-      test: "@axe/mcp a sensitive kind is never put in a form; URL mode offers the site's page when the client has it",
+      test: "@summationai/axe-mcp a sensitive kind is never put in a form; URL mode offers the site's page when the client has it",
     },
     {
-      test: "@axe/mcp needs_human is offered as the site's page in URL mode, never in a form; login_required is left to MCP authorization",
+      test: "@summationai/axe-mcp needs_human is offered as the site's page in URL mode, never in a form; login_required is left to MCP authorization",
     },
     {
-      test: "@axe/mcp only schemas in the form subset become forms; sensitivity is decided before the schema",
+      test: "@summationai/axe-mcp only schemas in the form subset become forms; sensitivity is decided before the schema",
     },
-    { test: "@axe/mcp over HTTP sessions a URL-capable client is offered the handoff page" },
+    {
+      test: "@summationai/axe-mcp over HTTP sessions a URL-capable client is offered the handoff page",
+    },
   ],
   "P-MCP-8": [
     {
-      test: "@axe/mcp a host that negotiated the extension gets the ui:// view on display tools and the escaped rendering with each result",
+      test: "@summationai/axe-mcp a host that negotiated the extension gets the ui:// view on display tools and the escaped rendering with each result",
     },
     {
-      test: "@axe/mcp a host without the extension sees no view, no resource, and the same text result",
+      test: "@summationai/axe-mcp a host without the extension sees no view, no resource, and the same text result",
     },
     {
-      test: "@axe/mcp the view initializes with the host, renders the escaped presentation, and runs nothing from the result",
+      test: "@summationai/axe-mcp the view initializes with the host, renders the escaped presentation, and runs nothing from the result",
     },
   ],
   "P-HON-1": [{ check: "manifest.honesty" }],
@@ -431,37 +489,43 @@ export const REQUIREMENTS: Readonly<Record<string, readonly Coverage[]>> = Objec
   "P-HON-7": [{ check: "manifest.truthful-metadata" }],
   "P-LIVE-1": [
     { check: "live.stale-conflict" },
-    { test: "@axe/core expectedRev is ignored by a site without a revision" },
+    { test: "@summationai/axe-core expectedRev is ignored by a site without a revision" },
   ],
   "P-LIVE-2": [
     { check: "live.rev-on-envelopes" },
-    { test: "@axe/core rev is stamped on every envelope when a revision provider exists" },
+    {
+      test: "@summationai/axe-core rev is stamped on every envelope when a revision provider exists",
+    },
   ],
   "P-LIVE-3": [
     { check: "live.stale-conflict" },
     { check: "live.fresh-accepted" },
     {
-      test: "@axe/core a stale expectedRev is conflict with expectedRev and currentRev, and nothing is applied",
+      test: "@summationai/axe-core a stale expectedRev is conflict with expectedRev and currentRev, and nothing is applied",
     },
   ],
   "P-LIVE-4": [
     {
-      test: "@axe/core an idempotent replay wins over a stale expectedRev, and a stale call does not burn the key",
+      test: "@summationai/axe-core an idempotent replay wins over a stale expectedRev, and a stale call does not burn the key",
     },
   ],
   "P-LIVE-5": [{ check: "live.reasons" }],
   "P-LIVE-6": [
     { check: "live.availability-honored" },
-    { test: "@axe/core handlers receive availability and refuse with unavailable()" },
+    { test: "@summationai/axe-core handlers receive availability and refuse with unavailable()" },
   ],
   "P-LIVE-7": [
     { check: "live.state-endpoint" },
-    { test: "@axe/core the manifest advertises live and renders the anonymous availability" },
+    {
+      test: "@summationai/axe-core the manifest advertises live and renders the anonymous availability",
+    },
   ],
   "P-LIVE-8": [
     { check: "live.state-endpoint" },
-    { test: "@axe/core /axe/state is served per caller with no-store" },
+    { test: "@summationai/axe-core /axe/state is served per caller with no-store" },
   ],
-  "P-LIVE-9": [{ test: "@axe/core handlers receive availability and refuse with unavailable()" }],
-  "P-LIVE-10": [{ test: "@axe/core revisions are compared for equality only" }],
+  "P-LIVE-9": [
+    { test: "@summationai/axe-core handlers receive availability and refuse with unavailable()" },
+  ],
+  "P-LIVE-10": [{ test: "@summationai/axe-core revisions are compared for equality only" }],
 });

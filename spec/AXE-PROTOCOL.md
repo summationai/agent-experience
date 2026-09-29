@@ -170,7 +170,7 @@ Input field descriptions (`description` on schema properties) SHOULD state the f
 
 ### 5.4 Schemas: the supported subset
 
-Every schema a site publishes (`input`, `output`, `accepts[].schema`) is read by agents that build values from it and by validators that check values against it. The two must agree, so the protocol fixes a subset of JSON Schema draft 2020-12 and says what a validator does with anything outside it. `docs/schemas.md` has the full keyword table for the SDK's validator, its Zod converter, and `@axe/generate`.
+Every schema a site publishes (`input`, `output`, `accepts[].schema`) is read by agents that build values from it and by validators that check values against it. The two must agree, so the protocol fixes a subset of JSON Schema draft 2020-12 and says what a validator does with anything outside it. `docs/schemas.md` has the full keyword table for the SDK's validator, its Zod converter, and `@summationai/axe-generate`.
 
 | Group       | Keywords                                                                                                                                                          |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -925,7 +925,7 @@ Per-resource revisions (ETags) were considered and rejected: an action touches s
 
 ## 22. MCP mapping
 
-An AXE site can be offered to Model Context Protocol hosts through a bridge that maps each action to an MCP tool (the SDK's is `@axe/mcp`; `docs/mcp.md` has the full mapping table). The rules below apply to any such bridge. "Caller" means the principal an MCP request is authenticated as; over stdio it is the one user who started the process.
+An AXE site can be offered to Model Context Protocol hosts through a bridge that maps each action to an MCP tool (the SDK's is `@summationai/axe-mcp`; `docs/mcp.md` has the full mapping table). The rules below apply to any such bridge. "Caller" means the principal an MCP request is authenticated as; over stdio it is the one user who started the process.
 
 **[P-MCP-1]** A bridge served over the MCP Streamable HTTP transport MUST serve any number of clients, each through its own MCP server state: in stateless mode, state that answers one HTTP request; in stateful mode, one session per `Mcp-Session-Id`. A request naming a session that is unknown, closed by `DELETE`, or expired MUST be answered `404`, after which the client starts a new session with a new `initialize`. A bridge that expires idle sessions MUST document the bound.
 
@@ -962,4 +962,4 @@ The rules below map the ladder and `display` onto capabilities MCP already has: 
 
 ## Appendix B. Requirement index
 
-Every numbered requirement above maps to at least one test in `@axe/core` or one check in the conformance suite; `packages/testing/src/conformance/requirements.ts` lists the mapping and a test asserts that every `[P-...]` identifier in this file appears there.
+Every numbered requirement above maps to at least one test in `@summationai/axe-core` or one check in the conformance suite; `packages/testing/src/conformance/requirements.ts` lists the mapping and a test asserts that every `[P-...]` identifier in this file appears there.

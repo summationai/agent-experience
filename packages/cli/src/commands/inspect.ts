@@ -1,5 +1,5 @@
-import { discover } from "@axe/client";
-import type { Manifest } from "@axe/core/types";
+import { discover } from "@summationai/axe-client";
+import type { Manifest } from "@summationai/axe-core/types";
 import type { CommandContext } from "../index";
 import { parse, requireUrl } from "./shared";
 

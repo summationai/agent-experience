@@ -1,6 +1,6 @@
 // A production relay: tabs sign in with relay tokens, agents with OAuth access tokens.
-import { createRelay } from "@axe/relay/server";
-import type { OAuthTokenVerifier } from "@axe/mcp";
+import { createRelay } from "@summationai/axe-relay/server";
+import type { OAuthTokenVerifier } from "@summationai/axe-mcp";
 
 declare const verifier: OAuthTokenVerifier;
 

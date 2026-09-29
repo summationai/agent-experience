@@ -14,7 +14,7 @@ function fetchFor(axe: { handle(req: Request): Promise<Response> }) {
   return { fetch: f, bodies };
 }
 
-describe("@axe/client live state", () => {
+describe("@summationai/axe-client live state", () => {
   it("state() fetches /axe/state for the caller; live() reads the manifest", async () => {
     const { axe } = liveAXE();
     const client = await AXEClient.discover("https://ember-yoga.example", {

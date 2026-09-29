@@ -1,4 +1,4 @@
-import { createAXE, action, z } from "@axe/core";
+import { createAXE, action, z } from "@summationai/axe-core";
 
 const axe = createAXE({
   name: "Northgate University Admissions",

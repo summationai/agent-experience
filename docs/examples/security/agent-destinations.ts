@@ -1,6 +1,6 @@
 // #region egress
-import { AXEClient } from "@axe/client";
-import type { DestinationRequest } from "@axe/client";
+import { AXEClient } from "@summationai/axe-client";
+import type { DestinationRequest } from "@summationai/axe-client";
 
 // A client running inside an MCP server on a company network. The site is untrusted, and the
 // server's network access is not the site's to borrow. Every outbound URL, redirects included,

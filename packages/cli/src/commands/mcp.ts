@@ -1,4 +1,4 @@
-import { createMcpServer, serveStdio } from "@axe/mcp";
+import { createMcpServer, serveStdio } from "@summationai/axe-mcp";
 import type { CommandContext } from "../index";
 import { parse, requireUrl } from "./shared";
 

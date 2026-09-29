@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Packs the SDK for an application that consumes it from a checkout (docs/deploying.md,
-# "Consume from a checkout"). Builds the workspace, packs @axe/core, @axe/surface, @axe/client
-# and @axe/testing into <out-dir> as axe-<name>-<version>.tgz, and writes <out-dir>/SOURCE with
+# "Consume from a checkout"). Builds the workspace, packs @summationai/axe-core, @summationai/axe-surface, @summationai/axe-client
+# and @summationai/axe-testing into <out-dir> as summationai-axe-<name>-<version>.tgz, and writes <out-dir>/SOURCE with
 # the repository, branch, commit and date the tarballs came from, since a tarball carries only
 # the version and every pre-release commit is 0.1.0.
 #
@@ -24,14 +24,14 @@ OUT="$(cd "$OUT" && pwd)"
   pnpm -r build
 )
 
-rm -f "$OUT"/axe-*.tgz
+rm -f "$OUT"/summationai-axe-*.tgz
 for pkg in $PACKAGES; do
   if [ ! -f "$ROOT/packages/$pkg/package.json" ]; then
     echo "no such package: packages/$pkg" >&2
     exit 2
   fi
   # pnpm rewrites workspace:* dependencies to the packed version, so the surface tarball asks
-  # for @axe/core@<version>; the consumer's overrides point that back at the core tarball.
+  # for @summationai/axe-core@<version>; the consumer's overrides point that back at the core tarball.
   (cd "$ROOT/packages/$pkg" && pnpm pack --pack-destination "$OUT" >/dev/null)
 done
 
@@ -52,7 +52,7 @@ fi
   echo "branch: $BRANCH"
   echo "commit: $COMMIT$DIRTY"
   echo "date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  echo "packages: $(cd "$OUT" && ls axe-*.tgz | tr '\n' ' ')"
+  echo "packages: $(cd "$OUT" && ls summationai-axe-*.tgz | tr '\n' ' ')"
 } > "$OUT/SOURCE"
 
 echo "packed into $OUT:"

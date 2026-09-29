@@ -140,7 +140,7 @@ affordances: [
 ```
 <!-- /include -->
 
-The reference renderers in `@axe/client/present` turn a result plus its `display` into a Markdown table or a self-contained HTML page whose buttons dispatch the bound affordance. [Presenting results](presenting-results.md) covers the whole arc.
+The reference renderers in `@summationai/axe-client/present` turn a result plus its `display` into a Markdown table or a self-contained HTML page whose buttons dispatch the bound affordance. [Presenting results](presenting-results.md) covers the whole arc.
 
 ## The result envelope
 
@@ -235,7 +235,7 @@ onResume: async ({ state }) => db.submit((state as { applicationId: string }).ap
 
 A requirement is one `accepts` entry: a `kind`, a `title`, an agent-facing `description`, a `schema`, `sensitive`, and optional `instructions` the agent relays (wire details, where to obtain a document). Kinds are namespaced: the well-known registry in [`spec/KINDS.md`](../spec/KINDS.md) covers payment, identity, documents, contact, and consent; sites add their own under `x-<org>.<name>`.
 
-Well-known kinds are what let an agent wallet fulfill a requirement automatically. `@axe/core/kinds` ships each one as a typed definition, and `accept` builds an entry from it, so a site writes `accept(kinds.payment.achDebit, { description })` instead of hand-rolling a schema. The server validates the submitted `payload` against the chosen entry's schema on `/axe/continue`; a failed validation returns `invalid_input` and does not consume the token. [Requirements and kinds](requirements-and-kinds.md) goes deep.
+Well-known kinds are what let an agent wallet fulfill a requirement automatically. `@summationai/axe-core/kinds` ships each one as a typed definition, and `accept` builds an entry from it, so a site writes `accept(kinds.payment.achDebit, { description })` instead of hand-rolling a schema. The server validates the submitted `payload` against the chosen entry's schema on `/axe/continue`; a failed validation returns `invalid_input` and does not consume the token. [Requirements and kinds](requirements-and-kinds.md) goes deep.
 
 ## Handoff and resume
 
@@ -267,7 +267,7 @@ Both tokens are signed, opaque to the agent, bound to the originating action, in
 
 ## Idempotency
 
-Every mutating action requires an `idempotencyKey` in the request envelope. Replaying a key with the same input, action, and principal within 24 hours returns the original result without running the handler; replaying it with different input returns `conflict`. The runtime claims the key atomically before the handler runs, so two simultaneous requests with one key run the handler once: the second gets a retryable `conflict` with `operationStatus` set to `in_progress` and a `Retry-After`, and its retry gets the stored result. Continuation and resume tokens work the same way: repeating a successful continue or resume returns its original envelope, so an agent whose response was lost recovers it. `@axe/client` generates a UUID per attempt automatically. The default store is in-memory; for more than one process use `SqliteIdempotencyStore` from `@axe/core/node` or implement `IdempotencyStore`, whose claim must be atomic ([Deploying](deploying.md#secrets-and-stores)). Idempotency makes the decision to run atomic, not your side effect: see [Operations, claims, and crashes](deploying.md#operations-claims-and-crashes).
+Every mutating action requires an `idempotencyKey` in the request envelope. Replaying a key with the same input, action, and principal within 24 hours returns the original result without running the handler; replaying it with different input returns `conflict`. The runtime claims the key atomically before the handler runs, so two simultaneous requests with one key run the handler once: the second gets a retryable `conflict` with `operationStatus` set to `in_progress` and a `Retry-After`, and its retry gets the stored result. Continuation and resume tokens work the same way: repeating a successful continue or resume returns its original envelope, so an agent whose response was lost recovers it. `@summationai/axe-client` generates a UUID per attempt automatically. The default store is in-memory; for more than one process use `SqliteIdempotencyStore` from `@summationai/axe-core/node` or implement `IdempotencyStore`, whose claim must be atomic ([Deploying](deploying.md#secrets-and-stores)). Idempotency makes the decision to run atomic, not your side effect: see [Operations, claims, and crashes](deploying.md#operations-claims-and-crashes).
 
 ## Live state and revisions
 
@@ -300,7 +300,7 @@ Agents use `risk` to decide how much to confirm with the user. Declaring it trut
 
 ## Events
 
-Every handled request emits one event: action, status, where on the ladder it landed, agent vendor, latency, tenant. No payloads, no identities. Sinks for console, JSON lines, and OpenTelemetry ship in `@axe/core/events`. [Analytics](analytics.md) has the day-one queries.
+Every handled request emits one event: action, status, where on the ladder it landed, agent vendor, latency, tenant. No payloads, no identities. Sinks for console, JSON lines, and OpenTelemetry ship in `@summationai/axe-core/events`. [Analytics](analytics.md) has the day-one queries.
 
 ## Next steps
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createTestClient, invokeAction, samplePayload } from "../src/helpers";
 import { apartmentsAXE } from "../../core/test/fixtures/apartments";
-import { isOk } from "@axe/client";
+import { isOk } from "@summationai/axe-client";
 
 describe("test helpers", () => {
   it("createTestClient runs in-process with an injected identity", async () => {

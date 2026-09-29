@@ -1,7 +1,7 @@
 /**
  * Presentation: validate `display`/`affordances`/`pagination`/`freshness` against
  * schemas, and resolve them against a real output into a `PresentedResult`.
- * Zod-free so `@axe/client` can bundle it.
+ * Zod-free so `@summationai/axe-client` can bundle it.
  */
 import type {
   ActionDefinition,

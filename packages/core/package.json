@@ -1,5 +1,5 @@
 {
-  "name": "@axe/core",
+  "name": "@summationai/axe-core",
   "version": "0.1.0",
   "description": "AXE protocol types, schemas, well-known kinds, and framework-free server runtime.",
   "license": "Apache-2.0",

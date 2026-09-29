@@ -1,6 +1,6 @@
 /** Provider-owned OAuth session for human browser handoffs. No application-specific behavior. */
 import { createHash, randomBytes } from "node:crypto";
-import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
+import type { AuthInfo, OAuthTokenVerifier } from "@summationai/axe-mcp";
 
 interface AuthorizationMetadata {
   issuer: string;

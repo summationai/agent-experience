@@ -1,14 +1,14 @@
 // #region all
-import { action, createAXE, z } from "@axe/core";
+import { action, createAXE, z } from "@summationai/axe-core";
 import type {
   ClaimOutcome,
   IdempotencyRecord,
   IdempotencyStore,
   TokenRecord,
   TokenStore,
-} from "@axe/core";
-import { SqliteIdempotencyStore } from "@axe/core/node";
-import type { SqliteDatabaseLike } from "@axe/core/node";
+} from "@summationai/axe-core";
+import { SqliteIdempotencyStore } from "@summationai/axe-core/node";
+import type { SqliteDatabaseLike } from "@summationai/axe-core/node";
 
 // #region kv
 // The subset of a Redis-style client the stores need. ioredis and node-redis both have this shape.

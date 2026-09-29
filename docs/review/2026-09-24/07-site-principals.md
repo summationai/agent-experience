@@ -9,7 +9,7 @@ Reproduced at 3dd4ed3 with the review script (`site-auth continuation`): `{"stat
 ## Change
 
 - `packages/core/src/server.ts`: `verifySite(request, action)` is the one site-key check for invoke, continue, resume, poll, `/axe/state`, and the unknown-action replay. It returns `missing`, `invalid`, `forbidden` (allowlist), or a `SiteKeyContext`.
-- `SiteKeyContext` (`packages/core/src/principal.ts`, exported from `@axe/core`): `{ id, actions?, derived? }`. `id` is the verdict's `id`, or `key-` + HMAC-SHA256 of the presented key under the server `secret` when the verdict has none (`derived: true`). The raw key is never stored.
+- `SiteKeyContext` (`packages/core/src/principal.ts`, exported from `@summationai/axe-core`): `{ id, actions?, derived? }`. `id` is the verdict's `id`, or `key-` + HMAC-SHA256 of the presented key under the server `secret` when the verdict has none (`derived: true`). The raw key is never stored.
 - Principal for a `site` action: the site id plus the user when `authenticate` also returns one; every follow-up must match both (item 1's authorizeToken). Follow-ups re-verify the key and check the allowlist against the token's action, so a revoked or narrowed key gets `not_found`.
 - Handlers: `siteKey` is now non-null for every `site` call and its follow-ups (`onContinue`, `onResume`, `onPoll`); availability hooks receive `siteKey` (`AvailabilityContext.siteKey`, optional); the revision provider receives `identity` and `siteKey` (`RevisionContext`, optional), for the Surface authorization work (item 5).
 - Spec: [P-TOK-7]; [P-AUTH-2] cross-reference.

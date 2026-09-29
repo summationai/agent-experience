@@ -17,7 +17,7 @@ Verified at `49c11be`:
 
 ## Change
 
-### Score and reports (`@axe/testing`)
+### Score and reports (`@summationai/axe-testing`)
 
 - `packages/testing/src/audit/index.ts`: a skipped check has `earned: 0`. `AuditCategory` gains `scored: boolean`; a category with no scored check has `score: 0`, `scored: false`, and is left out of the total, which is scaled to 100 over the scored categories (the plain sum when all are scored). Fix-list points are scaled the same way, so they stay in total-score points. `presentable.pointers-resolve` and `trustworthy.tokens` score only the halves that ran and name the half that did not. `describable.examples-validate` skips when its conformance check is absent or skipped. `describable.examples-present`, `describable.input-descriptions`, `describable.structured-filters`, and `actionable.graph-connected` skip when there is nothing to count. `discoverable.index` skips when there is no manifest.
 - `packages/testing/src/conformance/index.ts`: `ladder.needs-human-avoidable` skips when no `needs_human` was observed; `runtime.error-hygiene` skips when no error body was seen. `formatConformanceTable` adds, when anything skipped, "Skipped checks were not verified: "Conformant" means no check failed, not that every requirement was exercised", and always a line that conformance is not a security review, with a link to the new doc section.

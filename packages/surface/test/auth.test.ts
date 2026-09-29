@@ -6,8 +6,8 @@
  */
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { createAXE } from "@axe/core";
-import type { AuthConfig, TenantInfo } from "@axe/core";
+import { createAXE } from "@summationai/axe-core";
+import type { AuthConfig, TenantInfo } from "@summationai/axe-core";
 import type {
   AXEActionEvent,
   ErrorResult,
@@ -15,7 +15,7 @@ import type {
   Manifest,
   NeedsHumanResult,
   OkResult,
-} from "@axe/core/types";
+} from "@summationai/axe-core/types";
 import { createSurface, describeEntry, surfaceAttributes } from "../src/index";
 import type { Surface } from "../src/index";
 import { scopedSurfaces, surfaceActions } from "../src/axe";

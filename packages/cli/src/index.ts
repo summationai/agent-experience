@@ -17,7 +17,7 @@ import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import * as WIRE from "@axe/core/vocabulary";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 import { init } from "./commands/init";
 import { validate } from "./commands/validate";
 import { inspect } from "./commands/inspect";

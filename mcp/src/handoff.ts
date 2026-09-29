@@ -2,9 +2,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import type { ServerResponse } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
-import { createRelay } from "@axe/relay/server";
-import type { Relay, RelayAddress, RelayPrincipal } from "@axe/relay/server";
-import type { OAuthTokenVerifier } from "@axe/mcp";
+import { createRelay } from "@summationai/axe-relay/server";
+import type { Relay, RelayAddress, RelayPrincipal } from "@summationai/axe-relay/server";
+import type { OAuthTokenVerifier } from "@summationai/axe-mcp";
 import { introspectionVerifier, userInfoVerifier } from "./hosted";
 
 const DEFAULT_PORT = 8080;

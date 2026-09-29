@@ -8,14 +8,14 @@ The review said AXE described itself as filling gaps that the agent ecosystem al
 
 Verified at `7284f6a`:
 
-- `@axe/mcp` rendered every `needs_input` and `needs_human` as text and never used elicitation, even with a client that declared it. Its server declared only `tools`, so no MCP Apps view could exist.
-- `docs/mcp.md` "What does not map" already named elicitation and MCP Apps as counterparts "this bridge does not use yet" (item 10 changed it), but `docs/faq.md` said MCP gives a site no escalation ladder, no `display` hints, and no human-handoff semantics, and mentioned neither elicitation, Apps, nor MCP's OAuth model. The FAQ's OAuth answer did not separate verifying tokens (which `@axe/mcp` does since item 9) from issuing them (which nothing in the SDK does).
-- A Surface could be reached by a browser agent only through `expose(window)` or the DOM; there was no WebMCP path. The `@axe/surface` plus `/react` browser bundle was 31,370 bytes minified.
+- `@summationai/axe-mcp` rendered every `needs_input` and `needs_human` as text and never used elicitation, even with a client that declared it. Its server declared only `tools`, so no MCP Apps view could exist.
+- `docs/mcp.md` "What does not map" already named elicitation and MCP Apps as counterparts "this bridge does not use yet" (item 10 changed it), but `docs/faq.md` said MCP gives a site no escalation ladder, no `display` hints, and no human-handoff semantics, and mentioned neither elicitation, Apps, nor MCP's OAuth model. The FAQ's OAuth answer did not separate verifying tokens (which `@summationai/axe-mcp` does since item 9) from issuing them (which nothing in the SDK does).
+- A Surface could be reached by a browser agent only through `expose(window)` or the DOM; there was no WebMCP path. The `@summationai/axe-surface` plus `/react` browser bundle was 31,370 bytes minified.
 - `docs/why-axe.md`, `docs/for-agent-builders.md`, and `README.md` made no incorrect claim about MCP; they did not mention these MCP features either.
 
 ## Change
 
-### WebMCP: `@axe/surface/webmcp`
+### WebMCP: `@summationai/axe-surface/webmcp`
 
 `packages/surface/src/webmcp.ts` (new subpath export; `tsup.config.ts`, `package.json` `exports` and typesVersions, `typedoc.json`):
 
@@ -27,7 +27,7 @@ Verified at `7284f6a`:
 
 Spec: `spec/SURFACE.md` v0.7, §8 "WebMCP: the browser's own agent", [S-WEB-1] to [S-WEB-5]; provenance line.
 
-### Elicitation in `@axe/mcp`
+### Elicitation in `@summationai/axe-mcp`
 
 `packages/mcp/src/elicitation.ts` (new) and `packages/mcp/src/index.ts` (`finish`, offerPage, and an `Interaction` built in the CallTool handler):
 
@@ -41,7 +41,7 @@ Spec: `spec/SURFACE.md` v0.7, §8 "WebMCP: the browser's own agent", [S-WEB-1] t
 
 Spec: §22 [P-MCP-6] (form mode), [P-MCP-7] (sensitive kinds, URL mode, `login_required`, the handoff page identifies the user). Mapped in `packages/testing/src/conformance/requirements.ts`.
 
-### MCP Apps view in `@axe/mcp` (experimental)
+### MCP Apps view in `@summationai/axe-mcp` (experimental)
 
 `packages/mcp/src/apps.ts` (new): the extension id, the MIME type, `ui://axe/presentation`, and the view's HTML. In `index.ts` the server declares `resources: {}` unless `apps: false`. `tools/list` adds `_meta.ui.resourceUri` to `display` tools, `resources/list` lists the view, and `ok` results carry `_meta["axe/presentation"].html` (from `toHTML`), all only when `capabilities.extensions["io.modelcontextprotocol/ui"].mimeTypes` includes `text/html;profile=mcp-app`. `resources/read` serves the view with `_meta.ui.prefersBorder`. `formatResult(result, action, brand, { presentation })`.
 
@@ -62,7 +62,7 @@ Spec: §22 [P-MCP-8].
 | File | Old claim | New text |
 | --- | --- | --- |
 | `docs/faq.md`, "How is this different from MCP?" | MCP alone does not give a site "an escalation ladder (a tool either returns or errors), `display` hints, and human handoff semantics". | MCP has elicitation (form and URL modes), the Apps extension, and OAuth resource-server authorization, and the derived server uses them; WebMCP plays that role in the browser. AXE adds discovery at a domain, typed kinds with shared shapes and sensitivity, a three-rung ladder whose follow-ups resume with tokens bound to caller and tenant, revision-guarded live state, and honesty rules with an audit. |
-| `docs/faq.md`, "What about authentication and OAuth?" | "No OAuth 2.1 authorization server ships in v0." (nothing on the resource-server side) | Kept and marked deliberate; added that `@axe/mcp` is a resource server (verifies each token, publishes RFC 9728 metadata) and issuing tokens stays with the site's authorization server. |
+| `docs/faq.md`, "What about authentication and OAuth?" | "No OAuth 2.1 authorization server ships in v0." (nothing on the resource-server side) | Kept and marked deliberate; added that `@summationai/axe-mcp` is a resource server (verifies each token, publishes RFC 9728 metadata) and issuing tokens stays with the site's authorization server. |
 | `docs/mcp.md`, "What does not map" | Handoff and presentation had no counterpart the bridge used ("this bridge does not use it yet"); "The derived server declares only tools in v0." | Three lists: what maps to MCP's own features (elicitation, Apps, OAuth resource server; issuing tokens deliberately out of scope), what AXE adds, and what has no counterpart (discovery, idempotency keys, prompts and sampling, streaming). |
 | `docs/why-axe.md`, "An MCP server for free" | (no MCP comparison) | Adds that the derived server uses elicitation and the Apps extension with clients that support them. |
 | `docs/for-agent-builders.md`, opening | (no MCP comparison) | One sentence: the derived server uses elicitation and Apps when the client declares them. |
@@ -79,7 +79,7 @@ Spec: §22 [P-MCP-8].
 - follows availability: a changed reason re-registers the tool, `omit` drops an unavailable control, and a freeze is described
 - maps ids to valid, stable, unique tool names and reports a refused registration
 
-`packages/surface/test/bundle.test.ts`: the `@axe/surface` plus `/react` bundle contains no `webmcp` input (new assertion); `@axe/surface/webmcp` bundles alone for the browser without Zod or React (new test; 34,627 bytes alone, since it includes the main entry; about 5.6 kB on top of `@axe/surface`).
+`packages/surface/test/bundle.test.ts`: the `@summationai/axe-surface` plus `/react` bundle contains no `webmcp` input (new assertion); `@summationai/axe-surface/webmcp` bundles alone for the browser without Zod or React (new test; 34,627 bytes alone, since it includes the main entry; about 5.6 kB on top of `@summationai/axe-surface`).
 
 `packages/mcp/test/elicitation.test.ts` (the SDK `Client`, with and without the capability):
 
@@ -101,7 +101,7 @@ Restoring `packages/mcp/src/index.ts` to `7284f6a` removes exports the new test 
 - One form per `needs_input`, for the first suitable kind. A site whose preferred kind is sensitive gets URL mode or text even when a later kind would fit a form. Dropped keywords (formats outside the four) are checked by the site on continue, so a user can submit a value the site refuses with `invalid_input`.
 - The sensitivity rule is a floor over the site's flag plus a name heuristic; a custom sensitive kind with an innocuous name must be marked `sensitive: true`, as [K-4] already requires.
 - The Apps view is experimental and was tested under jsdom with a stand-in host, not in a shipping host. It shows no images (the host's default CSP allows none from other origins and the view declares no resourceDomains), and it hides the affordance buttons rather than wiring them to `tools/call`. The server announces the `resources` capability to every client.
-- MCP authorization-server operation (issuing tokens) is not provided, deliberately; `@axe/mcp` remains a resource server (item 9).
+- MCP authorization-server operation (issuing tokens) is not provided, deliberately; `@summationai/axe-mcp` remains a resource server (item 9).
 
 ## Sources verified
 

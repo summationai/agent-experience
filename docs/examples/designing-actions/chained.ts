@@ -3,8 +3,8 @@
  * first needs the document, then (for some applicants) a consent. Each continue
  * may return another `needs_input`.
  */
-import { createAXE, action, z } from "@axe/core";
-import { kinds, accept, withMimeTypes } from "@axe/core/kinds";
+import { createAXE, action, z } from "@summationai/axe-core";
+import { kinds, accept, withMimeTypes } from "@summationai/axe-core/kinds";
 
 export const axe = createAXE({
   name: "Northgate University Admissions",

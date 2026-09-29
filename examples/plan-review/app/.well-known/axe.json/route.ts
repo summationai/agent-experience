@@ -1,5 +1,5 @@
 // The manifest at /.well-known/axe.json. It answers in evaluation variant v4 and as shipped.
-import { axeNext } from "@axe/next";
+import { axeNext } from "@summationai/axe-next";
 import { getAXE } from "../../../lib/axe";
 import { axeEnabled, notFound } from "../../../lib/variant";
 

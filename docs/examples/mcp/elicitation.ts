@@ -1,5 +1,5 @@
 // #region elicitation
-import { createMcpServer, serveHttp } from "@axe/mcp";
+import { createMcpServer, serveHttp } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 // Elicitation and the Apps view are on by default and used only with clients that declare them.

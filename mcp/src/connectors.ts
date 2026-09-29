@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import type { SessionFor } from "@axe/host";
+import type { SessionFor } from "@summationai/axe-host";
 
 /**
  * Trusted bootstrap configuration for one application. Runtime controls and application-specific

@@ -1,5 +1,5 @@
 {
-  "name": "@axe/client",
+  "name": "@summationai/axe-client",
   "version": "0.1.0",
   "description": "Agent-side client for AXE: discover, invoke, continue, resume, and present results.",
   "license": "Apache-2.0",
@@ -41,7 +41,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@axe/core": "workspace:*"
+    "@summationai/axe-core": "workspace:*"
   },
   "repository": {
     "type": "git",

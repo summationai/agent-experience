@@ -1,6 +1,6 @@
 /**
- * @axe/core/node: the pieces of `@axe/core` that need Node. Everything else in the package is
- * platform-neutral, so a browser bundle that imports `@axe/core` or `@axe/surface` never meets a
+ * @summationai/axe-core/node: the pieces of `@summationai/axe-core` that need Node. Everything else in the package is
+ * platform-neutral, so a browser bundle that imports `@summationai/axe-core` or `@summationai/axe-surface` never meets a
  * Node built-in; this entry is the one place that reaches for one. `SqliteIdempotencyStore` takes
  * a `node:sqlite` connection you open, so this module imports nothing from `node:sqlite` itself.
  */

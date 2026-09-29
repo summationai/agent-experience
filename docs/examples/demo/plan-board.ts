@@ -19,10 +19,10 @@
 //   dana-browser  the person, used by the page
 //   dana-agent    the agent acting for the same person, used by `axe mcp`
 import express from "express";
-import { createAXE } from "@axe/core";
-import { axeExpress } from "@axe/express";
-import { createSurface } from "@axe/surface";
-import { surfaceActions } from "@axe/surface/axe";
+import { createAXE } from "@summationai/axe-core";
+import { axeExpress } from "@summationai/axe-express";
+import { createSurface } from "@summationai/axe-surface";
+import { surfaceActions } from "@summationai/axe-surface/axe";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const BASE = `http://localhost:${PORT}`;

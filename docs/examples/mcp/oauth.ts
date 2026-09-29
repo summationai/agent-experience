@@ -2,9 +2,9 @@
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
-import { axeFetch } from "@axe/fetch";
-import { createMcpServer, protectedResourceMetadata, serveHttp } from "@axe/mcp";
-import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
+import { axeFetch } from "@summationai/axe-fetch";
+import { createMcpServer, protectedResourceMetadata, serveHttp } from "@summationai/axe-mcp";
+import type { AuthInfo, OAuthTokenVerifier } from "@summationai/axe-mcp";
 import { axe } from "../apartments/site";
 
 const MCP_URL = "https://oakridge-rentals.example/mcp";

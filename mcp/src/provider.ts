@@ -2,9 +2,9 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
-import { createHost } from "@axe/host";
-import type { Host, HostEvent, HostIdentity } from "@axe/host";
-import { createMcpServer, protectedResourceMetadata, serveHttp } from "@axe/mcp";
+import { createHost } from "@summationai/axe-host";
+import type { Host, HostEvent, HostIdentity } from "@summationai/axe-host";
+import { createMcpServer, protectedResourceMetadata, serveHttp } from "@summationai/axe-mcp";
 import type {
   AuthInfo,
   AxeLike,
@@ -13,7 +13,7 @@ import type {
   McpHttpHandler,
   OAuthTokenVerifier,
   ProtectedResourceOptions,
-} from "@axe/mcp";
+} from "@summationai/axe-mcp";
 import type { ConnectorRegistry, RegisteredConnector } from "./connectors";
 import { createBrowserAuth } from "./browser-auth";
 

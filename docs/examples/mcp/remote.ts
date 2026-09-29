@@ -1,6 +1,6 @@
 // #region remote
-import { createMcpServer, serveHttp } from "@axe/mcp";
-import type { AuthInfo, OAuthTokenVerifier } from "@axe/mcp";
+import { createMcpServer, serveHttp } from "@summationai/axe-mcp";
+import type { AuthInfo, OAuthTokenVerifier } from "@summationai/axe-mcp";
 
 declare const verifier: OAuthTokenVerifier;
 

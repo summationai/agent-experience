@@ -6,7 +6,7 @@ The product should never ask the user to understand that distinction. Its langua
 
 ## What happens
 
-1. The application developer installs `@axe/surface` and the browser-only part of `@axe/relay`, mounts `SurfaceProvider`, and enables the injected-host path. Their application does not run or deploy MCP.
+1. The application developer installs `@summationai/axe-surface` and the browser-only part of `@summationai/axe-relay`, mounts `SurfaceProvider`, and enables the injected-host path. Their application does not run or deploy MCP.
 2. The provider deploys [`mcp/`](../mcp/README.md) at one stable public HTTPS `/mcp` URL and publishes [`plugins/agent-experience`](../plugins/agent-experience/README.md) against it.
 3. The person installs the plugin from ChatGPT's directory. MCP initialization is anonymous and silent; opening ChatGPT does not start OAuth or open a browser.
 4. After the person asks to use an application, the plugin searches the trusted connector registry, selects the match, and calls `relay_tabs`. The provider authenticates the agent identity and starts or resumes an isolated hidden session for that connector.

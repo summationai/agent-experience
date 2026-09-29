@@ -1,6 +1,6 @@
-import { action, z } from "@axe/core";
-import { lintAction } from "@axe/core/lint";
-import { schemaProblems, validateJsonSchema } from "@axe/core/json-schema";
+import { action, z } from "@summationai/axe-core";
+import { lintAction } from "@summationai/axe-core/lint";
+import { schemaProblems, validateJsonSchema } from "@summationai/axe-core/json-schema";
 
 // #region refined
 // A check JSON Schema cannot express: the visit must be on a weekday. The published input

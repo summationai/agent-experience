@@ -14,7 +14,7 @@ const repo = join(__dirname, "../../..");
 
 /** A fixture copied to a temporary directory, so applying never touches the repository. */
 function copy(name: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `axe-surface-${name}-`));
+  const dir = mkdtempSync(join(tmpdir(), `summationai-axe-surface-${name}-`));
   cpSync(join(fixtures, name), dir, { recursive: true });
   return dir;
 }
@@ -108,7 +108,7 @@ describe("axe surface init: detection", () => {
     const r = await cli(["surface", "init", "--dir", copy("plain"), "--framework", "next"]);
     expect(r.code).toBe(1);
     expect(r.err).toContain("--framework next: no root file found");
-    const empty = mkdtempSync(join(tmpdir(), "axe-surface-empty-"));
+    const empty = mkdtempSync(join(tmpdir(), "summationai-axe-surface-empty-"));
     const e = await cli(["surface", "init", "--dir", empty, "--dry-run"]);
     expect(e.code).toBe(1);
     expect(e.err).toContain("Could not find an application root");
@@ -279,7 +279,7 @@ describe("axe surface init: flags and the relay", () => {
     expect(plain).toContain('["localhost", "127.0.0.1"].includes(location.hostname)');
     expect(plain).toContain("surfaceConfig, expose: development });");
     expect(plain).toContain("const enabled = true;");
-    expect(plain).toContain('import { exposeWebMcp } from "@axe/surface/webmcp";');
+    expect(plain).toContain('import { exposeWebMcp } from "@summationai/axe-surface/webmcp";');
     expect(plain).toContain("  exposeWebMcp(handle.surface);");
     // expose follows development, not the flag.
     expect(surfaceOf(planInit({ dir: copy("vite-react") }))).toContain("expose={development}");
@@ -343,7 +343,9 @@ describe("axe surface init: flags and the relay", () => {
 
   it("is provider-ready by default; --browser-only opts out and relay options add attended fallback", async () => {
     const remote = surfaceOf(planInit({ dir: copy("react-router") }));
-    expect(remote).toContain('import { connectRelay, injectedRelay } from "@axe/relay/client";');
+    expect(remote).toContain(
+      'import { connectRelay, injectedRelay } from "@summationai/axe-relay/client";',
+    );
     expect(remote).toContain(
       [
         "      onReady={(handle) => {",
@@ -357,11 +359,11 @@ describe("axe surface init: flags and the relay", () => {
     expect(remote).not.toContain("devToken");
     expect(remote).toContain("webMcp");
     const browserOnly = surfaceOf(planInit({ dir: copy("react-router"), remote: false }));
-    expect(browserOnly).not.toContain("@axe/relay/client");
+    expect(browserOnly).not.toContain("@summationai/axe-relay/client");
     expect(browserOnly).toContain("webMcp");
     const dev = surfaceOf(planInit({ dir: copy("react-router"), relay: DEV_RELAY_URL }));
     expect(dev).toContain(
-      'import { connectRelay, localMcpService, injectedRelay } from "@axe/relay/client";',
+      'import { connectRelay, localMcpService, injectedRelay } from "@summationai/axe-relay/client";',
     );
     expect(dev).toContain(
       `...localMcpService(import.meta.env.VITE_SURFACE_RELAY_URL ?? "${DEV_RELAY_URL}"),`,
@@ -390,11 +392,13 @@ describe("axe surface init: flags and the relay", () => {
     expect(r.out).toContain(
       "The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server",
     );
-    const login = r.out.indexOf("npx axe host login http://localhost:3000");
-    const add = r.out.indexOf("npx axe host --dev --stdio --app http://localhost:3000");
+    const login = r.out.indexOf("npx @summationai/axe host login http://localhost:3000");
+    const add = r.out.indexOf(
+      "npx @summationai/axe host --dev --stdio --app http://localhost:3000",
+    );
     expect(login, r.out).toBeGreaterThan(0);
     expect(add).toBeGreaterThan(login);
-    expect(r.out.indexOf("npx axe surface coverage")).toBeGreaterThan(add);
+    expect(r.out.indexOf("npx @summationai/axe surface coverage")).toBeGreaterThan(add);
     expect(r.out).toContain("The person's own tab connects to the company-side service");
     // An app that already depends on both packages is not told to install them.
     const has = copy("vite-react");
@@ -402,8 +406,8 @@ describe("axe surface init: flags and the relay", () => {
     const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
       dependencies: Record<string, string>;
     };
-    pkg.dependencies["@axe/surface"] = "workspace:*";
-    pkg.dependencies["@axe/relay"] = "workspace:*";
+    pkg.dependencies["@summationai/axe-surface"] = "workspace:*";
+    pkg.dependencies["@summationai/axe-relay"] = "workspace:*";
     writeFileSync(pkgPath, JSON.stringify(pkg));
     const again = await cli(["surface", "init", "--dir", has, "--dry-run"]);
     expect(again.out).not.toContain("Install (nothing was added");
@@ -449,27 +453,27 @@ describe("axe surface init: choosing the mount", () => {
 describe("axe surface init: install commands", () => {
   it("prints the registry and tarball forms for each package manager", () => {
     const rr = detect(copy("react-router"));
-    expect(installCommand(rr, false).argv).toEqual(["npm", "install", "@axe/surface"]);
+    expect(installCommand(rr, false).argv).toEqual(["npm", "install", "@summationai/axe-surface"]);
     const tar = installCommand(rr, true, "vendor");
     expect(tar.argv).toEqual([
       "npm",
       "install",
-      "@axe/core@file:vendor/axe-core-0.1.0.tgz",
-      "@axe/surface@file:vendor/axe-surface-0.1.0.tgz",
-      "@axe/relay@file:vendor/axe-relay-0.1.0.tgz",
+      "@summationai/axe-core@file:vendor/summationai-axe-core-0.1.0.tgz",
+      "@summationai/axe-surface@file:vendor/summationai-axe-surface-0.1.0.tgz",
+      "@summationai/axe-relay@file:vendor/summationai-axe-relay-0.1.0.tgz",
     ]);
     expect(tar.overrides).toEqual({
       file: "package.json",
       key: "overrides",
       value: {
-        "@axe/core": "file:vendor/axe-core-0.1.0.tgz",
-        "@axe/surface": "file:vendor/axe-surface-0.1.0.tgz",
+        "@summationai/axe-core": "file:vendor/summationai-axe-core-0.1.0.tgz",
+        "@summationai/axe-surface": "file:vendor/summationai-axe-surface-0.1.0.tgz",
       },
     });
     expect(installCommand(detect(copy("next")), false).argv).toEqual([
       "pnpm",
       "add",
-      "@axe/surface",
+      "@summationai/axe-surface",
     ]);
     expect(installCommand(detect(copy("next")), false, "vendor").overrides!.key).toBe(
       "pnpm.overrides",
@@ -481,35 +485,37 @@ describe("axe surface init: install commands", () => {
     expect(y.argv).toEqual([
       "yarn",
       "add",
-      "@axe/core@file:../../vendor/axe-core-0.1.0.tgz",
-      "@axe/surface@file:../../vendor/axe-surface-0.1.0.tgz",
+      "@summationai/axe-core@file:../../vendor/summationai-axe-core-0.1.0.tgz",
+      "@summationai/axe-surface@file:../../vendor/summationai-axe-surface-0.1.0.tgz",
     ]);
     expect(y.overrides).toEqual({
       file: "../../package.json",
       key: "resolutions",
-      value: { "@axe/core": "file:./vendor/axe-core-0.1.0.tgz" },
+      value: { "@summationai/axe-core": "file:./vendor/summationai-axe-core-0.1.0.tgz" },
     });
     // The web app's own precedent: tarballs beside the app, resolutions at the root.
     const beside = installCommand(web, false, "vendor");
-    expect(beside.argv).toContain("@axe/surface@file:./vendor/axe-surface-0.1.0.tgz");
+    expect(beside.argv).toContain(
+      "@summationai/axe-surface@file:./vendor/summationai-axe-surface-0.1.0.tgz",
+    );
     expect(beside.overrides!.value).toEqual({
-      "@axe/core": "file:./apps/web/vendor/axe-core-0.1.0.tgz",
+      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-0.1.0.tgz",
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(true);
     expect(JSON.parse(readFileSync(join(ws, "package.json"), "utf8")).resolutions).toEqual({
-      "@axe/core": "file:./apps/web/vendor/axe-core-0.1.0.tgz",
+      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-0.1.0.tgz",
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(false);
     const pnpmApp = copy("next");
     writeOverrides(pnpmApp, installCommand(detect(pnpmApp), false, "vendor").overrides!);
     expect(JSON.parse(readFileSync(join(pnpmApp, "package.json"), "utf8")).pnpm.overrides).toEqual({
-      "@axe/core": "file:vendor/axe-core-0.1.0.tgz",
+      "@summationai/axe-core": "file:vendor/summationai-axe-core-0.1.0.tgz",
     });
     // A vendor directory with packed tarballs is read for their real names.
     mkdirSync(join(ws, "apps/web/vendor"));
-    writeFileSync(join(ws, "apps/web/vendor/axe-surface-0.2.0.tgz"), "");
+    writeFileSync(join(ws, "apps/web/vendor/summationai-axe-surface-0.2.0.tgz"), "");
     expect(installCommand(web, false, "vendor").argv).toContain(
-      "@axe/surface@file:./vendor/axe-surface-0.2.0.tgz",
+      "@summationai/axe-surface@file:./vendor/summationai-axe-surface-0.2.0.tgz",
     );
   });
 });

@@ -1,11 +1,11 @@
 # Express
 
-`axeExpress` mounts an AXE server in Express 4, Express 5, or any Connect-style middleware stack. The adapter does one job: it converts the Node request into a Web `Request`, calls the framework-free handler from `@axe/core`, and writes the resulting `Response` back onto the Node response. Routing, validation, auth, tokens, and idempotency happen in the core. The adapter is plumbing, and it is short enough to read in one sitting.
+`axeExpress` mounts an AXE server in Express 4, Express 5, or any Connect-style middleware stack. The adapter does one job: it converts the Node request into a Web `Request`, calls the framework-free handler from `@summationai/axe-core`, and writes the resulting `Response` back onto the Node response. Routing, validation, auth, tokens, and idempotency happen in the core. The adapter is plumbing, and it is short enough to read in one sitting.
 
 ## Install
 
 ```sh
-npm install @axe/core @axe/express
+npm install @summationai/axe-core @summationai/axe-express
 ```
 
 ## The mount
@@ -194,14 +194,14 @@ const behindProxy = axeExpress(axe, { origin: "https://sunriseyoga.example" });
 
 The same code runs on Express 4 and 5. The middleware has the plain `(req, res, next)` signature, reads only the original URL, method, headers, and body, and passes conversion errors to `next(err)`, so your error handler sees them. Exceptions thrown by your action handlers never reach it: the core turns them into an `internal` error envelope and calls your `onError` hook, so nothing internal leaks to an agent.
 
-Anything Connect-shaped works too: a `connect()` stack, or a plain Node HTTP server with a hand-written `next`. If you are writing an adapter for another Node framework, `@axe/express` exports the two conversion functions it is built on (toWebRequest and sendWebResponse), so you do not have to reimplement stream reading and header copying.
+Anything Connect-shaped works too: a `connect()` stack, or a plain Node HTTP server with a hand-written `next`. If you are writing an adapter for another Node framework, `@summationai/axe-express` exports the two conversion functions it is built on (toWebRequest and sendWebResponse), so you do not have to reimplement stream reading and header copying.
 
 ## Gotchas
 
 - **Set `secret` in production.** Without it the core generates a random per-process secret; continuation and resume tokens then die with every restart and never verify across two instances. [Deploying](../deploying.md) has the checklist.
 - **The manifest is cached.** It is served with `Cache-Control` for five minutes by default. `axe inspect` fetches it fresh; a browser tab may not.
 - **CORS is off by default.** Agents that call you from a browser need the `cors` option in `createAXE`; see [Deploying](../deploying.md#cors).
-- **Mutating actions require `idempotencyKey`.** A `POST` to `classes.book` without one is rejected. `@axe/client` adds one per attempt automatically; a hand-written `curl` must include it, as above.
+- **Mutating actions require `idempotencyKey`.** A `POST` to `classes.book` without one is rejected. `@summationai/axe-client` adds one per attempt automatically; a hand-written `curl` must include it, as above.
 
 ## Next steps
 

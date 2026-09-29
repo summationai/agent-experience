@@ -124,7 +124,7 @@ The page at `url` and the staff step that records completion, in Express:
 ```ts
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
-import { axeExpress } from "@axe/express";
+import { axeExpress } from "@summationai/axe-express";
 import { axe } from "./axe";
 
 const app = express();
@@ -270,7 +270,7 @@ The default store is in memory, which is fine for one process. With two or more 
 
 <!-- include: examples/human-handoff/redis-store.ts#all -->
 ```ts
-import type { TokenRecord, TokenStore } from "@axe/core";
+import type { TokenRecord, TokenStore } from "@summationai/axe-core";
 
 /** The three calls this store needs from a Redis client. */
 export interface RedisLike {

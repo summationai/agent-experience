@@ -1,6 +1,6 @@
-import { createAXE, MemoryIdempotencyStore, MemoryTokenStore } from "@axe/core";
-import { SqliteIdempotencyStore } from "@axe/core/node";
-import type { SqliteDatabaseLike } from "@axe/core/node";
+import { createAXE, MemoryIdempotencyStore, MemoryTokenStore } from "@summationai/axe-core";
+import { SqliteIdempotencyStore } from "@summationai/axe-core/node";
+import type { SqliteDatabaseLike } from "@summationai/axe-core/node";
 
 // #region body
 export const axe = createAXE({

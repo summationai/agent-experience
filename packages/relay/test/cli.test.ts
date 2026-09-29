@@ -34,7 +34,7 @@ describe("axe relay", () => {
     expect(text).toMatch(
       /claude mcp add --transport http surface http:\/\/127\.0\.0\.1:\d+\/mcp --header "Authorization: Bearer axd_test_key"/,
     );
-    expect(text).toContain("claude mcp add surface -- npx axe relay --dev --stdio");
+    expect(text).toContain("claude mcp add surface -- npx @summationai/axe relay --dev --stdio");
     r.stop();
     expect(await r.exit).toBe(0);
   });

@@ -9,18 +9,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "axe": "workspace:*",
-    "@axe/client": "workspace:*",
-    "@axe/core": "workspace:*",
-    "@axe/express": "workspace:*",
-    "@axe/fetch": "workspace:*",
-    "@axe/generate": "workspace:*",
-    "@axe/host": "workspace:*",
-    "@axe/mcp": "workspace:*",
-    "@axe/next": "workspace:*",
-    "@axe/relay": "workspace:*",
-    "@axe/surface": "workspace:*",
-    "@axe/testing": "workspace:*"
+    "@summationai/axe": "workspace:*",
+    "@summationai/axe-client": "workspace:*",
+    "@summationai/axe-core": "workspace:*",
+    "@summationai/axe-express": "workspace:*",
+    "@summationai/axe-fetch": "workspace:*",
+    "@summationai/axe-generate": "workspace:*",
+    "@summationai/axe-host": "workspace:*",
+    "@summationai/axe-mcp": "workspace:*",
+    "@summationai/axe-next": "workspace:*",
+    "@summationai/axe-relay": "workspace:*",
+    "@summationai/axe-surface": "workspace:*",
+    "@summationai/axe-testing": "workspace:*"
   },
   "devDependencies": {
     "@hono/node-server": "^1.19.9",

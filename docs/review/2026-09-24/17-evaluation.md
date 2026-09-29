@@ -27,7 +27,7 @@ Harness, `examples/plan-review/eval/`:
 
 - `scenarios.ts`: eight scenarios (simple edit, interrupted task, stale observation, two actors, unavailable control, lost response, navigation, human handoff) with task text, fault, scripted person, expected final state, and an outcome check that scores the app's plan and history (success, incorrect agent writes, mismatches, the relayed reason). Shared with the model runner.
 - `policy.ts`: one scripted agent algorithm (observe, compute, send, handle conflict, refusal, lost response, page change, crash and restart, handoff) over a `Driver` per variant.
-- `browser-driver.ts` (v1 by visible text and table position, v2 by accessible name and `data-surface-reason`, both through Playwright), `tool-drivers.ts` (v3 over `basic-mcp.ts`, v4 over the MCP server `@axe/mcp` derives from the manifest), `meter.ts` (HTTP and MCP bytes, injected lost responses, Wilson intervals), `app.ts` (next start per variant, the scripted person, reset, snapshot), `integration.ts` (lines per variant from the source), `report.ts`, `run.ts`.
+- `browser-driver.ts` (v1 by visible text and table position, v2 by accessible name and `data-surface-reason`, both through Playwright), `tool-drivers.ts` (v3 over `basic-mcp.ts`, v4 over the MCP server `@summationai/axe-mcp` derives from the manifest), `meter.ts` (HTTP and MCP bytes, injected lost responses, Wilson intervals), `app.ts` (next start per variant, the scripted person, reset, snapshot), `integration.ts` (lines per variant from the source), `report.ts`, `run.ts`.
 - `model/run.ts` and `model/README.md`: the model-driven runner skeleton; refuses without `AXE_EVAL_MODEL_PROVIDER`, `AXE_EVAL_MODEL_CREDENTIAL_ENV`, and `AXE_EVAL_ACCEPT_COST=yes`; with them prints its plan and exits 3. Imports no provider SDK.
 - Scripts: `eval` and `eval:model` in the example; `eval` and `example:eval` at the root. `.prettierignore` skips the generated JSON.
 
@@ -67,7 +67,7 @@ Every cell with five of five has a 95% Wilson interval of 57% to 100%; zero of f
 
 Not run: any model-driven benchmark (the runner exists and refuses to start without configuration); a WebMCP lane (Chromium 153 does not expose `document.modelContext` by default, and the app does not install the adapter); any second or external application; any pilot. No model API was called, nothing was spent, and no one was contacted.
 
-Two defects surfaced and are not fixed here: the reference page leaves Save disabled after a failed save request (`busy` is never cleared when `fetch` rejects in `PlanBoard.tsx`'s `act`), and `@axe/client` retries an `unavailable` error once after a second even when the site marked it `retryable: false` (`packages/client/src/index.ts`, `request`).
+Two defects surfaced and are not fixed here: the reference page leaves Save disabled after a failed save request (`busy` is never cleared when `fetch` rejects in `PlanBoard.tsx`'s `act`), and `@summationai/axe-client` retries an `unavailable` error once after a second even when the site marked it `retryable: false` (`packages/client/src/index.ts`, `request`).
 
 ## Limitations
 
@@ -89,4 +89,4 @@ done
 
 ## Follow-up at merge
 
-Both defects the run found are fixed. `@axe/client` no longer retries an error the site marked `retryable: false` (test: `packages/client/test/client.test.ts` "does not retry an unavailable error the site marked retryable: false", fails without the change). The reference page clears `busy` when a request never gets an answer and keeps the drafts (browser test: "a save that never gets an answer leaves the buttons usable and the draft kept; the retry saves", fails against the old page). The committed evaluation report predates these fixes; neither changes a scenario outcome, since no scenario aborted a browser save or received a non-retryable `unavailable`.
+Both defects the run found are fixed. `@summationai/axe-client` no longer retries an error the site marked `retryable: false` (test: `packages/client/test/client.test.ts` "does not retry an unavailable error the site marked retryable: false", fails without the change). The reference page clears `busy` when a request never gets an answer and keeps the drafts (browser test: "a save that never gets an answer leaves the buttons usable and the draft kept; the retry saves", fails against the old page). The committed evaluation report predates these fixes; neither changes a scenario outcome, since no scenario aborted a browser save or received a non-retryable `unavailable`.

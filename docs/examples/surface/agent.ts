@@ -1,6 +1,6 @@
 // An agent drives a surface directly: observe, pick, act with the rev it saw, re-observe on conflict.
 // #region loop
-import type { Surface } from "@axe/surface";
+import type { Surface } from "@summationai/axe-surface";
 
 export async function draftBestAvailable(
   surface: Surface,

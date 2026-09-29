@@ -1,13 +1,13 @@
 /**
- * @axe/express: mount an AXE server in Express (4 or 5) or any Connect-style framework.
+ * @summationai/axe-express: mount an AXE server in Express (4 or 5) or any Connect-style framework.
  *
  * ```ts
  * app.use(axeExpress(axe, { context: async (req) => ({ identity: req.session?.userId ? { onBehalfOf: req.session.userId } : null }) }));
  * ```
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { AXE, AdapterContext, MaybePromise } from "@axe/core";
-import * as WIRE from "@axe/core/vocabulary";
+import type { AXE, AdapterContext, MaybePromise } from "@summationai/axe-core";
+import * as WIRE from "@summationai/axe-core/vocabulary";
 
 /** A Node request as Express and Connect present it: `originalUrl` and a possibly pre-parsed `body`. */
 export interface NodeRequestLike extends IncomingMessage {
