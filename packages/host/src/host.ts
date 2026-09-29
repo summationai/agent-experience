@@ -43,7 +43,8 @@ import { INJECTED_RELAY_GLOBAL } from "@axe/relay/client";
 import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { contextStorageState, SessionLoginRequired } from "./session";
 import type { AppSession, HostIdentity, SessionFor } from "./session";
-import { humanSessionLoginPage, humanSessionPage } from "./human-session";
+import { clearHumanAuthMarkers, readHumanAuthStep, submitHumanAuthStep } from "./human-form";
+import { humanSessionExpiredPage, humanSessionLoginPage, humanSessionPage } from "./human-session";
 import { watchPage } from "./watch";
 
 /** How the host starts Chromium. */
@@ -394,8 +395,12 @@ interface HumanSessionRecord extends LoginHandoffRecord {
   resumeToken: string;
   tabId: string;
   who: HostIdentity;
-  /** Prefix for temporary DOM markers used only by the person's direct-entry overlays. */
-  fieldNonce: string;
+  /** Prefix for temporary DOM markers that bind semantic form steps to exact page elements. */
+  formNonce: string;
+  /** Recent activity suppresses duplicate handoff presentation while this page is already open. */
+  lastSeenAt?: number;
+  /** Most recent semantic step submission; a resume shortly afterward waits for auth to settle. */
+  submittedAt?: number;
 }
 
 /**
@@ -967,13 +972,34 @@ export function createHost(options: HostOptions): Host {
       handoff: {
         reason: "application_login_required",
         instructions:
-          "Open the secure session page and finish signing in there. It controls the exact private browser session already connected to the agent; do not sign in in another tab. When the page confirms sign-in, resume this request.",
+          "Open this secure session page once and finish signing in there. It controls the exact private browser session already connected to the agent; do not open another sign-in page or sign in in another tab. Wait until that page clearly says the connection is complete, then resume this request with the same token. While this handoff is open, do not call another application tool.",
         url: page,
-        whatAgentShouldSayToUser: `Please finish signing in to ${options.application?.name ?? "the application"} in the secure session I opened. Your credentials stay out of this conversation.`,
+        whatAgentShouldSayToUser: `Select Sign in to connect ${options.application?.name ?? "the application"}. Your credentials stay out of this conversation.`,
         resumeToken: record.resumeToken,
         expiresAt: new Date(record.expiresAt).toISOString(),
       },
     });
+  }
+
+  function openHumanSessionResult(record: HumanSessionRecord): Response {
+    if (record.lastSeenAt && Date.now() - record.lastSeenAt < 5_000)
+      return resultEnvelope(
+        {
+          status: WIRE.status.error,
+          error: {
+            code: "conflict",
+            message:
+              "The secure sign-in page is already open and active. Do not open or present another link; wait for the person to finish there, then resume the original handoff.",
+            retryable: true,
+            details: {
+              reason: "application_login_pending",
+              handoff: { status: "open" },
+            },
+          },
+        },
+        409,
+      );
+    return humanSessionResult(record);
   }
 
   const humanSessionHandoff = async (s: Hosted, request: Request): Promise<Response | null> => {
@@ -989,7 +1015,7 @@ export function createHost(options: HostOptions): Host {
       resumeToken,
       tabId: s.tabId,
       who: s.who,
-      fieldNonce: randomBytes(12).toString("base64url"),
+      formNonce: randomBytes(12).toString("base64url"),
     };
     humanByLink.set(linkToken, record);
     humanByResume.set(resumeToken, record);
@@ -1042,11 +1068,22 @@ export function createHost(options: HostOptions): Host {
         );
       if (handoff.completed) return restoreResponse(handoff.completed);
       const session = sessions.get(handoff.key);
-      if (
-        !session ||
-        session.tabId !== handoff.tabId ||
-        (await currentAuthenticationState(session)) !== "signed-in"
-      )
+      let signedIn = false;
+      if (session && session.tabId === handoff.tabId) {
+        const waitUntil =
+          handoff.submittedAt && Date.now() - handoff.submittedAt < 60_000
+            ? Date.now() + 15_000
+            : Date.now();
+        signedIn =
+          (await currentAuthenticationState(session).catch(() => undefined)) === "signed-in";
+        while (!signedIn && Date.now() < waitUntil) {
+          touch(session);
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          signedIn =
+            (await currentAuthenticationState(session).catch(() => undefined)) === "signed-in";
+        }
+      }
+      if (!session || session.tabId !== handoff.tabId || !signedIn)
         return resultEnvelope(
           {
             status: WIRE.status.error,
@@ -1065,23 +1102,10 @@ export function createHost(options: HostOptions): Host {
         );
       if (!handoff.running)
         handoff.running = (async () => {
-          await session.page
-            ?.evaluate((nonce) => {
-              document
-                .querySelectorAll<HTMLElement>(`[data-axe-human-field^="${nonce}-"]`)
-                .forEach((element) => element.removeAttribute("data-axe-human-field"));
-              if (
-                document.documentElement
-                  .getAttribute("data-axe-human-document")
-                  ?.startsWith(`${nonce}-`)
-              )
-                document.documentElement.removeAttribute("data-axe-human-document");
-            }, handoff.fieldNonce)
-            .catch(() => undefined);
+          if (session.page) await clearHumanAuthMarkers(session.page, handoff.formNonce);
           const response = await relay.handleAgent(restoreRequest(handoff.request), ctx, call);
           const stored = await storeResponse(response);
           handoff.completed = stored;
-          humanByLink.delete(handoff.linkToken);
           return stored;
         })();
       try {
@@ -1158,7 +1182,7 @@ export function createHost(options: HostOptions): Host {
         const resumed = await loginResume(request, who, authInfo, ctx ?? {}, call);
         if (resumed) return resumed;
         const open = openHumanSession(who);
-        if (open) return humanSessionResult(open);
+        if (open) return openHumanSessionResult(open);
         try {
           const session = await ensure(who, authInfo);
           const handoff = await humanSessionHandoff(session, request.clone());
@@ -1303,8 +1327,14 @@ export function createHost(options: HostOptions): Host {
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
     "Content-Security-Policy":
-      "default-src 'none'; img-src 'self' blob:; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'",
   });
+
+  const humanJson = (status: number, body: unknown): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: humanHeaders("application/json"),
+    });
 
   const humanRoute = async (request: Request, url: URL): Promise<Response | null> => {
     if (!humanOptions || !url.pathname.startsWith(`${humanPath}/`)) return null;
@@ -1315,17 +1345,17 @@ export function createHost(options: HostOptions): Host {
       return json(404, { error: "not found" });
     const record = humanByLink.get(linkToken);
     const session = record ? sessions.get(record.key) : null;
-    if (
-      !record ||
-      !session ||
-      session.tabId !== record.tabId ||
-      !session.page ||
-      session.page.isClosed()
-    )
-      return new Response("This secure session is unavailable or expired.", {
+    if (!record) {
+      if (operation)
+        return humanJson(410, {
+          state: "expired",
+          error: "This secure sign-in link expired. Start the request again from your assistant.",
+        });
+      return new Response(humanSessionExpiredPage(options.application?.name ?? "the application"), {
         status: 410,
-        headers: humanHeaders("text/plain; charset=utf-8"),
+        headers: humanHeaders("text/html; charset=utf-8"),
       });
+    }
     const identified = dev ? devIdentity : await humanOptions.identify?.(request);
     const authorized =
       identified?.principal === record.who.principal && identified.tenant === record.who.tenant;
@@ -1340,185 +1370,95 @@ export function createHost(options: HostOptions): Host {
         );
       return json(401, { error: "sign in to the provider to open this secure session" });
     }
-    touch(session);
+    const liveSession =
+      session?.tabId === record.tabId && session.page && !session.page.isClosed() ? session : null;
+    if (!record.completed && !liveSession) {
+      if (operation)
+        return humanJson(410, {
+          state: "expired",
+          error: "This private browser session ended. Start the request again from your assistant.",
+        });
+      return new Response(humanSessionExpiredPage(options.application?.name ?? "the application"), {
+        status: 410,
+        headers: humanHeaders("text/html; charset=utf-8"),
+      });
+    }
+    if (liveSession) touch(liveSession);
+    record.lastSeenAt = Date.now();
     if (!operation && request.method === "GET")
       return new Response(humanSessionPage(options.application?.name ?? "the application"), {
         headers: humanHeaders("text/html; charset=utf-8"),
       });
     if (operation === "status" && request.method === "GET") {
-      const state = await currentAuthenticationState(session);
+      if (record.completed)
+        return humanJson(200, {
+          complete: true,
+          authentication: "signed-in",
+          path: "",
+          title: options.application?.name ?? "the application",
+        });
+      const state = await currentAuthenticationState(liveSession!);
       return new Response(
         JSON.stringify({
           complete: state === "signed-in",
           authentication: state ?? "unknown",
-          path: pathOf(session.page.url()),
-          title: (await session.page.title().catch(() => "")).slice(0, 200),
+          path: pathOf(liveSession!.page!.url()),
+          title: (await liveSession!.page!.title().catch(() => "")).slice(0, 200),
         }),
         { headers: humanHeaders("application/json") },
       );
     }
-    if (operation === "screenshot.png" && request.method === "GET") {
+    if (operation === "step" && request.method === "GET") {
+      if (record.completed) return humanJson(409, { state: "complete" });
       try {
-        const png = await session.page.screenshot({ type: "png" });
-        return new Response(new Uint8Array(png), {
-          headers: humanHeaders("image/png"),
-        });
-      } catch {
-        return json(409, { error: "the application page is changing; retry" });
-      }
-    }
-    if (operation === "fields" && request.method === "GET") {
-      const viewport = session.page.viewportSize();
-      if (!viewport) return json(409, { error: "the application viewport is unavailable" });
-      try {
-        const fields = await session.page.evaluate(
-          ([nonce, documentCandidate]) => {
-            const win = window as unknown as Window & Record<string, unknown>;
-            let documentMarker = document.documentElement.getAttribute("data-axe-human-document");
-            if (!documentMarker?.startsWith(`${nonce}-`)) {
-              documentMarker = `${nonce}-${documentCandidate}`;
-              document.documentElement.setAttribute("data-axe-human-document", documentMarker);
-            }
-            const counterKey = `__axe_human_field_${documentMarker}`;
-            let counter = Number(win[counterKey] ?? 0);
-            const visible = [
-              ...document.querySelectorAll<HTMLElement>(
-                'input:not([type="hidden"]), textarea, [contenteditable]:not([contenteditable="false"])',
-              ),
-            ].filter((element) => {
-              const style = getComputedStyle(element);
-              const rect = element.getBoundingClientRect();
-              const input = element instanceof HTMLInputElement ? element : null;
-              return (
-                !element.hasAttribute("disabled") &&
-                !input?.readOnly &&
-                style.visibility !== "hidden" &&
-                style.display !== "none" &&
-                Number(style.opacity) !== 0 &&
-                rect.width >= 12 &&
-                rect.height >= 12 &&
-                rect.right > 0 &&
-                rect.bottom > 0 &&
-                rect.left < innerWidth &&
-                rect.top < innerHeight
-              );
-            });
-            const result = visible.slice(0, 50).map((element) => {
-              let id = element.getAttribute("data-axe-human-field");
-              if (!id?.startsWith(`${documentMarker}-`)) {
-                id = `${documentMarker}-${++counter}`;
-                element.setAttribute("data-axe-human-field", id);
-              }
-              const rect = element.getBoundingClientRect();
-              const left = Math.max(0, rect.left);
-              const top = Math.max(0, rect.top);
-              const right = Math.min(innerWidth, rect.right);
-              const bottom = Math.min(innerHeight, rect.bottom);
-              const input = element instanceof HTMLInputElement ? element : null;
-              const area = element instanceof HTMLTextAreaElement ? element : null;
-              const rawType = input?.type ?? (area ? "textarea" : "text");
-              const type = ["email", "password", "search", "tel", "text", "url"].includes(rawType)
-                ? rawType
-                : "text";
-              const label =
-                element.getAttribute("aria-label") ||
-                input?.labels?.[0]?.innerText ||
-                area?.labels?.[0]?.innerText ||
-                element.getAttribute("placeholder") ||
-                element.getAttribute("name") ||
-                "Sign-in field";
-              return {
-                id,
-                x: left,
-                y: top,
-                width: Math.max(0, right - left),
-                height: Math.max(0, bottom - top),
-                type,
-                multiline: !!area || element.isContentEditable,
-                label: label.trim().slice(0, 200),
-                placeholder: (element.getAttribute("placeholder") ?? "").slice(0, 200),
-                autocomplete: (element.getAttribute("autocomplete") ?? "").slice(0, 100),
-                inputmode: (element.getAttribute("inputmode") ?? "").slice(0, 30),
-              };
-            });
-            win[counterKey] = counter;
-            return result;
-          },
-          [record.fieldNonce, randomBytes(8).toString("base64url")] as const,
-        );
-        return new Response(JSON.stringify({ viewport, fields }), {
+        const step = await readHumanAuthStep(liveSession!.page!, record.formNonce, appOrigin);
+        return new Response(JSON.stringify(step), {
           headers: humanHeaders("application/json"),
         });
       } catch {
-        return json(409, { error: "the application fields are changing; retry" });
+        return json(409, { error: "the application sign-in form is changing; retry" });
       }
     }
-    if (operation === "input" && request.method === "POST") {
+    if (operation === "step" && request.method === "POST") {
+      if (record.completed) return humanJson(409, { state: "complete" });
       if (request.headers.get("origin") !== humanBase?.origin)
-        return json(403, { error: "cross-origin input refused" });
+        return json(403, { error: "cross-origin submission refused" });
       const length = Number(request.headers.get("content-length") ?? "0");
-      if (Number.isFinite(length) && length > 8192)
-        return json(413, { error: "input is too large" });
+      if (Number.isFinite(length) && length > 32_768)
+        return json(413, { error: "submission is too large" });
       const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-      if (!body || typeof body["type"] !== "string") return json(400, { error: "invalid input" });
-      const page = session.page;
+      if (
+        !body ||
+        typeof body["stepId"] !== "string" ||
+        !body["fields"] ||
+        typeof body["fields"] !== "object" ||
+        Array.isArray(body["fields"]) ||
+        (body["actionId"] !== undefined && typeof body["actionId"] !== "string")
+      )
+        return json(400, { error: "invalid form submission" });
       try {
-        switch (body["type"]) {
-          case "field-focus":
-          case "field-text": {
-            const field = body["field"];
-            if (
-              typeof field !== "string" ||
-              !field.startsWith(`${record.fieldNonce}-`) ||
-              !/^[A-Za-z0-9_-]{18,100}$/.test(field)
-            )
-              return json(400, { error: "invalid field" });
-            const target = page.locator(`[data-axe-human-field="${field}"]`).first();
-            if (!(await target.count())) return json(409, { error: "the field changed; retry" });
-            if (body["type"] === "field-focus") await target.focus();
-            else {
-              const value = body["text"];
-              if (typeof value !== "string" || value.length > 4096)
-                return json(400, { error: "invalid text" });
-              await target.fill(value);
-            }
-            break;
-          }
-          case "pointer": {
-            const x = Number(body["x"]);
-            const y = Number(body["y"]);
-            const viewport = page.viewportSize();
-            if (
-              !viewport ||
-              !Number.isFinite(x) ||
-              !Number.isFinite(y) ||
-              x < 0 ||
-              y < 0 ||
-              x > viewport.width ||
-              y > viewport.height
-            )
-              return json(400, { error: "invalid pointer coordinates" });
-            await page.mouse.click(x, y);
-            break;
-          }
-          case "key": {
-            const key = body["key"];
-            if (key !== "Enter") return json(400, { error: "invalid key" });
-            await page.keyboard.press(key);
-            break;
-          }
-          case "wheel": {
-            const y = Number(body["y"]);
-            if (!Number.isFinite(y) || Math.abs(y) > 2000)
-              return json(400, { error: "invalid scroll distance" });
-            await page.mouse.wheel(0, y);
-            break;
-          }
-          default:
-            return json(400, { error: "invalid input type" });
-        }
+        const submitted = await submitHumanAuthStep(
+          liveSession!.page!,
+          record.formNonce,
+          appOrigin,
+          {
+            stepId: body["stepId"],
+            fields: body["fields"] as Record<string, unknown>,
+            ...(typeof body["actionId"] === "string" ? { actionId: body["actionId"] } : {}),
+          },
+        );
+        if (!submitted.ok)
+          return json(submitted.reason === "stale" ? 409 : 400, {
+            error:
+              submitted.reason === "stale"
+                ? "The sign-in page changed. Review the current step and try again."
+                : submitted.reason === "unsupported"
+                  ? "This sign-in page needs a configured OAuth or session connection."
+                  : "The sign-in form submission was invalid.",
+          });
+        record.submittedAt = Date.now();
       } catch {
-        return json(409, { error: "the application page changed before input arrived; retry" });
+        return json(409, { error: "The sign-in page changed before submission; try again." });
       }
       return json(200, { ok: true });
     }
@@ -1629,7 +1569,7 @@ export function createHost(options: HostOptions): Host {
       );
       if (resumed) return resumed;
       const open = openHumanSession(agentOptions.who);
-      if (open) return humanSessionResult(open);
+      if (open) return openHumanSessionResult(open);
       try {
         const session = await ensure(agentOptions.who, agentOptions.authInfo ?? null);
         const handoff = await humanSessionHandoff(session, request.clone());

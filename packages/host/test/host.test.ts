@@ -3,6 +3,7 @@
 // application's own controls through its easy-mode surface. Skipped with a message when no
 // Chromium build is installed (`npx playwright install chromium`).
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { chromium } from "playwright-core";
 import { createHost, SessionLoginRequired } from "../src/index";
 import type { Host, HostEvent, HostOptions } from "../src/index";
 import {
@@ -120,15 +121,121 @@ describe("unattended mode in Chromium", () => {
     const landing = await fetch(handoff.url, { headers: humanHeaders });
     expect(landing.status).toBe(200);
     const landingHtml = await landing.text();
-    expect(landingHtml).toContain("private browser session your assistant is using");
-    expect(landingHtml).toContain("Type directly into the fields");
-    expect(landingHtml).toContain("Returning you to your assistant");
-    expect(landingHtml).toContain("window.close()");
-    expect(landingHtml).not.toContain("Fallback text entry");
-    const screenshot = await fetch(new URL("screenshot.png", handoff.url), {
-      headers: humanHeaders,
+    expect(landingHtml).toContain("Sign in here to connect the private application session");
+    expect(landingHtml).toContain("Connection complete");
+    expect(landingHtml).toContain("Link no longer active");
+    expect(landingHtml).not.toContain("setTimeout(()=>window.close");
+    expect(landingHtml).not.toContain("screenshot.png");
+
+    const duplicate = await alice.call("relay_tabs");
+    expect(duplicate.result).toMatchObject({
+      status: "error",
+      error: {
+        code: "conflict",
+        details: { reason: "application_login_pending", handoff: { status: "open" } },
+      },
     });
-    expect(screenshot.headers.get("content-type")).toBe("image/png");
+    expect(duplicate.text).toContain("already open and active");
+    expect(duplicate.text).not.toContain(handoff.url);
+
+    expect(
+      await fetch(new URL("screenshot.png", handoff.url), {
+        headers: humanHeaders,
+      }).then((response) => response.status),
+    ).toBe(404);
+
+    await host
+      .page(ALICE)!
+      .locator('form[action="/login"]')
+      .evaluate((form) => {
+        const reveal = document.createElement("button");
+        reveal.type = "button";
+        reveal.textContent = "Show Password";
+        form.prepend(reveal);
+        const password = form.querySelector<HTMLInputElement>('input[type="password"]')!;
+        const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+        submit.disabled = true;
+        password.addEventListener("input", () => {
+          submit.disabled = !password.value;
+        });
+      });
+    let described = (await fetch(new URL("step", handoff.url), {
+      headers: humanHeaders,
+    }).then((response) => response.json())) as {
+      id: string;
+      viewId: string;
+      supported: boolean;
+      fields: { id: string; type: string; label: string; autocomplete: string; value?: string }[];
+      actions: { id: string; label: string }[];
+    };
+    expect(described).toMatchObject({
+      supported: true,
+      fields: [
+        expect.objectContaining({ autocomplete: "username" }),
+        expect.objectContaining({ type: "password", autocomplete: "current-password" }),
+      ],
+      actions: [],
+    });
+    expect(described.actions.map((action) => action.label)).not.toContain("Show Password");
+    expect(JSON.stringify(described)).not.toContain("not-sent-through-mcp");
+
+    const personBrowser = await chromium.launch({ headless: true });
+    cleanup.push(() => personBrowser.close());
+    const personContext = await personBrowser.newContext();
+    await personContext.addCookies([
+      { name: "person", value: "alice", url: new URL(handoff.url).origin },
+    ]);
+    const personPage = await personContext.newPage();
+    await personPage.goto(handoff.url);
+    await personPage.locator("#form-fields input").first().waitFor({ state: "visible" });
+    const personEmail = personPage.locator("#form-fields input").first();
+    const personPassword = personPage.locator(
+      '#form-fields input[autocomplete="current-password"]',
+    );
+    await personEmail.fill("preserve@example.com");
+    await personPassword.fill("kept-secret");
+    const eye = personPage.getByRole("button", { name: "Show password" });
+    await eye.click();
+    expect(await personPassword.getAttribute("type")).toBe("text");
+    expect(await personPassword.inputValue()).toBe("kept-secret");
+    await personPage.getByRole("button", { name: "Hide password" }).click();
+    expect(await personPassword.getAttribute("type")).toBe("password");
+    expect(await personPassword.inputValue()).toBe("kept-secret");
+    expect(await personPage.locator("#actions button").allTextContents()).toEqual(["Sign in"]);
+    expect(await personPage.locator("#auth").isVisible()).toBe(true);
+    expect(await personPage.locator("#expired").isHidden()).toBe(true);
+
+    const originalStepId = described.id;
+    const originalViewId = described.viewId;
+    await host
+      .page(ALICE)!
+      .locator('input[name="email"]')
+      .evaluate((input) => {
+        const replacement = input.cloneNode(true) as HTMLInputElement;
+        replacement.removeAttribute("data-axe-human-field");
+        input.replaceWith(replacement);
+      });
+    described = (await fetch(new URL("step", handoff.url), {
+      headers: humanHeaders,
+    }).then((response) => response.json())) as typeof described;
+    expect(described.id).not.toBe(originalStepId);
+    expect(described.viewId).toBe(originalViewId);
+    await personPage.waitForTimeout(1_200);
+    expect(await personEmail.inputValue()).toBe("preserve@example.com");
+
+    const remountedStepId = described.id;
+    await host
+      .page(ALICE)!
+      .locator('input[name="email"]')
+      .evaluate((input) => {
+        (input as HTMLInputElement).type = "email";
+      });
+    described = (await fetch(new URL("step", handoff.url), {
+      headers: humanHeaders,
+    }).then((response) => response.json())) as typeof described;
+    expect(described.id).not.toBe(remountedStepId);
+    expect(described.viewId).not.toBe(originalViewId);
+    await personPage.route("**/status", (route) => route.abort("failed"));
 
     const early = await alice.call("axe_resume", { resumeToken: handoff.resumeToken });
     expect(early.result).toMatchObject({
@@ -136,60 +243,37 @@ describe("unattended mode in Chromium", () => {
       error: { code: "conflict", details: { reason: "application_login_pending" } },
     });
 
-    const page = host.page(ALICE)!;
-    const send = (body: Record<string, unknown>) =>
-      fetch(new URL("input", handoff.url), {
+    const submit = (body: Record<string, unknown>, origin = new URL(handoff.url).origin) =>
+      fetch(new URL("step", handoff.url), {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          origin: new URL(handoff.url).origin,
+          origin,
           ...humanHeaders,
         },
         body: JSON.stringify(body),
       });
     expect(
-      await fetch(new URL("input", handoff.url), {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          origin: "https://attacker.example",
-          ...humanHeaders,
-        },
-        body: JSON.stringify({ type: "pointer", x: 1, y: 1 }),
-      }).then((response) => response.status),
+      await submit({ stepId: described.id, fields: {} }, "https://attacker.example").then(
+        (response) => response.status,
+      ),
     ).toBe(403);
-    const described = (await fetch(new URL("fields", handoff.url), {
-      headers: humanHeaders,
-    }).then((response) => response.json())) as {
-      viewport: { width: number; height: number };
-      fields: { id: string; type: string; label: string; autocomplete: string; value?: string }[];
-    };
-    expect(described.viewport).toMatchObject({
-      width: expect.any(Number),
-      height: expect.any(Number),
-    });
-    expect(described.fields).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ autocomplete: "username" }),
-        expect.objectContaining({ type: "password", autocomplete: "current-password" }),
-      ]),
-    );
-    expect(JSON.stringify(described)).not.toContain("not-sent-through-mcp");
+    expect(
+      await submit({ stepId: remountedStepId, fields: {} }).then((response) => response.status),
+    ).toBe(409);
     const emailField = described.fields.find((field) => field.autocomplete === "username")!;
     const passwordField = described.fields.find(
       (field) => field.autocomplete === "current-password",
     )!;
-    for (const [field, selector, value] of [
-      [emailField, 'input[name="email"]', "alice@example.com"],
-      [passwordField, 'input[name="password"]', "not-sent-through-mcp"],
-    ] as const) {
-      expect((await send({ type: "field-focus", field: field.id })).status).toBe(200);
-      expect((await send({ type: "field-text", field: field.id, text: value })).status).toBe(200);
-      expect(await page.locator(selector).inputValue()).toBe(value);
-    }
-    const button = await page.getByRole("button", { name: "Sign in" }).boundingBox();
-    expect(button).toBeTruthy();
-    expect((await send({ type: "pointer", x: button!.x + 4, y: button!.y + 4 })).status).toBe(200);
+    expect(
+      await submit({
+        stepId: described.id,
+        fields: {
+          [emailField.id]: "alice@example.com",
+          [passwordField.id]: "not-sent-through-mcp",
+        },
+      }).then((response) => response.status),
+    ).toBe(200);
     await until(async () =>
       host.page(ALICE)?.evaluate(() => document.body.dataset["signedIn"] === "true"),
     );
@@ -201,7 +285,32 @@ describe("unattended mode in Chromium", () => {
     expect((resumed.result.output as { tabs: { state: string }[] }).tabs).toEqual([
       expect.objectContaining({ state: "connected" }),
     ]);
-    expect(await fetch(handoff.url).then((response) => response.status)).toBe(410);
+    await personPage.unroute("**/status");
+    await personPage.locator("#complete").waitFor({ state: "visible", timeout: 5_000 });
+    expect(await personPage.locator("#expired").isHidden()).toBe(true);
+    expect(
+      await personPage
+        .getByRole("heading", { name: "Fixture application is connected" })
+        .isVisible(),
+    ).toBe(true);
+    expect(
+      await fetch(new URL("status", handoff.url), { headers: humanHeaders }).then((response) =>
+        response.json(),
+      ),
+    ).toMatchObject({ complete: true, authentication: "signed-in" });
+    expect(
+      await fetch(handoff.url, { headers: humanHeaders }).then((response) => response.status),
+    ).toBe(200);
+
+    await host.stop(ALICE);
+    const expired = await fetch(handoff.url, { headers: humanHeaders });
+    expect(expired.status).toBe(410);
+    expect(await expired.text()).toContain("Sign-in link expired");
+    expect(
+      await fetch(new URL("status", handoff.url), { headers: humanHeaders }).then(
+        async (response) => ({ status: response.status, body: await response.json() }),
+      ),
+    ).toMatchObject({ status: 410, body: { state: "expired" } });
   });
 
   // [S-HOST-9] Login is a person-facing, identity-bound handoff; resume replays exactly once.
