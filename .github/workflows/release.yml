@@ -47,6 +47,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build
+      # `axe surface coverage`'s tests (packages/cli) launch headless Chromium.
+      - name: Install Chromium
+        run: pnpm --filter body-spray-site exec playwright install --with-deps chromium
       - run: pnpm -r test
 
       - name: Publish

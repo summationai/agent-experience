@@ -30,11 +30,12 @@ jobs:
         name: Doc code blocks match docs/examples
       - run: pnpm lint
       - run: pnpm -r typecheck
+      # Before the tests: `axe surface coverage`'s tests (packages/cli) launch headless Chromium too.
+      - name: Install browsers
+        run: pnpm --filter body-spray-site exec playwright install --with-deps chromium firefox webkit
       - run: pnpm -r test
       - name: Conformance against the getting-started example
         run: node scripts/ci-conformance.mjs
-      - name: Install site browsers
-        run: pnpm --filter body-spray-site exec playwright install --with-deps chromium firefox webkit
       - run: pnpm site:build
       - name: site/dist is committed and up to date
         run: git diff --exit-code -- site/dist ':!site/dist/assets/og.png'
