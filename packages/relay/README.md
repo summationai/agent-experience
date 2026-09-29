@@ -6,4 +6,4 @@ Applications normally do not configure a relay URL. The generated integration re
 
 Use `connection.disconnect()` for component or route cleanup. `connection.stop()` is reserved for an explicit user decision to revoke the agent's access.
 
-See [Relay](../../docs/relay.md) and the [application/provider boundary](../../docs/architecture.md).
+See [Relay](https://github.com/summationai/agent-experience/blob/main/docs/relay.md) and the [application/provider boundary](https://github.com/summationai/agent-experience/blob/main/docs/architecture.md).

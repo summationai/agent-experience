@@ -18,5 +18,9 @@
   {
     "token": "safeParse",
     "reason": "Zod's own method: the structural check by which @axe/surface recognizes a Zod schema"
+  },
+  {
+    "token": "surfaceId",
+    "reason": "the provider connector's expected Surface profile id: a provider-registry field, not an AXE wire name"
   }
 ]

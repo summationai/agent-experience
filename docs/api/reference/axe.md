@@ -17,7 +17,7 @@ npx axe surface init --dry-run
 npx axe surface init --yes --install
 ```
 
-The default output supports browser-native WebMCP and a provider-injected hosted connection. The consuming application does not run an MCP server. See the repository [getting-started guide](_media/getting-started.md) and [application/provider boundary](_media/architecture.md).
+The default output supports browser-native WebMCP and a provider-injected hosted connection. The consuming application does not run an MCP server. See the repository [getting-started guide](https://github.com/summationai/agent-experience/blob/main/docs/getting-started.md) and [application/provider boundary](https://github.com/summationai/agent-experience/blob/main/docs/architecture.md).
 
 ## Interfaces
 

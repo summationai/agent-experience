@@ -37,6 +37,7 @@ docs/api/reference/@axe/surface/webmcp.html
 docs/api/reference/@axe/testing.html
 docs/api/reference/README.html
 docs/api/reference/axe.html
+docs/architecture.html
 docs/audit.html
 docs/auth.html
 docs/auto-surface.html

@@ -165,6 +165,7 @@ type WireApi =
   | "useSurfaceProps"
   | "attributesFor"
   | "subscribe"
+  | "setProfile"
   | "revisionMode"
   | "SURFACE_ATTRIBUTES"
   | "toJsonSchema"
@@ -1173,6 +1174,7 @@ const api: Readonly<{
   sessionIdGenerator: "sessionIdGenerator";
   sessionLoginRequired: "SessionLoginRequired";
   setObjects: "setObjects";
+  setProfile: "setProfile";
   setRev: "setRev";
   siteKey: "siteKey";
   sqliteIdempotencyStore: "SqliteIdempotencyStore";
@@ -2174,6 +2176,7 @@ const WIRE: Readonly<{
      sessionIdGenerator: "sessionIdGenerator";
      sessionLoginRequired: "SessionLoginRequired";
      setObjects: "setObjects";
+     setProfile: "setProfile";
      setRev: "setRev";
      siteKey: "siteKey";
      sqliteIdempotencyStore: "SqliteIdempotencyStore";

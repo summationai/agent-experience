@@ -18,7 +18,7 @@ const handle = autoSurface({
 });
 ```
 
-The profile is structured application data. Connection URLs, origins, OAuth, and session exchange belong to the provider registry, not Surface. See [Surface](../../_media/surface.md) and the [application/provider boundary](../../_media/architecture.md).
+The profile is structured application data. Connection URLs, origins, OAuth, and session exchange belong to the provider registry, not Surface. See [Surface](https://github.com/summationai/agent-experience/blob/main/docs/surface.md) and the [application/provider boundary](https://github.com/summationai/agent-experience/blob/main/docs/architecture.md).
 
 ## Modules
 

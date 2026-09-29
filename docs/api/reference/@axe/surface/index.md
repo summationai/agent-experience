@@ -2882,7 +2882,7 @@ The signed-in state the application itself currently renders.
 ### SurfaceProfileSource
 
 ```ts
-type SurfaceProfileSource =
+type SurfaceProfileSource = 
   | SurfaceProfile
   | (() => SurfaceProfile);
 ```
