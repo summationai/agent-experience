@@ -47,6 +47,8 @@ For a consumer using ChatGPT on mobile or desktop, the production path is the pu
 
 For a product-shaped local demo of an existing web app's page-held Surface:
 
+The packages are private to the summationai organization, in its GitHub Packages registry; the application needs the `.npmrc` scope mapping and a token first ([Install from GitHub Packages](docs/deploying.md#install-from-github-packages)).
+
 ```sh
 npm install @summationai/axe-surface @summationai/axe-relay
 npx @summationai/axe surface init --app-id example-app --app-name "Example App" --yes

@@ -12,7 +12,7 @@ Out of the box Surface discovers the page's controls and keeps their authoritati
 npm install @summationai/axe-surface @summationai/axe-relay
 ```
 
-While the packages are unpublished, `axe surface init --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the provider-operated Agent Experience service.
+The packages come from the summationai GitHub Packages registry: an `.npmrc` beside `package.json` maps the scope (`@summationai:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`), and `gh auth refresh -s read:packages && export NODE_AUTH_TOKEN=$(gh auth token)` supplies the token; see [Install from GitHub Packages](deploying.md#install-from-github-packages). Without registry access, `axe surface init --vendor <dir> --install` installs the `core`, `surface`, and `relay` tarballs packed with `scripts/pack-for-consumer.sh`, including the `overrides` (npm), `pnpm.overrides`, or root `resolutions` (Yarn) entry; see [Consume from a checkout](deploying.md#consume-from-a-checkout). Server dependencies remain in the provider-operated Agent Experience service.
 
 ### 2. Run `axe surface init`
 
@@ -112,7 +112,7 @@ npm install @summationai/axe-core @summationai/axe-express
 npm install -D @summationai/axe tsx
 ```
 
-Use `@summationai/axe-next` or `@summationai/axe-fetch` instead of `@summationai/axe-express` for those frameworks. The `@summationai/axe` package is the CLI (its command is `axe`); `tsx` lets the CLI load your TypeScript directly.
+Use `@summationai/axe-next` or `@summationai/axe-fetch` instead of `@summationai/axe-express` for those frameworks. The packages come from the summationai GitHub Packages registry: an `.npmrc` beside `package.json` maps the scope (`@summationai:registry=https://npm.pkg.github.com` and `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`), and `gh auth refresh -s read:packages && export NODE_AUTH_TOKEN=$(gh auth token)` supplies the token; see [Install from GitHub Packages](deploying.md#install-from-github-packages). The `@summationai/axe` package is the CLI (its command is `axe`); `tsx` lets the CLI load your TypeScript directly.
 
 ### 2. Declare one action
 

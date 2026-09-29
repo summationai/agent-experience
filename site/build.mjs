@@ -32,7 +32,7 @@ const SKIP_OG = args.includes("--skip-og");
 
 /** One place for the repository location. */
 export const GITHUB_REPO = "https://github.com/summationai/agent-experience";
-export const NPM_URL = "https://www.npmjs.com/package/@summationai/axe-core";
+export const NPM_URL = "https://github.com/orgs/summationai/packages?repo_name=agent-experience";
 const SITE_NAME = "Body Spray";
 const TAGLINE =
   "Agentic eXperience Engineering — because your site should smell good to agents too.";
@@ -490,12 +490,11 @@ function minifyCss(css) {
 // Landing page assembly
 // ---------------------------------------------------------------------------
 
-// Besides the repository and npm, pages may cite the primary sources of the standards the SDK
+// Besides the repository and its packages, pages may cite the primary sources of the standards the SDK
 // adapts to (WebMCP, MCP and its Apps extension). Anything else is a broken or unintended link.
 const EXTERNAL_ALLOW = [
   GITHUB_REPO,
-  "https://www.npmjs.com/",
-  "https://registry.npmjs.org/",
+  NPM_URL,
   "https://webmachinelearning.github.io/webmcp",
   "https://github.com/webmachinelearning/webmcp",
   "https://developer.chrome.com/docs/ai/",

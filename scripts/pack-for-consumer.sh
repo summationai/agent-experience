@@ -3,7 +3,7 @@
 # "Consume from a checkout"). Builds the workspace, packs @summationai/axe-core, @summationai/axe-surface, @summationai/axe-client
 # and @summationai/axe-testing into <out-dir> as summationai-axe-<name>-<version>.tgz, and writes <out-dir>/SOURCE with
 # the repository, branch, commit and date the tarballs came from, since a tarball carries only
-# the version and every pre-release commit is 0.1.0.
+# the version and every commit between two releases carries the same one.
 #
 # Usage: scripts/pack-for-consumer.sh <out-dir> [package ...]
 #   package: a directory name under packages/ (default: core surface client testing)

@@ -44,7 +44,7 @@ export interface InitOptions {
   appId?: string;
   appName?: string;
   relay?: string;
-  /** Directory holding the packed tarballs, for the unpublished install form. */
+  /** Directory holding the packed tarballs, for the install form that needs no registry access. */
   vendor?: string;
 }
 

@@ -517,17 +517,36 @@ baseUrl: process.env.AXE_BASE_URL ?? "https://www.oakridge-rentals.example/agent
 
 Behind a proxy or load balancer, the adapters rebuild the public URL of each request from the forwarded headers. The Express adapter reads the forwarded protocol and host and falls back to the socket; the Next.js Pages adapter reads the same headers and assumes HTTPS. If your proxy does not set them, pass `origin` to `axeExpress` or `axeNextPages` with your public origin so prefix routing and tenant resolution by host see what the agent sees. The fetch-based adapters (`axeFetch`, and `axeNext` for the App Router) receive a Web `Request` whose URL the framework already built; configure the framework's trusted-proxy setting instead. Terminate TLS at the proxy and keep the proxy-to-app hop on a private network.
 
+## Install from GitHub Packages
+
+The packages are published to the summationai organization's GitHub Packages npm registry, not to npmjs, and they are private to the organization: an install needs a GitHub token of someone, or some workflow, in it. Every package carries the same version; install the same version of each.
+
+An `.npmrc` beside the application's `package.json` maps the scope to the registry and reads the token from the environment. npm reads project configuration from the package directory, so a repository-root `.npmrc` is not consulted when the application builds with `npm --prefix <dir>`.
+
+```ini
+@summationai:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+- On a workstation: `gh auth refresh -s read:packages && export NODE_AUTH_TOKEN=$(gh auth token)`, then install as usual.
+- In GitHub Actions: give the job `permissions: packages: read` and the install step `NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}`. The packages take their access from this repository, which is internal to the organization; if a workflow's install is refused with 403, add its repository under "Manage Actions access" in the package's settings.
+- In a container build: pass the token as a build secret (`RUN --mount=type=secret,id=npm_token NODE_AUTH_TOKEN=$(cat /run/secrets/npm_token) npm ci`), never as a build argument, which stays in the image history.
+
+Without the `.npmrc` the package manager asks npmjs for `@summationai/*` and gets a 404; without a token it gets a 401 from GitHub.
+
+Releases are cut by merging to `main`: `.github/workflows/release.yml` publishes every version the registry does not have yet, so a pull request that bumps versions (`pnpm changeset`, then `pnpm version-packages`) releases them when it merges. The workflow then checks that each package is still private: the registry refuses it and its package page is not found without credentials.
+
 ## Consume from a checkout
 
-Nothing is published to npm yet, so an application takes the packages from a checkout as tarballs. `scripts/pack-for-consumer.sh <out-dir>` builds the workspace, packs `@summationai/axe-core`, `@summationai/axe-surface`, `@summationai/axe-client`, and `@summationai/axe-testing` into `<out-dir>` as `summationai-axe-<name>-<version>.tgz`, and writes `<out-dir>/SOURCE` with the repository, branch, commit, and date they came from, because a tarball carries only the version and every pre-release commit is 0.1.0.
+Without registry access, or to try a commit between releases, an application takes the packages from a checkout as tarballs. `scripts/pack-for-consumer.sh <out-dir>` builds the workspace, packs `@summationai/axe-core`, `@summationai/axe-surface`, `@summationai/axe-client`, and `@summationai/axe-testing` into `<out-dir>` as `summationai-axe-<name>-<version>.tgz`, and writes `<out-dir>/SOURCE` with the repository, branch, commit, and date they came from, because a tarball carries only the version and every commit between two releases carries the same one.
 
 Three things about installing them, whatever the package manager:
 
-- `file:` dependencies. Point each package at its tarball, for example `"@summationai/axe-surface": "file:vendor/summationai-axe-surface-0.1.0.tgz"`. The runtime needs `core` and `surface`; the in-process conformance tests need `client` and `testing` as dev dependencies.
-- Overrides for the siblings. Packing rewrites each `workspace:*` dependency to the packed version, so the surface tarball asks for `@summationai/axe-core` at `0.1.0` and the testing tarball for `@summationai/axe-client` at `0.1.0`, which the package manager would ask a registry for. One `overrides` entry per sibling (npm and pnpm; `resolutions` in Yarn) points those requests back at the tarballs: `"overrides": { "@summationai/axe-core": "file:vendor/summationai-axe-core-0.1.0.tgz", "@summationai/axe-client": "file:vendor/summationai-axe-client-0.1.0.tgz" }`.
-- Copy before install. The lockfile records each tarball's integrity hash, so a container build that installs from the lockfile must have the tarballs in place first: copy the vendor directory into the image before the install step, and check it out in any CI job that installs. Commit the vendor directory, the package manifest, and the lockfile together, and refresh all three when the `SOURCE` commit moves. Every unreleased pack carries the same version, so a refreshed tarball at the same path looks unchanged to npm: `npm install` reports "up to date" and keeps the old integrity hashes, which `npm ci` then rejects. After refreshing, delete the `node_modules/@summationai/axe-*` entries from the lockfile (or the lockfile's `packages` entries for the tarballs) and install again.
+- `file:` dependencies. Point each package at its tarball, for example `"@summationai/axe-surface": "file:vendor/summationai-axe-surface-1.0.0.tgz"`. The runtime needs `core` and `surface`; the in-process conformance tests need `client` and `testing` as dev dependencies.
+- Overrides for the siblings. Packing rewrites each `workspace:*` dependency to the packed version, so the surface tarball asks for `@summationai/axe-core` at `1.0.0` and the testing tarball for `@summationai/axe-client` at `1.0.0`, which the package manager would ask a registry for. One `overrides` entry per sibling (npm and pnpm; `resolutions` in Yarn) points those requests back at the tarballs: `"overrides": { "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz", "@summationai/axe-client": "file:vendor/summationai-axe-client-1.0.0.tgz" }`.
+- Copy before install. The lockfile records each tarball's integrity hash, so a container build that installs from the lockfile must have the tarballs in place first: copy the vendor directory into the image before the install step, and check it out in any CI job that installs. Commit the vendor directory, the package manifest, and the lockfile together, and refresh all three when the `SOURCE` commit moves. Every pack between two releases carries the same version, so a refreshed tarball at the same path looks unchanged to npm: `npm install` reports "up to date" and keeps the old integrity hashes, which `npm ci` then rejects. After refreshing, delete the `node_modules/@summationai/axe-*` entries from the lockfile (or the lockfile's `packages` entries for the tarballs) and install again.
 
-A browser bundle needs no alias for a Node built-in and no work to keep Zod out: `@summationai/axe-core` keeps its one Node-only export on `@summationai/axe-core/node`, and `@summationai/axe-surface` with `@summationai/axe-surface/react` bundles for the browser without Zod, which the bundle test in `packages/surface/test` pins. When the packages are published, the `file:` specs become versions, the overrides go, and the vendor directory is deleted.
+A browser bundle needs no alias for a Node built-in and no work to keep Zod out: `@summationai/axe-core` keeps its one Node-only export on `@summationai/axe-core/node`, and `@summationai/axe-surface` with `@summationai/axe-surface/react` bundles for the browser without Zod, which the bundle test in `packages/surface/test` pins.
 
 ## Checklist
 
