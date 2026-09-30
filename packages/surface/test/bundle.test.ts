@@ -101,7 +101,9 @@ describe("browser bundle", () => {
   // tables, lists, paging, Markdown) and waiting on it add about 26 kB minified, 9.5 kB gzipped.
   // They are what lets an agent answer from the page and wait for slow work, so they ship with the
   // handle rather than behind a second import.
-  it("@summationai/axe-surface/auto bundles for the browser without Node built-ins, Zod, or React, under 120 kB minified and 43 kB gzipped", async () => {
+  // The bounds grew from 120 to 124 kB minified and 43 to 44 kB gzipped with the risk rules for items and filter strips and the
+  // reader's listing rows, read whole as one item each, found on the Summation app's data page.
+  it("@summationai/axe-surface/auto bundles for the browser without Node built-ins, Zod, or React, under 124 kB minified and 44 kB gzipped", async () => {
     const out = await bundle(
       `import { autoSurface, formatCoverage } from "@summationai/axe-surface/auto";
        console.log(autoSurface, formatCoverage);`,
@@ -113,8 +115,8 @@ describe("browser bundle", () => {
     console.log(
       `@summationai/axe-surface/auto (with the surface core): ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(120 * 1024);
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(43 * 1024);
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(124 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(44 * 1024);
   });
 
   // The bound grew from 44 to 47 kB when the provider's WebMCP adapter gained the auto surface's
