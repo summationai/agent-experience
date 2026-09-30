@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -58,6 +58,12 @@ const PAGES: Record<string, string> = {
   "/none": page("<button>Plain</button>"),
   "/attrs": page('<button data-surface-id="x" aria-label="X">X</button>'),
   "/whoami": page("", "window.__surface = { coverage: () => ({ cookie: document.cookie }) };"),
+  // A provider at the app root exposes the surface at once; the route renders its content later.
+  "/late": page(
+    '<div id="app"></div>',
+    `window.__surface = { coverage: () => ({ controls: document.querySelectorAll("#app button").length }) };
+     setTimeout(() => { document.getElementById("app").innerHTML = "<button>orders</button><button>customers</button>"; }, 400);`,
+  ),
 };
 
 let http: Server;
@@ -171,6 +177,49 @@ describe("axe surface coverage: in headless Chromium", () => {
     );
     expect(r.pages[2]!.report).toEqual({ cookie: "session=abc" });
     expect(headersSeen.every((h) => h.authorization === "Bearer t1")).toBe(true);
+  }, 60_000);
+
+  it("reads a page once it has settled, not the moment its surface appears", async () => {
+    const r = await runCoverage(base, { resolveFrom: [site], routes: ["/late"], waitMs: 5000 });
+    expect(r.pages[0]!.report).toEqual({ controls: 2 });
+  }, 60_000);
+
+  it("--state loads a saved session (axe host login's storage state) before the first page", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-coverage-state-"));
+    const file = join(dir, "host-state.json");
+    const { hostname } = new URL(base);
+    writeFileSync(
+      file,
+      JSON.stringify({
+        cookies: [
+          {
+            name: "session",
+            value: "saved",
+            domain: hostname,
+            path: "/",
+            expires: -1,
+            httpOnly: false,
+            secure: false,
+            sameSite: "Lax",
+          },
+        ],
+        origins: [],
+      }),
+    );
+    const r = await runCoverage(base, {
+      resolveFrom: [site],
+      routes: ["/whoami"],
+      waitMs: 500,
+      state: file,
+    });
+    expect(r.pages[0]!.report).toEqual({ cookie: "session=saved" });
+    const missing: string[] = [];
+    const code = await run(["surface", "coverage", base, "--state", join(dir, "nope.json")], {
+      stdout: () => undefined,
+      stderr: (l) => void missing.push(l),
+    });
+    expect(code).toBe(1);
+    expect(missing.join("\n")).toContain("axe host login");
   }, 60_000);
 
   it("the command prints Markdown or JSON, writes --out, and fails when no page has a surface", async () => {
