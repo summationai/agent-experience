@@ -491,7 +491,7 @@ function minifyCss(css) {
 // ---------------------------------------------------------------------------
 
 // Besides the repository and its packages, pages may cite the primary sources of the standards the SDK
-// adapts to (WebMCP, MCP and its Apps extension). Anything else is a broken or unintended link.
+// adapts to (WebMCP, MCP and its Apps extension, a model's web fetch). Anything else is a broken or unintended link.
 const EXTERNAL_ALLOW = [
   GITHUB_REPO,
   NPM_URL,
@@ -502,6 +502,8 @@ const EXTERNAL_ALLOW = [
   "https://modelcontextprotocol.io/specification/",
   "https://apps.extensions.modelcontextprotocol.io/",
   "https://github.com/modelcontextprotocol/",
+  // The agent web (docs/agent-web.md) is built on a model's web fetch rules.
+  "https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool",
 ];
 
 async function renderIndex({ highlighter, fixtures, rendered, sourceSet }) {

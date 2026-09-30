@@ -175,6 +175,9 @@ type WireApi =
   | "authFor"
   | "redactEvent"
   | "idleMs"
+  | "createAgentWeb"
+  | "agentSiteHandler"
+  | "sessionIdleMs"
   | "onEvict"
   | "keyFor"
   | "SqliteIdempotencyStore"
@@ -962,6 +965,7 @@ const api: Readonly<{
   actTimeoutMs: "actTimeoutMs";
   addProvider: "addProvider";
   agentAuth: "agentAuth";
+  agentSiteHandler: "agentSiteHandler";
   allowCredentials: "allowCredentials";
   allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
@@ -1006,6 +1010,7 @@ const api: Readonly<{
   continue: "continue";
   cookieSession: "cookieSession";
   cors: "cors";
+  createAgentWeb: "createAgentWeb";
   createAXE: "createAXE";
   createContext: "createContext";
   createHost: "createHost";
@@ -1174,6 +1179,7 @@ const api: Readonly<{
   sessionCount: "sessionCount";
   sessionFor: "sessionFor";
   sessionIdGenerator: "sessionIdGenerator";
+  sessionIdleMs: "sessionIdleMs";
   sessionLoginRequired: "SessionLoginRequired";
   setObjects: "setObjects";
   setProfile: "setProfile";
@@ -1965,6 +1971,7 @@ const WIRE: Readonly<{
      actTimeoutMs: "actTimeoutMs";
      addProvider: "addProvider";
      agentAuth: "agentAuth";
+     agentSiteHandler: "agentSiteHandler";
      allowCredentials: "allowCredentials";
      allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
@@ -2009,6 +2016,7 @@ const WIRE: Readonly<{
      continue: "continue";
      cookieSession: "cookieSession";
      cors: "cors";
+     createAgentWeb: "createAgentWeb";
      createAXE: "createAXE";
      createContext: "createContext";
      createHost: "createHost";
@@ -2177,6 +2185,7 @@ const WIRE: Readonly<{
      sessionCount: "sessionCount";
      sessionFor: "sessionFor";
      sessionIdGenerator: "sessionIdGenerator";
+     sessionIdleMs: "sessionIdleMs";
      sessionLoginRequired: "SessionLoginRequired";
      setObjects: "setObjects";
      setProfile: "setProfile";

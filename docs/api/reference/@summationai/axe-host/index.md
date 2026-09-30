@@ -282,6 +282,310 @@ Error.prepareStackTrace
 
 ## Interfaces
 
+<a id="agentsessioninfo"></a>
+
+### AgentSessionInfo
+
+A value an agent passes around; the site API answers with these.
+
+#### Properties
+
+<a id="appname"></a>
+
+##### appName
+
+```ts
+appName: string;
+```
+
+<a id="code"></a>
+
+##### code
+
+```ts
+code: string;
+```
+
+<a id="id"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+<a id="principal"></a>
+
+##### principal?
+
+```ts
+optional principal?: string;
+```
+
+<a id="state"></a>
+
+##### state
+
+```ts
+state: "pending" | "bound";
+```
+
+***
+
+<a id="agentweb"></a>
+
+### AgentWeb
+
+#### Methods
+
+<a id="close"></a>
+
+##### close()
+
+```ts
+close(): Promise<void>;
+```
+
+###### Returns
+
+`Promise`\<`void`\>
+
+<a id="handle"></a>
+
+##### handle()
+
+```ts
+handle(request): Promise<Response>;
+```
+
+Answer one request: agent pages under `/`, the site API under `/api/`.
+
+###### Parameters
+
+###### request
+
+`Request`
+
+###### Returns
+
+`Promise`\<`Response`\>
+
+<a id="listen"></a>
+
+##### listen()
+
+```ts
+listen(options?): Promise<{
+  port: number;
+  url: string;
+}>;
+```
+
+###### Parameters
+
+###### options?
+
+###### host?
+
+`string`
+
+###### port?
+
+`number`
+
+###### Returns
+
+`Promise`\<\{
+  `port`: `number`;
+  `url`: `string`;
+\}\>
+
+<a id="sessioncount"></a>
+
+##### sessionCount()
+
+```ts
+sessionCount(): number;
+```
+
+Live sessions (diagnostics and tests).
+
+###### Returns
+
+`number`
+
+***
+
+<a id="agentweboptions"></a>
+
+### AgentWebOptions
+
+#### Properties
+
+<a id="appname-1"></a>
+
+##### appName?
+
+```ts
+optional appName?: string;
+```
+
+The application's name, as the agent and the person read it.
+
+<a id="appurl"></a>
+
+##### appUrl
+
+```ts
+appUrl: string;
+```
+
+The application the headless page opens, e.g. `http://localhost:3000`.
+
+<a id="bridge"></a>
+
+##### bridge?
+
+```ts
+optional bridge?: (options) => WebMcpBridge;
+```
+
+Build the page bridge (tests). Default: `createWebMcpBridge`.
+
+###### Parameters
+
+###### options
+
+`WebMcpBridgeOptions`
+
+###### Returns
+
+`WebMcpBridge`
+
+<a id="browser"></a>
+
+##### browser?
+
+```ts
+optional browser?: object;
+```
+
+###### executablePath?
+
+```ts
+optional executablePath?: string;
+```
+
+###### headless?
+
+```ts
+optional headless?: boolean;
+```
+
+###### launch?
+
+```ts
+optional launch?: () => Promise<Browser>;
+```
+
+Supply your own browser. It must be Chromium started with `--enable-features=WebMCP`.
+
+###### Returns
+
+`Promise`\<`Browser`\>
+
+<a id="pagesize"></a>
+
+##### pageSize?
+
+```ts
+optional pageSize?: number;
+```
+
+Controls listed per page before a "more" link. Default 40.
+
+<a id="pendingttlms"></a>
+
+##### pendingTtlMs?
+
+```ts
+optional pendingTtlMs?: number;
+```
+
+How long a sign-in, approval, or text request waits for the person. Default ten minutes.
+
+<a id="publicurl"></a>
+
+##### publicUrl
+
+```ts
+publicUrl: string;
+```
+
+This service's public origin, as agents reach it (links are absolute).
+
+<a id="readchars"></a>
+
+##### readChars?
+
+```ts
+optional readChars?: number;
+```
+
+Characters of page content per page before a "more" link. Default 6000.
+
+<a id="sessionidlems"></a>
+
+##### sessionIdleMs?
+
+```ts
+optional sessionIdleMs?: number;
+```
+
+How long an agent session lives without use. Default two hours.
+
+<a id="sitepath"></a>
+
+##### sitePath?
+
+```ts
+optional sitePath?: string;
+```
+
+The site's base path for its agent pages. Default `/agent`.
+
+<a id="sitesecret"></a>
+
+##### siteSecret
+
+```ts
+siteSecret: string;
+```
+
+Shared with the site's server: it authenticates the site API. At least 32 characters.
+
+<a id="siteurl"></a>
+
+##### siteUrl
+
+```ts
+siteUrl: string;
+```
+
+The site's public origin, for the deep links to its own pages (`/agent/...`).
+
+<a id="startpath"></a>
+
+##### startPath?
+
+```ts
+optional startPath?: string;
+```
+
+The page a session opens first. Default: the app URL.
+
+***
+
 <a id="appsession"></a>
 
 ### AppSession
@@ -333,6 +637,58 @@ A Playwright storage state: a file path or the object (`axe host login` writes o
 
 ***
 
+<a id="bindrequest"></a>
+
+### BindRequest
+
+What the site's server sends when the person connects a session.
+
+#### Properties
+
+<a id="cookies-1"></a>
+
+##### cookies?
+
+```ts
+optional cookies?: SessionCookie[];
+```
+
+The application session for the headless page: cookies, or a whole storage state.
+
+<a id="displayname"></a>
+
+##### displayName?
+
+```ts
+optional displayName?: string;
+```
+
+<a id="principal-1"></a>
+
+##### principal
+
+```ts
+principal: string;
+```
+
+<a id="storagestate-1"></a>
+
+##### storageState?
+
+```ts
+optional storageState?: StorageState;
+```
+
+<a id="tenant"></a>
+
+##### tenant?
+
+```ts
+optional tenant?: string;
+```
+
+***
+
 <a id="host"></a>
 
 ### Host
@@ -361,7 +717,7 @@ The relay the hosted pages connect to.
 
 #### Methods
 
-<a id="close"></a>
+<a id="close-1"></a>
 
 ##### close()
 
@@ -393,7 +749,7 @@ Close the identity's session; the next tool call starts a new one. Resolves fals
 
 `Promise`\<`boolean`\>
 
-<a id="handle"></a>
+<a id="handle-1"></a>
 
 ##### handle()
 
@@ -458,7 +814,7 @@ stable MCP endpoint to the selected connector without exposing a per-application
 
 `Promise`\<`Response`\>
 
-<a id="listen"></a>
+<a id="listen-1"></a>
 
 ##### listen()
 
@@ -950,7 +1306,7 @@ id: string;
 optional name?: string;
 ```
 
-<a id="appurl"></a>
+<a id="appurl-1"></a>
 
 ##### appUrl
 
@@ -960,7 +1316,7 @@ appUrl: string;
 
 The application: its origin is the one origin the hosted pages run on by default.
 
-<a id="browser"></a>
+<a id="browser-1"></a>
 
 ##### browser?
 
@@ -1105,7 +1461,7 @@ With a `Relay` instance: the tab endpoint the hosted pages connect to (`ws://127
 ##### restrict?
 
 ```ts
-optional restrict?: "navigations" | "all";
+optional restrict?: "all" | "navigations";
 ```
 
 `navigations` (the default): refuse navigations outside the allowed origins, top-level and in
@@ -1123,7 +1479,7 @@ optional sessionFor?: SessionFor;
 The application session for an identity (cookies, a storage state, headers). Default: none,
 for an application that needs no sign-in. See `storageStateSession` and `cookieSession`.
 
-<a id="startpath"></a>
+<a id="startpath-1"></a>
 
 ##### startPath?
 
@@ -1193,7 +1549,7 @@ path: string;
 
 The page's path (never its query).
 
-<a id="principal"></a>
+<a id="principal-2"></a>
 
 ##### principal
 
@@ -1209,7 +1565,7 @@ principal: string;
 startedAt: string;
 ```
 
-<a id="state"></a>
+<a id="state-1"></a>
 
 ##### state
 
@@ -1227,7 +1583,7 @@ tabId: string;
 
 The relay tab id of the session's page (stable across restarts of the session).
 
-<a id="tenant"></a>
+<a id="tenant-1"></a>
 
 ##### tenant
 
@@ -1296,6 +1652,104 @@ url: string;
 ```
 
 The relay's tab endpoint.
+
+***
+
+<a id="pendinginfo"></a>
+
+### PendingInfo
+
+#### Properties
+
+<a id="appname-2"></a>
+
+##### appName
+
+```ts
+appName: string;
+```
+
+<a id="field"></a>
+
+##### field?
+
+```ts
+optional field?: object;
+```
+
+A text request: the field it fills.
+
+###### label
+
+```ts
+label: string;
+```
+
+###### maxLength
+
+```ts
+maxLength: number | null;
+```
+
+<a id="id-1"></a>
+
+##### id
+
+```ts
+id: string;
+```
+
+<a id="kind"></a>
+
+##### kind
+
+```ts
+kind: "text" | "approval";
+```
+
+<a id="principal-3"></a>
+
+##### principal
+
+```ts
+principal: string | null;
+```
+
+<a id="question"></a>
+
+##### question?
+
+```ts
+optional question?: object;
+```
+
+An approval: the question, as the person reads it.
+
+###### message
+
+```ts
+message: string;
+```
+
+###### name
+
+```ts
+name: string;
+```
+
+###### summary
+
+```ts
+summary: string;
+```
+
+<a id="state-2"></a>
+
+##### state
+
+```ts
+state: "open" | "done";
+```
 
 ***
 
@@ -1407,7 +1861,7 @@ The agent's verified access token, as the MCP endpoint's verifier returned it (H
 (stdio and development, where the identity is configured rather than signed in). Use it to
 exchange for an application session; never put it in the page.
 
-<a id="principal-1"></a>
+<a id="principal-4"></a>
 
 ##### principal
 
@@ -1421,7 +1875,7 @@ principal: string;
 HostIdentity.principal
 ```
 
-<a id="tenant-1"></a>
+<a id="tenant-2"></a>
 
 ##### tenant
 
@@ -1437,7 +1891,7 @@ HostIdentity.tenant
 
 ***
 
-<a id="storagestate-1"></a>
+<a id="storagestate-2"></a>
 
 ### StorageState
 
@@ -1445,7 +1899,7 @@ A Playwright storage state: cookies and each origin's `localStorage`.
 
 #### Properties
 
-<a id="cookies-1"></a>
+<a id="cookies-2"></a>
 
 ##### cookies
 
@@ -1784,6 +2238,28 @@ null to refuse.
 #### Returns
 
 [`SessionFor`](#sessionfor-1)
+
+***
+
+<a id="createagentweb"></a>
+
+### createAgentWeb()
+
+```ts
+function createAgentWeb(options): AgentWeb;
+```
+
+Experimental: the agent web, a page's Surface for an agent with nothing installed (docs/agent-web.md).
+
+#### Parameters
+
+##### options
+
+[`AgentWebOptions`](#agentweboptions)
+
+#### Returns
+
+[`AgentWeb`](#agentweb)
 
 ***
 

@@ -1,4 +1,5 @@
 docs/README.html
+docs/agent-web.html
 docs/analytics.html
 docs/api/README.html
 docs/api/reference/@summationai/axe-client/README.html
