@@ -622,3 +622,60 @@ describe("axe surface: help and the prompt pack", () => {
       expect(prompt).toContain(option);
   });
 });
+
+describe("axe surface init --agent-web", () => {
+  it("Next.js: domain tools, agent-site.server, and the optional catch-all /agent route", () => {
+    const dir = copy("next");
+    const plan = planInit({ dir, agentWeb: true });
+    const files = Object.fromEntries(plan.changes.map((c) => [c.display, c.after]));
+    const surface = Object.entries(files).find(([k]) => /surface\.tsx$/.test(k))![1];
+    expect(surface).toContain('webMcp={{ granularity: "domain" }}');
+    const site = Object.entries(files).find(([k]) => /agent-site\.server\.ts$/.test(k));
+    expect(site?.[1]).toContain('from "@summationai/axe-core/agent-site"');
+    expect(site?.[1]).toContain("TODO(agent-web)");
+    const route = Object.entries(files).find(([k]) => k.endsWith("agent/[[...path]]/route.ts"));
+    expect(route, Object.keys(files).join(", ")).toBeDefined();
+    expect(route![1]).toMatch(/from "\.\.\/\.\.\/agent-site\.server"/);
+    expect(route![1]).toContain("export const GET = handle;");
+    expect(plan.manual).toEqual([]);
+  });
+
+  it("React Router with remix-flat-routes: app/routes/agent+/$.tsx", () => {
+    const dir = copy("react-router");
+    writeFileSync(
+      join(dir, "app/routes.ts"),
+      'import { flatRoutes } from "remix-flat-routes";\nexport default flatRoutes("routes", () => {});\n',
+    );
+    const plan = planInit({ dir, agentWeb: true });
+    const route = plan.changes.find((c) => c.display === "app/routes/agent+/$.tsx");
+    expect(route, plan.changes.map((c) => c.display).join(", ")).toBeDefined();
+    expect(route!.after).toContain('from "../../agent-site.server"');
+    expect(route!.after).toContain("export async function loader");
+    expect(route!.after).toContain("export async function action");
+  });
+
+  it("React Router with @react-router/fs-routes: app/routes/agent.$.tsx", () => {
+    const dir = copy("react-router");
+    writeFileSync(
+      join(dir, "app/routes.ts"),
+      'import { flatRoutes } from "@react-router/fs-routes";\nexport default flatRoutes();\n',
+    );
+    const plan = planInit({ dir, agentWeb: true });
+    const route = plan.changes.find((c) => c.display === "app/routes/agent.$.tsx");
+    expect(route).toBeDefined();
+    expect(route!.after).toContain('from "../agent-site.server"');
+  });
+
+  it("React Router with routes it cannot read: a manual step with the route to add", () => {
+    const plan = planInit({ dir: copy("react-router"), agentWeb: true });
+    expect(plan.changes.some((c) => c.display.endsWith("agent-site.server.ts"))).toBe(true);
+    expect(plan.manual.join("\n")).toContain('"agent/*"');
+    expect(plan.manual.join("\n")).toContain("export async function loader");
+  });
+
+  it("installs @summationai/axe-core for the site's agent pages", () => {
+    const d = detect(copy("next"));
+    expect(installCommand(d, true, undefined, true).argv).toContain("@summationai/axe-core");
+    expect(installCommand(d, true).argv).not.toContain("@summationai/axe-core");
+  });
+});

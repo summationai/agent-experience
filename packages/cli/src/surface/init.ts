@@ -18,10 +18,14 @@ import { detect, FRAMEWORKS } from "./detect";
 import type { Detection, Framework, PackageManager } from "./detect";
 import { unifiedDiff } from "./diff";
 import { detectStyle, find, insertImport, matchParen, wrapRange } from "./edit";
+import type { Style } from "./edit";
 import {
+  agentSiteFile,
   configFile,
   defaultFlagName,
   MARKER,
+  nextAgentRoute,
+  reactRouterAgentRoute,
   plainSurfaceFile,
   reactSurfaceFile,
   WRAPPER,
@@ -46,6 +50,11 @@ export interface InitOptions {
   relay?: string;
   /** Directory holding the packed tarballs, for the install form that needs no registry access. */
   vendor?: string;
+  /**
+   * Also serve agents that have nothing installed, through the agent web (docs/agent-web.md): domain
+   * tools on the page, the site's agent pages in `agent-site.server`, and the `/agent` route.
+   */
+  agentWeb?: boolean;
 }
 
 export interface FileChange {
@@ -241,6 +250,7 @@ export function planInit(o: InitOptions): InitPlan {
     remote: o.remote !== false,
     appId,
     appName,
+    ...(o.agentWeb ? { agentWeb: true } : {}),
   };
   if (o.relay !== undefined) t.relay = o.relay;
   const plain = d.framework === "plain";
@@ -271,6 +281,7 @@ export function planInit(o: InitOptions): InitPlan {
   };
   addFile(surfacePath, surfaceText);
   addFile(configPath, configFile(t));
+  if (o.agentWeb) planAgentWeb(d, style, addFile, manual, show);
 
   const edit = plain
     ? editHtml(d, rootText, surfacePath)
@@ -288,6 +299,62 @@ export function planInit(o: InitOptions): InitPlan {
   changes.sort((a, b) => Number(b.before !== undefined) - Number(a.before !== undefined));
   const diff = changes.map((c) => unifiedDiff(c.display, c.before, c.after)).join("");
   return { detection: d, mountFile, changes, kept, manual, diff };
+}
+
+/**
+ * The agent web's site side: `agent-site.server` beside the Surface module, and the `/agent` route
+ * in the application's own routing convention, or a manual step when init cannot tell it.
+ */
+function planAgentWeb(
+  d: Detection,
+  style: Style,
+  addFile: (path: string, content: string) => void,
+  manual: string[],
+  show: (p: string) => string,
+): void {
+  if (d.framework !== "next" && d.framework !== "react-router") {
+    manual.push(
+      "--agent-web needs a server route for /agent and /agent/*: this application has no server init recognizes (Next.js or React Router). Mount agentSiteHandler from @summationai/axe-core/agent-site on your server (docs/agent-web.md).",
+    );
+    return;
+  }
+  const ext = d.typescript ? "ts" : "js";
+  const sitePath = join(d.outDir, `agent-site.server.${ext}`);
+  addFile(sitePath, agentSiteFile({ typescript: d.typescript, style }));
+  const importFrom = (routeFile: string) =>
+    importSpecifier(routeFile, sitePath).replace(/\.(t|j)sx?$/, "");
+  if (d.framework === "next") {
+    const route = join(d.outDir, "agent", "[[...path]]", `route.${ext}`);
+    addFile(
+      route,
+      nextAgentRoute({ importPath: importFrom(route), typescript: d.typescript, style }),
+    );
+    return;
+  }
+  // React Router: the route file's name follows the application's route convention.
+  const routesConfig = ["routes.ts", "routes.js"].map((f) => join(d.outDir, f)).find(existsSync);
+  const config = routesConfig ? readFileSync(routesConfig, "utf8") : "";
+  const routeExt = d.typescript ? "tsx" : "jsx";
+  const route = /remix-flat-routes/.test(config)
+    ? join(d.outDir, "routes", "agent+", `$.${routeExt}`)
+    : /flatRoutes\(/.test(config) && /@react-router\/fs-routes/.test(config)
+      ? join(d.outDir, "routes", `agent.$.${routeExt}`)
+      : null;
+  if (route) {
+    addFile(
+      route,
+      reactRouterAgentRoute({ importPath: importFrom(route), typescript: d.typescript, style }),
+    );
+    return;
+  }
+  const example = reactRouterAgentRoute({
+    importPath: `./${posix(relative(d.outDir, sitePath)).replace(/\.(t|j)s$/, "")}`,
+    typescript: d.typescript,
+    style,
+  });
+  manual.push(
+    `--agent-web: add a resource route for /agent and /agent/* (a splat route, "agent/*") whose loader and action answer with agentSite from ${show(sitePath)}, for example:\n${example}`,
+  );
 }
 
 export function applyPlan(plan: InitPlan): void {
@@ -346,9 +413,19 @@ export interface InstallCommand {
 }
 
 /** The exact install command: registry form, or `file:` tarballs when `vendor` is given. */
-export function installCommand(d: Detection, withRelay: boolean, vendor?: string): InstallCommand {
+export function installCommand(
+  d: Detection,
+  withRelay: boolean,
+  vendor?: string,
+  /** The site's agent pages import @summationai/axe-core directly (--agent-web). */
+  withCore = false,
+): InstallCommand {
   const [bin, ...sub] = addCommand(d.packageManager).split(" ");
-  const pkgs = [PACKAGES.surface, ...(withRelay ? [PACKAGES.relay] : [])];
+  const pkgs = [
+    ...(withCore ? [PACKAGES.core] : []),
+    PACKAGES.surface,
+    ...(withRelay ? [PACKAGES.relay] : []),
+  ];
   if (!vendor) return { argv: [bin!, ...sub, ...pkgs], cwd: d.dir };
   const vendorAbs = join(d.dir, vendor);
   const files = tarballs(vendorAbs);
@@ -401,8 +478,8 @@ function declares(dir: string, names: string[]): boolean {
 function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
   const d = plan.detection;
   const remote = o.remote !== false;
-  const registry = installCommand(d, remote);
-  const tar = installCommand(d, remote, o.vendor ?? "vendor");
+  const registry = installCommand(d, remote, undefined, o.agentWeb === true);
+  const tar = installCommand(d, remote, o.vendor ?? "vendor", o.agentWeb === true);
   const devUrl =
     d.framework === "next"
       ? "http://localhost:3000"
@@ -468,6 +545,23 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
             : "The provider-injected connection needs no application token endpoint or pairing. Use --relay-dev only when deliberately testing the older attended-tab flow.",
     },
   );
+  if (o.agentWeb)
+    steps.push(
+      {
+        text: "Agent web: fill in identify and session in agent-site.server from this application's own sign-in (the prompt says how), then set, for the application's server:",
+        more: [
+          "AXE_AGENT_WEB_SECRET=<32+ random characters, shared with the agent web service>",
+          "AXE_AGENT_WEB_URL=http://127.0.0.1:4719",
+        ],
+      },
+      {
+        text: "Run the agent web beside the application, with the same secret, and give an agent (Claude Desktop, nothing installed) its start page:",
+        more: [
+          `AXE_AGENT_WEB_SECRET=<same> npx @summationai/${WIRE.cli.host} --dev --agent-web --text-in-url --app ${devUrl} --site ${devUrl}`,
+          `Agents start at http://127.0.0.1:4719/start, or at ${devUrl}/agent, which sends them there.`,
+        ],
+      },
+    );
   return steps.flatMap((s, i) => [
     `  ${i + 1}. ${s.text}`,
     ...(s.more ?? []).map((m) => `       ${m}`),
@@ -485,6 +579,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
     "browser-only": { type: "boolean" },
     "app-id": { type: "string" },
     "app-name": { type: "string" },
+    "agent-web": { type: "boolean" },
     "dry-run": { type: "boolean" },
     yes: { type: "boolean", short: "y" },
     install: { type: "boolean" },
@@ -512,6 +607,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
   else o.remote = true;
   if (values["app-id"] !== undefined) o.appId = String(values["app-id"]);
   if (values["app-name"] !== undefined) o.appName = String(values["app-name"]);
+  if (values["agent-web"]) o.agentWeb = true;
   if (values.vendor !== undefined) o.vendor = String(values.vendor);
   if (values.mount !== undefined) o.mount = String(values.mount);
   if (values["flag-hook"] !== undefined) o.flagHook = String(values["flag-hook"]);
@@ -561,7 +657,7 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let installed = false;
   if (values.install && !values["dry-run"]) {
-    const cmd = installCommand(d, o.remote !== false, o.vendor);
+    const cmd = installCommand(d, o.remote !== false, o.vendor, o.agentWeb === true);
     ctx.stdout(`Running: ${cmd.argv.map(quoteArg).join(" ")}  (in ${cmd.cwd})`);
     if (cmd.overrides && writeOverrides(d.dir, cmd.overrides))
       ctx.stdout(

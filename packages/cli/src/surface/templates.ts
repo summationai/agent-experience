@@ -29,6 +29,8 @@ export interface TemplateOptions {
   relay?: string;
   appId: string;
   appName: string;
+  /** Offer the Surface to the agent web: domain tools, for an agent with nothing installed. */
+  agentWeb?: boolean;
 }
 
 /** Environment access per framework: how the generated code reads a build-time variable. */
@@ -219,7 +221,9 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     `${PROVIDER_PROPS.config}={surfaceConfig}`,
     `${PROVIDER_PROPS.flag}={enabled}`,
     `${PROVIDER_PROPS.expose}={development}`,
-    PROVIDER_PROPS.webMcp,
+    // The agent web reads the page through WebMCP; domain tools keep its list fixed however many
+    // controls the page has.
+    o.agentWeb ? `${PROVIDER_PROPS.webMcp}={{ granularity: "domain" }}` : PROVIDER_PROPS.webMcp,
     ...(o.remote
       ? [
           `${PROVIDER_PROPS.onReady}={(handle) => {`,
@@ -376,5 +380,116 @@ export function configFile(o: TemplateOptions): string {
         "export default surfaceConfig;",
         "",
       ];
+  return styled(lines.join("\n"), o.style);
+}
+
+/** The module the agent site imports: the site's side of the agent web, for the site's server. */
+export const AGENT_SITE_MODULE = "@summationai/axe-core/agent-site";
+
+/**
+ * `agent-site.server.ts`: the site's agent pages (connect an agent session, approve an action, type
+ * a value), for the application's own server. `identify` and `session` come from the application's
+ * own sign-in, so they are left to fill in; until then every page sends the person to sign in and
+ * no session connects.
+ */
+export function agentSiteFile(o: { typescript: boolean; style: Style }): string {
+  const ts = o.typescript;
+  const lines = [
+    `// The agent web's pages on this site, ${MARKER}. Yours to edit. Server only.`,
+    "//",
+    "// An agent with nothing installed reaches this application through the agent web service,",
+    "// following links. What it cannot do goes to these pages, on this site, signed in with this",
+    "// site's own session: /agent/signin (connect the agent to the person), /agent/approve/<id> (a",
+    "// high-risk action), /agent/input/<id> (a value the person types). /agent sends an agent that",
+    "// found the site on to the agent web's /start. docs/agent-web.md has the whole flow.",
+    "//",
+    "// AXE_AGENT_WEB_SECRET is shared with the agent web service; AXE_AGENT_WEB_URL is where this",
+    "// server reaches it, and AXE_AGENT_WEB_PUBLIC_URL where agents do (default: the same).",
+    `import { agentSiteHandler } from "${AGENT_SITE_MODULE}";`,
+    ...(ts ? [`import type { AgentSiteIdentity } from "${AGENT_SITE_MODULE}";`] : []),
+    "",
+    "export const agentSite = agentSiteHandler({",
+    '  serviceUrl: process.env.AXE_AGENT_WEB_URL ?? "http://127.0.0.1:4719",',
+    "  agentUrl: process.env.AXE_AGENT_WEB_PUBLIC_URL ?? process.env.AXE_AGENT_WEB_URL,",
+    '  secret: process.env.AXE_AGENT_WEB_SECRET ?? "",',
+    "  // The signed-in person for this request, from this application's own server-side session:",
+    "  // a stable principal (the same one every time), and the tenant or workspace if there is one.",
+    "  // Null when signed out: the page then sends the person to sign in first.",
+    ts
+      ? "  identify: async (request: Request): Promise<AgentSiteIdentity | null> => {"
+      : "  identify: async (request) => {",
+    "    // TODO(agent-web): read this application's session for `request`.",
+    "    void request;",
+    "    return null;",
+    "  },",
+    "  // The application session the agent's headless page runs with, for that person. Mint one",
+    "  // for the agent with the application's own session code, so it can be ended on its own; in",
+    "  // development, passing on the person's own session cookies is acceptable.",
+    ts
+      ? "  session: async (request: Request, who: AgentSiteIdentity) => {"
+      : "  session: async (request, who) => {",
+    "    // TODO(agent-web): return { cookies: [...] } or { storageState } for `who`.",
+    "    void request;",
+    "    void who;",
+    '    throw new Error("agent-web: session() is not implemented yet (agent-site.server)");',
+    "  },",
+    "  // This application's sign-in page, returning to `returnTo` afterwards.",
+    "  loginUrl: (returnTo) => `/login?redirectTo=${encodeURIComponent(returnTo)}`,",
+    "});",
+    "",
+  ];
+  return styled(lines.join("\n"), o.style);
+}
+
+/** A React Router resource route for `/agent` and `/agent/*` that answers with the agent site. */
+export function reactRouterAgentRoute(o: {
+  importPath: string;
+  typescript: boolean;
+  style: Style;
+}): string {
+  const ts = o.typescript;
+  const lines = [
+    `// The agent web's pages on this site (/agent and /agent/*), ${MARKER}. See agent-site.server.`,
+    ...(ts ? ['import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";'] : []),
+    `import { agentSite } from "${o.importPath}";`,
+    "",
+    ts
+      ? "export async function loader({ request }: LoaderFunctionArgs) {"
+      : "export async function loader({ request }) {",
+    '  return (await agentSite(request)) ?? new Response("Not found", { status: 404 });',
+    "}",
+    "",
+    ts
+      ? "export async function action({ request }: ActionFunctionArgs) {"
+      : "export async function action({ request }) {",
+    '  return (await agentSite(request)) ?? new Response("Not found", { status: 404 });',
+    "}",
+    "",
+  ];
+  return styled(lines.join("\n"), o.style);
+}
+
+/** A Next.js App Router route for `/agent` and `/agent/*` that answers with the agent site. */
+export function nextAgentRoute(o: {
+  importPath: string;
+  typescript: boolean;
+  style: Style;
+}): string {
+  const lines = [
+    `// The agent web's pages on this site (/agent and /agent/*), ${MARKER}. See agent-site.server.`,
+    `import { agentSite } from "${o.importPath}";`,
+    "",
+    'export const runtime = "nodejs";',
+    'export const dynamic = "force-dynamic";',
+    "",
+    o.typescript
+      ? "const handle = async (request: Request) =>"
+      : "const handle = async (request) =>",
+    '  (await agentSite(request)) ?? new Response("Not found", { status: 404 });',
+    "",
+    "export const GET = handle;",
+    "export const POST = handle;",
+    "",
+  ];
   return styled(lines.join("\n"), o.style);
 }
