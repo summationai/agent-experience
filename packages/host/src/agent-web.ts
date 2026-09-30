@@ -44,6 +44,13 @@ export interface AgentWebOptions {
   sessionIdleMs?: number;
   /** How long a sign-in, approval, or text request waits for the person. Default ten minutes. */
   pendingTtlMs?: number;
+  /**
+   * Experimental, off by default: offer each typeable field a link that takes its value from the
+   * URL, `<link>?text=<value>`, for an agent that can open a URL it composes (a desktop app's
+   * browser can; a server-side web fetch that only opens URLs it has seen cannot). The link acts
+   * once, bound to the page's revision, within the field's maxLength.
+   */
+  textInUrl?: boolean;
   /** Controls listed per page before a "more" link. Default 40. */
   pageSize?: number;
   /** Characters of page content per page before a "more" link. Default 6000. */
@@ -86,6 +93,7 @@ type Link =
   | { kind: "act"; tool: string; args: Record<string, unknown>; label: string; used?: boolean }
   | { kind: "keypad"; field: FieldRef; buffer: string }
   | { kind: "ask-text"; field: FieldRef }
+  | { kind: "type"; field: FieldRef; used?: boolean }
   | { kind: "pending"; pending: string };
 
 interface FieldRef {
@@ -319,6 +327,12 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
     return name && tools.some((t) => t.name === name) ? { tool: name, args: {} } : null;
   };
 
+  /** With textInUrl: ", type it yourself: <link>?text=<value, URL-encoded>". */
+  const typeIt = (s: AgentSession, field: FieldRef, leading = false): string =>
+    options.textInUrl
+      ? `${leading ? " type it yourself" : ", type it yourself"}: ${linkTo(s, { kind: "type", field })}?text=<the value, URL-encoded>${leading ? ", or" : ""}`
+      : "";
+
   const controlLines = (
     s: AgentSession,
     rows: Row[],
@@ -382,11 +396,11 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
           const extra = `${pattern.startsWith("^-") ? "-" : ""}${/\[\.\]|\\\./.test(pattern) ? "." : ""}`;
           if (extra) field.extraKeys = extra;
           lines.push(
-            `- ${md(row.name)}${now}: enter a number ${linkTo(s, { kind: "keypad", field, buffer: "" })}, or ask the person to type it ${linkTo(s, { kind: "ask-text", field })}`,
+            `- ${md(row.name)}${now}: enter a number ${linkTo(s, { kind: "keypad", field, buffer: "" })}${typeIt(s, field)}, or ask the person to type it ${linkTo(s, { kind: "ask-text", field })}`,
           );
         } else {
           lines.push(
-            `- ${md(row.name)}${now}: ask the person to type it ${linkTo(s, { kind: "ask-text", field })}`,
+            `- ${md(row.name)}${now}:${typeIt(s, field, true)} ask the person to type it ${linkTo(s, { kind: "ask-text", field })}`,
           );
         }
       } else if (row.kind === "collection" && row.more && target) {
@@ -711,6 +725,30 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
             return page(keypad(s, link));
           case "ask-text":
             return page(askText(s, link.field));
+          case "type": {
+            const text = url.searchParams.get("text");
+            if (!options.textInUrl || text === null)
+              return page(
+                `This link takes the value in its URL: add ?text=<the value, URL-encoded>.\n\nBack to the page: ${linkTo(s, { kind: "view" })}`,
+                400,
+              );
+            if (link.used)
+              return page(`Already done: ${md(link.field.label)}.\n\n${await view(s)}`);
+            if (link.field.maxLength && text.length > link.field.maxLength)
+              return page(
+                `That is longer than ${md(link.field.label)} takes (${link.field.maxLength} characters). Nothing was set.\n\nBack to the page: ${linkTo(s, { kind: "view" })}`,
+                400,
+              );
+            link.used = true;
+            return page(
+              await act(s, {
+                kind: "act",
+                tool: link.field.tool,
+                args: { ...link.field.args, text },
+                label: `${link.field.label}: ${text}`,
+              }),
+            );
+          }
           case "pending":
             return page(await pendingView(s, link.pending));
         }

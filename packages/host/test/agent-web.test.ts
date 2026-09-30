@@ -254,4 +254,57 @@ describe.skipIf(missing)("agent web: an agent with only web fetch, a person on t
     const r = await web.handle(new Request(`${AGENT}/start`));
     expect(r.headers.get("cache-control")).toContain("no-store");
   }, 90_000);
+
+  it("with textInUrl, an agent that composes URLs types a value itself, once", async () => {
+    const composing = createAgentWeb({
+      publicUrl: AGENT,
+      siteUrl: SITE,
+      appUrl,
+      startPath: "/board?granularity=domain",
+      appName: "Board",
+      siteSecret: SECRET,
+      textInUrl: true,
+    });
+    try {
+      const start = await (await composing.handle(new Request(`${AGENT}/start`))).text();
+      const sid = /agent_session=(\S+)/.exec(start)![1]!;
+      const site = agentSiteHandler({
+        serviceUrl: AGENT,
+        secret: SECRET,
+        identify: () => ({ principal: "dana" }),
+        session: () => ({ cookies: [{ name: "session", value: "dana" }] }),
+        loginUrl: () => "/login",
+        fetch: (input, init) => composing.handle(new Request(String(input), init)),
+      });
+      const signin = `${SITE}/agent/signin?agent_session=${sid}`;
+      const form = await (await site(new Request(signin)))!.text();
+      const nonce = /name="nonce" value="([^"]+)"/.exec(form)![1]!;
+      await site(
+        new Request(signin, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ nonce, decision: "connect" }),
+        }),
+      );
+      const view = /continue: (\S+)/.exec(start)![1]!;
+      const page = await (await composing.handle(new Request(view))).text();
+      const line = page.split("\n").find((l) => l.startsWith("- Greeting (now"))!;
+      expect(line).toContain("type it yourself: ");
+      const template = /type it yourself: (\S+)\?text=/.exec(line)![1]!;
+      // The agent composes the value into the URL.
+      const typed = await (
+        await composing.handle(
+          new Request(`${template}?text=${encodeURIComponent("Hi, from Claude")}`),
+        )
+      ).text();
+      expect(typed).toContain('Greeting (now "Hi, from Claude")');
+      const again = await (await composing.handle(new Request(`${template}?text=twice`))).text();
+      expect(again).toContain("Already done: Greeting");
+      // Without the option, no page offers it.
+      const strict = await (await web.handle(new Request(`${AGENT}/start`))).text();
+      expect(strict).not.toContain("type it yourself");
+    } finally {
+      await composing.close();
+    }
+  }, 90_000);
 });

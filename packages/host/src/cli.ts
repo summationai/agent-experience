@@ -54,6 +54,7 @@ Commands and options:
                     (docs/agent-web.md). The site mounts agentSiteHandler at /agent; set
                     AXE_AGENT_WEB_SECRET to the secret it shares. With --site <origin> (default
                     the app) and --public <origin> (default this service's own), --port (4719).
+                    --text-in-url also offers links that take a typed value as ?text=.
   --webmcp          Experimental, with --stdio: serve the page's own WebMCP tools (SurfaceProvider
                     webMcp, exposeWebMcp, or document.modelContext.registerTool) instead of the
                     relay's. The page needs no relay connection. Chromium 150 or newer.
@@ -107,6 +108,7 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
         stdio: { type: "boolean" },
         webmcp: { type: "boolean" },
         "agent-web": { type: "boolean" },
+        "text-in-url": { type: "boolean" },
         site: { type: "string" },
         public: { type: "string" },
         app: { type: "string" },
@@ -175,6 +177,7 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
       publicUrl: values["public"] as string | undefined,
       port: values["port"] === undefined ? 4719 : Number(values["port"]),
       name: values["name"] as string | undefined,
+      textInUrl: values["text-in-url"] === true,
       headless: values["headed"] !== true,
       stdout: say,
       stderr,
@@ -292,6 +295,7 @@ async function serveAgentWeb(o: {
   publicUrl: string | undefined;
   port: number;
   name: string | undefined;
+  textInUrl: boolean;
   headless: boolean;
   stdout: (l: string) => void;
   stderr: (l: string) => void;
@@ -314,6 +318,7 @@ async function serveAgentWeb(o: {
     ...(o.start ? { startPath: o.start } : {}),
     siteSecret: secret,
     appName: o.name ?? new URL(o.appUrl).hostname,
+    textInUrl: o.textInUrl,
     browser: { headless: o.headless },
     onRequest: (e) =>
       o.stdout(
