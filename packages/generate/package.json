@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-generate",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Derive AXE actions from definitions an application already has: an OpenAPI 3.x document, a table of zod-typed functions, or a tRPC router. Overrides, policy, honesty lints, and provenance.",
   "license": "Apache-2.0",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-surface",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Surface: an application's registry of its own live controls, observed and acted on under one revision, with AXE risk metadata, kinds, and result envelopes.",
   "license": "Apache-2.0",
   "type": "module",

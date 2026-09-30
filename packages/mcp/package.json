@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Derive a Model Context Protocol server from any AXE manifest or server.",
   "license": "Apache-2.0",
   "type": "module",

@@ -2,6 +2,16 @@
 
 All packages version together. Entries are generated from changesets on release; this file also records protocol-level changes by hand.
 
+## 1.1.0
+
+Per-package entries are in each package's CHANGELOG.md. Protocol and contract changes:
+
+- `spec/SURFACE.md` [S-WEB-6]: a host that runs the page for a person (headless) may install an approver before page code, at `INJECTED_APPROVER_GLOBAL`; the WebMCP adapter asks it before the page's own approval UI, and the host asks the person through a channel the agent cannot answer.
+- [S-WEB-7]: the WebMCP adapter's domain granularity, a fixed tool set taking entry ids; [S-WEB-2]: the observe tool filters and pages, and every acting tool states `consequentialHint` both ways.
+- [S-AUTO-7]: controls named for items among their peers (tenants, tables), and filter strips, are low risk; a popup a dialog's trigger opened belongs to that dialog wherever it is rendered; `_` joins a word.
+- [S-AUTO-14]: a listing rendered as buttons, or with a button per row, is read as content, one item per row; `display: contents` is not hidden.
+- `@summationai/axe-relay`'s peer dependency on `@summationai/axe-mcp` is a caret range (`^1.1.0`), so a minor release of the group no longer reads as breaking it.
+
 ## 1.0.0
 
 Initial release of the Body Spray SDK and the `axe/0.1` protocol, published to the summationai organization's GitHub Packages registry.
