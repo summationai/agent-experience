@@ -108,6 +108,11 @@ export interface WebMcpBridgeOptions {
    * person's machine). Return false when it could not be shown.
    */
   showApprovalPage?: (url: string, question: ApprovalQuestion) => boolean | Promise<boolean>;
+  /**
+   * Decide approvals yourself instead of asking in the MCP client or on the loopback page: a
+   * front end with its own channel to the person (the site's own approval page) answers here.
+   */
+  approver?: (question: ApprovalQuestion) => Promise<HostApprovalDecision>;
 }
 
 export interface WebMcpBridge {
@@ -176,6 +181,7 @@ export function createWebMcpBridge(options: WebMcpBridgeOptions): WebMcpBridge {
 
   const approve = async (req: HostApprovalRequest): Promise<HostApprovalDecision> => {
     const question = questionFor(req);
+    if (options.approver) return options.approver(question);
     // A decision made on the approval page, for exactly this control at this revision.
     const decided = pages.take(decisionKey(question));
     if (decided) return { approved: decided.approve, actor: decided.by };

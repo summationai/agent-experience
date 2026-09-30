@@ -25,6 +25,16 @@
         "types": "./dist/cli.d.cts",
         "default": "./dist/cli.cjs"
       }
+    },
+    "./site": {
+      "import": {
+        "types": "./dist/site.d.ts",
+        "default": "./dist/site.js"
+      },
+      "require": {
+        "types": "./dist/site.d.cts",
+        "default": "./dist/site.cjs"
+      }
     }
   },
   "typesVersions": {

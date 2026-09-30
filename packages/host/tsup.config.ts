@@ -2,7 +2,7 @@ import { defineConfig } from "tsup";
 import { base } from "../../tsup.base";
 
 export default defineConfig([
-  base({ index: "src/index.ts", cli: "src/cli.ts" }, { platform: "node" }),
+  base({ index: "src/index.ts", cli: "src/cli.ts", site: "src/site.ts" }, { platform: "node" }),
   base(
     { bin: "src/bin.ts" },
     {
