@@ -118,6 +118,30 @@ describe("read: sections, fields, tables, text [S-AUTO-14]", () => {
     );
   });
 
+  it("reads a list whose rows are buttons holding the item's data (the data page's FileListTable)", () => {
+    const row = (name: string, type: string, when: string) => `<div role="button" tabindex="0">
+      <div><svg aria-hidden="true"></svg><span>${name}</span></div>
+      <div><div>${type}</div><div>${when}</div></div>
+      <div><button aria-label="Open data catalog"></button><button aria-label="Actions">⋯</button></div></div>`;
+    document.body.innerHTML = `<header><h1>Tables</h1><button>Create</button></header>
+      <section aria-label="Tables"><div>
+        ${row("orders", "Data table", "2 hours ago")}
+        ${row("Shopify connection", "Folder", "yesterday")}
+      </div><button>Save</button></section>`;
+    const h = autoSurface();
+    handles.push(h);
+    const r = h.read();
+    const text = formatRead(r);
+    const list = r.sections.flatMap((s) => s.lists ?? []).find((l) => l.items.length === 2);
+    expect(list?.items).toEqual([
+      "orders · Data table · 2 hours ago",
+      "Shopify connection · Folder · yesterday",
+    ]);
+    // A row's own buttons, and a plain control, are observe's, not content.
+    expect(text).not.toContain("Actions");
+    expect(text).not.toContain("Save");
+  });
+
   it("a chart with an accessible name is read by that name", () => {
     document.body.innerHTML = `<h2>Revenue</h2><svg role="img" aria-label="Revenue rose 12% in Q3">${"<path d='M0 0'/>".repeat(20)}</svg>`;
     const h = autoSurface();

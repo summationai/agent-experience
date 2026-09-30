@@ -122,7 +122,9 @@ describe("browser bundle", () => {
   // increase is the two schemas, tool handlers, and diagnostic state. It grew to 50 kB with the
   // adapter's domain granularity and observe paging (about 2 kB gzipped; see the bound above), and
   // to 51 kB with the auto surface's domains in the adapter (navigate) and the derivation's
-  // item-peer rule, which keeps a tenant or a table from reading as an unknown high-risk change.
+  // item-peer rule, which keeps a tenant or a table from reading as an unknown high-risk change,
+  // and to 52 kB with the filter-strip rule and the reader's item rows (a listing rendered as
+  // buttons is read as content).
   it("SurfaceProvider from @summationai/axe-surface/react carries the derivation and nothing server-side", async () => {
     const out = await bundle(
       `import { SurfaceProvider } from "@summationai/axe-surface/react";
@@ -133,6 +135,6 @@ describe("browser bundle", () => {
     console.log(
       `SurfaceProvider: ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(51 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(52 * 1024);
   });
 });

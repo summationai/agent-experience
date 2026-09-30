@@ -22,6 +22,7 @@ import {
   selectorFor,
   textOf,
 } from "./auto-dom";
+import { isItemBlock } from "./auto-risk";
 import type {
   PageRead,
   ReadField,
@@ -271,6 +272,34 @@ export function collectContent(env: ReadEnv): Collected {
     }
     return { label, value };
   };
+
+  /**
+   * A control that holds an item's data (a row of a listing rendered as one button) is content
+   * as well as a control: its own text pieces in order, joined, without its nested controls.
+   */
+  const itemRowText = (row: Element): string => {
+    const parts: string[] = [];
+    const visit = (el: Element) => {
+      for (const n of Array.from(el.childNodes)) {
+        if (n.nodeType === 3) {
+          const t = norm((n as Text).data);
+          if (t && /[\p{L}\p{N}]/u.test(t)) parts.push(t);
+          continue;
+        }
+        if (n.nodeType !== 1) continue;
+        const c = n as Element;
+        if (SKIP_TAGS.has(c.localName) || env.skip(c) || isHidden(c, ctx)) continue;
+        if (c.getAttribute("aria-hidden") === "true") continue;
+        const r = roleOf(c);
+        if (CONTROL_ROLES.has(r) || r === "link" || c.localName === "input") continue;
+        visit(c);
+      }
+    };
+    visit(row);
+    return clampText(parts.join(" · "), 500);
+  };
+  /** The list a run of sibling item rows is gathered into, with the container it came from. */
+  let rowList: { parent: Element | null; work: Work; list: ReadList } | null = null;
 
   const listOf = (el: Element): ReadList | null => {
     const items = Array.from(
@@ -576,7 +605,28 @@ export function collectContent(env: ReadEnv): Collected {
       if (f) here().fields.push(f);
       return;
     }
-    if (CONTROL_ROLES.has(role)) return;
+    if (CONTROL_ROLES.has(role)) {
+      if (!(role === "button" || role === "menuitem" || role === "option") || !isItemBlock(el))
+        return;
+      const t = itemRowText(el);
+      if (!t || !keep(t.length)) return;
+      breakLine();
+      // Rows of one listing share a container, directly or through a wrapper apiece.
+      const parent = el.parentElement;
+      const group = parent && parent.children.length === 1 ? parent.parentElement : parent;
+      const work = here();
+      if (rowList && rowList.work === work && rowList.parent === group) {
+        if (rowList.list.items.length < ROW_CAP) rowList.list.items.push(t);
+        const total = (rowList.list.total ?? rowList.list.items.length - 1) + 1;
+        rowList.list.total = total;
+        rowList.list.truncated = total > rowList.list.items.length;
+      } else {
+        const list: ReadList = { items: [t], total: 1, truncated: false };
+        work.lists.push(list);
+        rowList = { parent: group, work, list };
+      }
+      return;
+    }
     if (role === "progressbar" || role === "meter" || tag === "progress" || tag === "meter") {
       breakLine();
       const now =
