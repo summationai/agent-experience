@@ -178,6 +178,7 @@ type WireApi =
   | "createAgentWeb"
   | "agentSiteHandler"
   | "sessionIdleMs"
+  | "textInUrl"
   | "onEvict"
   | "keyFor"
   | "SqliteIdempotencyStore"
@@ -1202,6 +1203,7 @@ const api: Readonly<{
   syncTimeoutMs: "syncTimeoutMs";
   tabId: "tabId";
   tabRetentionMs: "tabRetentionMs";
+  textInUrl: "textInUrl";
   thaw: "thaw";
   timeoutMs: "timeoutMs";
   toFormSchema: "toFormSchema";
@@ -2208,6 +2210,7 @@ const WIRE: Readonly<{
      syncTimeoutMs: "syncTimeoutMs";
      tabId: "tabId";
      tabRetentionMs: "tabRetentionMs";
+     textInUrl: "textInUrl";
      thaw: "thaw";
      timeoutMs: "timeoutMs";
      toFormSchema: "toFormSchema";

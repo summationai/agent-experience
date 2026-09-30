@@ -494,6 +494,27 @@ Supply your own browser. It must be Chromium started with `--enable-features=Web
 
 `Promise`\<`Browser`\>
 
+<a id="onrequest"></a>
+
+##### onRequest?
+
+```ts
+optional onRequest?: (event) => void;
+```
+
+Called after each request with what it was, without its secrets: the route, the session and
+link ids shortened, the status, and the time taken.
+
+###### Parameters
+
+###### event
+
+`AgentWebRequestEvent`
+
+###### Returns
+
+`void`
+
 <a id="pagesize"></a>
 
 ##### pageSize?
@@ -583,6 +604,19 @@ optional startPath?: string;
 ```
 
 The page a session opens first. Default: the app URL.
+
+<a id="textinurl"></a>
+
+##### textInUrl?
+
+```ts
+optional textInUrl?: boolean;
+```
+
+Experimental, off by default: offer each typeable field a link that takes its value from the
+URL, `<link>?text=<value>`, for an agent that can open a URL it composes (a desktop app's
+browser can; a server-side web fetch that only opens URLs it has seen cannot). The link acts
+once, bound to the page's revision, within the field's maxLength.
 
 ***
 

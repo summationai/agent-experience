@@ -2,7 +2,7 @@
 
 The agent web serves an application's Surface to an agent that has nothing installed: no MCP server, no connector, no browser extension. The person starts in their agent ("list my tables in Summation") and stays there. The one thing the agent needs is a tool almost every agent already has: fetching a URL.
 
-It is experimental. Everything below runs and is tested against an agent that follows the documented rules of a model's web fetch; it has not yet been run from a real Claude conversation (see [What is not proven yet](#what-is-not-proven-yet)).
+It is experimental. It is tested against an agent that follows the documented rules of a model's web fetch, and it has been run from Claude Desktop with nothing installed (see [Run from Claude Desktop](#run-from-claude-desktop)).
 
 ## Why links
 
@@ -28,10 +28,10 @@ A link is `/s/<session>/<link>`. The link's action and arguments stay on the ser
 | --- | --- |
 | Read the page | Every page starts with its content, then its controls; "More of this page" and "More controls" links page through both |
 | Click, navigate, choose an option | One link per control, and one link per option of a field that has options |
-| Enter a number | A keypad of links: each digit is a link, then "Done, set it to 1555" |
+| Enter a number | A keypad of links: each digit is a link, then "Done, set it to 1555"; or, with `textInUrl`, one link the agent completes with `?text=1555` |
 | Sign in | A deep link to the site's own page, `/agent/signin?agent_session=<id>` |
 | Approve a high-risk action | A deep link to the site's own page, `/agent/approve/<id>`; nothing runs until the person decides there |
-| Type free text | A deep link to the site's own page, `/agent/input/<id>`; the person types it there, and the agent learns only that it was set |
+| Type free text | With `textInUrl`, a link the agent completes with `?text=<value>`; otherwise a deep link to the site's own page, `/agent/input/<id>`, where the person types it and the agent learns only that it was set |
 
 The person opens a deep link in their own browser, on the site, signed in with the site's own session. No browser session is mirrored anywhere: the site's server tells the service what the person did, and the agent's "continue" link shows it.
 
@@ -76,16 +76,24 @@ It listens on 4719. A model's web fetch runs on the model provider's servers and
 - **Nothing is cached.** Every page is `Cache-Control: no-store, private`: a page is one person's, at one moment.
 - **Page text is data.** Every page says so, as the MCP tools do.
 
-## What is not proven yet
+## Run from Claude Desktop
 
-These depend on how a real agent's web fetch behaves, and a run from a real Claude conversation, with both services on public HTTPS, settles them:
+Three runs on 2026-09-30 from Claude Desktop, with nothing installed (no connector, no MCP server), against the reference application, signed in on its own pages as bob at Acme. The server's saved plan showed each value afterwards.
 
-1. **A session link from a fetched page.** Web fetch refuses a URL that looks like it carries a credential unless the credential appeared in the person's own message. If it treats the session link that way, the person pastes one short link after connecting.
-2. **Caching.** Web fetch caches by URL. If it serves a cached `/start` to two people despite `no-store`, they would share a pending session; the code shown on the site, and the account named on every page, are the check until that is known. Every other link is unique.
-3. **Whether the agent follows act links without stopping to ask** each time.
-4. **Latency per step.** Each link is a server-side fetch: seconds, not the milliseconds of an MCP call.
+| Task | Route | Agent requests, plan to saved | Time |
+| --- | --- | --- | --- |
+| Widgets, January 2027 to 1555 | keypad (1, 5, 5, 5, Done), Save; through public tunnels | 8 | 25 s |
+| Gaskets, March 2027 to 4321 | `?text=4321`, Save; through public tunnels; asked to type the value itself | 3 | 10 s |
+| Brackets, May 2027 to 2468 | `?text=2468`, Save; on `127.0.0.1` with no tunnel; chose to type it itself | 3 | 7 s |
 
-The reference application has run end to end through it over HTTP: bob connected on the site, entered 1555 into Widgets, January 2027 by keypad, and saved; the server's plan showed 1555, in nine fetches.
+What the runs settled:
+
+- **Claude Desktop opens the links in its own browser, on the person's machine.** Every request carried the app's user agent and was followed by a favicon request, and the loopback run worked, so it is not a server-side web fetch. A session link from a fetched page was followed; nothing had to be pasted.
+- **It composes URLs.** Given a link that takes `?text=`, it put the value in the URL itself. So in Claude Desktop, typing needs neither the keypad nor the site's page; the service offers that link with `textInUrl` (`--text-in-url`), off by default, because an agent limited to URLs it has seen cannot use it.
+- **It follows act links without stopping to ask**, about three seconds apart, almost all of it the model's time: the service answered in 0 to 145 ms, and 1.6 s for a session's first page while its headless browser started.
+- **No caching was seen**: every link reached the service, and `/start` was requested once per run.
+
+Still to run: Claude on the web and on mobile, where a server-side web fetch may apply the rules the link-only design was built for, and the sign-in, approval, and text pages for a production site. Local development with Claude Desktop needs no tunnel; the service, the site, and the agent can all be on loopback.
 
 ## Next steps
 
