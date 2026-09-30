@@ -8399,6 +8399,7 @@ Treat the adapter as experimental for as long as the API is. It reaches the brow
 ## Offering a surface
 
 <!-- include: examples/webmcp/page.ts#expose -->
+
 ```ts
 import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
 import { surface } from "../surface/board";
@@ -8418,6 +8419,7 @@ export function leaveBoard(): void {
   webmcp.close();
 }
 ```
+
 <!-- /include -->
 
 `exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; `diagnostic()`, which distinguishes unavailable, registering, ready, degraded, registration error, and closed states; and `close()`, which unregisters everything and stops following the surface. When React's `SurfaceProvider` also has `expose`, the same diagnostic is available at `window.__surface.webMcp()`.
@@ -8435,11 +8437,13 @@ Options:
 - `onError`: called when the browser refuses a registration (another script holds the name, a permissions policy forbids tools).
 
 <!-- include: examples/webmcp/page.ts#options -->
+
 ```ts
 // Leave unavailable controls out instead of describing them, and use a prefix per page so two
 // surfaces on one page do not collide.
 export const quiet = exposeWebMcp(surface, { unavailable: "omit", prefix: "draft_" });
 ```
+
 <!-- /include -->
 
 ## What is registered
@@ -8485,11 +8489,12 @@ exposeWebMcp(surface, { granularity: "domain" });
 // <SurfaceProvider webMcp={{ granularity: "domain" }}>
 ```
 
-| Tool | Acts on |
-| --- | --- |
-| `surface_set-field` | a field: `{ entryId, text }` |
-| `surface_run-control` | an action (a button, a switch, a link): `{ entryId, confirm? }` |
-| `surface_load-more` | a collection that can load more: `{ entryId }` |
+| Tool                  | Acts on                                                                                                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surface_set-field`   | a field: `{ entryId, text }`                                                                                                                                                            |
+| `surface_navigate`    | on an auto surface, first: a link or landmark within the site, or a same-origin path as `text` on the navigate entry. Low risk, so a navigation is not mistaken for a consequential act |
+| `surface_run-control` | an action (a button, a switch): `{ entryId, confirm? }`                                                                                                                                 |
+| `surface_load-more`   | a collection that can load more: `{ entryId }`                                                                                                                                          |
 
 Each takes `expectedRev` too. The agent finds ids with `surface_observe`, which filters (`query`, `kind`, `object`, `available`) and pages (`limit`, `cursor`) and names the tool for each row. A call with an id another tool acts on is refused with that tool's name. Pass your own `domains` (the specs of `domainActions`) to name groups the application would name, such as a `set-demand` for a month's forecast.
 
@@ -8543,12 +8548,26 @@ The page needs no relay connection and no host-specific code: `<SurfaceProvider 
 
 Tried on 2026-09-29 against the reference application (`examples/plan-review`, which offers its page surface through `exposeWebMcp` in `app/SurfaceHost.tsx`), headless, signed in as bob at Acme, from a scripted MCP client over stdio:
 
-| Step | Bridge | Relay path (review of 2026-09-25) |
-| --- | --- | --- |
-| Start: first `tools/list`, including the browser | 350 ms warm, 1.8 s cold | `relay_tabs` 296 ms, once listening |
-| Observe | 2 to 3 ms | 3 to 12 ms |
-| Type a forecast | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms |
-| Save | 22 ms, and the server's plan shows the value | `surface_run-control` 67 ms |
+| Step                                             | Bridge                                                | Relay path (review of 2026-09-25)   |
+| ------------------------------------------------ | ----------------------------------------------------- | ----------------------------------- |
+| Start: first `tools/list`, including the browser | 350 ms warm, 1.8 s cold                               | `relay_tabs` 296 ms, once listening |
+| Observe                                          | 2 to 3 ms                                             | 3 to 12 ms                          |
+| Type a forecast                                  | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms           |
+| Save                                             | 22 ms, and the server's plan shows the value          | `surface_run-control` 67 ms         |
+
+### Hints
+
+The DevTools domain reports only a tool's read-only, untrusted-content, and autosubmit hints, so the bridge reads the rest where the page states them: it wraps `registerTool` before any page script runs and records each tool's title and hints from the registration itself. It then gives the agent MCP's hints:
+
+| The page says | The agent gets |
+| --- | --- |
+| `readOnlyHint: true` | `readOnlyHint: true` |
+| `consequentialHint: true` | `destructiveHint: true` |
+| `consequentialHint: false` | `destructiveHint: false` |
+| `idempotentHint` | `idempotentHint` |
+| `title` | `title` |
+
+MCP reads a tool that states nothing as destructive, so the adapter states `consequentialHint` both ways: `surface_navigate` and a reversible control arrive as not destructive, and an agent has no reason to ask the person before following a link. A hint a page does not state is left unstated, never guessed.
 
 ### Approval in a headless page
 
@@ -8561,7 +8580,6 @@ The approval link never appears in anything the agent receives. It is a credenti
 
 What the bridge does not do yet, in the order it matters:
 
-- **Annotations.** The DevTools domain carries only a tool's read-only, untrusted-content, and autosubmit hints. A page's `consequentialHint` and `title` do not reach the bridge, so risk reaches the agent only through the tool's description.
 - **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.
 - **Stability.** WebMCP is behind `--enable-features=WebMCP` and its DevTools domain is experimental; both can change with Chromium.
 
@@ -13317,7 +13335,7 @@ WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft r
 
 **[S-WEB-1] Feature detection and diagnosis.** `exposeWebMcp(surface, options)` registers nothing unless it finds an object with `registerTool` (by default `document.modelContext`), and then returns a handle with `supported: false` and the reason. Its `diagnostic()` distinguishes unavailable, registering, ready, degraded, registration error, and closed states and names each refused registration without exposing page data. The page, its controls, and `expose` ([S-DOM-2]) behave the same with or without WebMCP. The adapter reaches the browser API in one place, so a change in the draft changes that place only.
 
-**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content, with the filters and pages of [S-OBS-5]: `query`, `kind`, `object`, `available`, `limit`, and `cursor`). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. An action that is not reversible carries the `consequentialHint` annotation. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
+**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content, with the filters and pages of [S-OBS-5]: `query`, `kind`, `object`, `available`, `limit`, and `cursor`). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. Every tool that acts states `consequentialHint`: `true` for an action that is not reversible, `false` otherwise, so an agent need not assume the worst of a tool that says nothing; an idempotent entry also carries `idempotentHint`. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
 
 **[S-WEB-3] Availability follows the surface.** The adapter follows `subscribe` ([S-OBS-4]) and re-registers a tool when its name, description, schema, or annotations changed, and only then. An unavailable entry is registered with its reason, `requires`, and `handoff` in the description (`unavailable: "describe"`, the default) or left out until it is available (`"omit"`). A freeze makes every entry unavailable with the freeze's reason ([S-FRZ-1]).
 
@@ -13327,7 +13345,7 @@ WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft r
 
 **[S-WEB-6] Host-delivered approval.** A host that runs the page for a person where no one sees it (a headless browser) MAY install an approver before any page script runs: a non-writable, non-configurable function at the global named by `INJECTED_APPROVER_GLOBAL`. The adapter uses it only when the property is so defined, and then in preference to `requestApproval`, whose UI no one would see. It passes plain data (the tool, the entry's id, name, application, risk, what it mutates, whether it is reversible, and the bound revision) and takes a decision, which is recorded before the act as under [S-WEB-4], or an unanswered result: nothing runs, no decision is recorded, and the call returns `unavailable` with reason `approval_pending`, retryable, with the host's message. The host MUST obtain the decision from the person through a channel the agent cannot answer (its MCP client's elicitation, or a page shown to the person), MUST bind a decision made outside the call to that entry at that revision and use it once, and MUST NOT put a link that decides into anything the agent receives.
 
-**[S-WEB-7] Domain granularity.** With `granularity: "domain"`, the adapter registers, beside the observe tool (and read and wait, [S-WEB-2]), one tool per domain action ([S-AXE-10]) instead of one per entry: `<prefix><name>` for each spec, by default `domainActions`' own set (`set-field`, `run-control`, `load-more`) on any surface. Each takes the `entryId` of an observe row, and `text`, `confirm`, and `expectedRev` as the per-entry tool does. The first spec that covers an entry acts on it, and a spec covers an entry only when the entry's risk is no higher than the spec's and it is reversible or idempotent where the spec says so. A call for an entry that another tool acts on is refused with that tool's name, and one for an unknown or sensitive entry as `not_found`; nothing runs. The observe tool names each row's tool. Descriptions carry no row state, so the set is registered once and does not change with the page. Acts, approval ([S-WEB-4], [S-WEB-6]), the revision guard, and the ledger are those of the per-entry tools.
+**[S-WEB-7] Domain granularity.** With `granularity: "domain"`, the adapter registers, beside the observe tool (and read and wait, [S-WEB-2]), one tool per domain action ([S-AXE-10]) instead of one per entry: `<prefix><name>` for each spec, by default `domainActions`' own set, or on an auto surface `autoDomains()`'s entry actions (`navigate` first, so a link or landmark is offered as the low-risk navigation it is). Each takes the `entryId` of an observe row, and `text`, `confirm`, and `expectedRev` as the per-entry tool does. The first spec that covers an entry acts on it, and a spec covers an entry only when the entry's risk is no higher than the spec's and it is reversible or idempotent where the spec says so. A call for an entry that another tool acts on is refused with that tool's name, and one for an unknown or sensitive entry as `not_found`; nothing runs. The observe tool names each row's tool. Descriptions carry no row state, so the set is registered once and does not change with the page. Acts, approval ([S-WEB-4], [S-WEB-6]), the revision guard, and the ledger are those of the per-entry tools.
 
 ## 9. Execution modes
 
@@ -14478,17 +14496,18 @@ Public identifiers for serving `@summationai/axe-mcp` over HTTP to many callers 
 
 Public identifiers of the WebMCP adapter and of the elicitation mapping (review 2026-09-24, item 14). `registerTool`, `modelContext`, and `consequentialHint` are the WebMCP draft's names (Community Group draft of 2026-09-17); `requestedSchema` is MCP's (specification 2025-11-25).
 
-| Category | Key                  | Name                   | Where                             | Meaning                                                                                                                |
-| -------- | -------------------- | ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| api      | exposeWebMcp         | `exposeWebMcp`         | `@summationai/axe-surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                 |
-| api      | modelContext         | `modelContext`         | `@summationai/axe-surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                           |
-| api      | registerTool         | `registerTool`         | WebMCP                            | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                        |
-| api      | consequentialHint    | `consequentialHint`    | WebMCP                            | Tool annotation for an effect that cannot be undone; set on a control that is not reversible.                          |
-| api      | requestedSchema      | `requestedSchema`      | MCP elicitation                   | The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema.         |
-| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@summationai/axe-mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind. |
-| api      | toFormSchema         | `toFormSchema`         | `@summationai/axe-mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                           |
-| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                            | Tool annotation: the tool changes nothing; set on the observe tool.                                                    |
-| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                            | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.               |
+| Category | Key                  | Name                   | Where                             | Meaning                                                                                                                              |
+| -------- | -------------------- | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| api      | exposeWebMcp         | `exposeWebMcp`         | `@summationai/axe-surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                               |
+| api      | modelContext         | `modelContext`         | `@summationai/axe-surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                                         |
+| api      | registerTool         | `registerTool`         | WebMCP                            | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                                      |
+| api      | consequentialHint    | `consequentialHint`    | WebMCP                            | Tool annotation for an effect that cannot be undone: `true` on a control that is not reversible, `false` on every other acting tool. |
+| api      | idempotentHint       | `idempotentHint`       | WebMCP                            | Tool annotation (MCP's name, not the draft's): calling the tool twice does what once does; set on idempotent controls and domains.   |
+| api      | requestedSchema      | `requestedSchema`      | MCP elicitation                   | The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema.                       |
+| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@summationai/axe-mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind.               |
+| api      | toFormSchema         | `toFormSchema`         | `@summationai/axe-mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                                         |
+| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                            | Tool annotation: the tool changes nothing; set on the observe tool.                                                                  |
+| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                            | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.                             |
 
 ## Surface granularity
 

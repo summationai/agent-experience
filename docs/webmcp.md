@@ -17,6 +17,7 @@ Treat the adapter as experimental for as long as the API is. It reaches the brow
 ## Offering a surface
 
 <!-- include: examples/webmcp/page.ts#expose -->
+
 ```ts
 import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
 import { surface } from "../surface/board";
@@ -36,6 +37,7 @@ export function leaveBoard(): void {
   webmcp.close();
 }
 ```
+
 <!-- /include -->
 
 `exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; `diagnostic()`, which distinguishes unavailable, registering, ready, degraded, registration error, and closed states; and `close()`, which unregisters everything and stops following the surface. When React's `SurfaceProvider` also has `expose`, the same diagnostic is available at `window.__surface.webMcp()`.
@@ -53,11 +55,13 @@ Options:
 - `onError`: called when the browser refuses a registration (another script holds the name, a permissions policy forbids tools).
 
 <!-- include: examples/webmcp/page.ts#options -->
+
 ```ts
 // Leave unavailable controls out instead of describing them, and use a prefix per page so two
 // surfaces on one page do not collide.
 export const quiet = exposeWebMcp(surface, { unavailable: "omit", prefix: "draft_" });
 ```
+
 <!-- /include -->
 
 ## What is registered
@@ -103,11 +107,12 @@ exposeWebMcp(surface, { granularity: "domain" });
 // <SurfaceProvider webMcp={{ granularity: "domain" }}>
 ```
 
-| Tool | Acts on |
-| --- | --- |
-| `surface_set-field` | a field: `{ entryId, text }` |
-| `surface_run-control` | an action (a button, a switch, a link): `{ entryId, confirm? }` |
-| `surface_load-more` | a collection that can load more: `{ entryId }` |
+| Tool                  | Acts on                                                                                                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surface_set-field`   | a field: `{ entryId, text }`                                                                                                                                                            |
+| `surface_navigate`    | on an auto surface, first: a link or landmark within the site, or a same-origin path as `text` on the navigate entry. Low risk, so a navigation is not mistaken for a consequential act |
+| `surface_run-control` | an action (a button, a switch): `{ entryId, confirm? }`                                                                                                                                 |
+| `surface_load-more`   | a collection that can load more: `{ entryId }`                                                                                                                                          |
 
 Each takes `expectedRev` too. The agent finds ids with `surface_observe`, which filters (`query`, `kind`, `object`, `available`) and pages (`limit`, `cursor`) and names the tool for each row. A call with an id another tool acts on is refused with that tool's name. Pass your own `domains` (the specs of `domainActions`) to name groups the application would name, such as a `set-demand` for a month's forecast.
 
@@ -161,12 +166,26 @@ The page needs no relay connection and no host-specific code: `<SurfaceProvider 
 
 Tried on 2026-09-29 against the reference application (`examples/plan-review`, which offers its page surface through `exposeWebMcp` in `app/SurfaceHost.tsx`), headless, signed in as bob at Acme, from a scripted MCP client over stdio:
 
-| Step | Bridge | Relay path (review of 2026-09-25) |
-| --- | --- | --- |
-| Start: first `tools/list`, including the browser | 350 ms warm, 1.8 s cold | `relay_tabs` 296 ms, once listening |
-| Observe | 2 to 3 ms | 3 to 12 ms |
-| Type a forecast | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms |
-| Save | 22 ms, and the server's plan shows the value | `surface_run-control` 67 ms |
+| Step                                             | Bridge                                                | Relay path (review of 2026-09-25)   |
+| ------------------------------------------------ | ----------------------------------------------------- | ----------------------------------- |
+| Start: first `tools/list`, including the browser | 350 ms warm, 1.8 s cold                               | `relay_tabs` 296 ms, once listening |
+| Observe                                          | 2 to 3 ms                                             | 3 to 12 ms                          |
+| Type a forecast                                  | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms           |
+| Save                                             | 22 ms, and the server's plan shows the value          | `surface_run-control` 67 ms         |
+
+### Hints
+
+The DevTools domain reports only a tool's read-only, untrusted-content, and autosubmit hints, so the bridge reads the rest where the page states them: it wraps `registerTool` before any page script runs and records each tool's title and hints from the registration itself. It then gives the agent MCP's hints:
+
+| The page says | The agent gets |
+| --- | --- |
+| `readOnlyHint: true` | `readOnlyHint: true` |
+| `consequentialHint: true` | `destructiveHint: true` |
+| `consequentialHint: false` | `destructiveHint: false` |
+| `idempotentHint` | `idempotentHint` |
+| `title` | `title` |
+
+MCP reads a tool that states nothing as destructive, so the adapter states `consequentialHint` both ways: `surface_navigate` and a reversible control arrive as not destructive, and an agent has no reason to ask the person before following a link. A hint a page does not state is left unstated, never guessed.
 
 ### Approval in a headless page
 
@@ -179,7 +198,6 @@ The approval link never appears in anything the agent receives. It is a credenti
 
 What the bridge does not do yet, in the order it matters:
 
-- **Annotations.** The DevTools domain carries only a tool's read-only, untrusted-content, and autosubmit hints. A page's `consequentialHint` and `title` do not reach the bridge, so risk reaches the agent only through the tool's description.
 - **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.
 - **Stability.** WebMCP is behind `--enable-features=WebMCP` and its DevTools domain is experimental; both can change with Chromium.
 

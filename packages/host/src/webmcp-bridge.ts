@@ -37,6 +37,20 @@ export type AskPerson = (question: ApprovalQuestion) => Promise<"approve" | "den
 
 /** The page-side name of the bridge's approval binding (the approver global calls it). */
 const APPROVE_BINDING = "__axeWebMcpApprove";
+/** The page-side name of the binding through which the page's registerTool reports a tool's hints. */
+const HINTS_BINDING = "__axeWebMcpToolHints";
+
+/**
+ * What the page gave `registerTool` beyond what the WebMCP domain reports: the title and every
+ * hint. The domain carries only read-only, untrusted-content, and autosubmit, so the bridge reads
+ * the rest in the page, from the registration itself.
+ */
+export interface PageToolHints {
+  title?: string;
+  readOnlyHint?: boolean;
+  consequentialHint?: boolean;
+  idempotentHint?: boolean;
+}
 
 /**
  * A tool the page registered, as the WebMCP domain reports it. The domain carries `readOnly`,
@@ -49,6 +63,8 @@ export interface BridgedTool {
   inputSchema?: Record<string, unknown>;
   annotations?: { readOnly?: boolean; untrustedContent?: boolean; autosubmit?: boolean };
   frameId: string;
+  /** The page's own title and hints for this tool, when its registration reported them. */
+  hints?: PageToolHints;
 }
 
 /** What the page's `execute` answered, as the WebMCP domain reports it. */
@@ -238,7 +254,12 @@ export function createWebMcpBridge(options: WebMcpBridgeOptions): WebMcpBridge {
     }
   };
 
-  const mainTools = (): BridgedTool[] => [...(byFrame.get(mainFrameId)?.values() ?? [])];
+  const pageHints = new Map<string, PageToolHints>();
+  const mainTools = (): BridgedTool[] =>
+    [...(byFrame.get(mainFrameId)?.values() ?? [])].map((t) => {
+      const hints = pageHints.get(t.name);
+      return hints ? { ...t, hints } : t;
+    });
 
   const dropFrame = (frameId: string) => {
     if (byFrame.delete(frameId)) changed();
@@ -290,9 +311,36 @@ export function createWebMcpBridge(options: WebMcpBridgeOptions): WebMcpBridge {
         return { unanswered: { message: "Approvals are only for the application's own pages." } };
       return approve(req);
     });
+    // The page's own registrations, for the hints the WebMCP domain drops. Only the main frame's
+    // count, and a later registration of a name replaces an earlier one's.
+    await context.exposeBinding(HINTS_BINDING, (source, raw: unknown) => {
+      if (source.frame !== page?.mainFrame() || originOf(source.frame.url()) !== appOrigin) return;
+      const r = (raw ?? {}) as Record<string, unknown>;
+      if (typeof r["name"] !== "string") return;
+      const a = (r["annotations"] ?? {}) as Record<string, unknown>;
+      const hints: PageToolHints = {};
+      if (typeof r["title"] === "string" && r["title"]) hints.title = r["title"].slice(0, 200);
+      for (const k of ["readOnlyHint", "consequentialHint", "idempotentHint"] as const)
+        if (typeof a[k] === "boolean") hints[k] = a[k] as boolean;
+      pageHints.set(r["name"], hints);
+      changed();
+    });
     await context.addInitScript({
       content: `(() => {
   if (location.origin !== ${JSON.stringify(appOrigin)}) return;
+  const proto = typeof ModelContext === "function" ? ModelContext.prototype : null;
+  const register = proto && proto.registerTool;
+  const report = window[${JSON.stringify(HINTS_BINDING)}];
+  if (register && report)
+    Object.defineProperty(proto, "registerTool", {
+      value: function (tool, options) {
+        try {
+          report({ name: tool && tool.name, title: tool && tool.title, annotations: tool && tool.annotations });
+        } catch {}
+        return register.call(this, tool, options);
+      },
+      writable: true, configurable: true,
+    });
   const ask = window[${JSON.stringify(APPROVE_BINDING)}];
   Object.defineProperty(window, ${JSON.stringify(INJECTED_APPROVER_GLOBAL)}, {
     value: (request) => ask(request), writable: false, configurable: false, enumerable: false,
@@ -407,6 +455,11 @@ export function createWebMcpBridge(options: WebMcpBridgeOptions): WebMcpBridge {
       const until = Date.now() + toolsTimeout;
       while (mainTools().length === 0 && Date.now() < until)
         await new Promise((r) => setTimeout(r, 50));
+      // A registration's hints come through a binding, just behind the WebMCP domain's report of
+      // the tool: wait a moment for them rather than list a tool without its hints.
+      const hintsBy = Date.now() + 250;
+      while (mainTools().some((t) => !t.hints) && Date.now() < hintsBy)
+        await new Promise((r) => setTimeout(r, 10));
       return mainTools();
     },
 
@@ -435,17 +488,27 @@ export function createWebMcpBridge(options: WebMcpBridgeOptions): WebMcpBridge {
   };
 }
 
-/** MCP's reading of a WebMCP tool: the same name, description, schema, and hints. */
+/**
+ * MCP's reading of a WebMCP tool: the same name, description, and schema, and the page's hints in
+ * MCP's words. MCP assumes a tool that states nothing is destructive, so a page's
+ * `consequentialHint: false` is carried as `destructiveHint: false`, and a hint the page did not
+ * state is left unstated rather than guessed.
+ */
 export function toMcpTool(t: BridgedTool): Tool {
-  const hints = t.annotations ?? {};
+  const page = t.hints ?? {};
+  const readOnly = t.annotations?.readOnly === true || page.readOnlyHint === true;
   return {
     name: t.name,
+    ...(page.title ? { title: page.title } : {}),
     ...(t.description ? { description: t.description } : {}),
     inputSchema: (t.inputSchema as unknown as Tool["inputSchema"]) ?? { type: "object" },
     annotations: {
-      readOnlyHint: hints.readOnly === true,
-      // The page's content is the application's data, not instructions to the agent.
-      ...(hints.untrustedContent ? { openWorldHint: true } : {}),
+      ...(page.title ? { title: page.title } : {}),
+      readOnlyHint: readOnly,
+      ...(!readOnly && page.consequentialHint !== undefined
+        ? { destructiveHint: page.consequentialHint }
+        : {}),
+      ...(page.idempotentHint !== undefined ? { idempotentHint: page.idempotentHint } : {}),
     },
   };
 }

@@ -32,7 +32,7 @@ ${
   second
     ? `mc.registerTool({ name: "second_only", description: "Only on the second page.",
   inputSchema: { type: "object", properties: {} }, execute: async () => ({ content: [{ type: "text", text: "second" }] }) });`
-    : `mc.registerTool({ name: "add", description: "Add to the counter.", annotations: { readOnlyHint: false },
+    : `mc.registerTool({ name: "add", title: "Add to the counter", description: "Add to the counter.", annotations: { readOnlyHint: false, consequentialHint: false, idempotentHint: false },
   inputSchema: { type: "object", properties: { by: { type: "number" } }, required: ["by"] },
   execute: async ({ by }) => { const n = document.getElementById("n"); n.textContent = String(Number(n.textContent) + by);
     return { content: [{ type: "text", text: "now " + n.textContent }], structuredContent: { n: Number(n.textContent) } }; } });
@@ -161,7 +161,16 @@ describe.skipIf(missing)("WebMCP bridge: hand-written tools", () => {
       const add = tools.find((t) => t.name === "add")!;
       expect(add.inputSchema).toMatchObject({ required: ["by"] });
       expect(tools.find((t) => t.name === "count")!.annotations?.readOnlyHint).toBe(true);
-      expect(add.annotations?.readOnlyHint).toBe(false);
+      // The page's own hints and title, which the WebMCP domain does not carry, in MCP's words.
+      expect(add.title).toBe("Add to the counter");
+      expect(add.annotations).toEqual({
+        title: "Add to the counter",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+      });
+      // A tool that states nothing is left unstated, not declared safe.
+      expect(tools.find((t) => t.name === "leave")!.annotations).toEqual({ readOnlyHint: false });
 
       const r = await mcp.call("add", { by: 5 });
       expect(r.isError).toBeFalsy();
@@ -389,8 +398,20 @@ describe.skipIf(missing)("WebMCP bridge: a Surface with domain tools", () => {
     try {
       const mcp = await connect(bridge, () => ({ action: "accept", content: { approve: true } }));
       const names = await mcp.names();
+      const hints = Object.fromEntries(
+        (await mcp.client.listTools()).tools.map((t) => [t.name, t.annotations]),
+      );
+      // A navigation reaches the agent as what it is: not destructive.
+      expect(hints["surface_navigate"]).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: false,
+      });
+      expect(hints["surface_run-control"]).toMatchObject({ destructiveHint: true });
+      expect(hints["surface_set-field"]).toMatchObject({ idempotentHint: true });
+      expect(hints["surface_observe"]).toMatchObject({ readOnlyHint: true });
       expect(names).toEqual([
         "surface_load-more",
+        "surface_navigate",
         "surface_observe",
         "surface_read",
         "surface_run-control",
