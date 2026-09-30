@@ -50,6 +50,10 @@ Commands and options:
   --stdio           Serve MCP on stdio (for an agent that starts the host itself).
   --port <n>        HTTP port for /mcp and the watch page. Default ${DEFAULT_HOST_PORT} (with --stdio: any free port).
   --name <n>        The MCP server's name in the printed agent configuration. Default "app".
+  --agent-web       Experimental: serve the app to agents with nothing installed, as pages of links
+                    (docs/agent-web.md). The site mounts agentSiteHandler at /agent; set
+                    AXE_AGENT_WEB_SECRET to the secret it shares. With --site <origin> (default
+                    the app) and --public <origin> (default this service's own), --port (4719).
   --webmcp          Experimental, with --stdio: serve the page's own WebMCP tools (SurfaceProvider
                     webMcp, exposeWebMcp, or document.modelContext.registerTool) instead of the
                     relay's. The page needs no relay connection. Chromium 150 or newer.
@@ -102,6 +106,9 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
         dev: { type: "boolean" },
         stdio: { type: "boolean" },
         webmcp: { type: "boolean" },
+        "agent-web": { type: "boolean" },
+        site: { type: "string" },
+        public: { type: "string" },
         app: { type: "string" },
         start: { type: "string" },
         state: { type: "string" },
@@ -160,6 +167,20 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
   }
   const start = values["start"] as string | undefined;
   const hasState = existsSync(statePath);
+  if (values["agent-web"] === true) {
+    return serveAgentWeb({
+      appUrl,
+      start,
+      site: (values["site"] as string | undefined) ?? new URL(appUrl).origin,
+      publicUrl: values["public"] as string | undefined,
+      port: values["port"] === undefined ? 4719 : Number(values["port"]),
+      name: values["name"] as string | undefined,
+      headless: values["headed"] !== true,
+      stdout: say,
+      stderr,
+      until: io.until,
+    });
+  }
   if (values["webmcp"] === true) {
     if (!stdio) {
       stderr("axe host: --webmcp serves MCP on stdio only for now; add --stdio.");
@@ -260,6 +281,68 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
   process.off("SIGINT", onSignal);
   process.off("SIGTERM", onSignal);
   await host.close();
+  return 0;
+}
+
+/** `axe host --dev --agent-web`: the app as pages of links for agents with only web fetch. */
+async function serveAgentWeb(o: {
+  appUrl: string;
+  start: string | undefined;
+  site: string;
+  publicUrl: string | undefined;
+  port: number;
+  name: string | undefined;
+  headless: boolean;
+  stdout: (l: string) => void;
+  stderr: (l: string) => void;
+  until: Promise<void> | undefined;
+}): Promise<number> {
+  const { createAgentWeb } = await import("./agent-web");
+  const { randomBytes } = await import("node:crypto");
+  let secret = process.env["AXE_AGENT_WEB_SECRET"] ?? "";
+  const generated = !secret;
+  if (generated) secret = randomBytes(32).toString("base64url");
+  if (secret.length < 32) {
+    o.stderr("axe host: AXE_AGENT_WEB_SECRET must be at least 32 characters.");
+    return 1;
+  }
+  const publicUrl = o.publicUrl ?? `http://127.0.0.1:${o.port}`;
+  const web = createAgentWeb({
+    publicUrl,
+    siteUrl: o.site,
+    appUrl: o.appUrl,
+    ...(o.start ? { startPath: o.start } : {}),
+    siteSecret: secret,
+    appName: o.name ?? new URL(o.appUrl).hostname,
+    browser: { headless: o.headless },
+  });
+  let address: { url: string; port: number };
+  try {
+    address = await web.listen({ host: "127.0.0.1", port: o.port });
+  } catch (e) {
+    o.stderr(`axe host: ${e instanceof Error ? e.message : String(e)}`);
+    return 1;
+  }
+  o.stdout(`axe host: agent web for ${o.appUrl} on ${address.url} (experimental, development)`);
+  o.stdout(`  agents start at: ${publicUrl}/start`);
+  o.stdout(
+    `  the site's agent pages: ${o.site}/agent/...  (agentSiteHandler, serviceUrl ${address.url})`,
+  );
+  if (generated)
+    o.stdout(`  AXE_AGENT_WEB_SECRET=${secret}   (generated; give the site the same value)`);
+  if (!o.publicUrl)
+    o.stdout(
+      "  An agent's web fetch runs on its provider's servers and cannot reach loopback: expose this port on public HTTPS and pass --public <that origin>.",
+    );
+  let stopped: () => void = () => undefined;
+  const done = new Promise<void>((resolve) => (stopped = resolve));
+  const onSignal = () => stopped();
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  await Promise.race([done, ...(o.until ? [o.until] : [])]);
+  process.off("SIGINT", onSignal);
+  process.off("SIGTERM", onSignal);
+  await web.close();
   return 0;
 }
 

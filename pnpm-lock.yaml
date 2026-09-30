@@ -148,6 +148,9 @@ importers:
       '@summationai/axe-core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@summationai/axe-host':
+        specifier: workspace:*
+        version: link:../../packages/host
       '@summationai/axe-next':
         specifier: workspace:*
         version: link:../../packages/next
