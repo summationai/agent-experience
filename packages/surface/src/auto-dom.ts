@@ -1496,12 +1496,15 @@ export class ActWatch {
       return;
     // The application's own agent UI and the relay's indicator never speak to the agent.
     if (host.closest("[data-surface-ignore], [data-axe-relay-indicator]")) return;
+    // Script, style, and template text is never shown to the person: a router's inline
+    // <script> (window.ENV, keys and all) is source, not a message.
+    if (host.closest("script, style, template, noscript, head")) return;
     const region = host.closest(
       '[role="alert"], [role="status"], [role="log"], [aria-live]:not([aria-live="off"]), [data-sonner-toast], [class*="toast" i], [class*="snackbar" i], [class*="notification" i], [class*="notistack" i]',
     );
     const notice = region ?? (topLevel(host) ? host : null);
     if (!notice) return;
-    const text = clampText(norm(node.textContent), 200);
+    const text = clampText(norm(shownText(node)), 200);
     if (!text || !/[\p{L}\p{N}]/u.test(text) || this.texts.includes(text)) return;
     // A live region or toast is a message even when it repeats ("Saved" again). The top-level
     // heuristic is not: only text that was not on the page before the act counts.
@@ -1523,6 +1526,20 @@ export class ActWatch {
     );
     return out.slice(0, 5);
   }
+}
+
+/** A node's text as a person could see it: never what script, style, or template elements hold. */
+function shownText(node: Node): string {
+  if (node.nodeType === 3) return (node as Text).data;
+  if (node.nodeType !== 1) return "";
+  const el = node as Element;
+  if (SKIP_TEXT.has(el.localName) || el.getAttribute("aria-hidden") === "true") return "";
+  let out = "";
+  for (const c of Array.from(el.childNodes)) {
+    out += shownText(c);
+    if (out.length > 4000) break;
+  }
+  return out;
 }
 
 function topLevel(el: Element): boolean {
