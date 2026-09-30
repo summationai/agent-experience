@@ -177,6 +177,7 @@ type WireApi =
   | "idleMs"
   | "createAgentWeb"
   | "agentSiteHandler"
+  | "agentUrl"
   | "sessionIdleMs"
   | "textInUrl"
   | "onEvict"
@@ -967,6 +968,7 @@ const api: Readonly<{
   addProvider: "addProvider";
   agentAuth: "agentAuth";
   agentSiteHandler: "agentSiteHandler";
+  agentUrl: "agentUrl";
   allowCredentials: "allowCredentials";
   allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
@@ -1974,6 +1976,7 @@ const WIRE: Readonly<{
      addProvider: "addProvider";
      agentAuth: "agentAuth";
      agentSiteHandler: "agentSiteHandler";
+     agentUrl: "agentUrl";
      allowCredentials: "allowCredentials";
      allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";

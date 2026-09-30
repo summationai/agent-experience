@@ -23,7 +23,10 @@ import { createWebMcpBridge, toMcpResult } from "./webmcp-bridge";
 import type { BridgedTool, WebMcpBridge, WebMcpBridgeOptions } from "./webmcp-bridge";
 import { decisionKey } from "./webmcp-approval";
 import type { ApprovalQuestion } from "./webmcp-approval";
+import type { AgentSessionInfo, BindRequest, PendingInfo } from "@summationai/axe-core/agent-site";
 import type { SessionCookie, StorageState } from "./session";
+
+export type { AgentSessionInfo, BindRequest, PendingInfo } from "@summationai/axe-core/agent-site";
 
 export interface AgentWebOptions {
   /** This service's public origin, as agents reach it (links are absolute). */
@@ -134,27 +137,6 @@ interface AgentSession {
   asked?: string | undefined;
   notes: string[];
   lastUsed: number;
-}
-
-/** A value an agent passes around; the site API answers with these. */
-export interface AgentSessionInfo {
-  id: string;
-  code: string;
-  state: "pending" | "bound";
-  appName: string;
-  principal?: string;
-}
-
-export interface PendingInfo {
-  id: string;
-  kind: "approval" | "text";
-  state: "open" | "done";
-  principal: string | null;
-  appName: string;
-  /** An approval: the question, as the person reads it. */
-  question?: { name: string; message: string; summary: string };
-  /** A text request: the field it fills. */
-  field?: { label: string; maxLength: number | null };
 }
 
 const HEADERS = {
@@ -809,16 +791,6 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
       server = null;
     },
   };
-}
-
-/** What the site's server sends when the person connects a session. */
-export interface BindRequest {
-  principal: string;
-  tenant?: string;
-  displayName?: string;
-  /** The application session for the headless page: cookies, or a whole storage state. */
-  cookies?: SessionCookie[];
-  storageState?: StorageState;
 }
 
 function isNumeric(schema: Record<string, unknown>): boolean {

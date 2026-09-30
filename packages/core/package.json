@@ -108,6 +108,16 @@
         "types": "./dist/node.d.cts",
         "default": "./dist/node.cjs"
       }
+    },
+    "./agent-site": {
+      "import": {
+        "types": "./dist/agent-site.d.ts",
+        "default": "./dist/agent-site.js"
+      },
+      "require": {
+        "types": "./dist/agent-site.d.cts",
+        "default": "./dist/agent-site.cjs"
+      }
     }
   },
   "files": [

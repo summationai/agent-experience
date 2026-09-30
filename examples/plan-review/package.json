@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@summationai/axe-core": "workspace:*",
-    "@summationai/axe-host": "workspace:*",
     "@summationai/axe-next": "workspace:*",
     "@summationai/axe-surface": "workspace:*",
     "next": "16.3.6",

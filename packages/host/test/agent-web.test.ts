@@ -9,7 +9,7 @@ import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { createAgentWeb } from "../src/agent-web";
 import type { AgentWeb } from "../src/agent-web";
-import { agentSiteHandler } from "../src/agent-site";
+import { agentSiteHandler } from "@summationai/axe-core/agent-site";
 import { chromiumMissing } from "./helpers";
 
 const missing = await chromiumMissing();
@@ -250,6 +250,17 @@ describe.skipIf(missing)("agent web: an agent with only web fetch, a person on t
     const add = agent.link(page, "Add one:");
     await agent.get(add);
     expect(await agent.get(add)).toContain("Already done: Add one");
+    // `/agent` on the site is where an agent that found the site starts: on to the agent web.
+    const entry = await agentSiteHandler({
+      serviceUrl: "http://127.0.0.1:4719",
+      agentUrl: AGENT,
+      secret: SECRET,
+      identify: () => null,
+      session: () => ({}),
+      loginUrl: () => "/login",
+    })(new Request(`${SITE}/agent`));
+    expect(entry!.status).toBe(303);
+    expect(entry!.headers.get("location")).toBe(`${AGENT}/start`);
     // Every page forbids caching: it is one person's, at one moment.
     const r = await web.handle(new Request(`${AGENT}/start`));
     expect(r.headers.get("cache-control")).toContain("no-store");

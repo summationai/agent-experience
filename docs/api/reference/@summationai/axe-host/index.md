@@ -286,7 +286,7 @@ Error.prepareStackTrace
 
 ### AgentSessionInfo
 
-A value an agent passes around; the site API answers with these.
+An agent session, as the site API describes it to the site.
 
 #### Properties
 
@@ -684,7 +684,7 @@ What the site's server sends when the person connects a session.
 ##### cookies?
 
 ```ts
-optional cookies?: SessionCookie[];
+optional cookies?: AgentSiteCookie[];
 ```
 
 The application session for the headless page: cookies, or a whole storage state.
@@ -710,7 +710,7 @@ principal: string;
 ##### storageState?
 
 ```ts
-optional storageState?: StorageState;
+optional storageState?: AgentSiteStorageState;
 ```
 
 <a id="tenant"></a>
@@ -1692,6 +1692,8 @@ The relay's tab endpoint.
 <a id="pendinginfo"></a>
 
 ### PendingInfo
+
+A pending approval or text request, as the site API describes it to the site.
 
 #### Properties
 

@@ -13,5 +13,6 @@ export default defineConfig(
     types: "src/types.ts",
     "json-schema": "src/json-schema.ts",
     node: "src/node.ts",
+    "agent-site": "src/agent-site.ts",
   }),
 );

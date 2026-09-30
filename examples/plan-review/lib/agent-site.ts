@@ -1,7 +1,7 @@
 // The site's side of the agent web (docs/agent-web.md): the pages a person opens from an agent's
 // deep link, signed in with this app's own session. The agent's headless page gets a session of
 // its own, minted here, never the person's browser cookie.
-import { agentSiteHandler } from "@summationai/axe-host/site";
+import { agentSiteHandler } from "@summationai/axe-core/agent-site";
 import { SESSION_COOKIE, readCookie } from "./axe";
 import { store } from "./store";
 

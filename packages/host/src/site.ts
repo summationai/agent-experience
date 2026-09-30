@@ -1,7 +1,7 @@
 /**
- * @summationai/axe-host/site: the site's side of the agent web, for the site's own server. It has no
- * browser dependency: the pages a person opens from an agent's deep link (connect a session,
- * approve an action, type a value) and the calls that report the outcome to the service.
+ * @summationai/axe-host/site: the site's side of the agent web. It lives in
+ * `@summationai/axe-core/agent-site`, which an application's server installs without the host's
+ * browser dependencies; this entry re-exports it.
  */
-export { agentSiteHandler } from "./agent-site";
-export type { AgentSiteIdentity, AgentSiteOptions } from "./agent-site";
+export { agentSiteHandler } from "@summationai/axe-core/agent-site";
+export type { AgentSiteIdentity, AgentSiteOptions } from "@summationai/axe-core/agent-site";

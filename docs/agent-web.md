@@ -43,10 +43,10 @@ The person opens a deep link in their own browser, on the site, signed in with t
 
 ## Adding it to a site
 
-The site's side is `agentSiteHandler` from `@summationai/axe-host/site`, a Web `Request` handler with no browser dependency, mounted at `/agent/*`. In Next.js (the reference application's `lib/agent-site.ts` and `app/agent/[...path]/route.ts`):
+The site's side is `agentSiteHandler` from `@summationai/axe-core/agent-site`, a Web `Request` handler for the site's own server (Node, nothing else installed), mounted at `/agent` and `/agent/*`. `GET /agent` is where an agent that found the site starts: it sends it on to the agent web's `/start` (`agentUrl`, the agent web's public origin). In Next.js (the reference application's `lib/agent-site.ts` and `app/agent/[...path]/route.ts`):
 
 ```ts
-import { agentSiteHandler } from "@summationai/axe-host/site";
+import { agentSiteHandler } from "@summationai/axe-core/agent-site";
 
 export const agentSite = agentSiteHandler({
   serviceUrl: process.env.AXE_AGENT_WEB_URL!, // the agent web service

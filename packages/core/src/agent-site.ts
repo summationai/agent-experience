@@ -1,10 +1,13 @@
 /**
- * The site's side of the agent web: the pages a person opens from an agent's deep link, on the
- * site's own origin, signed in with the site's own session. Mount it at `/agent/*`:
+ * @summationai/axe-core/agent-site: the site's side of the agent web, for the site's own server
+ * (Node; it signs forms with node:crypto). The pages a person opens from an agent's deep link, on
+ * the site's own origin, signed in with the site's own session. Mount it at `/agent` and
+ * `/agent/*`:
  *
  *   const agent = agentSiteHandler({ serviceUrl, secret, identify, session, loginUrl });
  *   // in a route handler: return (await agent(request)) ?? next();
  *
+ * - `/agent`: where an agent that found the site starts; sent on to the agent web's `/start`.
  * - `/agent/signin?agent_session=<id>`: connect this agent session to the signed-in person (the
  *   page shows the code the agent showed; the person confirms it matches).
  * - `/agent/approve/<id>`: the exact high-risk action the agent asked for; Approve or Decline.
@@ -14,8 +17,58 @@
  * to the agent web service over its site API, authenticated with the same secret.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { SessionCookie, StorageState } from "./session";
-import type { AgentSessionInfo, BindRequest, PendingInfo } from "./agent-web";
+
+/** A cookie for the agent's headless page (Playwright's cookie shape). */
+export interface AgentSiteCookie {
+  name: string;
+  value: string;
+  url?: string;
+  domain?: string;
+  path?: string;
+  /** Seconds since the epoch; omit for a session cookie. */
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+}
+
+/** A whole browser storage state for the agent's headless page (Playwright's shape). */
+export interface AgentSiteStorageState {
+  cookies: Array<Required<Omit<AgentSiteCookie, "url">>>;
+  origins: Array<{ origin: string; localStorage: Array<{ name: string; value: string }> }>;
+}
+
+/** What the site's server sends when the person connects a session. */
+export interface BindRequest {
+  principal: string;
+  tenant?: string;
+  displayName?: string;
+  /** The application session for the headless page: cookies, or a whole storage state. */
+  cookies?: AgentSiteCookie[];
+  storageState?: AgentSiteStorageState;
+}
+
+/** An agent session, as the site API describes it to the site. */
+export interface AgentSessionInfo {
+  id: string;
+  code: string;
+  state: "pending" | "bound";
+  appName: string;
+  principal?: string;
+}
+
+/** A pending approval or text request, as the site API describes it to the site. */
+export interface PendingInfo {
+  id: string;
+  kind: "approval" | "text";
+  state: "open" | "done";
+  principal: string | null;
+  appName: string;
+  /** An approval: the question, as the person reads it. */
+  question?: { name: string; message: string; summary: string };
+  /** A text request: the field it fills. */
+  field?: { label: string; maxLength: number | null };
+}
 
 export interface AgentSiteIdentity {
   principal: string;
@@ -26,6 +79,11 @@ export interface AgentSiteIdentity {
 export interface AgentSiteOptions {
   /** The agent web service's origin, as the site's server reaches it. */
   serviceUrl: string;
+  /**
+   * The agent web's origin as agents reach it, for `GET /agent`, the address an agent finds on
+   * the site and is sent on from to `/start`. Default: `serviceUrl`.
+   */
+  agentUrl?: string;
   /** The secret shared with the service (`siteSecret`). */
   secret: string;
   /** Where these pages live. Default `/agent`. */
@@ -41,10 +99,10 @@ export interface AgentSiteOptions {
     request: Request,
     who: AgentSiteIdentity,
   ) =>
-    | Promise<{ cookies?: SessionCookie[]; storageState?: StorageState }>
+    | Promise<{ cookies?: AgentSiteCookie[]; storageState?: AgentSiteStorageState }>
     | {
-        cookies?: SessionCookie[];
-        storageState?: StorageState;
+        cookies?: AgentSiteCookie[];
+        storageState?: AgentSiteStorageState;
       };
   /** The site's sign-in page, returning to `returnTo` afterwards. */
   loginUrl: (returnTo: string) => string;
@@ -76,6 +134,7 @@ export function agentSiteHandler(
 ): (request: Request) => Promise<Response | null> {
   const base = (o.basePath ?? "/agent").replace(/\/+$/, "");
   const service = o.serviceUrl.replace(/\/+$/, "");
+  const agentUrl = (o.agentUrl ?? o.serviceUrl).replace(/\/+$/, "");
   const doFetch = o.fetch ?? fetch;
   const api = (path: string, init: RequestInit = {}) =>
     doFetch(`${service}/api${path}`, {
@@ -97,6 +156,16 @@ export function agentSiteHandler(
 
   return async (request) => {
     const url = new URL(request.url);
+    // `/agent` itself is where an agent that found the site starts: on to the agent web.
+    if ((url.pathname === base || url.pathname === `${base}/`) && request.method === "GET")
+      return new Response(`Agents start at ${agentUrl}/start\n`, {
+        status: 303,
+        headers: {
+          Location: `${agentUrl}/start`,
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
     if (!url.pathname.startsWith(`${base}/`)) return null;
     const rest = url.pathname
       .slice(base.length + 1)
