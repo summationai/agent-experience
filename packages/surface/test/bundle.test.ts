@@ -79,10 +79,11 @@ describe("browser bundle", () => {
     console.log(`@summationai/axe-surface/axe: ${out.bytes} bytes minified for the browser`);
   });
 
-  // The bound grew from 50 to 58 kB with the domain granularity ([S-WEB-7]) and observe's filters
-  // and pages: about 6 kB of tool definitions, the shared cursor paging, and domainActions'
-  // default specs. They keep the tool list fixed and small however large the page is, which is
-  // what an agent pays for on every turn, so they ship in the adapter.
+  // The bound grew from 50 to 62 kB with the domain granularity ([S-WEB-7]) and observe's filters
+  // and pages: about 6 kB of tool definitions, the shared cursor paging, domainActions' default
+  // specs, and the auto surface's (navigate among them, so a link is not offered as a high-risk
+  // control). They keep the tool list fixed and small however large the page is, which is what an
+  // agent pays for on every turn, so they ship in the adapter. Making it smaller is later work.
   it("@summationai/axe-surface/webmcp bundles for the browser alone, small, without Zod or React", async () => {
     const out = await bundle(
       `import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
@@ -92,7 +93,7 @@ describe("browser bundle", () => {
     expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
     expect(out.inputs.filter((f) => /react/.test(f))).toEqual([]);
     console.log(`@summationai/axe-surface/webmcp: ${out.bytes} bytes minified for the browser`);
-    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(58 * 1024);
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(62 * 1024);
   });
 
   // The bound grew from 100 kB / 35 kB gzipped when the handle gained read() and wait()

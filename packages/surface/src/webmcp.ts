@@ -26,6 +26,7 @@ import { describeEntry } from "./index";
 import { CONTENT, READ_LIMITS, WAIT_LIMITS, checkCondition } from "./auto-content";
 import type { PageContent, ReadOptions, WaitCondition } from "./auto-content";
 import { formatRead } from "./auto-read";
+import { autoDomains } from "./auto-domains";
 import { defaultDomains } from "./domains";
 import { pageOf } from "./observe-query";
 import type { ObserveQuery } from "./observe-query";
@@ -39,7 +40,14 @@ import type { DomainActionSpec } from "./axe";
 export interface WebMcpToolAnnotations {
   readOnlyHint?: boolean;
   untrustedContentHint?: boolean;
+  /**
+   * Stated both ways by this adapter: `true` for a tool whose act cannot be undone, `false` for
+   * one whose can, so an agent (and a host bridging to MCP's `destructiveHint`) need not assume
+   * the worst of a tool that says nothing.
+   */
   consequentialHint?: boolean;
+  /** Not in the WebMCP draft; MCP's name. `true` when calling the tool twice does what once does. */
+  idempotentHint?: boolean;
 }
 
 /** A tool as `registerTool` takes it. */
@@ -83,14 +91,14 @@ export interface WebMcpOptions {
   /**
    * `control` (default): one tool per control, whose description carries its live state. `domain`:
    * a fixed set of tools, one per domain action (`<prefix>set-field`, `<prefix>run-control`,
-   * `<prefix>load-more`), each taking an `entryId`
+   * `<prefix>load-more`, and on an auto surface `<prefix>navigate` first), each taking an `entryId`
    * from the observe tool. The set does not change as the page does, and its size does not grow
    * with the page: use it for pages with many controls, and wherever tool lists are costly.
    */
   granularity?: "control" | "domain";
   /**
-   * The domain actions for `granularity: "domain"`, in the order an entry is matched. Default:
-   * `domainActions`' own set.
+   * The domain actions for `granularity: "domain"`, in the order an entry is matched. Default: the
+   * auto surface's (`autoDomains`, with navigate) on an auto surface, else `domainActions`' own.
    */
   domains?: DomainActionSpec[];
   /** Rows the observe tool returns when the call gives no `limit`. Default 100; at most 500. */
@@ -780,7 +788,9 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
     const expectedRev =
       typeof given === "number" && Number.isFinite(given) ? given : surface.currentRev();
     const request: Parameters<Surface["act"]>[0] = { op, target: id, expectedRev, actor };
-    if (op === "TYPE_TEXT") request.text = typeof input["text"] === "string" ? input["text"] : "";
+    // A field always takes text; a control may too (the auto surface's navigate entry takes a path).
+    if (typeof input["text"] === "string") request.text = input["text"];
+    else if (op === "TYPE_TEXT") request.text = "";
     if (input["confirm"] === true) request.confirm = true;
     if (needsApproval(liveRow)) {
       // A host running this page for the person comes first: in a headless page, the
@@ -872,8 +882,18 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
         }
       }
     }
-    // The page's own surface runs the act: its revision guard, ledger, and handler.
-    const result = await surface.act(request, actOptions);
+    // The page's own surface runs the act: its revision guard, ledger, and handler. A handler
+    // that throws refuses the act; the agent gets its reason as a result, not an exception.
+    let result: ActResult;
+    try {
+      result = await surface.act(request, actOptions);
+    } catch (error) {
+      return toolFailure(
+        `Not done: ${liveRow.name}. ${error instanceof Error ? error.message : String(error)}`,
+        "handler_failed",
+        { retryable: false },
+      );
+    }
     const view = surface.observe().entries.find((r) => r.id === id) ?? liveRow;
     const out: WebMcpToolResult = {
       content: [{ type: "text", text: resultText(view, result) }],
@@ -885,9 +905,12 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
 
   const entryTool = (row: ObservedEntry, name: string): WebMcpTool => {
     const id = row.id;
-    const annotations: WebMcpToolAnnotations = { readOnlyHint: false, untrustedContentHint: true };
-    if (row.kind === "action" && row.effect && !row.effect.reversible)
-      annotations.consequentialHint = true;
+    const annotations: WebMcpToolAnnotations = {
+      readOnlyHint: false,
+      untrustedContentHint: true,
+      consequentialHint: row.kind === "action" && !!row.effect && !row.effect.reversible,
+    };
+    if (row.effect?.idempotent) annotations.idempotentHint = true;
     return {
       name,
       title: row.name,
@@ -902,9 +925,14 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
   };
 
   const domain = options.granularity === "domain";
-  // `domainActions`' defaults on every surface: a link on an auto surface is a control like any
-  // other (run-control's ceiling is high, so every control fits).
-  const specs: DomainActionSpec[] = !domain ? [] : (options.domains ?? defaultDomains());
+  // An auto surface gets the relay's set, navigate first: a link or landmark goes to navigate, a
+  // low-risk tool, rather than to run-control, whose ceiling is high.
+  const specs: DomainActionSpec[] = !domain
+    ? []
+    : (options.domains ??
+      (contentOf(surface)
+        ? (autoDomains({ content: false }).filter((d) => "covers" in d) as DomainActionSpec[])
+        : defaultDomains()));
   /** The domain tool that acts on this row: the first spec that covers it, as `domainActions`. */
   const domainToolFor = (row: ObservedEntry): string | undefined => {
     if (!offered(surface, row)) return undefined;
@@ -935,7 +963,8 @@ export function exposeWebMcp(surface: Surface, options: WebMcpOptions = {}): Web
       annotations: {
         readOnlyHint: false,
         untrustedContentHint: true,
-        ...(spec.reversible ? {} : { consequentialHint: true }),
+        consequentialHint: !spec.reversible,
+        ...(spec.idempotent ? { idempotentHint: true } : {}),
       },
       execute: async (input = {}) => {
         const entryId = typeof input["entryId"] === "string" ? input["entryId"] : "";

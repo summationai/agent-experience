@@ -673,17 +673,18 @@ Public identifiers for serving `@summationai/axe-mcp` over HTTP to many callers 
 
 Public identifiers of the WebMCP adapter and of the elicitation mapping (review 2026-09-24, item 14). `registerTool`, `modelContext`, and `consequentialHint` are the WebMCP draft's names (Community Group draft of 2026-09-17); `requestedSchema` is MCP's (specification 2025-11-25).
 
-| Category | Key                  | Name                   | Where                             | Meaning                                                                                                                |
-| -------- | -------------------- | ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| api      | exposeWebMcp         | `exposeWebMcp`         | `@summationai/axe-surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                 |
-| api      | modelContext         | `modelContext`         | `@summationai/axe-surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                           |
-| api      | registerTool         | `registerTool`         | WebMCP                            | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                        |
-| api      | consequentialHint    | `consequentialHint`    | WebMCP                            | Tool annotation for an effect that cannot be undone; set on a control that is not reversible.                          |
-| api      | requestedSchema      | `requestedSchema`      | MCP elicitation                   | The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema.         |
-| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@summationai/axe-mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind. |
-| api      | toFormSchema         | `toFormSchema`         | `@summationai/axe-mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                           |
-| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                            | Tool annotation: the tool changes nothing; set on the observe tool.                                                    |
-| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                            | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.               |
+| Category | Key                  | Name                   | Where                             | Meaning                                                                                                                              |
+| -------- | -------------------- | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| api      | exposeWebMcp         | `exposeWebMcp`         | `@summationai/axe-surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                               |
+| api      | modelContext         | `modelContext`         | `@summationai/axe-surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                                         |
+| api      | registerTool         | `registerTool`         | WebMCP                            | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                                      |
+| api      | consequentialHint    | `consequentialHint`    | WebMCP                            | Tool annotation for an effect that cannot be undone: `true` on a control that is not reversible, `false` on every other acting tool. |
+| api      | idempotentHint       | `idempotentHint`       | WebMCP                            | Tool annotation (MCP's name, not the draft's): calling the tool twice does what once does; set on idempotent controls and domains.   |
+| api      | requestedSchema      | `requestedSchema`      | MCP elicitation                   | The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema.                       |
+| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@summationai/axe-mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind.               |
+| api      | toFormSchema         | `toFormSchema`         | `@summationai/axe-mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                                         |
+| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                            | Tool annotation: the tool changes nothing; set on the observe tool.                                                                  |
+| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                            | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.                             |
 
 ## Surface granularity
 

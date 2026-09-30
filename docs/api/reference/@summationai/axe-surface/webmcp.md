@@ -360,8 +360,8 @@ Register `<prefix>read` and `<prefix>wait` when the surface has page content. De
 optional domains?: DomainActionSpec[];
 ```
 
-The domain actions for `granularity: "domain"`, in the order an entry is matched. Default:
-`domainActions`' own set.
+The domain actions for `granularity: "domain"`, in the order an entry is matched. Default: the
+auto surface's (`autoDomains`, with navigate) on an auto surface, else `domainActions`' own.
 
 <a id="granularity"></a>
 
@@ -373,7 +373,7 @@ optional granularity?: "control" | "domain";
 
 `control` (default): one tool per control, whose description carries its live state. `domain`:
 a fixed set of tools, one per domain action (`<prefix>set-field`, `<prefix>run-control`,
-`<prefix>load-more`), each taking an `entryId`
+`<prefix>load-more`, and on an auto surface `<prefix>navigate` first), each taking an `entryId`
 from the observe tool. The set does not change as the page does, and its size does not grow
 with the page: use it for pages with many controls, and wherever tool lists are costly.
 
@@ -588,6 +588,20 @@ Tool annotations the draft defines. All are hints to the agent.
 ```ts
 optional consequentialHint?: boolean;
 ```
+
+Stated both ways by this adapter: `true` for a tool whose act cannot be undone, `false` for
+one whose can, so an agent (and a host bridging to MCP's `destructiveHint`) need not assume
+the worst of a tool that says nothing.
+
+<a id="idempotenthint"></a>
+
+##### idempotentHint?
+
+```ts
+optional idempotentHint?: boolean;
+```
+
+Not in the WebMCP draft; MCP's name. `true` when calling the tool twice does what once does.
 
 <a id="readonlyhint"></a>
 

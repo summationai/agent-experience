@@ -207,6 +207,7 @@ type WireApi =
   | "modelContext"
   | "registerTool"
   | "consequentialHint"
+  | "idempotentHint"
   | "requestedSchema"
   | "isSensitiveAccept"
   | "toFormSchema"
@@ -1052,6 +1053,7 @@ const api: Readonly<{
   handler: "handler";
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
+  idempotentHint: "idempotentHint";
   identity: "identity";
   idleMs: "idleMs";
   idleReason: "idleReason";
@@ -2054,6 +2056,7 @@ const WIRE: Readonly<{
      handler: "handler";
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
+     idempotentHint: "idempotentHint";
      identity: "identity";
      idleMs: "idleMs";
      idleReason: "idleReason";

@@ -3,8 +3,10 @@
  * `exposeWebMcp(surface, { granularity: "domain" })`: a fixed set of tools, one per domain action,
  * each taking an entryId from the observe tool, whatever the size of the page.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createSurface } from "../src/index";
+import { autoSurface } from "../src/auto";
+import type { AutoSurfaceHandle } from "../src/auto";
 import type { Surface } from "../src/index";
 import { exposeWebMcp } from "../src/webmcp";
 import type { ModelContextLike, WebMcpTool, WebMcpToolResult } from "../src/webmcp";
@@ -223,4 +225,68 @@ describe("WebMCP domain granularity", () => {
     expect(bad.structuredContent).toMatchObject({ error: { code: "invalid_input" } });
     h.close();
   });
+
+  it("on an auto surface: navigate comes first and takes the links, with hints stated both ways", async () => {
+    document.body.innerHTML = `<main><h1>Orders</h1>
+      <nav><a href="/orders">Orders</a> <a href="/reports">Reports</a></nav>
+      <label>Search <input name="q"></label>
+      <button type="button">Refresh</button>
+      <button type="button">Delete all orders</button></main>`;
+    const auto = autoSurface({ observe: { debounceMs: 0, settle: { quietMs: 5, timeoutMs: 50 } } });
+    autos.push(auto);
+    const { mc, h } = await expose(auto.surface);
+    const tools = [...mc.tools.values()];
+    const acting = tools.filter((t) => !t.annotations?.readOnlyHint).map((t) => t.name);
+    expect(acting).toEqual([
+      "surface_navigate",
+      "surface_set-field",
+      "surface_run-control",
+      "surface_load-more",
+    ]);
+    const hints = Object.fromEntries(tools.map((t) => [t.name, t.annotations]));
+    // A navigation says it is not consequential, so no one mistakes it for one.
+    expect(hints["surface_navigate"]).toMatchObject({
+      readOnlyHint: false,
+      consequentialHint: false,
+    });
+    expect(hints["surface_run-control"]).toMatchObject({ consequentialHint: true });
+    expect(hints["surface_set-field"]).toMatchObject({ idempotentHint: true });
+
+    const rows = (
+      (await mc.call("surface_observe", { kind: "action" })).structuredContent as {
+        entries: { name: string; tool?: string }[];
+      }
+    ).entries;
+    const toolOf = (name: string) => rows.find((r) => r.name === name)?.tool;
+    expect(toolOf("Reports")).toBe("surface_navigate");
+    expect(toolOf("Refresh")).toBe("surface_run-control");
+    expect(toolOf("Delete all orders")).toBe("surface_run-control");
+    // The navigate entry opens a same-origin path given as text; another origin is refused.
+    const nav = rows.find((r) => r.tool === "surface_navigate" && /navigate|go to/i.test(r.name));
+    if (nav) {
+      const away = await mc.call("surface_navigate", {
+        entryId: (nav as unknown as { id: string }).id,
+        text: "https://elsewhere.example/steal",
+      });
+      expect(away.isError).toBe(true);
+      expect(away.content[0]!.text).toContain("only same-origin paths open");
+    }
+    h.close();
+  });
+
+  it("per control, hints are stated both ways too", async () => {
+    const { s } = grid(1);
+    const mc = new FakeModelContext();
+    const h = exposeWebMcp(s, { modelContext: mc });
+    await h.ready();
+    expect(mc.tools.get("surface_save")!.annotations).toMatchObject({ consequentialHint: false });
+    expect(mc.tools.get("surface_delete")!.annotations).toMatchObject({ consequentialHint: true });
+    h.close();
+  });
+});
+
+const autos: AutoSurfaceHandle[] = [];
+afterEach(() => {
+  for (const a of autos.splice(0)) a.stop();
+  document.body.innerHTML = "";
 });
