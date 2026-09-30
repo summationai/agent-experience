@@ -44,6 +44,7 @@ export const DEFAULT_LEXICON: Required<Omit<RiskLexicon, "replace">> = {
     "close account",
     "discard",
     "clear all",
+    "trash",
     "empty trash",
     "uninstall",
     "send",
@@ -295,6 +296,50 @@ function opensConfirm(el: Element): boolean {
   });
 }
 
+/** What a list, table, menu, listbox, grid, or tree holds one of. */
+const ITEM =
+  'li, [role="listitem"], tr, [role="row"], [role="menuitem"], [role="menuitemradio"], [role="option"], [role="gridcell"], [role="treeitem"]';
+
+const HEADING = 'h1, h2, h3, h4, h5, h6, [role="heading"]';
+
+function controlName(c: Element): string {
+  return (c.getAttribute("aria-label") || c.textContent || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * How many peers a control named for an item has, or 0 when it is not one: it sits in an item of a
+ * list, table, menu, or grid (or is a card, a control holding a heading, among sibling cards), the
+ * item has at least one peer, and the control's counterpart in each peer (the same kind of
+ * control, at the same place) has its own name. A name repeated across the peers is an action
+ * done to each item ("Recalculate" on every row), not an item; a toolbar holds actions, never items.
+ */
+export function itemPeers(el: Element): number {
+  if (el.closest('[role="toolbar"]')) return 0;
+  const unit = el.closest(ITEM) ?? (el.querySelector(HEADING) ? el : null);
+  const parent = unit?.parentElement;
+  if (!unit || !parent) return 0;
+  const peers = [...parent.children].filter(
+    (c) => c.localName === unit.localName && c.getAttribute("role") === unit.getAttribute("role"),
+  );
+  if (peers.length < 2) return 0;
+  const role = el.getAttribute("role");
+  const selector = role ? `[role="${role}"]` : el.localName;
+  const controlsIn = (u: Element): Element[] =>
+    u.matches(selector) ? [u] : [...u.querySelectorAll(selector)];
+  const at = controlsIn(unit).indexOf(el);
+  if (at < 0) return 0;
+  const names = peers.map((p) => {
+    const c = controlsIn(p)[at];
+    return c ? controlName(c) : "";
+  });
+  const own = controlName(el);
+  if (!own || names.filter((n) => n === own).length !== 1) return 0;
+  return new Set(names.filter(Boolean)).size >= 2 ? peers.length : 0;
+}
+
 function matchOf(re: RegExp | null, text: string): string {
   if (!re) return "";
   const m = re.exec(text);
@@ -418,6 +463,17 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
       reversible: true,
       idempotent: true,
     });
+  // A control named for an item among its peers (an organization, a tenant, a table, a report)
+  // opens or selects that item. Every check above (destructive words, styling, confirmation,
+  // commit words, submits) has had its say; this only lowers what would otherwise be unknown.
+  const peers = itemPeers(el);
+  if (peers)
+    return verdict(
+      "low",
+      "location",
+      `opens one of ${peers} items; its name is the item, not an action`,
+      { reversible: true, idempotent: true },
+    );
   if (el.getAttribute("type") === "reset") return verdict("medium", "form", "resets a form");
   return verdict("high", "app", "not recognized; treated as a high-risk change until configured", {
     unrecognized: true,

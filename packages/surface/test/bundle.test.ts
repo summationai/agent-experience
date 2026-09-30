@@ -120,7 +120,9 @@ describe("browser bundle", () => {
   // The bound grew from 44 to 47 kB when the provider's WebMCP adapter gained the auto surface's
   // read/wait loop and registration diagnostics. The DOM reader was already in this bundle; the
   // increase is the two schemas, tool handlers, and diagnostic state. It grew to 50 kB with the
-  // adapter's domain granularity and observe paging (about 2 kB gzipped; see the bound above).
+  // adapter's domain granularity and observe paging (about 2 kB gzipped; see the bound above), and
+  // to 51 kB with the auto surface's domains in the adapter (navigate) and the derivation's
+  // item-peer rule, which keeps a tenant or a table from reading as an unknown high-risk change.
   it("SurfaceProvider from @summationai/axe-surface/react carries the derivation and nothing server-side", async () => {
     const out = await bundle(
       `import { SurfaceProvider } from "@summationai/axe-surface/react";
@@ -131,6 +133,6 @@ describe("browser bundle", () => {
     console.log(
       `SurfaceProvider: ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(50 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(51 * 1024);
   });
 });
