@@ -169,4 +169,56 @@ describe("auto surface: choosing an item", () => {
     expect(r["customers Data table"]!.risk).toBe("high");
     expect(r["ledger Data table"]!.risk).toBe("low");
   });
+
+  it("live /table: duplicate folder names and a folder called New Folder are still items", () => {
+    const row = (
+      name: string,
+    ) => `<div role="button" tabindex="0"><div><svg></svg><span>${name}</span></div>
+      <div><div>Folder</div><div>2 hours ago</div></div><div><button aria-label="Actions" aria-haspopup="menu"></button></div></div>`;
+    const r = risks(
+      `<main><div>${[
+        "anaplan_poc",
+        "Shopify connection",
+        "Shopify connection",
+        "New Folder",
+        "New Folder",
+        "snowflake-sample",
+      ]
+        .map(row)
+        .join("")}</div></main>`,
+    );
+    for (const name of [
+      "Shopify connection Folder 2 hours ago Actions",
+      "New Folder Folder 2 hours ago Actions",
+    ])
+      expect(r[name], name).toMatchObject({ risk: "low", reversible: true });
+  });
+
+  it("live /table: a strip of source filters with counts reads as filters", () => {
+    const chip = (name: string) =>
+      `<button type="button" class="flex shrink-0 items-center gap-6 rounded-md px-8 py-4"><svg></svg>${name}</button>`;
+    const r = risks(
+      `<main><section aria-label="Tables"><div class="flex overflow-x-auto">${[
+        "All",
+        "Summation (118)",
+        "Google Sheets (1)",
+        "Postgres (0)",
+        "Snowflake (7)",
+      ]
+        .map(chip)
+        .join("")}</div></section></main>`,
+    );
+    for (const name of ["All", "Summation (118)", "Snowflake (7)"])
+      expect(r[name], name).toMatchObject({ risk: "low", mutates: "view", reversible: true });
+  });
+
+  it("a group of toggles that carry aria-pressed reads as a filter; one alone does not", () => {
+    const r = risks(`<main><div>
+      <button aria-pressed="true">Open</button><button aria-pressed="false">Closed</button>
+      <button aria-pressed="false">Merged</button></div>
+      <button aria-pressed="false">Frobnicate</button></main>`);
+    expect(r["Closed"]).toMatchObject({ risk: "low", mutates: "view" });
+    expect(r["Merged"]).toMatchObject({ risk: "low", mutates: "view" });
+    expect(r["Frobnicate"]!.risk).toBe("high");
+  });
 });

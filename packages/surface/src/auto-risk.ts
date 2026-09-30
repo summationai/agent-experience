@@ -411,15 +411,47 @@ export function itemPeers(el: Element): number {
         const c = controlsIn(p)[at];
         return c ? controlName(c) : "";
       });
-      const own = controlName(el);
-      if (!own || names.filter((n) => n === own).length !== 1) return 0;
-      return new Set(names.filter(Boolean)).size >= 2 ? peers.length : 0;
+      // Most items have names of their own; two folders may share one. An action done to each
+      // item has one name on every row ("Recalculate").
+      if (!controlName(el)) return 0;
+      const distinct = new Set(names.filter(Boolean)).size;
+      return distinct >= 2 && distinct * 2 >= peers.length ? peers.length : 0;
     }
     // A list item's peers are its siblings; anything else may be wrapped, one level at a time.
     if (listItem) return 0;
     unit = parent;
   }
   return 0;
+}
+
+/** A name that ends in a count: "Snowflake (7)", "Inbox 12". */
+const COUNTED = /(?:\(\s*\d[\d,.]*\s*\)|\s\d[\d,.]*)$/;
+const TOGGLE_STATE = ["aria-pressed", "aria-selected", "aria-current"];
+
+/**
+ * How many options a filter strip has, or 0 when the control is not one of them: at least three
+ * sibling controls of the same element and class, most with names of their own, and most either
+ * naming a count ("Snowflake (7)") or carrying a pressed, selected, or current state. Choosing one
+ * changes what is shown.
+ */
+export function filterPeers(el: Element): number {
+  const parent = el.parentElement;
+  if (!parent) return 0;
+  const cls = el.getAttribute("class") ?? "";
+  const role = el.getAttribute("role");
+  const peers = [...parent.children].filter(
+    (c) =>
+      c.localName === el.localName &&
+      c.getAttribute("role") === role &&
+      (c.getAttribute("class") ?? "") === cls,
+  );
+  if (peers.length < 3) return 0;
+  const names = peers.map(controlName);
+  const distinct = new Set(names.filter(Boolean)).size;
+  if (distinct * 2 < peers.length || !controlName(el)) return 0;
+  const counted = names.filter((n) => COUNTED.test(n)).length;
+  const stated = peers.filter((p) => TOGGLE_STATE.some((a) => p.hasAttribute(a))).length;
+  return counted * 2 >= peers.length || stated * 2 >= peers.length ? peers.length : 0;
 }
 
 function matchOf(re: RegExp | null, text: string): string {
@@ -579,6 +611,12 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
       `opens one of ${peers} items; its name is the item, not an action`,
       { reversible: true, idempotent: true },
     );
+  const options = filterPeers(el);
+  if (options)
+    return verdict("low", "view", `filters by one of ${options} options`, {
+      reversible: true,
+      idempotent: true,
+    });
   if (el.getAttribute("type") === "reset") return verdict("medium", "form", "resets a form");
   return verdict("high", "app", "not recognized; treated as a high-risk change until configured", {
     unrecognized: true,
