@@ -138,6 +138,13 @@ export type {
 export { CONTENT, READ_LIMITS, WAIT_LIMITS, checkCondition, contentOf } from "./auto-content";
 export { formatRead } from "./auto-read";
 
+/** A field that takes a number: `type="number"`, or `inputmode="numeric"` or `"decimal"`. */
+function numericField(el: Element): boolean {
+  if (el.localName === "input" && (el.getAttribute("type") ?? "").toLowerCase() === "number")
+    return true;
+  return /^(numeric|decimal)$/i.test(el.getAttribute("inputmode") ?? "");
+}
+
 /** The id of the entry that opens a same-origin path. */
 export const NAVIGATE_ENTRY_ID = "page:navigate";
 
@@ -974,7 +981,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
                 : {}),
               ...(el.localName === "select" && !(el as HTMLSelectElement).multiple
                 ? { schema: { type: "string", enum: selectChoices(el as HTMLSelectElement) } }
-                : {}),
+                : numericField(el)
+                  ? { schema: { type: "string", pattern: "^-?[0-9]*[.]?[0-9]*$" } }
+                  : {}),
             },
       };
       if (object) entry.object = object;
