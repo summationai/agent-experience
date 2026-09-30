@@ -618,7 +618,15 @@ describe("axe surface: help and the prompt pack", () => {
     const prompt = readFileSync(join(__dirname, "../templates/integrate-surface.md"), "utf8");
     expect(prompt).toContain("The provider registry says where an application is");
     expect(prompt).toContain("The MCP contains no application-specific behavior");
-    for (const option of ["--dry-run", "--yes", "--mount", "--app-id", "--app-name", "--out"])
+    for (const option of [
+      "--dry-run",
+      "--yes",
+      "--mount",
+      "--app-id",
+      "--app-name",
+      "--out",
+      "--agent-web",
+    ])
       expect(prompt).toContain(option);
   });
 });

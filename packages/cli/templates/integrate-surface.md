@@ -6,7 +6,7 @@ The architecture has one hard boundary:
 
 > The provider registry says where an application is and how it may be connected securely. The application’s Surface says what the application currently is and what the agent can do there. The MCP contains no application-specific behavior.
 
-The consuming application installs browser packages only. It does not run an MCP server, store provider OAuth secrets, mint provider sessions, or teach the provider service its domain behavior.
+The consuming application installs browser packages, plus, for the agent web, one server module and one route (below). It does not run an MCP server, store provider OAuth secrets, or teach the provider service its domain behavior.
 
 ## Rules
 
@@ -16,7 +16,7 @@ The consuming application installs browser packages only. It does not run an MCP
 - Do not put URLs, allowed origins, OAuth endpoints, session brokers, tokens, secrets, or free-form agent prompts in the Surface profile. Those are trusted provider-registry configuration.
 - Mark private fields `sensitive`. Do not expose credentials or tokens through values, objects, logs, tests, or coverage artifacts.
 - Surface is on by default. Add `--flag` only when this application has an explicit rollout requirement; do not invent a feature flag.
-- Do not add MCP SDK, WebSocket server, Playwright, or service code to this application.
+- Do not add MCP SDK, WebSocket server, Playwright, or service code to this application. The agent web's site side is `agentSiteHandler` from `@summationai/axe-core/agent-site` and nothing else.
 
 ## Install
 
@@ -24,24 +24,26 @@ The consuming application installs browser packages only. It does not run an MCP
 2. Preview the generated integration from the application directory:
 
    ```sh
-   npx @summationai/axe surface init --dry-run
+   npx @summationai/axe surface init --agent-web --dry-run
    ```
+
+   `--agent-web` also serves agents that have nothing installed (Claude Desktop with no connector): see [Agent web](#agent-web-agents-with-nothing-installed). Leave it out only when the application must not be reachable that way.
 
    The default installation supports both browser-native agents through WebMCP and a provider-injected hosted connection for desktop/mobile agents. It does not connect to a relay on an ordinary page load.
 
    If the detected root renders both public and signed-in pages, choose the application shell that remains mounted through login and context selection:
 
    ```sh
-   npx @summationai/axe surface init --mount <layout-file> --dry-run
+   npx @summationai/axe surface init --agent-web --mount <layout-file> --dry-run
    ```
 
    Supply `--app-id <stable-id>` and `--app-name <display-name>` when the inferred package name is not the provider connector’s identity. The Surface `profile.id` and provider connector `surfaceId` must match.
 
-3. Review the diff. It should add one root wrapper, one Surface module, and one config module. If the CLI names a manual mount edit, make only that edit.
+3. Review the diff. It should add one root wrapper, one Surface module, and one config module, and with `--agent-web` one `agent-site.server` module and one `/agent` route. If the CLI names a manual mount or route edit, make only that edit.
 4. Apply and install:
 
    ```sh
-   npx @summationai/axe surface init --yes --install
+   npx @summationai/axe surface init --agent-web --yes --install
    ```
 
    Run the command again and verify it reports that nothing needs to change. If the packages are being tested before registry publication, use the repository’s documented packed-tarball workflow; do not copy SDK source into this application.
@@ -103,6 +105,22 @@ Refine the highest-value gaps in `surface.config`:
 
 Re-run coverage and stop when remaining gaps are cosmetic or deliberately excluded.
 
+## Agent web: agents with nothing installed
+
+An agent with nothing installed follows links. The provider's agent web service runs this application in a private headless browser and hands the agent a page of links; what the agent cannot do goes to this site's own pages, signed in with this site's own session: `/agent/signin` connects the agent to the person, `/agent/approve/<id>` shows a high-risk action for the person to decide, `/agent/input/<id>` takes a value the person types. `GET /agent` sends an agent that found the site on to the agent web. No browser session is mirrored, and no credential passes through the agent.
+
+`agent-site.server` has three functions to finish, from code that already exists in this application:
+
+1. **`identify(request)`**: the signed-in person for a server request, or `null`. Use the application's existing server-side session check (the one its loaders or API routes use), not a new one. `principal` must be stable for the person (a user or member id, not a display name); set `tenant` to the current account or workspace id when there is one, and `displayName` to what the person would recognize. Return `null` whenever the session is missing, expired, or unverified.
+2. **`session(request, who)`**: the application session the agent's headless page runs with, as `{ cookies: [...] }` (name, value, and the cookie attributes the application sets) or `{ storageState }`. In production, mint a session for the agent with the application's own session code, so it can be ended on its own. In development only, passing on the person's own session cookies from `request` is acceptable; say so in a comment. Never log a value.
+3. **`loginUrl(returnTo)`**: the application's sign-in page with the return parameter it already reads (`redirectTo`, `next`, `returnTo`, whatever the login page uses), so the person comes back to the agent page after signing in.
+
+Then:
+
+- Set `AXE_AGENT_WEB_SECRET` (at least 32 random characters, the same value the agent web service has) and `AXE_AGENT_WEB_URL` (where this server reaches the service; `http://127.0.0.1:4719` in development) in the server's environment, in the local environment file the application already uses. Do not commit a secret.
+- Check that the route answers: signed out, `GET /agent/signin?agent_session=x` redirects to sign-in; `GET /agent` redirects to the agent web's `/start`.
+- Optionally, name the agent entry in the root document's `<head>`, so an agent that opens the site finds it: `<link rel="alternate" type="text/markdown" href="/agent" title="For agents" />`.
+
 ## Verify
 
 - Typecheck and run the application’s existing tests.
@@ -113,6 +131,7 @@ Re-run coverage and stop when remaining gaps are cosmetic or deliberately exclud
 - Confirm the profile reports `signed-out` on the login route, `unknown` only while auth resolves, and `signed-in` after login. In a provider-hosted test, `relay_tabs` while signed out must return a secure session-bound login handoff; completing it must resume against the same tab.
 - Confirm account/workspace selection appears as ordinary Surface controls rather than MCP-specific instructions.
 - Confirm an ordinary visit does not contact the provider service or display agent connection UI.
+- Agent web: run `AXE_AGENT_WEB_SECRET=<same> npx @summationai/axe host --dev --agent-web --text-in-url --app <development-url> --site <development-url>`, then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
 
 ## Hand-off
 
@@ -122,4 +141,5 @@ Report:
 - the stable Surface profile id and the provider connector id it must match;
 - coverage before and after, including intentionally unresolved gaps;
 - every risk, reason, or name that was inferred rather than copied from application code;
-- any provider-side work still needed: connector URL/origins, OAuth, or session adapter configuration.
+- any provider-side work still needed: connector URL/origins, OAuth, or session adapter configuration;
+- for the agent web: how `identify` and `session` read this application's sign-in, and whether `session` passes on the person's own session (development only) or mints one.
