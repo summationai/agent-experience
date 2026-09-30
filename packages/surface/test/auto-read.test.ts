@@ -142,6 +142,36 @@ describe("read: sections, fields, tables, text [S-AUTO-14]", () => {
     expect(text).not.toContain("Save");
   });
 
+  it("reads through a display: contents wrapper in a real browser's layout mode", () => {
+    // Chromium's checkVisibility(): false for display: none or contents, visibility: hidden, and
+    // anything under a display: none ancestor. jsdom has none, so this stands in for it.
+    const proto = Element.prototype as Element & { checkVisibility?: (o?: object) => boolean };
+    const had = proto.checkVisibility;
+    proto.checkVisibility = function (this: Element) {
+      for (let n: Element | null = this; n; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if (cs.display === "none") return false;
+        if (n === this && (cs.display === "contents" || cs.visibility === "hidden")) return false;
+      }
+      return true;
+    };
+    try {
+      document.body.innerHTML = `<div style="display: contents"><div>
+        <header><h1>Tables</h1></header>
+        <section aria-label="Tables"><h2>Summation</h2><p>118 tables</p>
+          <p style="display: none">Not shown</p></section></div></div>`;
+      const h = autoSurface({ layout: true });
+      handles.push(h);
+      const text = formatRead(h.read());
+      expect(text).toContain("118 tables");
+      expect(text).toContain("Summation");
+      expect(text).not.toContain("Not shown");
+    } finally {
+      if (had) proto.checkVisibility = had;
+      else delete (proto as { checkVisibility?: unknown }).checkVisibility;
+    }
+  });
+
   it("a chart with an accessible name is read by that name", () => {
     document.body.innerHTML = `<h2>Revenue</h2><svg role="img" aria-label="Revenue rose 12% in Q3">${"<path d='M0 0'/>".repeat(20)}</svg>`;
     const h = autoSurface();

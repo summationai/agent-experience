@@ -353,7 +353,13 @@ export function isHidden(el: Element, ctx: ScanContext): boolean {
   let out = false;
   const cv = (el as Element & { checkVisibility?: (o?: object) => boolean }).checkVisibility;
   if (ctx.layout && typeof cv === "function") {
-    out = !cv.call(el, { visibilityProperty: true, contentVisibilityAuto: false });
+    // checkVisibility() is false for display: contents, which has no box of its own while its
+    // children are on screen (a provider or layout wrapper around the whole app). It is hidden
+    // only when its parent is.
+    if (styleOf(el, ctx)?.display === "contents") {
+      const parent = composedParent(el);
+      out = parent ? isHidden(parent, ctx) : false;
+    } else out = !cv.call(el, { visibilityProperty: true, contentVisibilityAuto: false });
   } else {
     if (el.hasAttribute("hidden") && el.getAttribute("hidden") !== "until-found") out = true;
     if (!out) {
