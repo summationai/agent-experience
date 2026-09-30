@@ -49,8 +49,24 @@ export interface AgentWebOptions {
   /** Characters of page content per page before a "more" link. Default 6000. */
   readChars?: number;
   browser?: WebMcpBridgeOptions["browser"];
+  /**
+   * Called after each request with what it was, without its secrets: the route, the session and
+   * link ids shortened, the status, and the time taken.
+   */
+  onRequest?: (event: AgentWebRequestEvent) => void;
   /** Build the page bridge (tests). Default: `createWebMcpBridge`. */
   bridge?: (options: WebMcpBridgeOptions) => WebMcpBridge;
+}
+
+export interface AgentWebRequestEvent {
+  method: string;
+  /** `/start`, `/s/<session…>/<link…>` with ids cut to four characters, `/api/...`. */
+  route: string;
+  /** What the link was: view, act, keypad, pending, ... (agent pages only). */
+  kind?: string;
+  status: number;
+  ms: number;
+  userAgent: string;
 }
 
 export interface AgentWeb {
@@ -708,12 +724,39 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
     return page("Not found. Start at the first link you were given.", 404);
   };
 
+  const logged = async (req: Request): Promise<Response> => {
+    const t0 = Date.now();
+    const parts = new URL(req.url).pathname.split("/").filter(Boolean);
+    const short = (x?: string) => (x ? `${x.slice(0, 4)}…` : "");
+    const kind =
+      parts[0] === "s" && parts[1]
+        ? (sessions.get(parts[1])?.links.get(parts[2] ?? "")?.kind ??
+          (parts[2] ? "unknown-link" : "view"))
+        : undefined;
+    const route =
+      parts[0] === "s"
+        ? `/s/${short(parts[1])}${parts[2] ? `/${short(parts[2])}` : ""}`
+        : parts[0] === "api"
+          ? `/api/${parts[1] ?? ""}/${short(parts[2])}${parts[3] ? `/${parts[3]}` : ""}`
+          : `/${parts.join("/")}`;
+    const res = await handle(req);
+    options.onRequest?.({
+      method: req.method,
+      route,
+      ...(kind ? { kind } : {}),
+      status: res.status,
+      ms: Date.now() - t0,
+      userAgent: (req.headers.get("user-agent") ?? "").slice(0, 120),
+    });
+    return res;
+  };
+
   return {
-    handle,
+    handle: logged,
     sessionCount: () => sessions.size,
     listen(o = {}) {
       return new Promise((resolve, reject) => {
-        server = createServer((req, res) => void nodeAdapter(handle, req, res));
+        server = createServer((req, res) => void nodeAdapter(logged, req, res));
         server.once("error", reject);
         server.listen(o.port ?? 0, o.host ?? "127.0.0.1", () => {
           const port = (server!.address() as AddressInfo).port;

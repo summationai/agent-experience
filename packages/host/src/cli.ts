@@ -315,6 +315,10 @@ async function serveAgentWeb(o: {
     siteSecret: secret,
     appName: o.name ?? new URL(o.appUrl).hostname,
     browser: { headless: o.headless },
+    onRequest: (e) =>
+      o.stdout(
+        `[agent-web] ${new Date().toISOString()} ${e.method} ${e.route}${e.kind ? ` (${e.kind})` : ""} ${e.status} ${e.ms}ms ${e.userAgent}`,
+      ),
   });
   let address: { url: string; port: number };
   try {

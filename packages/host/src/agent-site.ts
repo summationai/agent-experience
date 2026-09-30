@@ -103,7 +103,13 @@ export function agentSiteHandler(
       .split("/")
       .filter(Boolean);
     const who = await o.identify(request);
-    if (!who) return Response.redirect(o.loginUrl(url.pathname + url.search), 303);
+    // A relative sign-in path is the usual answer, and it must resolve against the origin the
+    // person's browser is on (a proxy or a tunnel's), not the one this server sees.
+    if (!who)
+      return new Response(null, {
+        status: 303,
+        headers: { Location: o.loginUrl(url.pathname + url.search), "Cache-Control": "no-store" },
+      });
     const form = request.method === "POST" ? await request.formData() : null;
 
     if (rest[0] === "signin") {

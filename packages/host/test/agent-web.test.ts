@@ -115,7 +115,8 @@ function person(principal: string) {
     },
     // A session for the agent's headless page, minted by the site for this person.
     session: (_req, who) => ({ cookies: [{ name: "session", value: who.principal }] }),
-    loginUrl: (returnTo) => `${SITE}/login?returnTo=${encodeURIComponent(returnTo)}`,
+    // Relative, as a site usually answers: the browser resolves it against the site's origin.
+    loginUrl: (returnTo) => `/login?returnTo=${encodeURIComponent(returnTo)}`,
     fetch: (input, init) => web.handle(new Request(String(input), init)),
   });
   const cookie = `site_user=${principal}`;
@@ -220,7 +221,9 @@ describe.skipIf(missing)("agent web: an agent with only web fetch, a person on t
       new Request(`${SITE}/agent/signin?agent_session=${sid}`),
     );
     expect(out!.status).toBe(303);
-    expect(out!.headers.get("location")).toContain("/login?returnTo=");
+    expect(out!.headers.get("location")).toBe(
+      `/login?returnTo=${encodeURIComponent(`/agent/signin?agent_session=${sid}`)}`,
+    );
     // Connect as dana; then eve cannot answer dana's requests, and a second connect is refused.
     const signin = `${SITE}/agent/signin?agent_session=${sid}`;
     await person("dana").submit(signin, { decision: "connect" });
