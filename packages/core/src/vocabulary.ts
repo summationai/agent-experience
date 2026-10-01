@@ -1118,7 +1118,7 @@ export const api = /* @__PURE__ */ Object.freeze({
   agentUrl: "agentUrl",
   /** Sends an agent's browser arriving at the site from outside on to `/agent`; leaves people and navigation within the site alone. */
   agentEntry: "agentEntry",
-  /** The user agents `agentEntry` recognizes: Claude's in-app browser and the providers' per-request fetchers. */
+  /** The user agents `agentEntry` recognizes: Claude Desktop's browser pane and the providers' per-request fetchers (Claude-User, ChatGPT-User, Google-Agent, Perplexity-User). */
   agentBrowsers: "agentBrowsers",
   /** How long an agent web session lives without use; its links end with it. */
   sessionIdleMs: "sessionIdleMs",

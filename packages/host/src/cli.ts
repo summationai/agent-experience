@@ -322,7 +322,7 @@ async function serveAgentWeb(o: {
     browser: { headless: o.headless },
     onRequest: (e) =>
       o.stdout(
-        `[agent-web] ${new Date().toISOString()} ${e.method} ${e.route}${e.kind ? ` (${e.kind})` : ""} ${e.status} ${e.ms}ms ${e.userAgent}`,
+        `[agent-web] ${new Date().toISOString()} ${e.method} ${e.route}${e.kind ? ` (${e.kind})` : ""} ${e.status} ${e.ms}ms ${e.userAgent}${e.signals ? ` [${e.signals}]` : ""}`,
       ),
   });
   let address: { url: string; port: number };

@@ -77,6 +77,12 @@ export interface AgentWebRequestEvent {
   status: number;
   ms: number;
   userAgent: string;
+  /**
+   * What else says who sent it, when present: `Sec-Fetch-Site`/`Sec-Fetch-Dest` (a browser),
+   * `Signature-Agent` (a signed agent, Web Bot Auth), and the client address a proxy or tunnel
+   * reports (to check against a provider's published ranges).
+   */
+  signals?: string;
 }
 
 export interface AgentWeb {
@@ -766,7 +772,8 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
       ...(kind ? { kind } : {}),
       status: res.status,
       ms: Date.now() - t0,
-      userAgent: (req.headers.get("user-agent") ?? "").slice(0, 120),
+      userAgent: (req.headers.get("user-agent") ?? "").slice(0, 200),
+      ...(signals(req) ? { signals: signals(req) } : {}),
     });
     return res;
   };
@@ -834,4 +841,19 @@ async function nodeAdapter(
   );
   res.writeHead(r.status, Object.fromEntries(r.headers.entries()));
   res.end(req.method === "HEAD" ? undefined : Buffer.from(await r.arrayBuffer()));
+}
+
+const SIGNALS: Array<[string, string]> = [
+  ["sec-fetch-site", "site"],
+  ["sec-fetch-dest", "dest"],
+  ["signature-agent", "signed"],
+  ["cf-connecting-ip", "from"],
+  ["x-forwarded-for", "via"],
+];
+
+function signals(req: Request): string {
+  return SIGNALS.flatMap(([h, k]) => {
+    const v = req.headers.get(h);
+    return v ? [`${k}=${v.slice(0, 80)}`] : [];
+  }).join(" ");
 }

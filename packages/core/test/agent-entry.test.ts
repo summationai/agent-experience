@@ -21,6 +21,24 @@ describe("agentEntry", () => {
     expect(agentEntry(get("/login", { "user-agent": "Claude-User/1.0" }))?.status).toBe(303);
   });
 
+  it("sends Google-Agent, ChatGPT-User and a signed agent", () => {
+    const google =
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko; compatible; Google-Agent; +https://developers.google.com/crawling/docs/crawlers-fetchers/google-agent) Chrome/141.0.0.0 Safari/537.36";
+    const chatgpt =
+      "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot";
+    expect(agentEntry(get("/", { "user-agent": google }))?.status).toBe(303);
+    expect(agentEntry(get("/", { "user-agent": chatgpt }))?.status).toBe(303);
+    expect(
+      agentEntry(get("/", { "user-agent": CHROME, "signature-agent": '"https://chatgpt.com"', "sec-fetch-site": "none" }))
+        ?.status,
+    ).toBe(303);
+  });
+
+  it("leaves crawlers alone", () => {
+    expect(agentEntry(get("/", { "user-agent": "Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)" }))).toBeNull();
+    expect(agentEntry(get("/", { "user-agent": "Mozilla/5.0 (compatible; GPTBot/1.4; +https://openai.com/gptbot)" }))).toBeNull();
+  });
+
   it("leaves a person's browser alone", () => {
     expect(agentEntry(get("/", { "user-agent": CHROME, "sec-fetch-site": "none" }))).toBeNull();
   });
