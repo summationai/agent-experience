@@ -8,7 +8,8 @@
  */
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { createConnection } from "node:net";
+import { createConnection, createServer } from "node:net";
+import { fileURLToPath } from "node:url";
 import {
   existsSync,
   mkdirSync,
@@ -449,6 +450,23 @@ function addCommand(pm: PackageManager): string {
 }
 
 /** Tarball file names in a vendor directory, by package (from `scripts/pack-for-consumer.sh`). */
+/** This CLI's version: the packages it installs are released with it, at the same version. */
+const OWN_VERSION: string = (() => {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    for (const up of ["..", join("..", "..")]) {
+      const f = join(here, up, "package.json");
+      if (existsSync(f)) {
+        const p = JSON.parse(readFileSync(f, "utf8")) as { name?: string; version?: string };
+        if (p.name === "@summationai/axe" && p.version) return p.version;
+      }
+    }
+  } catch {
+    // Fall through.
+  }
+  return "<version>";
+})();
+
 /**
  * The vendor directory to install from when `--vendor` is not given: `vendor/agent-experience` or
  * `vendor` in the app directory, when it holds the packed SDK (`scripts/pack-for-consumer.sh`).
@@ -469,7 +487,7 @@ function tarballs(vendorAbs: string | undefined): Record<string, string> {
   for (const pkg of ["core", "surface", "relay"]) {
     out[pkg] =
       names.find((n) => n.startsWith(`summationai-axe-${pkg}-`) && n.endsWith(".tgz")) ??
-      `summationai-axe-${pkg}-1.0.0.tgz`;
+      `summationai-axe-${pkg}-${OWN_VERSION}.tgz`;
   }
   return out;
 }
@@ -582,17 +600,29 @@ export interface AgentWebEnv {
  * when they are missing. A file git does not ignore is never written: the secret must not be
  * committed. Nothing is printed but the names.
  */
-/** Whether something listens on 127.0.0.1:`port` (a refused or timed-out connection says no). */
-function listening(port: number): Promise<boolean> {
+/**
+ * Whether something listens on 127.0.0.1:`port`. Binding the port answers that without a network
+ * connection, which a sandbox may refuse (and a refused connection must not read as a free port):
+ * EADDRINUSE means taken. When a listener cannot be opened at all, a connection decides, and only
+ * ECONNREFUSED counts as free.
+ */
+export function portInUse(port: number): Promise<boolean> {
   return new Promise((resolve) => {
-    const socket = createConnection({ host: "127.0.0.1", port });
-    const done = (v: boolean) => {
-      socket.destroy();
-      resolve(v);
-    };
-    socket.setTimeout(300, () => done(false));
-    socket.once("connect", () => done(true));
-    socket.once("error", () => done(false));
+    const server = createServer();
+    server.once("error", (e: NodeJS.ErrnoException) => {
+      if (e.code === "EADDRINUSE") return resolve(true);
+      const socket = createConnection({ host: "127.0.0.1", port });
+      const done = (v: boolean) => {
+        socket.destroy();
+        resolve(v);
+      };
+      socket.setTimeout(300, () => done(true));
+      socket.once("connect", () => done(true));
+      socket.once("error", (err: NodeJS.ErrnoException) => done(err.code !== "ECONNREFUSED"));
+    });
+    server.listen({ host: "127.0.0.1", port, exclusive: true }, () =>
+      server.close(() => resolve(false)),
+    );
   });
 }
 
@@ -636,7 +666,7 @@ function realpathSafe(p: string): string {
 /** The first agent web port from 4719 that no other app here claims and nothing listens on. */
 export async function freeAgentWebPort(
   dir: string,
-  inUse: (port: number) => Promise<boolean> = listening,
+  inUse: (port: number) => Promise<boolean> = portInUse,
 ): Promise<number> {
   const claimed = claimedPorts(dir);
   for (let port = 4719; port < 4740; port++)

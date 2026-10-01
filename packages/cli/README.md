@@ -1,6 +1,6 @@
 # `axe`
 
-CLI for installing and validating Agent Experience Surface.
+CLI for installing and validating Agent Experience Surface, part of the Body Spray SDK (Agent eXperience Engineering): it lets a person use your web app from their AI agent, without leaving the conversation.
 
 Install Surface in a supported React Router, Next.js, Vite/React, React, or plain HTML application, from its directory:
 

@@ -11,6 +11,7 @@ import {
   ensureAgentWebEnv,
   findVendor,
   freeAgentWebPort,
+  portInUse,
   installCommand,
   planInit,
   writeOverrides,
@@ -27,6 +28,10 @@ function applyPlanFor(plan: { changes: { path: string; after: string }[] }): voi
     writeFileSync(c.path, c.after);
   }
 }
+
+const CLI_VERSION = (
+  JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8")) as { version: string }
+).version;
 
 function copy(name: string): string {
   const dir = mkdtempSync(join(tmpdir(), `axe-surface-${name}-`));
@@ -476,16 +481,16 @@ describe("axe surface init: install commands", () => {
     expect(tar.argv).toEqual([
       "npm",
       "install",
-      "@summationai/axe-core@file:vendor/summationai-axe-core-1.0.0.tgz",
-      "@summationai/axe-surface@file:vendor/summationai-axe-surface-1.0.0.tgz",
-      "@summationai/axe-relay@file:vendor/summationai-axe-relay-1.0.0.tgz",
+      `@summationai/axe-core@file:vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
+      `@summationai/axe-surface@file:vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
+      `@summationai/axe-relay@file:vendor/summationai-axe-relay-${CLI_VERSION}.tgz`,
     ]);
     expect(tar.overrides).toEqual({
       file: "package.json",
       key: "overrides",
       value: {
-        "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz",
-        "@summationai/axe-surface": "file:vendor/summationai-axe-surface-1.0.0.tgz",
+        "@summationai/axe-core": `file:vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
+        "@summationai/axe-surface": `file:vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
       },
     });
     expect(installCommand(detect(copy("next")), false).argv).toEqual([
@@ -503,31 +508,31 @@ describe("axe surface init: install commands", () => {
     expect(y.argv).toEqual([
       "yarn",
       "add",
-      "@summationai/axe-core@file:../../vendor/summationai-axe-core-1.0.0.tgz",
-      "@summationai/axe-surface@file:../../vendor/summationai-axe-surface-1.0.0.tgz",
+      `@summationai/axe-core@file:../../vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
+      `@summationai/axe-surface@file:../../vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
     ]);
     expect(y.overrides).toEqual({
       file: "../../package.json",
       key: "resolutions",
-      value: { "@summationai/axe-core": "file:./vendor/summationai-axe-core-1.0.0.tgz" },
+      value: { "@summationai/axe-core": `file:./vendor/summationai-axe-core-${CLI_VERSION}.tgz` },
     });
     // The web app's own precedent: tarballs beside the app, resolutions at the root.
     const beside = installCommand(web, false, "vendor");
     expect(beside.argv).toContain(
-      "@summationai/axe-surface@file:./vendor/summationai-axe-surface-1.0.0.tgz",
+      `@summationai/axe-surface@file:./vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
     );
     expect(beside.overrides!.value).toEqual({
-      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-core": `file:./apps/web/vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(true);
     expect(JSON.parse(readFileSync(join(ws, "package.json"), "utf8")).resolutions).toEqual({
-      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-core": `file:./apps/web/vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(false);
     const pnpmApp = copy("next");
     writeOverrides(pnpmApp, installCommand(detect(pnpmApp), false, "vendor").overrides!);
     expect(JSON.parse(readFileSync(join(pnpmApp, "package.json"), "utf8")).pnpm.overrides).toEqual({
-      "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-core": `file:vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
     });
     // A vendor directory with packed tarballs is read for their real names.
     mkdirSync(join(ws, "apps/web/vendor"));
@@ -827,6 +832,18 @@ describe("freeAgentWebPort", () => {
     expect(await freeAgentWebPort(join(root, "apps/admin"), async (p) => p === 4720)).toBe(4721);
     // An app's own setting does not count against it.
     expect(await freeAgentWebPort(join(root, "apps/web"), async () => false)).toBe(4719);
+  });
+});
+
+describe("portInUse", () => {
+  it("sees a port something listens on as taken, and a closed one as free", async () => {
+    const { createServer } = await import("node:net");
+    const server = createServer();
+    await new Promise<void>((r) => server.listen({ host: "127.0.0.1", port: 0 }, () => r()));
+    const port = (server.address() as { port: number }).port;
+    expect(await portInUse(port)).toBe(true);
+    await new Promise<void>((r) => server.close(() => r()));
+    expect(await portInUse(port)).toBe(false);
   });
 });
 
