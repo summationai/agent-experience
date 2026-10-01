@@ -520,7 +520,7 @@ export async function surfaceCoverage(ctx: CommandContext): Promise<number> {
     const file = resolve(String(values.state));
     if (!existsSync(file)) {
       ctx.stderr(
-        `--state ${file}: no such file. Save one with \`npx @summationai/axe host login ${url}\`, which writes .axe/host-state.json.`,
+        `--state ${file}: no such file. Save one with \`npx @summationai/axe@latest host login ${url}\`, which writes .axe/host-state.json.`,
       );
       return 1;
     }

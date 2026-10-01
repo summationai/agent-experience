@@ -415,13 +415,13 @@ describe("axe surface init: flags and the relay", () => {
     expect(r.out).toContain(
       "The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server",
     );
-    const login = r.out.indexOf("npx @summationai/axe host login http://localhost:3000");
+    const login = r.out.indexOf("npx @summationai/axe@latest host login http://localhost:3000");
     const add = r.out.indexOf(
-      "npx @summationai/axe host --dev --stdio --app http://localhost:3000",
+      "npx @summationai/axe@latest host --dev --stdio --app http://localhost:3000",
     );
     expect(login, r.out).toBeGreaterThan(0);
     expect(add).toBeGreaterThan(login);
-    expect(r.out.indexOf("npx @summationai/axe surface coverage")).toBeGreaterThan(add);
+    expect(r.out.indexOf("npx @summationai/axe@latest surface coverage")).toBeGreaterThan(add);
     expect(r.out).toContain("The person's own tab connects to the company-side service");
     // An app that already depends on both packages is not told to install them.
     const has = copy("vite-react");

@@ -8,7 +8,7 @@ A developer finds this package from the first lines of the README, or from a pos
 
 That is the whole request. The developer may be inexperienced, has no context on this repository, and won't say "run `surface init`", "use the agent web", or "wire `identify`". Treat it as the standard:
 
-- **From that message alone, a coding agent reaches a working integration.** It finds the CLI and the integration prompt (`npx @summationai/axe surface prompt`), runs `surface init --agent-web`, finishes the parts only the application can supply (`identify`, `session`, `loginUrl`, the profile's sign-in state), and verifies the result: typecheck, tests, and the `/agent` checks.
+- **From that message alone, a coding agent reaches a working integration.** It finds the CLI and the integration prompt (`npx @summationai/axe@latest surface prompt`), runs `surface init --agent-web`, finishes the parts only the application can supply (`identify`, `session`, `loginUrl`, the profile's sign-in state), and verifies the result: typecheck, tests, and the `/agent` checks.
 - **It works when the agent cannot run the CLI.** An agent's permissions may refuse downloaded code (`npx`); it then needs one clear next step, such as asking the person to run a single command, not a reconstruction of the generator from the package's source.
 - **The first lines a developer or agent reads point there.** The README, each package's README, and `--help` lead with installing Surface, not with the hand-written `createAXE` API.
 - **No step depends on knowledge from this repository's history.** A manual step `init` prints, or one the agent has to guess, is a gap in the CLI, the generated files, or the prompt, not the integrator's job.

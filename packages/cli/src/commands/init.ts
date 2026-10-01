@@ -4,6 +4,7 @@ import { createInterface } from "node:readline/promises";
 import * as WIRE from "@summationai/axe-core/vocabulary";
 import type { CommandContext } from "../index";
 import { parse } from "./shared";
+import { npxCommand } from "../surface/api";
 
 type Framework = "express" | "next" | "fetch";
 const FRAMEWORKS: Framework[] = ["express", "next", "fetch"];
@@ -160,10 +161,10 @@ export async function init(ctx: CommandContext): Promise<number> {
     `  1. Install: npm install @summationai/axe-core ${adapter}${framework === "fetch" ? " hono @hono/node-server" : framework === "express" ? " express" : ""} && npm install -D @summationai/axe tsx`,
   );
   ctx.stdout(
-    `  2. Start your app (${mount.note}), then check it: npx @summationai/${WIRE.cli.inspect} http://localhost:3000`,
+    `  2. Start your app (${mount.note}), then check it: ${npxCommand(WIRE.cli.inspect)} http://localhost:3000`,
   );
   ctx.stdout(
-    `  3. Prove it works: npx @summationai/${WIRE.cli.conformance} http://localhost:3000 — then npx @summationai/${WIRE.cli.mcp} http://localhost:3000 to talk to it from Claude Desktop.`,
+    `  3. Prove it works: ${npxCommand(WIRE.cli.conformance)} http://localhost:3000 — then ${npxCommand(WIRE.cli.mcp)} http://localhost:3000 to talk to it from Claude Desktop.`,
   );
   return 0;
 }

@@ -3,7 +3,7 @@
 `axe audit` gives a site one number from 0 to 100, a per-category breakdown, and a fix list ordered by how many points each fix recovers. It is the Lighthouse of AXE: not a pass/fail gate, but a way to see how legible your manifest and responses are to an agent and what to change first. It is a lint with a live smoke test, not a certification; [What a score does not mean](#what-a-score-does-not-mean) lists what it cannot tell you.
 
 ```sh
-npx @summationai/axe audit <url> [--auth <token>] [--no-mutate] [--vendor <name>] [--browser] [--json] [--html <file>] [--min-score <n>]
+npx @summationai/axe@latest audit <url> [--auth <token>] [--no-mutate] [--vendor <name>] [--browser] [--json] [--html <file>] [--min-score <n>]
 ```
 
 The audit runs the [conformance suite](testing-and-conformance.md) first and reuses what it observed: the manifest, live outputs from example runs, every `needs_input` and `needs_human` seen, whether idempotency replay worked, whether a tampered token was rejected, and which discovery hint was found. Everything the conformance flags control (`--auth`, `--no-mutate`, `--vendor`) applies here too, and the same warning applies: the audit calls mutating actions, so run it against staging.

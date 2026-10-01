@@ -156,7 +156,7 @@ serve({ fetch: app.fetch, port: Number(process.env.PORT ?? 3000) });
 ```
 <!-- /include -->
 
-Run it with `npx tsx server.ts`, then `npx @summationai/axe inspect http://localhost:3000`.
+Run it with `npx tsx server.ts`, then `npx @summationai/axe@latest inspect http://localhost:3000`.
 
 ## Remix
 

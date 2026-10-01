@@ -26,7 +26,7 @@ The consuming application installs browser packages, plus, for the agent web, on
    **If you may not run the CLI** (your permissions refuse `npx` or downloaded code), do not write its files by hand from this prompt or the package's source: they are generated, and `init` keeps them current. Ask the person to run one command in the application's directory, and continue from step 3 once it has run:
 
    ```sh
-   npx @summationai/axe surface init --agent-web --yes --install
+   npx @summationai/axe@latest surface init --agent-web --yes --install
    ```
 
    Give them a `--dry-run` first if they want to see the changes. If the package manager refuses a version that was published recently (yarn's `npmMinimalAgeGate`, npm's `min-release-age`), tell the person: the scope needs pre-approving (`npmPreapprovedPackages: ["@summationai/*"]` in `.yarnrc.yml`).
@@ -34,7 +34,7 @@ The consuming application installs browser packages, plus, for the agent web, on
 2. Preview the generated integration from the application directory:
 
    ```sh
-   npx @summationai/axe surface init --agent-web --dry-run
+   npx @summationai/axe@latest surface init --agent-web --dry-run
    ```
 
    `--agent-web` also serves agents that have nothing installed (Claude Desktop with no connector): see [Agent web](#agent-web-agents-with-nothing-installed). Leave it out only when the application must not be reachable that way.
@@ -44,7 +44,7 @@ The consuming application installs browser packages, plus, for the agent web, on
    If the detected root renders both public and signed-in pages, choose the application shell that remains mounted through login and context selection:
 
    ```sh
-   npx @summationai/axe surface init --agent-web --mount <layout-file> --dry-run
+   npx @summationai/axe@latest surface init --agent-web --mount <layout-file> --dry-run
    ```
 
    Supply `--app-id <stable-id>` and `--app-name <display-name>` when the inferred package name is not the provider connector’s identity. The Surface `profile.id` and provider connector `surfaceId` must match.
@@ -53,7 +53,7 @@ The consuming application installs browser packages, plus, for the agent web, on
 4. Apply and install:
 
    ```sh
-   npx @summationai/axe surface init --agent-web --yes --install
+   npx @summationai/axe@latest surface init --agent-web --yes --install
    ```
 
    Run the command again and verify it reports that nothing needs to change. If the packages are being tested before registry publication, use the repository’s documented packed-tarball workflow; do not copy SDK source into this application.
@@ -116,7 +116,7 @@ Use the application’s own noun: workspace, organization, account, project, ten
 Run coverage on the important routes:
 
 ```sh
-npx @summationai/axe surface coverage <development-url> --out coverage-before.md
+npx @summationai/axe@latest surface coverage <development-url> --out coverage-before.md
 ```
 
 Refine the highest-value gaps in `surface.config`:
@@ -174,7 +174,7 @@ Then:
 - Confirm the profile reports `signed-out` on the login route, `unknown` only while auth resolves, and `signed-in` after login. In a provider-hosted test, `relay_tabs` while signed out must return a secure session-bound login handoff; completing it must resume against the same tab.
 - Confirm account/workspace selection appears as ordinary Surface controls rather than MCP-specific instructions.
 - Confirm an ordinary visit does not contact the provider service or display agent connection UI.
-- Agent web: run `npx @summationai/axe host --dev --agent-web --text-in-url --env-file <the env file> --app <development-url> --site <development-url>` (it reads the shared secret and its port from that file), then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`, and in a new conversation the same task given only `<development-url>`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
+- Agent web: run `npx @summationai/axe@latest host --dev --agent-web --text-in-url --env-file <the env file> --app <development-url> --site <development-url>` (it reads the shared secret and its port from that file), then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`, and in a new conversation the same task given only `<development-url>`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
 
 ## Hand-off
 

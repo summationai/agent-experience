@@ -219,7 +219,7 @@ describe("axe surface coverage: in headless Chromium", () => {
       stderr: (l) => void missing.push(l),
     });
     expect(code).toBe(1);
-    expect(missing.join("\n")).toContain("axe host login");
+    expect(missing.join("\n")).toContain("npx @summationai/axe@latest host login");
   }, 60_000);
 
   it("the command prints Markdown or JSON, writes --out, and fails when no page has a surface", async () => {

@@ -13,11 +13,11 @@
 From the application's directory (React Router, Next.js, Vite with React, React, or plain HTML):
 
 ```sh
-npx @summationai/axe surface init --agent-web --dry-run    # see what it will change
-npx @summationai/axe surface init --agent-web --yes --install
+npx @summationai/axe@latest surface init --agent-web --dry-run    # see what it will change
+npx @summationai/axe@latest surface init --agent-web --yes --install
 ```
 
-**Using a coding agent?** Ask it to add this package. The integration prompt it should follow is printed by `npx @summationai/axe surface prompt`, and ships in the package as [`templates/integrate-surface.md`](packages/cli/templates/integrate-surface.md). If the agent may not run `npx`, it asks you to run the second command above in the application's directory, then finishes the steps the prompt lists: who is signed in, the session an agent's page runs with, and the sign-in page.
+**Using a coding agent?** Ask it to add this package. The integration prompt it should follow is printed by `npx @summationai/axe@latest surface prompt`, and ships in the package as [`templates/integrate-surface.md`](packages/cli/templates/integrate-surface.md). If the agent may not run `npx`, it asks you to run the second command above in the application's directory, then finishes the steps the prompt lists: who is signed in, the session an agent's page runs with, and the sign-in page.
 
 The packages are in the summationai organization's GitHub Packages registry: map the scope and add a token first ([Install from GitHub Packages](docs/deploying.md#install-from-github-packages)). A package manager that holds back new releases (yarn's `npmMinimalAgeGate`) needs the scope pre-approved: `npmPreapprovedPackages: ["@summationai/*"]` in `.yarnrc.yml`.
 
@@ -58,7 +58,7 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 ```
 <!-- /include -->
 
-Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx @summationai/axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
+Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx @summationai/axe@latest mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
 For a consumer using ChatGPT on mobile or desktop, the production path is the public plugin plus a provider-operated private browser. The person installs **Agent Experience** once; startup stays silent, and a relevant request starts an identity-isolated application session whose Surface is used inside the agent conversation. There is no pairing code, customer MCP server, or developer tooling on the user's device. The only exceptional visible page is a secure provider view of that exact browser when the application itself requires human login. A trusted connector registry supplies each application's URL, origins, identity mapping, and optional session adapter; the running Surface supplies its authentication, controls, and live context. See [the application/provider boundary](docs/architecture.md) and [ChatGPT consumer path](docs/chatgpt-plugin.md).
 
@@ -68,7 +68,7 @@ The packages are private to the summationai organization, in its GitHub Packages
 
 ```sh
 npm install @summationai/axe-surface @summationai/axe-relay
-npx @summationai/axe surface init --app-id example-app --app-name "Example App" --yes
+npx @summationai/axe@latest surface init --app-id example-app --app-name "Example App" --yes
 # In the Agent Experience checkout, not the consuming app:
 AXE_CONNECTOR_ID=example-app AXE_CONNECTOR_SURFACE_ID=example-app \
   AXE_HOST_APP_URL=http://localhost:5173/login pnpm mcp:unattended-dev

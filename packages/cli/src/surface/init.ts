@@ -49,6 +49,7 @@ import {
   WRAPPER,
 } from "./templates";
 import type { FlagSpec, TemplateOptions } from "./templates";
+import { npxCommand } from "./api";
 
 export interface InitOptions {
   dir: string;
@@ -797,8 +798,8 @@ function nextSteps(
           {
             text: `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward). The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
             more: [
-              `npx @summationai/${WIRE.cli.host} login ${devUrl}`,
-              `npx @summationai/${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
+              `${npxCommand(WIRE.cli.host)} login ${devUrl}`,
+              `${npxCommand(WIRE.cli.host)} --dev --stdio --app ${devUrl}`,
             ],
           },
         ]
@@ -808,10 +809,10 @@ function nextSteps(
           },
         ]),
     {
-      text: `See what an agent sees: npx @summationai/${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]`,
+      text: `See what an agent sees: ${npxCommand(WIRE.cli.surfaceCoverage)} ${devUrl} [--routes /a,/b]`,
     },
     {
-      text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: npx @summationai/${WIRE.cli.surface} prompt`,
+      text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: ${npxCommand(WIRE.cli.surface)} prompt`,
     },
     {
       text: !remote
@@ -840,7 +841,7 @@ function nextSteps(
       {
         text: "Run the agent web beside the application, and give an agent (Claude Desktop, nothing installed) the application's address:",
         more: [
-          `npx @summationai/${WIRE.cli.host} --dev --agent-web --text-in-url --env-file ${env?.file ?? "<env file>"} --app ${devUrl} --site ${devUrl}`,
+          `${npxCommand(WIRE.cli.host)} --dev --agent-web --text-in-url --env-file ${env?.file ?? "<env file>"} --app ${devUrl} --site ${devUrl}`,
           `It reads the shared secret (and its port, from AXE_AGENT_WEB_URL) from that file. Agents start at ${devUrl}/agent: this application answers the agent web's pages itself, so an agent never leaves its origin.`,
         ],
       },
