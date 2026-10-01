@@ -96,6 +96,17 @@ export const ACTION_ROLES = new Set([
   "treeitem",
   "combobox-trigger",
 ]);
+/**
+ * A table row a person can operate: made focusable on purpose (`tabindex` 0 or more) inside a
+ * table, grid, or treegrid. Applications open a row's item this way (Enter or a click), and
+ * assistive technology reaches it the same way, so it is an action like a link.
+ */
+export function isOperableRow(el: Element): boolean {
+  const ti = el.getAttribute("tabindex");
+  if (ti === null || !(Number(ti) >= 0)) return false;
+  return !!el.parentElement?.closest('table, [role="grid"], [role="treegrid"], [role="table"]');
+}
+
 /** Roles that become field entries (when the element holds an editable value). */
 export const FIELD_ROLES = new Set(["textbox", "searchbox", "combobox", "spinbutton", "slider"]);
 /** Roles that become collection entries. */
@@ -274,6 +285,7 @@ export const CANDIDATE_SELECTOR = [
   "ol",
   "[contenteditable]",
   "[role]",
+  'tr[tabindex]:not([tabindex^="-"])',
   "[data-surface-id]",
   "nav",
   "main",

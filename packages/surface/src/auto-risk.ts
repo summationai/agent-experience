@@ -536,6 +536,24 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
         },
       );
   }
+  // An operable table row (focusable, in a table or grid) opens its item; its text is the item's
+  // data, so only a verb at the start of it counts.
+  if (role === "row") {
+    const lead = matchOf(lex.destructiveLead, input.name);
+    if (lead) return verdict("high", "app", `name starts with “${lead}”`);
+    const styledRow = dangerStyled(el);
+    if (styledRow) return verdict("high", "app", styledRow);
+    if (opensConfirm(el)) return verdict("high", "app", "opens a confirmation dialog");
+    return verdict(
+      "low",
+      "location",
+      "opens a row of the table; its text is the item, not an action",
+      {
+        reversible: true,
+        idempotent: true,
+      },
+    );
+  }
   const destructive = longLink ? "" : matchOf(lex.destructive, words);
   if (destructive) return verdict("high", "app", `name matches “${destructive}”`);
   const styled = dangerStyled(el);
