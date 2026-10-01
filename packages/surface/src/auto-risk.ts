@@ -424,6 +424,30 @@ export function itemPeers(el: Element): number {
   return 0;
 }
 
+/** Words joined by `_`, `-`, or `.`: `connector_test`, `q3-plan`, `report.csv`. Data, not a verb. */
+const IDENTIFIER = /^[\p{L}\p{N}]+(?:[._-][\p{L}\p{N}]+)+$/u;
+
+/**
+ * The name of an item that has no peers to compare with, or "": a control outside a toolbar that
+ * is (or sits in) a block shaped like an item, the name and at least one more column of text,
+ * whose leading text is an identifier.
+ */
+export function loneItemName(el: Element): string {
+  if (el.closest('[role="toolbar"]')) return "";
+  const block = isItemBlock(el)
+    ? el
+    : el.parentElement && isItemBlock(el.parentElement)
+      ? el.parentElement
+      : null;
+  if (!block) return "";
+  const walker = block.ownerDocument.createTreeWalker(block, 4 /* NodeFilter.SHOW_TEXT */);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const text = n.textContent?.trim();
+    if (text) return IDENTIFIER.test(text) ? text : "";
+  }
+  return "";
+}
+
 /** A name that ends in a count: "Snowflake (7)", "Inbox 12". */
 const COUNTED = /(?:\(\s*\d[\d,.]*\s*\)|\s\d[\d,.]*)$/;
 const TOGGLE_STATE = ["aria-pressed", "aria-selected", "aria-current"];
@@ -610,6 +634,19 @@ export function classify(input: RiskInput, lex: CompiledLexicon): RiskVerdict {
       "location",
       `opens one of ${peers} items; its name is the item, not an action`,
       { reversible: true, idempotent: true },
+    );
+  // The same, for an item that has no peers yet (a folder holding one subfolder): a block shaped
+  // like an item (its name plus other columns), whose name is an identifier.
+  const lone = loneItemName(el);
+  if (lone)
+    return verdict(
+      "low",
+      "location",
+      `opens the item “${lone}”; its name is the item, not an action`,
+      {
+        reversible: true,
+        idempotent: true,
+      },
     );
   const options = filterPeers(el);
   if (options)

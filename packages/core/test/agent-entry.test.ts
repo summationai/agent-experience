@@ -11,7 +11,9 @@ const get = (path: string, headers: Record<string, string> = {}, method = "GET")
 
 describe("agentEntry", () => {
   it("sends Claude's browser, arriving from outside, to /agent", () => {
-    const res = agentEntry(get("/", { "user-agent": CLAUDE, "sec-fetch-site": "none", "sec-fetch-dest": "document" }));
+    const res = agentEntry(
+      get("/", { "user-agent": CLAUDE, "sec-fetch-site": "none", "sec-fetch-dest": "document" }),
+    );
     expect(res?.status).toBe(303);
     expect(res?.headers.get("location")).toBe("/agent");
     expect(res?.headers.get("cache-control")).toBe("no-store");
@@ -29,14 +31,31 @@ describe("agentEntry", () => {
     expect(agentEntry(get("/", { "user-agent": google }))?.status).toBe(303);
     expect(agentEntry(get("/", { "user-agent": chatgpt }))?.status).toBe(303);
     expect(
-      agentEntry(get("/", { "user-agent": CHROME, "signature-agent": '"https://chatgpt.com"', "sec-fetch-site": "none" }))
-        ?.status,
+      agentEntry(
+        get("/", {
+          "user-agent": CHROME,
+          "signature-agent": '"https://chatgpt.com"',
+          "sec-fetch-site": "none",
+        }),
+      )?.status,
     ).toBe(303);
   });
 
   it("leaves crawlers alone", () => {
-    expect(agentEntry(get("/", { "user-agent": "Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)" }))).toBeNull();
-    expect(agentEntry(get("/", { "user-agent": "Mozilla/5.0 (compatible; GPTBot/1.4; +https://openai.com/gptbot)" }))).toBeNull();
+    expect(
+      agentEntry(
+        get("/", {
+          "user-agent": "Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)",
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      agentEntry(
+        get("/", {
+          "user-agent": "Mozilla/5.0 (compatible; GPTBot/1.4; +https://openai.com/gptbot)",
+        }),
+      ),
+    ).toBeNull();
   });
 
   it("leaves a person's browser alone", () => {
@@ -45,7 +64,12 @@ describe("agentEntry", () => {
 
   it("leaves navigation within the site alone, so a person can sign in in the agent's browser", () => {
     expect(
-      agentEntry(get("/login?redirectTo=%2Fagent%2Fsignin", { "user-agent": CLAUDE, "sec-fetch-site": "same-origin" })),
+      agentEntry(
+        get("/login?redirectTo=%2Fagent%2Fsignin", {
+          "user-agent": CLAUDE,
+          "sec-fetch-site": "same-origin",
+        }),
+      ),
     ).toBeNull();
   });
 
@@ -59,8 +83,10 @@ describe("agentEntry", () => {
   });
 
   it("follows basePath", () => {
-    expect(agentEntry(get("/", { "user-agent": CLAUDE }), { basePath: "/for-agents/" })?.headers.get("location")).toBe(
-      "/for-agents",
-    );
+    expect(
+      agentEntry(get("/", { "user-agent": CLAUDE }), { basePath: "/for-agents/" })?.headers.get(
+        "location",
+      ),
+    ).toBe("/for-agents");
   });
 });

@@ -160,6 +160,28 @@ describe("auto surface: choosing an item", () => {
     }
   });
 
+  it("a folder holding a single subfolder: the lone row still opens an item", () => {
+    // FileListTable with one row: no peers to compare, but the row is an item's shape and its
+    // name is an identifier.
+    const r = risks(`<main><h1>postgres_connector</h1><div>
+      <div class="row grid" role="button" tabindex="0">
+        <div class="name"><div class="icon"><svg></svg></div><span>connector_test</span></div>
+        <div class="metadata"><div>Folder</div><div>2 hours ago</div></div></div></div></main>`);
+    expect(r["connector_test Folder 2 hours ago"]).toMatchObject({
+      risk: "low",
+      mutates: "location",
+      reversible: true,
+    });
+  });
+
+  it("a lone row whose name is not an identifier is still unrecognized, and a lone destructive one is high", () => {
+    const r = risks(`<main><div>
+      <div role="button" tabindex="0"><span>Recalculate</span><span>everything</span></div></div>
+      <section><div role="button" tabindex="0"><span>Delete orders</span><span>Data table</span></div></section></main>`);
+    expect(r["Recalculate everything"]!.risk).toBe("high");
+    expect(r["Delete orders Data table"]!.risk).toBe("high");
+  });
+
   it("a row that starts with a destructive verb is still high, and so is a danger-styled one", () => {
     const r = risks(`<main><div>
       <div role="button" tabindex="0"><span>Delete orders</span><span>Data table</span></div>

@@ -97,6 +97,7 @@ Refine the highest-value gaps in `surface.config`:
 - Give unnamed controls an outcome-oriented `name`.
 - Give unavailable controls the same `reason` the application uses.
 - Classify destructive or consequential actions with their real risk and require approval when a person must decide.
+- Do not gate navigation. A control that opens an item (a folder, file, table, report, or row in a list) or moves within the app is `effect: { mutates: "location", risk: "low" }`; add a rule for each list component whose rows open items, so a list with a single row is not left unrecognized (unrecognized controls default to high risk and wait for the person).
 - Mark private fields `sensitive`; add `editable: true` only when an agent may set them.
 - Hide developer tools, embedded assistants, and controls that are not part of the application task surface.
 - Pin unstable controls with `data-surface-id` or a config id.
