@@ -12,6 +12,7 @@ import {
   findVendor,
   freeAgentWebPort,
   portInUse,
+  scopeConfig,
   installCommand,
   planInit,
   writeOverrides,
@@ -795,6 +796,7 @@ describe("axe surface init --agent-web", () => {
     expect(r).toEqual({
       file: ".env",
       added: ["AXE_AGENT_WEB_SECRET", "AXE_AGENT_WEB_URL"],
+      written: true,
       port: 4719,
     });
     const text = readFileSync(join(dir, ".env"), "utf8");
@@ -844,6 +846,31 @@ describe("portInUse", () => {
     expect(await portInUse(port)).toBe(true);
     await new Promise<void>((r) => server.close(() => r()));
     expect(await portInUse(port)).toBe(false);
+  });
+});
+
+describe("scopeConfig", () => {
+  it("finds the @summationai scope mapped in .npmrc or .yarnrc.yml, here or above", () => {
+    const root = mkdtempSync(join(tmpdir(), "axe-scope-"));
+    const app = join(root, "js/apps/admin");
+    mkdirSync(app, { recursive: true });
+    expect(scopeConfig(app)).toBeUndefined();
+    writeFileSync(
+      join(root, ".yarnrc.yml"),
+      'npmScopes:\n  buf:\n    npmRegistryServer: "https://buf.build"\n  summationai:\n    npmRegistryServer: "https://npm.pkg.github.com"\n',
+    );
+    expect(scopeConfig(app)).toBe(join(root, ".yarnrc.yml"));
+    writeFileSync(join(app, ".npmrc"), "@summationai:registry=https://npm.pkg.github.com\n");
+    expect(scopeConfig(app)).toBe(join(app, ".npmrc"));
+  });
+
+  it("does not take another scope for ours", () => {
+    const root = mkdtempSync(join(tmpdir(), "axe-scope-"));
+    writeFileSync(
+      join(root, ".yarnrc.yml"),
+      'npmScopes:\n  buf:\n    npmRegistryServer: "x"\n\nsummationai: true\n',
+    );
+    expect(scopeConfig(root)).toBeUndefined();
   });
 });
 

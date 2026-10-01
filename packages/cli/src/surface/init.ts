@@ -587,8 +587,10 @@ function declares(dir: string, names: string[]): boolean {
 export interface AgentWebEnv {
   /** The env file, relative to the app directory, or null when there is none init may write. */
   file: string | null;
-  /** The variables added (names only). */
+  /** The variables added, or that would be on a dry run (names only). */
   added: string[];
+  /** Whether they were written (false on a dry run). */
+  written?: boolean;
   /** Why nothing was written, when it was not. */
   reason?: string;
   /** The agent web port for this app: the first one free here, unless the file already sets one. */
@@ -717,8 +719,31 @@ export async function ensureAgentWebEnv(
   return {
     file,
     added: lines.map((l) => l.slice(0, l.indexOf("="))),
+    written: lines.length > 0 && write,
     ...(port !== undefined ? { port } : {}),
   };
+}
+
+/**
+ * The file that already maps the @summationai scope to a registry (an `.npmrc` with
+ * `@summationai:registry`, or `npmScopes.summationai` in `.yarnrc.yml`), in the app's directory or
+ * any directory above it; undefined when none does.
+ */
+export function scopeConfig(dir: string): string | undefined {
+  for (let d = dir; ; d = dirname(d)) {
+    const npmrc = join(d, ".npmrc");
+    if (existsSync(npmrc) && /^\s*@summationai:registry\s*=/m.test(readFileSync(npmrc, "utf8")))
+      return npmrc;
+    const yarnrc = join(d, ".yarnrc.yml");
+    if (
+      existsSync(yarnrc) &&
+      /^npmScopes:\s*\n(?:[ \t]+.*\n)*?[ \t]+["']?summationai["']?:/m.test(
+        readFileSync(yarnrc, "utf8"),
+      )
+    )
+      return yarnrc;
+    if (dirname(d) === d) return undefined;
+  }
 }
 
 /** The major version of Next.js the app depends on (0 when it cannot tell). */
@@ -770,7 +795,16 @@ function nextSteps(
   );
   const steps: { text: string; more?: string[] }[] = [];
   const required = [PACKAGES.surface, ...(remote ? [PACKAGES.relay] : [])];
-  if (!installed && !declares(d.dir, required))
+  const scope = scopeConfig(d.dir);
+  if (!installed && !declares(d.dir, required) && scope)
+    steps.push({
+      text: "Install (nothing was added to package.json; --install runs it):",
+      more: [
+        registry.argv.map(quoteArg).join(" "),
+        `The @summationai scope is already mapped to a registry in ${posix(relative(d.dir, scope)) || scope}.`,
+      ],
+    });
+  else if (!installed && !declares(d.dir, required))
     steps.push({
       text: "Install (nothing was added to package.json; --install runs it):",
       more: [
@@ -830,7 +864,9 @@ function nextSteps(
         text: "Agent web: fill in identify and session in agent-site.server from this application's own sign-in (the prompt says how).",
         more: env?.file
           ? [
-              `${env.file} has AXE_AGENT_WEB_SECRET and AXE_AGENT_WEB_URL for the application's server${env.added.length ? " (added now)" : ""}.`,
+              env.added.length && !env.written
+                ? `${env.file} gets ${env.added.join(" and ")} for the application's server when init applies.`
+                : `${env.file} has AXE_AGENT_WEB_SECRET and AXE_AGENT_WEB_URL for the application's server${env.added.length ? " (added now)" : ""}.`,
             ]
           : [
               `Set, for the application's server${env?.reason ? ` (not written: ${env.reason})` : ""}:`,
