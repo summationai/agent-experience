@@ -441,6 +441,20 @@ function addCommand(pm: PackageManager): string {
 }
 
 /** Tarball file names in a vendor directory, by package (from `scripts/pack-for-consumer.sh`). */
+/**
+ * The vendor directory to install from when `--vendor` is not given: `vendor/agent-experience` or
+ * `vendor` in the app directory, when it holds the packed SDK (`scripts/pack-for-consumer.sh`).
+ */
+export function findVendor(dir: string): string | undefined {
+  return ["vendor/agent-experience", "vendor"].find((v) => {
+    const abs = join(dir, v);
+    return (
+      existsSync(abs) &&
+      readdirSync(abs).some((n) => /^summationai-axe-(core|surface)-.+\.tgz$/.test(n))
+    );
+  });
+}
+
 function tarballs(vendorAbs: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
   const names = vendorAbs && existsSync(vendorAbs) ? readdirSync(vendorAbs) : [];
@@ -809,7 +823,11 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let installed = false;
   if (values.install && !values["dry-run"]) {
-    const cmd = installCommand(d, o.remote !== false, o.vendor, o.agentWeb === true);
+    // Packed tarballs beside the app win over the registry, which needs scope configuration.
+    const vendor = o.vendor ?? findVendor(d.dir);
+    if (vendor && !o.vendor)
+      ctx.stdout(`Installing the packed SDK in ${vendor} (pass --vendor to choose another).`);
+    const cmd = installCommand(d, o.remote !== false, vendor, o.agentWeb === true);
     ctx.stdout(`Running: ${cmd.argv.map(quoteArg).join(" ")}  (in ${cmd.cwd})`);
     if (cmd.overrides && writeOverrides(d.dir, cmd.overrides))
       ctx.stdout(

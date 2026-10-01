@@ -7,7 +7,13 @@ import * as prettier from "prettier";
 import { run } from "../src/index";
 import { detect } from "../src/surface/detect";
 import { devScriptPort } from "../src/surface/init";
-import { ensureAgentWebEnv, installCommand, planInit, writeOverrides } from "../src/surface/init";
+import {
+  ensureAgentWebEnv,
+  findVendor,
+  installCommand,
+  planInit,
+  writeOverrides,
+} from "../src/surface/init";
 import { DEV_RELAY_URL } from "../src/surface/api";
 
 const fixtures = join(__dirname, "fixtures");
@@ -796,5 +802,16 @@ describe("axe surface init --agent-web", () => {
     const d = detect(copy("next"));
     expect(installCommand(d, true, undefined, true).argv).toContain("@summationai/axe-core");
     expect(installCommand(d, true).argv).not.toContain("@summationai/axe-core");
+  });
+});
+
+describe("findVendor", () => {
+  it("finds the packed SDK in vendor/agent-experience or vendor", () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-vendor-"));
+    expect(findVendor(dir)).toBeUndefined();
+    mkdirSync(join(dir, "vendor/agent-experience"), { recursive: true });
+    expect(findVendor(dir)).toBeUndefined();
+    writeFileSync(join(dir, "vendor/agent-experience/summationai-axe-core-1.1.0.tgz"), "");
+    expect(findVendor(dir)).toBe("vendor/agent-experience");
   });
 });
