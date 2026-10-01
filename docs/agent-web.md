@@ -58,6 +58,19 @@ export const agentSite = agentSiteHandler({
 // app/agent/[...path]/route.ts: GET and POST return (await agentSite(request)) ?? 404
 ```
 
+### When the agent is given only the site's address
+
+An agent told "use Summation at app.example.com" opens the site itself, lands on the sign-in page, and asks the person to sign in in the agent's browser. `agentEntry(request)` sends it to `/agent` instead. Call it first wherever every page request passes (a root loader, `middleware.ts`):
+
+```ts
+import { agentEntry } from "@summationai/axe-core/agent-site";
+
+const toAgent = agentEntry(request); // a 303 to /agent, or null
+if (toAgent) throw toAgent; // or return it
+```
+
+It answers only a GET for a document, from a user agent in `agentBrowsers` (Claude's in-app browser sends `Claude/<version>`; the providers' per-request fetchers send `Claude-User`, `ChatGPT-User`, `Perplexity-User`), arriving from outside the site. A navigation within the site (`Sec-Fetch-Site: same-origin`) is never sent on, so the person can still sign in from a link in the agent's browser, and `?agent=off` opens the site as usual. For an agent it does not recognize, name the entry in the page: a `<link rel="alternate" type="text/markdown" href="/agent">` in `<head>`, and a visually hidden link first in `<body>`, since agents read the accessibility tree rather than `<head>`.
+
 The service is `createAgentWeb` from `@summationai/axe-host`, operated by the Surface provider. For development:
 
 ```sh

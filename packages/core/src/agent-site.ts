@@ -8,6 +8,8 @@
  *   // in a route handler: return (await agent(request)) ?? next();
  *
  * - `/agent`: where an agent that found the site starts; sent on to the agent web's `/start`.
+ * - `agentEntry(request)`: in the site's page handler, sends an agent's browser arriving from
+ *   outside on to `/agent`.
  * - `/agent/signin?agent_session=<id>`: connect this agent session to the signed-in person (the
  *   page shows the code the agent showed; the person confirms it matches).
  * - `/agent/approve/<id>`: the exact high-risk action the agent asked for; Approve or Decline.
@@ -299,4 +301,55 @@ export function agentSiteHandler(
     }
     return page("Not found", "<h1>Not found</h1>", 404);
   };
+}
+
+/**
+ * User agents of browsers an agent drives for a person: Claude's in-app browser (`Claude/<ver>`)
+ * and the providers' documented per-request fetchers. Crawlers that index a site are not here.
+ */
+export const agentBrowsers: readonly RegExp[] = [
+  /\bClaude\/\d/,
+  /\bClaude-User\b/,
+  /\bChatGPT-User\b/,
+  /\bPerplexity-User\b/,
+];
+
+export interface AgentEntryOptions {
+  /** Where the site's agent pages are mounted. Default `/agent`. */
+  basePath?: string;
+  /** User agents to send on. Default {@link agentBrowsers}. */
+  agents?: readonly RegExp[];
+}
+
+/**
+ * For the site's first response to a page request: when an agent's browser arrives at the site
+ * from outside (a typed or pasted URL, a link from elsewhere), a 303 to `/agent`, the agent web's
+ * entry, instead of the page a person would see. Otherwise null, and the site answers as usual.
+ *
+ * It never sends on a navigation within the site (`Sec-Fetch-Site: same-origin`), so a person
+ * signing in from a link in the agent's browser, or using the site there, keeps the site. Nor a
+ * request under `basePath`, a non-GET, a request for anything but a document, or a request with
+ * `?agent=off`.
+ */
+export function agentEntry(request: Request, o: AgentEntryOptions = {}): Response | null {
+  if (request.method !== "GET") return null;
+  const ua = request.headers.get("user-agent") ?? "";
+  if (!(o.agents ?? agentBrowsers).some((re) => re.test(ua))) return null;
+  const site = request.headers.get("sec-fetch-site");
+  if (site === "same-origin" || site === "same-site") return null;
+  const dest = request.headers.get("sec-fetch-dest");
+  if (dest && dest !== "document") return null;
+  const url = new URL(request.url);
+  const base = (o.basePath ?? "/agent").replace(/\/+$/, "");
+  if (url.pathname === base || url.pathname.startsWith(`${base}/`)) return null;
+  if (url.searchParams.get("agent") === "off") return null;
+  return new Response(`This site's interface for agents is ${base}\n`, {
+    status: 303,
+    headers: {
+      Location: base,
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+      Vary: "User-Agent, Sec-Fetch-Site",
+    },
+  });
 }

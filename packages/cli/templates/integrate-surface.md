@@ -118,8 +118,9 @@ An agent with nothing installed follows links. The provider's agent web service 
 Then:
 
 - Set `AXE_AGENT_WEB_SECRET` (at least 32 random characters, the same value the agent web service has) and `AXE_AGENT_WEB_URL` (where this server reaches the service; `http://127.0.0.1:4719` in development) in the server's environment, in the local environment file the application already uses. Do not commit a secret.
-- Check that the route answers: signed out, `GET /agent/signin?agent_session=x` redirects to sign-in; `GET /agent` redirects to the agent web's `/start`.
-- Optionally, name the agent entry in the root document's `<head>`, so an agent that opens the site finds it: `<link rel="alternate" type="text/markdown" href="/agent" title="For agents" />`.
+- Check that the route answers: signed out, `GET /agent/signin?agent_session=x` redirects to sign-in; `GET /agent` redirects to the agent web's `/start`. With `User-Agent: Claude/1.0`, `GET /` redirects to `/agent`; with `Sec-Fetch-Site: same-origin` added, it does not.
+- Send an agent that opens the site itself on to `/agent`. An agent given only the site's address otherwise lands on the sign-in page and asks the person to sign in in the agent's browser. Call `agentEntry(request)` from `@summationai/axe-core/agent-site` first in the server code every page request passes through (the root route's loader in React Router or Remix; `middleware.ts` in Next.js; the first middleware in Express), and return or throw its response when it is not `null`. It answers only a recognized agent browser arriving from outside the site, so people, navigation within the site, and the sign-in a person does from the agent's browser are unaffected.
+- Name the agent entry for agents it does not recognize, in the root document: `<link rel="alternate" type="text/markdown" href="/agent" title="For agents" />` in `<head>`, and, first in `<body>`, a link that reads to an agent but not on screen: `<a href="/agent" tabIndex={-1} className="<the application's visually hidden class>">AI agent acting for a person? Start at /agent</a>`. Agents read the accessibility tree, not `<head>`. Use the application's own visually hidden utility (`sr-only` in Tailwind).
 
 ## Verify
 
@@ -131,7 +132,7 @@ Then:
 - Confirm the profile reports `signed-out` on the login route, `unknown` only while auth resolves, and `signed-in` after login. In a provider-hosted test, `relay_tabs` while signed out must return a secure session-bound login handoff; completing it must resume against the same tab.
 - Confirm account/workspace selection appears as ordinary Surface controls rather than MCP-specific instructions.
 - Confirm an ordinary visit does not contact the provider service or display agent connection UI.
-- Agent web: run `AXE_AGENT_WEB_SECRET=<same> npx @summationai/axe host --dev --agent-web --text-in-url --app <development-url> --site <development-url>`, then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
+- Agent web: run `AXE_AGENT_WEB_SECRET=<same> npx @summationai/axe host --dev --agent-web --text-in-url --app <development-url> --site <development-url>`, then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`, and in a new conversation the same task given only `<development-url>`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
 
 ## Hand-off
 
