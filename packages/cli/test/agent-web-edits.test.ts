@@ -62,7 +62,7 @@ export async function loader({ request: _request }: LoaderFunctionArgs) {
     const out = addAgentEntryToRootLoader(root, { typescript: true }) as string;
     expect(out).toContain('import { agentEntry } from "@summationai/axe-core/agent-entry";');
     expect(out).toMatch(
-      /loader\(\{ request: _request \}: LoaderFunctionArgs\) \{\n {2}\/\/ An agent's browser[^\n]*\n[^\n]*\n {2}const toAgent = agentEntry\(_request\);\n {2}if \(toAgent\) throw toAgent;\n {2}return \{/,
+      /loader\(\{ request: _request \}: LoaderFunctionArgs\) \{\n {2}\/\/ An agent's browser(?:[^\n]*\n){3} {2}const toAgent = process\.env\.AXE_AGENT_WEB_SECRET \? agentEntry\(_request\) : null;\n {2}if \(toAgent\) throw toAgent;\n {2}return \{/,
     );
     expect(addAgentEntryToRootLoader(out, { typescript: true })).toBe(out);
   });
@@ -76,7 +76,7 @@ export async function loader({ request: _request }: LoaderFunctionArgs) {
     const out = addAgentEntryToRootLoader(root, { typescript: true }) as string;
     expect(out).toContain("Promise<RootLoaderData> {\n    // An agent's browser");
     expect(out).toContain(
-      "    const toAgent = agentEntry(request);\n    if (toAgent) throw toAgent;\n    if (request.method",
+      "    const toAgent = process.env.AXE_AGENT_WEB_SECRET ? agentEntry(request) : null;\n    if (toAgent) throw toAgent;\n    if (request.method",
     );
   });
 
@@ -105,7 +105,7 @@ export async function loader({ request: _request }: LoaderFunctionArgs) {
     ) as string;
     expect(out).toContain('import type { LoaderFunctionArgs } from "react-router";');
     expect(out).toContain(
-      "export async function loader({ request }: LoaderFunctionArgs) {\n  const toAgent = agentEntry(request);\n  if (toAgent) throw toAgent;\n  return null;\n}",
+      "export async function loader({ request }: LoaderFunctionArgs) {\n  const toAgent = process.env.AXE_AGENT_WEB_SECRET ? agentEntry(request) : null;\n  if (toAgent) throw toAgent;\n  return null;\n}",
     );
   });
 
@@ -121,7 +121,7 @@ export async function loader({ request: _request }: LoaderFunctionArgs) {
 describe("nextAgentEntryFile and matchBracket", () => {
   it("writes proxy.ts for Next.js 16 and middleware.ts before", () => {
     expect(nextAgentEntryFile({ typescript: true, proxy: true })).toContain(
-      "export function proxy(request: NextRequest) {\n  return agentEntry(request) ?? NextResponse.next();",
+      "export function proxy(request: NextRequest) {\n  const toAgent = process.env.AXE_AGENT_WEB_SECRET ? agentEntry(request) : null;\n  return toAgent ?? NextResponse.next();",
     );
     const mw = nextAgentEntryFile({ typescript: false, proxy: false });
     expect(mw).toContain("export function middleware(request) {");

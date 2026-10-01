@@ -735,7 +735,9 @@ describe("axe surface init --agent-web", () => {
     const root = by["app/root.tsx"]!.after;
     expect(root).toContain("<AgentSurface>");
     expect(root).toContain('import { agentEntry } from "@summationai/axe-core/agent-entry";');
-    expect(root).toContain("const toAgent = agentEntry(request);");
+    expect(root).toContain(
+      "const toAgent = process.env.AXE_AGENT_WEB_SECRET ? agentEntry(request) : null;",
+    );
     expect(plan.manual).toEqual([]);
     // The agent links are rendered by AgentSurface, so the root's <head> and <body> are untouched.
     const surface = plan.changes.find((c) => c.display.endsWith("surface.tsx"))!.after;

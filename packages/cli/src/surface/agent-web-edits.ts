@@ -78,8 +78,13 @@ export function addConfigRoute(text: string, file: string, quote: '"' | "'" = '"
 
 const ENTRY_COMMENT = [
   "// An agent's browser that opens the site from outside goes to the agent web's entry (/agent),",
-  "// not the page a person would see. People and navigation within the site are untouched.",
+  "// not the page a person would see, once the agent web is set up (AXE_AGENT_WEB_SECRET).",
+  "// People and navigation within the site are untouched.",
 ];
+
+/** The guarded call: nothing changes for anyone until the agent web is configured. */
+const entryCall = (request: string) =>
+  `process.env.AXE_AGENT_WEB_SECRET ? agentEntry(${request}) : null`;
 
 /**
  * Call `agentEntry` first in a React Router (or Remix) root's `loader`, adding a loader when the
@@ -115,7 +120,7 @@ export function addAgentEntryToRootLoader(
         "",
         ...ENTRY_COMMENT,
         `export async function loader(${param}) {`,
-        `  const toAgent = agentEntry(request)${semi}`,
+        `  const toAgent = ${entryCall("request")}${semi}`,
         `  if (toAgent) throw toAgent${semi}`,
         `  return null${semi}`,
         "}",
@@ -161,7 +166,7 @@ export function addAgentEntryToRootLoader(
   const indent = firstLine || indentAt(text, m.index) + "  ";
   const insert =
     ENTRY_COMMENT.map((l) => indent + l).join("\n") +
-    `\n${indent}const toAgent = agentEntry(${request})${semi}\n${indent}if (toAgent) throw toAgent${semi}\n`;
+    `\n${indent}const toAgent = ${entryCall(request)}${semi}\n${indent}if (toAgent) throw toAgent${semi}\n`;
   const out =
     text.slice(0, open + 1) +
     newParams +
@@ -183,7 +188,8 @@ export function nextAgentEntryFile(o: { typescript: boolean; proxy: boolean }): 
     "",
     ...ENTRY_COMMENT,
     `export function ${name}(request${o.typescript ? ": NextRequest" : ""}) {`,
-    "  return agentEntry(request) ?? NextResponse.next();",
+    `  const toAgent = ${entryCall("request")};`,
+    "  return toAgent ?? NextResponse.next();",
     "}",
     "",
     "// Pages only: not Next.js's own files, API routes, the agent pages, or files with an extension.",

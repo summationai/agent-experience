@@ -60,7 +60,7 @@ export const agentSite = agentSiteHandler({
 
 ### When the agent is given only the site's address
 
-An agent told "use Summation at app.example.com" opens the site itself, lands on the sign-in page, and asks the person to sign in in the agent's browser. `agentEntry(request)` sends it to `/agent` instead. `axe surface init --agent-web` calls it first in a React Router root loader, or writes a Next.js `proxy.ts` (Next.js 16) or `middleware.ts`; anywhere else, call it first wherever every page request passes. It comes from `@summationai/axe-core/agent-entry`, which has no Node imports, so an Edge middleware can use it:
+An agent told "use Summation at app.example.com" opens the site itself, lands on the sign-in page, and asks the person to sign in in the agent's browser. `agentEntry(request)` sends it to `/agent` instead. `axe surface init --agent-web` calls it first in a React Router root loader, or writes a Next.js `proxy.ts` (Next.js 16) or `middleware.ts`, guarded so nothing changes until the agent web is set up (`AXE_AGENT_WEB_SECRET`; without it `agentSiteHandler` has no pages either, and `/agent` is a 404); anywhere else, call it first wherever every page request passes. It comes from `@summationai/axe-core/agent-entry`, which has no Node imports, so an Edge middleware can use it:
 
 ```ts
 import { agentEntry } from "@summationai/axe-core/agent-entry";

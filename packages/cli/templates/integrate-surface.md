@@ -22,6 +22,15 @@ The consuming application installs browser packages, plus, for the agent web, on
 ## Install
 
 1. Read the application’s README, package manifest, routing/root layout, authentication shell, and local agent instructions.
+
+   **If you may not run the CLI** (your permissions refuse `npx` or downloaded code), do not write its files by hand from this prompt or the package's source: they are generated, and `init` keeps them current. Ask the person to run one command in the application's directory, and continue from step 3 once it has run:
+
+   ```sh
+   npx @summationai/axe surface init --agent-web --yes --install
+   ```
+
+   Give them a `--dry-run` first if they want to see the changes. If the package manager refuses a version that was published recently (yarn's `npmMinimalAgeGate`, npm's `min-release-age`), tell the person: the scope needs pre-approving (`npmPreapprovedPackages: ["@summationai/*"]` in `.yarnrc.yml`).
+
 2. Preview the generated integration from the application directory:
 
    ```sh
@@ -115,7 +124,7 @@ Refine the highest-value gaps in `surface.config`:
 - Give unnamed controls an outcome-oriented `name`.
 - Give unavailable controls the same `reason` the application uses.
 - Classify destructive or consequential actions with their real risk and require approval when a person must decide.
-- Do not gate navigation. A control that opens an item (a folder, file, table, report, or row in a list) or moves within the app is `effect: { mutates: "location", risk: "low" }`; add a rule for each list component whose rows open items, so a list with a single row is not left unrecognized (unrecognized controls default to high risk and wait for the person).
+- Do not gate navigation. Surface already reads these as opening an item, low risk: links within the site, tabs and tree items, a row or card named for an item among its peers, a single row whose name is an identifier, and a table row the app made focusable (`tabindex="0"`). Add a rule only for an item control coverage lists as unrecognized (unrecognized controls default to high risk and wait for the person): `effect: { mutates: "location", risk: "low" }`.
 - Mark private fields `sensitive`; add `editable: true` only when an agent may set them.
 - Hide developer tools, embedded assistants, and controls that are not part of the application task surface.
 - Pin unstable controls with `data-surface-id` or a config id.
@@ -147,6 +156,7 @@ An agent with nothing installed follows links. The provider's agent web service 
    - Accept only a path on this site: it starts with `/`, and not with `//` or `/\`. Anything else lands where sign-in lands today.
    - Keep it across a round trip through an identity provider (SSO, OAuth): the provider returns to the app's callback page, not to `/login?redirectTo=…`. Store the path in `sessionStorage` on the sign-in page, and read and remove it where sign-in completes.
    - Go there with a full page load (`window.location.assign`), not the router's client-side navigation: `/agent/signin` is a server route, not a page the client router knows.
+   - Store it with the time, and ignore it after ten minutes, so a sign-in someone abandoned does not send a later one to a stale agent link. Do not clear it on a sign-in page that lacks `redirectTo`: a multi-step sign-in (an email step, then SSO) reloads that page without it.
 
 Then:
 

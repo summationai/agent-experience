@@ -363,6 +363,19 @@ describe("the agent web answered from the site's own origin", () => {
     expect(seen).toHaveLength(2);
   });
 
+  it("has no agent pages until it has a secret", async () => {
+    const site = agentSiteHandler({
+      serviceUrl: "http://127.0.0.1:9",
+      secret: "",
+      identify: () => null,
+      session: () => ({}),
+      loginUrl: () => "/login",
+      fetch: () => Promise.reject(new Error("not called")),
+    });
+    expect(await site(new Request(`${SITE}/agent`))).toBeNull();
+    expect(await site(new Request(`${SITE}/agent/signin?agent_session=x`))).toBeNull();
+  });
+
   it("says so when the service is down", async () => {
     const site = agentSiteHandler({
       serviceUrl: "http://127.0.0.1:9",

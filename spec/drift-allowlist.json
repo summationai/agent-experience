@@ -26,5 +26,13 @@
   {
     "token": "allowedDevOrigins",
     "reason": "Next.js config option a site sets for a tunnel origin in local development (docs/agent-web.md), not an AXE wire name"
+  },
+  {
+    "token": "npmMinimalAgeGate",
+    "reason": "yarn configuration a consumer sets in .yarnrc.yml to install a recent release (README install note), not an AXE wire name"
+  },
+  {
+    "token": "npmPreapprovedPackages",
+    "reason": "yarn configuration a consumer sets in .yarnrc.yml to install a recent release (README install note), not an AXE wire name"
   }
 ]

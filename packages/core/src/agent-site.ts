@@ -209,6 +209,8 @@ export function agentSiteHandler(
   };
 
   return async (request) => {
+    // Not set up (no shared secret): the site has no agent pages, so its routes answer as usual.
+    if (!o.secret) return null;
     const url = new URL(request.url);
     // `/agent` itself is where an agent that found the site starts.
     const isEntry = url.pathname === base || url.pathname === `${base}/`;
