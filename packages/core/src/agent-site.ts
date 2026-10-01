@@ -7,7 +7,9 @@
  *   const agent = agentSiteHandler({ serviceUrl, secret, identify, session, loginUrl });
  *   // in a route handler: return (await agent(request)) ?? next();
  *
- * - `/agent`: where an agent that found the site starts; sent on to the agent web's `/start`.
+ * - `/agent`: where an agent that found the site starts. By default the agent web's pages
+ *   (`/agent`, `/agent/start`, `/agent/s/...`) are answered from this site, passed through to the
+ *   service, so an agent stays on the site's origin; with `agentUrl`, a 303 to its `/start`.
  * - `agentEntry(request)`: in the site's page handler, sends an agent's browser arriving from
  *   outside on to `/agent`.
  * - `/agent/signin?agent_session=<id>`: connect this agent session to the signed-in person (the
@@ -82,8 +84,11 @@ export interface AgentSiteOptions {
   /** The agent web service's origin, as the site's server reaches it. */
   serviceUrl: string;
   /**
-   * The agent web's origin as agents reach it, for `GET /agent`, the address an agent finds on
-   * the site and is sent on from to `/start`. Default: `serviceUrl`.
+   * Omit (the default) to serve the agent web's pages from this site: `/agent` (the start page),
+   * `/agent/start`, and `/agent/s/...` are passed through to `serviceUrl`, so an agent never
+   * leaves the site's origin (run the service with `--public <site>/agent`, its default). Set it
+   * to the agent web's own public origin to send agents there instead, with a 303 from `/agent`
+   * to `<agentUrl>/start`.
    */
   agentUrl?: string;
   /** The secret shared with the service (`siteSecret`). */
@@ -131,12 +136,28 @@ function page(title: string, body: string, status = 200): Response {
   );
 }
 
+/** Request headers passed on to the agent web: what it logs to tell agents apart, and content negotiation. */
+const FORWARDED = [
+  "user-agent",
+  "accept",
+  "accept-language",
+  "sec-fetch-site",
+  "sec-fetch-dest",
+  "signature-agent",
+  "signature",
+  "signature-input",
+  "x-forwarded-for",
+  "cf-connecting-ip",
+];
+/** Response headers passed back: the page's type, its no-store caching, and a redirect. */
+const RETURNED = ["content-type", "cache-control", "location", "vary"];
+
 export function agentSiteHandler(
   o: AgentSiteOptions,
 ): (request: Request) => Promise<Response | null> {
   const base = (o.basePath ?? "/agent").replace(/\/+$/, "");
   const service = o.serviceUrl.replace(/\/+$/, "");
-  const agentUrl = (o.agentUrl ?? o.serviceUrl).replace(/\/+$/, "");
+  const agentUrl = o.agentUrl?.replace(/\/+$/, "");
   const doFetch = o.fetch ?? fetch;
   const api = (path: string, init: RequestInit = {}) =>
     doFetch(`${service}/api${path}`, {
@@ -147,6 +168,33 @@ export function agentSiteHandler(
         ...(init.headers ?? {}),
       },
     });
+  // The agent web's own pages, answered from this origin. The service's site API (`/api/...`)
+  // is not among them: it needs the secret and only this server calls it.
+  const passThrough = async (request: Request, target: string): Promise<Response> => {
+    const headers = new Headers();
+    for (const h of FORWARDED) {
+      const v = request.headers.get(h);
+      if (v) headers.set(h, v);
+    }
+    let res: Response;
+    try {
+      res = await doFetch(target, { method: request.method, headers, redirect: "manual" });
+    } catch {
+      return new Response("The agent web is not reachable from this site right now.\n", {
+        status: 502,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    const out = new Headers();
+    for (const h of RETURNED) {
+      const v = res.headers.get(h);
+      if (v) out.set(h, v);
+    }
+    return new Response(request.method === "HEAD" ? null : res.body, {
+      status: res.status,
+      headers: out,
+    });
+  };
   const nonce = (...parts: string[]) =>
     createHmac("sha256", o.secret).update(parts.join("\n")).digest("base64url");
   const nonceOk = (given: string | null, ...parts: string[]) => {
@@ -158,8 +206,14 @@ export function agentSiteHandler(
 
   return async (request) => {
     const url = new URL(request.url);
-    // `/agent` itself is where an agent that found the site starts: on to the agent web.
-    if ((url.pathname === base || url.pathname === `${base}/`) && request.method === "GET")
+    // `/agent` itself is where an agent that found the site starts.
+    const isEntry = url.pathname === base || url.pathname === `${base}/`;
+    if (!agentUrl && (request.method === "GET" || request.method === "HEAD")) {
+      const rest = url.pathname.slice(base.length);
+      if (isEntry || rest === "/start" || rest.startsWith("/s/"))
+        return passThrough(request, `${service}${isEntry ? "/start" : rest}${url.search}`);
+    }
+    if (agentUrl && isEntry && request.method === "GET")
       return new Response(`Agents start at ${agentUrl}/start\n`, {
         status: 303,
         headers: {

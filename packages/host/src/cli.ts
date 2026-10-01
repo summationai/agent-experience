@@ -52,8 +52,9 @@ Commands and options:
   --name <n>        The MCP server's name in the printed agent configuration. Default "app".
   --agent-web       Experimental: serve the app to agents with nothing installed, as pages of links
                     (docs/agent-web.md). The site mounts agentSiteHandler at /agent; set
-                    AXE_AGENT_WEB_SECRET to the secret it shares. With --site <origin> (default
-                    the app) and --public <origin> (default this service's own), --port (4719).
+                    AXE_AGENT_WEB_SECRET to the secret it shares, and it answers the agent pages
+                    from its own origin. With --site <origin> (default the app), --public <url>
+                    (where agents reach these pages; default <site>/agent), --port (4719).
                     --text-in-url also offers links that take a typed value as ?text=.
   --webmcp          Experimental, with --stdio: serve the page's own WebMCP tools (SurfaceProvider
                     webMcp, exposeWebMcp, or document.modelContext.registerTool) instead of the
@@ -310,7 +311,9 @@ async function serveAgentWeb(o: {
     o.stderr("axe host: AXE_AGENT_WEB_SECRET must be at least 32 characters.");
     return 1;
   }
-  const publicUrl = o.publicUrl ?? `http://127.0.0.1:${o.port}`;
+  // By default the site answers the agent pages itself (agentSiteHandler without agentUrl), so
+  // every link an agent follows is on the site's own origin.
+  const publicUrl = o.publicUrl ?? `${o.site.replace(/\/+$/, "")}/agent`;
   const web = createAgentWeb({
     publicUrl,
     siteUrl: o.site,
@@ -333,15 +336,15 @@ async function serveAgentWeb(o: {
     return 1;
   }
   o.stdout(`axe host: agent web for ${o.appUrl} on ${address.url} (experimental, development)`);
-  o.stdout(`  agents start at: ${publicUrl}/start`);
+  o.stdout(`  agents start at: ${o.publicUrl ? `${publicUrl}/start` : publicUrl}`);
   o.stdout(
     `  the site's agent pages: ${o.site}/agent/...  (agentSiteHandler, serviceUrl ${address.url})`,
   );
   if (generated)
     o.stdout(`  AXE_AGENT_WEB_SECRET=${secret}   (generated; give the site the same value)`);
-  if (!o.publicUrl)
+  if (/^https?:\/\/(localhost|127\.|\[::1\])/.test(publicUrl))
     o.stdout(
-      "  An agent's web fetch runs on its provider's servers and cannot reach loopback: expose this port on public HTTPS and pass --public <that origin>.",
+      "  Loopback suits Claude Desktop. An agent whose web fetch runs on its provider's servers needs the site on public HTTPS (docs/agent-web.md, cloudflared); this service stays on loopback.",
     );
   let stopped: () => void = () => undefined;
   const done = new Promise<void>((resolve) => (stopped = resolve));

@@ -319,3 +319,60 @@ describe.skipIf(missing)("agent web: an agent with only web fetch, a person on t
     }
   }, 90_000);
 });
+
+describe("the agent web answered from the site's own origin", () => {
+  it("an agent that starts at the site's /agent follows only links on the site", async () => {
+    const web = createAgentWeb({
+      publicUrl: `${SITE}/agent`,
+      siteUrl: SITE,
+      appUrl: "http://127.0.0.1:9",
+      appName: "Board",
+      siteSecret: SECRET,
+    });
+    const seen: string[] = [];
+    const site = agentSiteHandler({
+      serviceUrl: "http://127.0.0.1:4719",
+      secret: SECRET,
+      identify: () => null,
+      session: () => ({}),
+      loginUrl: () => "/login",
+      fetch: (input, init) => {
+        seen.push(String(input));
+        return web.handle(new Request(String(input), init));
+      },
+    });
+    const ua = { "user-agent": "Claude-User (test)" };
+    const start = await site(new Request(`${SITE}/agent`, { headers: ua }));
+    expect(start!.status).toBe(200);
+    expect(start!.headers.get("cache-control")).toContain("no-store");
+    const text = await start!.text();
+    // Every link on the page is on the site: the session links under /agent/s/, the sign-in page.
+    const links = text.match(/https?:\/\/\S+/g)!;
+    expect(links.length).toBeGreaterThan(1);
+    for (const l of links) expect(l.startsWith(`${SITE}/agent/`), l).toBe(true);
+    const next = /continue: (\S+)/.exec(text)![1]!;
+    const pending = await site(new Request(next, { headers: ua }));
+    expect(await pending!.text()).toContain("has not connected this session yet");
+    // The site passed /agent on as the service's /start, and /agent/s/... as /s/...
+    expect(seen[0]).toBe("http://127.0.0.1:4719/start");
+    expect(seen[1]).toMatch(/^http:\/\/127\.0\.0\.1:4719\/s\//);
+    // The service's site API is not reachable through the site, and only GET and HEAD pass.
+    const api = await site(new Request(`${SITE}/agent/api/sessions/x`));
+    expect(api!.status).not.toBe(200);
+    await site(new Request(next, { method: "POST" }));
+    expect(seen).toHaveLength(2);
+  });
+
+  it("says so when the service is down", async () => {
+    const site = agentSiteHandler({
+      serviceUrl: "http://127.0.0.1:9",
+      secret: SECRET,
+      identify: () => null,
+      session: () => ({}),
+      loginUrl: () => "/login",
+      fetch: () => Promise.reject(new Error("ECONNREFUSED")),
+    });
+    const res = await site(new Request(`${SITE}/agent`));
+    expect(res!.status).toBe(502);
+  });
+});

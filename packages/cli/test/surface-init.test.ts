@@ -6,6 +6,7 @@ import { join } from "node:path";
 import * as prettier from "prettier";
 import { run } from "../src/index";
 import { detect } from "../src/surface/detect";
+import { devScriptPort } from "../src/surface/init";
 import { installCommand, planInit, writeOverrides } from "../src/surface/init";
 import { DEV_RELAY_URL } from "../src/surface/api";
 
@@ -628,6 +629,22 @@ describe("axe surface: help and the prompt pack", () => {
       "--agent-web",
     ])
       expect(prompt).toContain(option);
+  });
+});
+
+describe("devScriptPort", () => {
+  it("reads the port the app's own dev script names", () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-port-"));
+    const write = (dev: string) =>
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { dev } }));
+    write("react-router dev --port 5174");
+    expect(devScriptPort(dir)).toBe("5174");
+    write("next dev -p 3001");
+    expect(devScriptPort(dir)).toBe("3001");
+    write("vite --port=4000 --host");
+    expect(devScriptPort(dir)).toBe("4000");
+    write("react-router dev");
+    expect(devScriptPort(dir)).toBeUndefined();
   });
 });
 

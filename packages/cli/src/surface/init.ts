@@ -475,13 +475,27 @@ function declares(dir: string, names: string[]): boolean {
   }
 }
 
+/** The port the app's own `dev` script names (`--port 5174`, `-p 3001`), if any. */
+export function devScriptPort(dir: string): string | undefined {
+  try {
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+    return /(?:--port[= ]|-p )(\d{2,5})\b/.exec(pkg.scripts?.["dev"] ?? "")?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
 function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
   const d = plan.detection;
   const remote = o.remote !== false;
   const registry = installCommand(d, remote, undefined, o.agentWeb === true);
   const tar = installCommand(d, remote, o.vendor ?? "vendor", o.agentWeb === true);
-  const devUrl =
-    d.framework === "next"
+  const port = devScriptPort(d.dir);
+  const devUrl = port
+    ? `http://localhost:${port}`
+    : d.framework === "next"
       ? "http://localhost:3000"
       : d.framework === "react-router" || d.framework === "vite-react"
         ? "http://localhost:5173"
@@ -555,10 +569,10 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
         ],
       },
       {
-        text: "Run the agent web beside the application, with the same secret, and give an agent (Claude Desktop, nothing installed) its start page:",
+        text: "Run the agent web beside the application, with the same secret, and give an agent (Claude Desktop, nothing installed) the application's address:",
         more: [
           `AXE_AGENT_WEB_SECRET=<same> npx @summationai/${WIRE.cli.host} --dev --agent-web --text-in-url --app ${devUrl} --site ${devUrl}`,
-          `Agents start at http://127.0.0.1:4719/start, or at ${devUrl}/agent, which sends them there.`,
+          `Agents start at ${devUrl}/agent: this application answers the agent web's pages itself, so an agent never leaves its origin.`,
         ],
       },
     );
