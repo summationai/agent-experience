@@ -17,6 +17,7 @@ The consuming application installs browser packages, plus, for the agent web, on
 - Mark private fields `sensitive`. Do not expose credentials or tokens through values, objects, logs, tests, or coverage artifacts.
 - Surface is on by default. Add `--flag` only when this application has an explicit rollout requirement; do not invent a feature flag.
 - Do not add MCP SDK, WebSocket server, Playwright, or service code to this application. The agent web's site side is `agentSiteHandler` from `@summationai/axe-core/agent-site` and nothing else.
+- Change only what the integration needs. Format only the lines you write, with the application's own formatter and configuration; never reformat code you did not change, and never run a formatter over a whole directory.
 
 ## Install
 
@@ -39,7 +40,7 @@ The consuming application installs browser packages, plus, for the agent web, on
 
    Supply `--app-id <stable-id>` and `--app-name <display-name>` when the inferred package name is not the provider connector’s identity. The Surface `profile.id` and provider connector `surfaceId` must match.
 
-3. Review the diff. It should add one root wrapper, one Surface module, and one config module, and with `--agent-web` one `agent-site.server` module and one `/agent` route. If the CLI names a manual mount or route edit, make only that edit.
+3. Review the diff. It should add one root wrapper, one Surface module, and one config module. With `--agent-web` it also adds one `agent-site.server` module and one `/agent` route (in a React Router route config, the route entry too), and sends agents on to `/agent` with `agentEntry`: in the root route's loader (React Router, Remix), or in a new `proxy.ts` (Next.js 16) or `middleware.ts`. On applying, it adds `AXE_AGENT_WEB_SECRET` and `AXE_AGENT_WEB_URL` to the app's `.env` when git ignores that file. If the CLI names a manual step, make only that edit.
 4. Apply and install:
 
    ```sh
@@ -82,6 +83,23 @@ profile: () => ({
 });
 ```
 
+The profile function is called outside React, so it cannot use a hook: read the auth client's synchronous accessor (Stytch `client.session.getSync()`, a store's `getState()`, the module the hook itself reads), and answer `unknown` on the server, where there is no session to read:
+
+```ts
+export function getSurfaceProfile(): SurfaceProfile {
+  const base = { id: "example-app", name: "Example App" };
+  if (typeof window === "undefined") return { ...base, authentication: { state: "unknown" } };
+  const session = getAuthClient().session.getSync();
+  if (!session) return { ...base, authentication: { state: "signed-out" } };
+  return {
+    ...base,
+    authentication: { state: "signed-in" },
+    context: { kind: "organization", id: session.organization_id },
+  };
+}
+// surfaceConfig: { profile: getSurfaceProfile, ... }
+```
+
 Treat authentication state as required whenever the application has sign-in. Find the existing auth/session hook or store and use that source; do not infer it from whether a password field happens to be rendered. Use `unknown` only while that source is genuinely loading. A provider-hosted agent relies on `signed-out` to pause its request and offer the person a secure view of the exact private browser session. No credentials then pass through chat, and the application needs no new auth route or backend.
 
 Use the application’s own noun: workspace, organization, account, project, tenant, or another factual label. Do not add selection instructions—the selectable controls themselves belong on Surface.
@@ -110,18 +128,31 @@ Re-run coverage and stop when remaining gaps are cosmetic or deliberately exclud
 
 An agent with nothing installed follows links. The provider's agent web service runs this application in a private headless browser and hands the agent a page of links; what the agent cannot do goes to this site's own pages, signed in with this site's own session: `/agent/signin` connects the agent to the person, `/agent/approve/<id>` shows a high-risk action for the person to decide, `/agent/input/<id>` takes a value the person types. `GET /agent` is where an agent starts, and this site answers the agent web's own pages too (passed through to the service), so every link an agent follows stays on this site's origin. No browser session is mirrored, and no credential passes through the agent.
 
-`agent-site.server` has three functions to finish, from code that already exists in this application:
+`init --agent-web` wires the rest: the `/agent` route, `agentEntry` (an agent given only the site's address is sent to `/agent` instead of the sign-in page), the `/agent` link in `<head>` and a visually hidden link for agents that `<AgentSurface>` renders, and the environment. `agent-site.server` has three functions to finish, from code that already exists in this application:
 
 1. **`identify(request)`**: the signed-in person for a server request, or `null`. Use the application's existing server-side session check (the one its loaders or API routes use), not a new one. `principal` must be stable for the person (a user or member id, not a display name); set `tenant` to the current account or workspace id when there is one, and `displayName` to what the person would recognize. Return `null` whenever the session is missing, expired, or unverified.
-2. **`session(request, who)`**: the application session the agent's headless page runs with, as `{ cookies: [...] }` (name, value, and the cookie attributes the application sets) or `{ storageState }`. In production, mint a session for the agent with the application's own session code, so it can be ended on its own. In development only, passing on the person's own session cookies from `request` is acceptable; say so in a comment. Never log a value.
-3. **`loginUrl(returnTo)`**: the application's sign-in page with the return parameter it already reads (`redirectTo`, `next`, `returnTo`, whatever the login page uses), so the person comes back to the agent page after signing in.
+2. **`session(request, who)`**: the application session the agent's headless page runs with, as `{ cookies: [...] }` or `{ storageState }`. In production, mint a session for the agent with the application's own session code, so it can be ended on its own. In development only, pass on the person's own session cookies, the ones `identify`'s check reads, with `forwardCookies` from `@summationai/axe-core/agent-site`; say so in a comment, and refuse in production:
+
+   ```ts
+   session: async (request) => {
+     // Development only: the agent's page runs with the person's own session.
+     if (process.env.NODE_ENV === "production") throw new Error("agent-web: mint an agent session");
+     return { cookies: forwardCookies(request, [SESSION_COOKIE, SESSION_JWT_COOKIE]) };
+   },
+   ```
+
+   Use the cookie names the application already defines (a constant in its auth module), not literals copied from a browser. Never log a value.
+
+3. **`loginUrl(returnTo)`**: the application's sign-in page with the return parameter it already reads (`redirectTo`, `next`, `returnTo`, whatever the login page uses), so the person comes back to the agent page after signing in. If the sign-in page reads no return parameter, add one, the smallest change that works:
+   - Accept only a path on this site: it starts with `/`, and not with `//` or `/\`. Anything else lands where sign-in lands today.
+   - Keep it across a round trip through an identity provider (SSO, OAuth): the provider returns to the app's callback page, not to `/login?redirectTo=…`. Store the path in `sessionStorage` on the sign-in page, and read and remove it where sign-in completes.
+   - Go there with a full page load (`window.location.assign`), not the router's client-side navigation: `/agent/signin` is a server route, not a page the client router knows.
 
 Then:
 
-- Set `AXE_AGENT_WEB_SECRET` (at least 32 random characters, the same value the agent web service has) and `AXE_AGENT_WEB_URL` (where this server reaches the service; `http://127.0.0.1:4719` in development) in the server's environment, in the local environment file the application already uses. Do not commit a secret.
+- If init did not write the environment (it says why), set `AXE_AGENT_WEB_SECRET` (at least 32 random characters, the same value the agent web service has) and `AXE_AGENT_WEB_URL` (where this server reaches the service; `http://127.0.0.1:4719` in development) in the local environment file the application's server already loads, after making sure the file ends in a newline. Do not commit a secret. Two applications on one machine each need their own agent web: give the second `AXE_AGENT_WEB_URL=http://127.0.0.1:4720`.
 - Check that the route answers: signed out, `GET /agent/signin?agent_session=x` redirects to sign-in; `GET /agent` answers the agent web's start page, with every link on this site's origin. With `User-Agent: Claude/1.0`, `GET /` redirects to `/agent`; with `Sec-Fetch-Site: same-origin` added, it does not.
-- Send an agent that opens the site itself on to `/agent`. An agent given only the site's address otherwise lands on the sign-in page and asks the person to sign in in the agent's browser. Call `agentEntry(request)` from `@summationai/axe-core/agent-site` first in the server code every page request passes through (the root route's loader in React Router or Remix; `middleware.ts` in Next.js; the first middleware in Express), and return or throw its response when it is not `null`. It answers only a recognized agent browser arriving from outside the site, so people, navigation within the site, and the sign-in a person does from the agent's browser are unaffected.
-- Name the agent entry for agents it does not recognize, in the root document: `<link rel="alternate" type="text/markdown" href="/agent" title="For agents" />` in `<head>`, and, first in `<body>`, a link that reads to an agent but not on screen: `<a href="/agent" tabIndex={-1} className="<the application's visually hidden class>">AI agent acting for a person? Start at /agent</a>`. Agents read the accessibility tree, not `<head>`. Use the application's own visually hidden utility (`sr-only` in Tailwind).
+- If init named a manual step for `agentEntry` (an existing Next.js `middleware.ts`, an Express server, a loader it could not read), make it: call `agentEntry(request)` from `@summationai/axe-core/agent-entry` first in the server code every page request passes through, and return or throw its response when it is not `null`. It answers only a recognized agent arriving from outside the site, so people, navigation within the site, and a sign-in from the agent's browser are unaffected. That module has no Node imports, so an Edge middleware can use it.
 
 ## Verify
 
@@ -133,7 +164,7 @@ Then:
 - Confirm the profile reports `signed-out` on the login route, `unknown` only while auth resolves, and `signed-in` after login. In a provider-hosted test, `relay_tabs` while signed out must return a secure session-bound login handoff; completing it must resume against the same tab.
 - Confirm account/workspace selection appears as ordinary Surface controls rather than MCP-specific instructions.
 - Confirm an ordinary visit does not contact the provider service or display agent connection UI.
-- Agent web: run `AXE_AGENT_WEB_SECRET=<same> npx @summationai/axe host --dev --agent-web --text-in-url --app <development-url> --site <development-url>`, then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`, and in a new conversation the same task given only `<development-url>`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
+- Agent web: run `npx @summationai/axe host --dev --agent-web --text-in-url --env-file <the env file> --app <development-url> --site <development-url>` (it reads the shared secret and its port from that file), then ask Claude Desktop, with nothing installed, to do one ordinary task at `<development-url>/agent`, and in a new conversation the same task given only `<development-url>`. Confirm the sign-in page shows the same code the agent showed, that the agent then reads the page as the person, that one high-risk action waits for the person on `/agent/approve/<id>`, and that a declined approval runs nothing.
 
 ## Hand-off
 

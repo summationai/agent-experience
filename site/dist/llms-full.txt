@@ -8658,23 +8658,24 @@ export const agentSite = agentSiteHandler({
 
 ### When the agent is given only the site's address
 
-An agent told "use Summation at app.example.com" opens the site itself, lands on the sign-in page, and asks the person to sign in in the agent's browser. `agentEntry(request)` sends it to `/agent` instead. Call it first wherever every page request passes (a root loader, `middleware.ts`):
+An agent told "use Summation at app.example.com" opens the site itself, lands on the sign-in page, and asks the person to sign in in the agent's browser. `agentEntry(request)` sends it to `/agent` instead. `axe surface init --agent-web` calls it first in a React Router root loader, or writes a Next.js `proxy.ts` (Next.js 16) or `middleware.ts`; anywhere else, call it first wherever every page request passes. It comes from `@summationai/axe-core/agent-entry`, which has no Node imports, so an Edge middleware can use it:
 
 ```ts
-import { agentEntry } from "@summationai/axe-core/agent-site";
+import { agentEntry } from "@summationai/axe-core/agent-entry";
 
 const toAgent = agentEntry(request); // a 303 to /agent, or null
 if (toAgent) throw toAgent; // or return it
 ```
 
-It answers only a GET for a document, from a user agent in `agentBrowsers` (Claude's in-app browser sends `Claude/<version>`; the providers' per-request fetchers send `Claude-User`, `ChatGPT-User`, `Google-Agent`, `Perplexity-User`) or with a `Signature-Agent` header (a signed agent, such as ChatGPT agent), arriving from outside the site. An agent driving the person's own browser (Claude in Chrome, Copilot in Edge) sends that browser's user agent and is not sent on; it has the site's own pages and session already. A navigation within the site (`Sec-Fetch-Site: same-origin`) is never sent on, so the person can still sign in from a link in the agent's browser, and `?agent=off` opens the site as usual. For an agent it does not recognize, name the entry in the page: a `<link rel="alternate" type="text/markdown" href="/agent">` in `<head>`, and a visually hidden link first in `<body>`, since agents read the accessibility tree rather than `<head>`.
+It answers only a GET for a document, from a user agent in `agentBrowsers` (Claude's in-app browser sends `Claude/<version>`; the providers' per-request fetchers send `Claude-User`, `ChatGPT-User`, `Google-Agent`, `Perplexity-User`) or with a `Signature-Agent` header (a signed agent, such as ChatGPT agent), arriving from outside the site. An agent driving the person's own browser (Claude in Chrome, Copilot in Edge) sends that browser's user agent and is not sent on; it has the site's own pages and session already. A navigation within the site (`Sec-Fetch-Site: same-origin`) is never sent on, so the person can still sign in from a link in the agent's browser, and `?agent=off` opens the site as usual. For an agent it does not recognize, the generated `<AgentSurface>` names the entry in the page: a `<link rel="alternate" type="text/markdown" href="/agent">` (React 19 renders it in `<head>`), and a visually hidden link, since agents read the accessibility tree rather than `<head>`.
 
 The service is `createAgentWeb` from `@summationai/axe-host`, operated by the Surface provider. For development:
 
 ```sh
-export AXE_AGENT_WEB_SECRET=…   # the same value the site has
-axe host --dev --agent-web --app http://localhost:3000 --start /plan --name "Plan Review"
+axe host --dev --agent-web --env-file .env --app http://localhost:3000 --start /plan --name "Plan Review"
 ```
+
+`--env-file` reads the secret the site has (`AXE_AGENT_WEB_SECRET`, which `init --agent-web` writes to a gitignored `.env`) and the port from `AXE_AGENT_WEB_URL`; `AXE_AGENT_WEB_SECRET` in the environment works too.
 
 It listens on 4719, on loopback, and only the site's server reaches it. Its links are written for `<site>/agent` (`--site`, default the app URL; `--public` overrides it for a site that sets `agentUrl`). A model's web fetch runs on the model provider's servers and cannot reach loopback, so a real agent needs the site on public HTTPS; the service stays where it is. [Local development with cloudflared](#local-development-with-cloudflared) does this from a laptop.
 
@@ -14591,6 +14592,7 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | serviceUrl             | `serviceUrl`             | `agentSiteHandler` option                               | The agent web service's origin as the site's server reaches it (on loopback); the site's agent pages are passed through to it.                                                            |
 | api      | agentEntry             | `agentEntry`             | `@summationai/axe-core/agent-site`                      | Sends an agent's browser arriving at the site from outside on to `/agent`; leaves people and navigation within the site alone.                                                            |
 | api      | agentBrowsers          | `agentBrowsers`          | `@summationai/axe-core/agent-site`                      | The user agents `agentEntry` recognizes: Claude Desktop's browser pane and the providers' per-request fetchers (Claude-User, ChatGPT-User, Google-Agent, Perplexity-User).                |
+| api      | forwardCookies         | `forwardCookies`         | `@summationai/axe-core/agent-entry`                     | The person's own cookies by name, for `agentSiteHandler`'s `session` in development only.                                                                                                 |
 | api      | sessionIdleMs          | `sessionIdleMs`          | `createAgentWeb` option                                 | How long an agent web session lives without use; its links end with it.                                                                                                                   |
 | api      | textInUrl              | `textInUrl`              | `createAgentWeb` option                                 | Experimental: offer each typeable field a link the agent completes with ?text=<value>, for agents that compose URLs.                                                                      |
 | api      | onEvict                | `onEvict`                | `@summationai/axe-surface/axe`                          | `scopedSurfaces` option: called with each evicted surface.                                                                                                                                |

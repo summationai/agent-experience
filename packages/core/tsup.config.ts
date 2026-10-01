@@ -14,5 +14,6 @@ export default defineConfig(
     "json-schema": "src/json-schema.ts",
     node: "src/node.ts",
     "agent-site": "src/agent-site.ts",
+    "agent-entry": "src/agent-entry.ts",
   }),
 );

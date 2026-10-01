@@ -7,13 +7,20 @@ import * as prettier from "prettier";
 import { run } from "../src/index";
 import { detect } from "../src/surface/detect";
 import { devScriptPort } from "../src/surface/init";
-import { installCommand, planInit, writeOverrides } from "../src/surface/init";
+import { ensureAgentWebEnv, installCommand, planInit, writeOverrides } from "../src/surface/init";
 import { DEV_RELAY_URL } from "../src/surface/api";
 
 const fixtures = join(__dirname, "fixtures");
 const repo = join(__dirname, "../../..");
 
 /** A fixture copied to a temporary directory, so applying never touches the repository. */
+function applyPlanFor(plan: { changes: { path: string; after: string }[] }): void {
+  for (const c of plan.changes) {
+    mkdirSync(join(c.path, ".."), { recursive: true });
+    writeFileSync(c.path, c.after);
+  }
+}
+
 function copy(name: string): string {
   const dir = mkdtempSync(join(tmpdir(), `axe-surface-${name}-`));
   cpSync(join(fixtures, name), dir, { recursive: true });
@@ -696,6 +703,93 @@ describe("axe surface init --agent-web", () => {
     expect(plan.changes.some((c) => c.display.endsWith("agent-site.server.ts"))).toBe(true);
     expect(plan.manual.join("\n")).toContain('"agent/*"');
     expect(plan.manual.join("\n")).toContain("export async function loader");
+  });
+
+  it("React Router with a route config that lists its routes: the route, its file, and the root loader", () => {
+    // The admin app's shape: app/routes.ts exports an array of route() and layout() entries.
+    const dir = copy("react-router");
+    writeFileSync(
+      join(dir, "app/routes.ts"),
+      [
+        'import type { RouteConfig } from "@react-router/dev/routes";',
+        'import { index, layout, route } from "@react-router/dev/routes";',
+        "",
+        "export default [",
+        '  route("logout", "routes/logout.tsx"),',
+        '  layout("routes/_layout.tsx", [index("routes/home.tsx")]),',
+        "] satisfies RouteConfig;",
+        "",
+      ].join("\n"),
+    );
+    const plan = planInit({ dir, agentWeb: true });
+    const by = Object.fromEntries(plan.changes.map((c) => [c.display, c]));
+    expect(by["app/routes/agent.$.tsx"]!.after).toContain('from "../agent-site.server"');
+    expect(by["app/routes.ts"]!.after).toContain('route("agent/*", "routes/agent.$.tsx"),');
+    // The root gets both edits: the Surface wrapper and a loader that sends agents on.
+    const root = by["app/root.tsx"]!.after;
+    expect(root).toContain("<AgentSurface>");
+    expect(root).toContain('import { agentEntry } from "@summationai/axe-core/agent-entry";');
+    expect(root).toContain("const toAgent = agentEntry(request);");
+    expect(plan.manual).toEqual([]);
+    // The agent links are rendered by AgentSurface, so the root's <head> and <body> are untouched.
+    const surface = plan.changes.find((c) => c.display.endsWith("surface.tsx"))!.after;
+    expect(surface).toContain(
+      '<link rel="alternate" type="text/markdown" href="/agent" title="For agents" />',
+    );
+    expect(surface).toContain('<a href="/agent" tabIndex={-1} style={visuallyHidden}>');
+    // A second run changes nothing.
+    applyPlanFor(plan);
+    expect(planInit({ dir, agentWeb: true }).changes).toEqual([]);
+  });
+
+  it("React Router in SPA mode (ssr: false): a manual step, since there is no server", () => {
+    const dir = copy("react-router");
+    writeFileSync(join(dir, "react-router.config.ts"), "export default { ssr: false };\n");
+    const plan = planInit({ dir, agentWeb: true });
+    expect(plan.manual.join("\n")).toContain("ssr: false");
+    expect(plan.changes.find((c) => c.display === "app/root.tsx")!.after).not.toContain(
+      "agentEntry",
+    );
+  });
+
+  it("Next.js: proxy.ts from Next.js 16, middleware.ts before, and an existing one is left to the app", () => {
+    const sixteen = planInit({ dir: copy("next"), agentWeb: true });
+    const proxy = sixteen.changes.find((c) => c.display === "proxy.ts");
+    expect(proxy?.after, sixteen.changes.map((c) => c.display).join(", ")).toContain(
+      "export function proxy(",
+    );
+    const fifteenDir = copy("next");
+    const pkg = JSON.parse(readFileSync(join(fifteenDir, "package.json"), "utf8"));
+    pkg.dependencies.next = "15.5.0";
+    writeFileSync(join(fifteenDir, "package.json"), JSON.stringify(pkg));
+    const fifteen = planInit({ dir: fifteenDir, agentWeb: true });
+    expect(fifteen.changes.some((c) => c.display === "middleware.ts")).toBe(true);
+    const ownDir = copy("next");
+    writeFileSync(join(ownDir, "middleware.ts"), "export function middleware() {}\n");
+    const own = planInit({ dir: ownDir, agentWeb: true });
+    expect(own.changes.some((c) => /^(proxy|middleware)\.ts$/.test(c.display))).toBe(false);
+    expect(own.manual.join("\n")).toContain("middleware.ts, return agentEntry(request)");
+  });
+
+  it("writes the agent web's env to a gitignored .env, newline-safe, and never to a tracked one", () => {
+    const dir = copy("react-router");
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(join(dir, ".gitignore"), ".env\n");
+    writeFileSync(join(dir, ".env"), "# local\nAPP_KEY=abc"); // no final newline
+    const r = ensureAgentWebEnv(dir, true);
+    expect(r).toEqual({ file: ".env", added: ["AXE_AGENT_WEB_SECRET", "AXE_AGENT_WEB_URL"] });
+    const text = readFileSync(join(dir, ".env"), "utf8");
+    expect(text).toMatch(/^APP_KEY=abc$/m);
+    expect(text).toMatch(/^AXE_AGENT_WEB_SECRET=[A-Za-z0-9_-]{48}$/m);
+    expect(text).toMatch(/^AXE_AGENT_WEB_URL=http:\/\/127\.0\.0\.1:4719$/m);
+    expect(ensureAgentWebEnv(dir, true).added).toEqual([]);
+    const tracked = copy("react-router");
+    execFileSync("git", ["init", "-q"], { cwd: tracked });
+    writeFileSync(join(tracked, ".env"), "APP_KEY=abc\n");
+    const t = ensureAgentWebEnv(tracked, true);
+    expect(t.file).toBeNull();
+    expect(t.reason).toContain("not ignored by git");
+    expect(readFileSync(join(tracked, ".env"), "utf8")).toBe("APP_KEY=abc\n");
   });
 
   it("installs @summationai/axe-core for the site's agent pages", () => {

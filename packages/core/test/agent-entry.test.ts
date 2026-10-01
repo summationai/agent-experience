@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { agentEntry } from "../src/agent-site";
+import { readFileSync } from "node:fs";
+import { agentEntry, forwardCookies } from "../src/agent-entry";
+import * as site from "../src/agent-site";
 
 const CLAUDE =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.16120.0 Chrome/152.0.797";
@@ -88,5 +90,35 @@ describe("agentEntry", () => {
         "location",
       ),
     ).toBe("/for-agents");
+  });
+});
+
+describe("@summationai/axe-core/agent-entry", () => {
+  it("has no Node imports, so an Edge middleware can use it", () => {
+    const src = readFileSync(new URL("../src/agent-entry.ts", import.meta.url), "utf8");
+    expect(src).not.toMatch(/from "node:/);
+    expect(src).not.toMatch(/^import (?!type )/m);
+  });
+
+  it("is re-exported from agent-site", () => {
+    expect(site.agentEntry).toBe(agentEntry);
+    expect(site.forwardCookies).toBe(forwardCookies);
+  });
+});
+
+describe("forwardCookies", () => {
+  it("passes on the named cookies for the request's host", () => {
+    const request = new Request("http://localhost:5175/agent/signin?agent_session=x", {
+      headers: { cookie: "theme=dark; app_session=abc%3D1; app_jwt=eyJ.x.y" },
+    });
+    expect(forwardCookies(request, ["app_session", "app_jwt", "missing"])).toEqual([
+      { name: "app_session", value: "abc=1", domain: "localhost", path: "/", sameSite: "Lax" },
+      { name: "app_jwt", value: "eyJ.x.y", domain: "localhost", path: "/", sameSite: "Lax" },
+    ]);
+  });
+
+  it("passes on a value that is not percent-encoded as sent", () => {
+    const request = new Request("https://app.example/", { headers: { cookie: "s=100%" } });
+    expect(forwardCookies(request, ["s"])[0]!.value).toBe("100%");
   });
 });

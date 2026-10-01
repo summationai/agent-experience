@@ -118,6 +118,16 @@
         "types": "./dist/agent-site.d.cts",
         "default": "./dist/agent-site.cjs"
       }
+    },
+    "./agent-entry": {
+      "import": {
+        "types": "./dist/agent-entry.d.ts",
+        "default": "./dist/agent-entry.js"
+      },
+      "require": {
+        "types": "./dist/agent-entry.d.cts",
+        "default": "./dist/agent-entry.cjs"
+      }
     }
   },
   "files": [

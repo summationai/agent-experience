@@ -11,7 +11,8 @@
  *   (`/agent`, `/agent/start`, `/agent/s/...`) are answered from this site, passed through to the
  *   service, so an agent stays on the site's origin; with `agentUrl`, a 303 to its `/start`.
  * - `agentEntry(request)`: in the site's page handler, sends an agent's browser arriving from
- *   outside on to `/agent`.
+ *   outside on to `/agent` (also from `@summationai/axe-core/agent-entry`, which has no Node imports,
+ *   for an Edge middleware).
  * - `/agent/signin?agent_session=<id>`: connect this agent session to the signed-in person (the
  *   page shows the code the agent showed; the person confirms it matches).
  * - `/agent/approve/<id>`: the exact high-risk action the agent asked for; Approve or Decline.
@@ -21,6 +22,9 @@
  * to the agent web service over its site API, authenticated with the same secret.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
+
+export { agentBrowsers, agentEntry, forwardCookies } from "./agent-entry";
+export type { AgentEntryOptions } from "./agent-entry";
 
 /** A cookie for the agent's headless page (Playwright's cookie shape). */
 export interface AgentSiteCookie {
@@ -355,64 +359,4 @@ export function agentSiteHandler(
     }
     return page("Not found", "<h1>Not found</h1>", 404);
   };
-}
-
-/**
- * User agents of agents acting for a person: Claude Desktop's browser pane (`Claude/<ver>`,
- * observed), and the per-request fetchers the providers document: `Claude-User` (Claude's web
- * fetch, Claude Code), `ChatGPT-User`, `Google-Agent` (agents on Google's infrastructure),
- * `Perplexity-User`. Crawlers that index or train are not here. An agent driving the person's own
- * browser (Claude in Chrome, Atlas, Copilot in Edge) sends that browser's user agent and is not
- * recognizable; it has the site's own pages and session, and the page's Surface, anyway.
- */
-export const agentBrowsers: readonly RegExp[] = [
-  /\bClaude\/\d/,
-  /\bClaude-User\b/,
-  /\bChatGPT-User\b/,
-  /\bGoogle-Agent\b/,
-  /\bPerplexity-User\b/,
-];
-
-export interface AgentEntryOptions {
-  /** Where the site's agent pages are mounted. Default `/agent`. */
-  basePath?: string;
-  /** User agents to send on. Default {@link agentBrowsers}. */
-  agents?: readonly RegExp[];
-}
-
-/**
- * For the site's first response to a page request: when an agent's browser arrives at the site
- * from outside (a typed or pasted URL, a link from elsewhere), a 303 to `/agent`, the agent web's
- * entry, instead of the page a person would see. Otherwise null, and the site answers as usual.
- *
- * It never sends on a navigation within the site (`Sec-Fetch-Site: same-origin`), so a person
- * signing in from a link in the agent's browser, or using the site there, keeps the site. Nor a
- * request under `basePath`, a non-GET, a request for anything but a document, or a request with
- * `?agent=off`.
- */
-export function agentEntry(request: Request, o: AgentEntryOptions = {}): Response | null {
-  if (request.method !== "GET") return null;
-  const ua = request.headers.get("user-agent") ?? "";
-  // A signed agent (Web Bot Auth: ChatGPT agent sends `Signature-Agent: "https://chatgpt.com"`).
-  // The signature is not verified here: a forged one only gets the agent pages, which ask the
-  // person to sign in like any other visit.
-  const signed = request.headers.has("signature-agent");
-  if (!signed && !(o.agents ?? agentBrowsers).some((re) => re.test(ua))) return null;
-  const site = request.headers.get("sec-fetch-site");
-  if (site === "same-origin" || site === "same-site") return null;
-  const dest = request.headers.get("sec-fetch-dest");
-  if (dest && dest !== "document") return null;
-  const url = new URL(request.url);
-  const base = (o.basePath ?? "/agent").replace(/\/+$/, "");
-  if (url.pathname === base || url.pathname.startsWith(`${base}/`)) return null;
-  if (url.searchParams.get("agent") === "off") return null;
-  return new Response(`This site's interface for agents is ${base}\n`, {
-    status: 303,
-    headers: {
-      Location: base,
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-store",
-      Vary: "User-Agent, Sec-Fetch-Site",
-    },
-  });
 }
