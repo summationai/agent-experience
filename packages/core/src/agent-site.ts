@@ -175,7 +175,8 @@ export function agentSiteHandler(
   // The agent web's own pages, answered from this origin. The service's site API (`/api/...`)
   // is not among them: it needs the secret and only this server calls it.
   const passThrough = async (request: Request, target: string): Promise<Response> => {
-    const headers = new Headers();
+    // The secret proves to the service that this is the site it serves.
+    const headers = new Headers({ Authorization: `Bearer ${o.secret}` });
     for (const h of FORWARDED) {
       const v = request.headers.get(h);
       if (v) headers.set(h, v);

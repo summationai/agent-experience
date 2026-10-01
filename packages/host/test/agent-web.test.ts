@@ -363,6 +363,38 @@ describe("the agent web answered from the site's own origin", () => {
     expect(seen).toHaveLength(2);
   });
 
+  it("refuses a site whose secret is another's: a misconfigured AXE_AGENT_WEB_URL", async () => {
+    const web = createAgentWeb({
+      publicUrl: `${SITE}/agent`,
+      siteUrl: SITE,
+      appUrl: "http://127.0.0.1:9",
+      appName: "Board",
+      siteSecret: SECRET,
+    });
+    const other = agentSiteHandler({
+      serviceUrl: "http://127.0.0.1:4719",
+      secret: "o".repeat(40),
+      identify: () => null,
+      session: () => ({}),
+      loginUrl: () => "/login",
+      fetch: (input, init) => web.handle(new Request(String(input), init)),
+    });
+    const res = await other(new Request("https://other.example/agent"));
+    expect(res!.status).toBe(403);
+    expect(await res!.text()).toContain("serves a different site");
+    // Its own site, and an agent reaching the service directly, are served.
+    const own = agentSiteHandler({
+      serviceUrl: "http://127.0.0.1:4719",
+      secret: SECRET,
+      identify: () => null,
+      session: () => ({}),
+      loginUrl: () => "/login",
+      fetch: (input, init) => web.handle(new Request(String(input), init)),
+    });
+    expect((await own(new Request(`${SITE}/agent`)))!.status).toBe(200);
+    expect((await web.handle(new Request("http://127.0.0.1:4719/start"))).status).toBe(200);
+  });
+
   it("has no agent pages until it has a secret", async () => {
     const site = agentSiteHandler({
       serviceUrl: "http://127.0.0.1:9",

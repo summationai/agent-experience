@@ -10,6 +10,7 @@ import { devScriptPort } from "../src/surface/init";
 import {
   ensureAgentWebEnv,
   findVendor,
+  freeAgentWebPort,
   installCommand,
   planInit,
   writeOverrides,
@@ -779,22 +780,27 @@ describe("axe surface init --agent-web", () => {
     expect(own.manual.join("\n")).toContain("middleware.ts, return agentEntry(request)");
   });
 
-  it("writes the agent web's env to a gitignored .env, newline-safe, and never to a tracked one", () => {
+  it("writes the agent web's env to a gitignored .env, newline-safe, and never to a tracked one", async () => {
     const dir = copy("react-router");
     execFileSync("git", ["init", "-q"], { cwd: dir });
     writeFileSync(join(dir, ".gitignore"), ".env\n");
     writeFileSync(join(dir, ".env"), "# local\nAPP_KEY=abc"); // no final newline
-    const r = ensureAgentWebEnv(dir, true);
-    expect(r).toEqual({ file: ".env", added: ["AXE_AGENT_WEB_SECRET", "AXE_AGENT_WEB_URL"] });
+    const free = async () => false;
+    const r = await ensureAgentWebEnv(dir, true, free);
+    expect(r).toEqual({
+      file: ".env",
+      added: ["AXE_AGENT_WEB_SECRET", "AXE_AGENT_WEB_URL"],
+      port: 4719,
+    });
     const text = readFileSync(join(dir, ".env"), "utf8");
     expect(text).toMatch(/^APP_KEY=abc$/m);
     expect(text).toMatch(/^AXE_AGENT_WEB_SECRET=[A-Za-z0-9_-]{48}$/m);
     expect(text).toMatch(/^AXE_AGENT_WEB_URL=http:\/\/127\.0\.0\.1:4719$/m);
-    expect(ensureAgentWebEnv(dir, true).added).toEqual([]);
+    expect((await ensureAgentWebEnv(dir, true, free)).added).toEqual([]);
     const tracked = copy("react-router");
     execFileSync("git", ["init", "-q"], { cwd: tracked });
     writeFileSync(join(tracked, ".env"), "APP_KEY=abc\n");
-    const t = ensureAgentWebEnv(tracked, true);
+    const t = await ensureAgentWebEnv(tracked, true, free);
     expect(t.file).toBeNull();
     expect(t.reason).toContain("not ignored by git");
     expect(readFileSync(join(tracked, ".env"), "utf8")).toBe("APP_KEY=abc\n");
@@ -804,6 +810,23 @@ describe("axe surface init --agent-web", () => {
     const d = detect(copy("next"));
     expect(installCommand(d, true, undefined, true).argv).toContain("@summationai/axe-core");
     expect(installCommand(d, true).argv).not.toContain("@summationai/axe-core");
+  });
+});
+
+describe("freeAgentWebPort", () => {
+  it("skips ports other apps in the repository claim, and ports something listens on", async () => {
+    // A monorepo with two apps: the first already has an agent web on 4719.
+    const root = mkdtempSync(join(tmpdir(), "axe-ports-"));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    writeFileSync(join(root, ".gitignore"), ".env\n");
+    mkdirSync(join(root, "apps/web"), { recursive: true });
+    mkdirSync(join(root, "apps/admin"), { recursive: true });
+    writeFileSync(join(root, "apps/web/.env"), "AXE_AGENT_WEB_URL=http://127.0.0.1:4719\n");
+    expect(await freeAgentWebPort(join(root, "apps/admin"), async () => false)).toBe(4720);
+    // 4720 is taken by something running: the next one.
+    expect(await freeAgentWebPort(join(root, "apps/admin"), async (p) => p === 4720)).toBe(4721);
+    // An app's own setting does not count against it.
+    expect(await freeAgentWebPort(join(root, "apps/web"), async () => false)).toBe(4719);
   });
 });
 

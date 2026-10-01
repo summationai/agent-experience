@@ -8,7 +8,15 @@
  */
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createConnection } from "node:net";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as WIRE from "@summationai/axe-core/vocabulary";
@@ -564,6 +572,8 @@ export interface AgentWebEnv {
   added: string[];
   /** Why nothing was written, when it was not. */
   reason?: string;
+  /** The agent web port for this app: the first one free here, unless the file already sets one. */
+  port?: number;
 }
 
 /**
@@ -572,18 +582,90 @@ export interface AgentWebEnv {
  * when they are missing. A file git does not ignore is never written: the secret must not be
  * committed. Nothing is printed but the names.
  */
-export function ensureAgentWebEnv(dir: string, write: boolean): AgentWebEnv {
+/** Whether something listens on 127.0.0.1:`port` (a refused or timed-out connection says no). */
+function listening(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    const done = (v: boolean) => {
+      socket.destroy();
+      resolve(v);
+    };
+    socket.setTimeout(300, () => done(false));
+    socket.once("connect", () => done(true));
+    socket.once("error", () => done(false));
+  });
+}
+
+/**
+ * The agent web ports other applications in this repository already claim: AXE_AGENT_WEB_URL in
+ * their ignored `.env` and `.env.local` files.
+ */
+function claimedPorts(dir: string): Set<number> {
+  const out = new Set<number>();
+  const root = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: dir, encoding: "utf8" });
+  if (root.status !== 0) return out;
+  const top = root.stdout.trim();
+  const files = spawnSync(
+    "git",
+    ["ls-files", "-o", "-i", "--exclude-standard", "--", ":(glob)**/.env", ":(glob)**/.env.local"],
+    { cwd: top, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+  );
+  if (files.status !== 0) return out;
+  const own = new Set([join(dir, ".env"), join(dir, ".env.local")].map((f) => realpathSafe(f)));
+  for (const rel of files.stdout.split("\n").filter(Boolean)) {
+    const file = join(top, rel);
+    if (own.has(realpathSafe(file))) continue;
+    try {
+      const m = /^\s*AXE_AGENT_WEB_URL=\S*:(\d+)/m.exec(readFileSync(file, "utf8"));
+      if (m) out.add(Number(m[1]));
+    } catch {
+      // Unreadable: it claims nothing.
+    }
+  }
+  return out;
+}
+
+function realpathSafe(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
+/** The first agent web port from 4719 that no other app here claims and nothing listens on. */
+export async function freeAgentWebPort(
+  dir: string,
+  inUse: (port: number) => Promise<boolean> = listening,
+): Promise<number> {
+  const claimed = claimedPorts(dir);
+  for (let port = 4719; port < 4740; port++)
+    if (!claimed.has(port) && !(await inUse(port))) return port;
+  return 4719;
+}
+
+export async function ensureAgentWebEnv(
+  dir: string,
+  write: boolean,
+  inUse?: (port: number) => Promise<boolean>,
+): Promise<AgentWebEnv> {
   const ignored = (file: string) =>
     spawnSync("git", ["check-ignore", "-q", file], { cwd: dir }).status === 0;
   const candidates = [".env", ".env.local"].filter((f) => existsSync(join(dir, f)));
   if (candidates.length === 0)
-    return { file: null, added: [], reason: "no .env or .env.local in the app directory" };
+    return {
+      file: null,
+      added: [],
+      reason: "no .env or .env.local in the app directory",
+      port: await freeAgentWebPort(dir, inUse),
+    };
   const file = candidates.find(ignored);
   if (!file)
     return {
       file: null,
       added: [],
       reason: `${candidates.join(" and ")} ${candidates.length > 1 ? "are" : "is"} not ignored by git, and the secret must not be committed`,
+      port: await freeAgentWebPort(dir, inUse),
     };
   const path = join(dir, file);
   const text = readFileSync(path, "utf8");
@@ -591,7 +673,8 @@ export function ensureAgentWebEnv(dir: string, write: boolean): AgentWebEnv {
   const lines: string[] = [];
   if (!has("AXE_AGENT_WEB_SECRET"))
     lines.push(`AXE_AGENT_WEB_SECRET=${randomBytes(36).toString("base64url")}`);
-  if (!has("AXE_AGENT_WEB_URL")) lines.push("AXE_AGENT_WEB_URL=http://127.0.0.1:4719");
+  const port = has("AXE_AGENT_WEB_URL") ? undefined : await freeAgentWebPort(dir, inUse);
+  if (port !== undefined) lines.push(`AXE_AGENT_WEB_URL=http://127.0.0.1:${port}`);
   if (lines.length && write) {
     // A file without a final newline would join the first line onto its last.
     const sep = text.length && !text.endsWith("\n") ? "\n" : "";
@@ -600,7 +683,11 @@ export function ensureAgentWebEnv(dir: string, write: boolean): AgentWebEnv {
       `${text}${sep}# The agent web (axe surface init --agent-web)\n${lines.join("\n")}\n`,
     );
   }
-  return { file, added: lines.map((l) => l.slice(0, l.indexOf("="))) };
+  return {
+    file,
+    added: lines.map((l) => l.slice(0, l.indexOf("="))),
+    ...(port !== undefined ? { port } : {}),
+  };
 }
 
 /** The major version of Next.js the app depends on (0 when it cannot tell). */
@@ -717,7 +804,7 @@ function nextSteps(
           : [
               `Set, for the application's server${env?.reason ? ` (not written: ${env.reason})` : ""}:`,
               "AXE_AGENT_WEB_SECRET=<32+ random characters, shared with the agent web service>",
-              "AXE_AGENT_WEB_URL=http://127.0.0.1:4719",
+              `AXE_AGENT_WEB_URL=http://127.0.0.1:${env?.port ?? 4719}`,
             ],
       },
       {
@@ -845,10 +932,13 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let env: AgentWebEnv | undefined;
   if (o.agentWeb) {
-    env = ensureAgentWebEnv(d.dir, !values["dry-run"] && (applied || plan.changes.length === 0));
+    env = await ensureAgentWebEnv(
+      d.dir,
+      !values["dry-run"] && (applied || plan.changes.length === 0),
+    );
     if (env.file && env.added.length)
       ctx.stdout(
-        `${values["dry-run"] ? "Would add" : "Added"} ${env.added.join(" and ")} to ${env.file} (values not shown).`,
+        `${values["dry-run"] ? "Would add" : "Added"} ${env.added.join(" and ")} to ${env.file} (values not shown${env.port ? `; the agent web runs on port ${env.port}, the first one free here` : ""}).`,
       );
   }
 
