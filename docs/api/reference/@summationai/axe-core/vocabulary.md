@@ -175,6 +175,11 @@ type WireApi =
   | "authFor"
   | "redactEvent"
   | "idleMs"
+  | "createAgentWeb"
+  | "agentSiteHandler"
+  | "agentUrl"
+  | "sessionIdleMs"
+  | "textInUrl"
   | "onEvict"
   | "keyFor"
   | "SqliteIdempotencyStore"
@@ -207,6 +212,7 @@ type WireApi =
   | "modelContext"
   | "registerTool"
   | "consequentialHint"
+  | "idempotentHint"
   | "requestedSchema"
   | "isSensitiveAccept"
   | "toFormSchema"
@@ -961,6 +967,8 @@ const api: Readonly<{
   actTimeoutMs: "actTimeoutMs";
   addProvider: "addProvider";
   agentAuth: "agentAuth";
+  agentSiteHandler: "agentSiteHandler";
+  agentUrl: "agentUrl";
   allowCredentials: "allowCredentials";
   allowCrossOrigin: "allowCrossOrigin";
   allowed: "allowed";
@@ -1005,6 +1013,7 @@ const api: Readonly<{
   continue: "continue";
   cookieSession: "cookieSession";
   cors: "cors";
+  createAgentWeb: "createAgentWeb";
   createAXE: "createAXE";
   createContext: "createContext";
   createHost: "createHost";
@@ -1052,6 +1061,7 @@ const api: Readonly<{
   handler: "handler";
   idempotencyStore: "idempotencyStore";
   idempotencyTtlSeconds: "idempotencyTtlSeconds";
+  idempotentHint: "idempotentHint";
   identity: "identity";
   idleMs: "idleMs";
   idleReason: "idleReason";
@@ -1172,6 +1182,7 @@ const api: Readonly<{
   sessionCount: "sessionCount";
   sessionFor: "sessionFor";
   sessionIdGenerator: "sessionIdGenerator";
+  sessionIdleMs: "sessionIdleMs";
   sessionLoginRequired: "SessionLoginRequired";
   setObjects: "setObjects";
   setProfile: "setProfile";
@@ -1194,6 +1205,7 @@ const api: Readonly<{
   syncTimeoutMs: "syncTimeoutMs";
   tabId: "tabId";
   tabRetentionMs: "tabRetentionMs";
+  textInUrl: "textInUrl";
   thaw: "thaw";
   timeoutMs: "timeoutMs";
   toFormSchema: "toFormSchema";
@@ -1963,6 +1975,8 @@ const WIRE: Readonly<{
      actTimeoutMs: "actTimeoutMs";
      addProvider: "addProvider";
      agentAuth: "agentAuth";
+     agentSiteHandler: "agentSiteHandler";
+     agentUrl: "agentUrl";
      allowCredentials: "allowCredentials";
      allowCrossOrigin: "allowCrossOrigin";
      allowed: "allowed";
@@ -2007,6 +2021,7 @@ const WIRE: Readonly<{
      continue: "continue";
      cookieSession: "cookieSession";
      cors: "cors";
+     createAgentWeb: "createAgentWeb";
      createAXE: "createAXE";
      createContext: "createContext";
      createHost: "createHost";
@@ -2054,6 +2069,7 @@ const WIRE: Readonly<{
      handler: "handler";
      idempotencyStore: "idempotencyStore";
      idempotencyTtlSeconds: "idempotencyTtlSeconds";
+     idempotentHint: "idempotentHint";
      identity: "identity";
      idleMs: "idleMs";
      idleReason: "idleReason";
@@ -2174,6 +2190,7 @@ const WIRE: Readonly<{
      sessionCount: "sessionCount";
      sessionFor: "sessionFor";
      sessionIdGenerator: "sessionIdGenerator";
+     sessionIdleMs: "sessionIdleMs";
      sessionLoginRequired: "SessionLoginRequired";
      setObjects: "setObjects";
      setProfile: "setProfile";
@@ -2196,6 +2213,7 @@ const WIRE: Readonly<{
      syncTimeoutMs: "syncTimeoutMs";
      tabId: "tabId";
      tabRetentionMs: "tabRetentionMs";
+     textInUrl: "textInUrl";
      thaw: "thaw";
      timeoutMs: "timeoutMs";
      toFormSchema: "toFormSchema";

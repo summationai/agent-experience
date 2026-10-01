@@ -79,6 +79,11 @@ describe("browser bundle", () => {
     console.log(`@summationai/axe-surface/axe: ${out.bytes} bytes minified for the browser`);
   });
 
+  // The bound grew from 50 to 62 kB with the domain granularity ([S-WEB-7]) and observe's filters
+  // and pages: about 6 kB of tool definitions, the shared cursor paging, domainActions' default
+  // specs, and the auto surface's (navigate among them, so a link is not offered as a high-risk
+  // control). They keep the tool list fixed and small however large the page is, which is what an
+  // agent pays for on every turn, so they ship in the adapter. Making it smaller is later work.
   it("@summationai/axe-surface/webmcp bundles for the browser alone, small, without Zod or React", async () => {
     const out = await bundle(
       `import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
@@ -88,7 +93,7 @@ describe("browser bundle", () => {
     expect(out.inputs.filter((f) => /\/zod\//.test(f))).toEqual([]);
     expect(out.inputs.filter((f) => /react/.test(f))).toEqual([]);
     console.log(`@summationai/axe-surface/webmcp: ${out.bytes} bytes minified for the browser`);
-    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(50 * 1024);
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(62 * 1024);
   });
 
   // The bound grew from 100 kB / 35 kB gzipped when the handle gained read() and wait()
@@ -96,7 +101,9 @@ describe("browser bundle", () => {
   // tables, lists, paging, Markdown) and waiting on it add about 26 kB minified, 9.5 kB gzipped.
   // They are what lets an agent answer from the page and wait for slow work, so they ship with the
   // handle rather than behind a second import.
-  it("@summationai/axe-surface/auto bundles for the browser without Node built-ins, Zod, or React, under 120 kB minified and 43 kB gzipped", async () => {
+  // The bounds grew from 120 to 124 kB minified and 43 to 44 kB gzipped with the risk rules for items and filter strips and the
+  // reader's listing rows, read whole as one item each, found on the Summation app's data page.
+  it("@summationai/axe-surface/auto bundles for the browser without Node built-ins, Zod, or React, under 124 kB minified and 44 kB gzipped", async () => {
     const out = await bundle(
       `import { autoSurface, formatCoverage } from "@summationai/axe-surface/auto";
        console.log(autoSurface, formatCoverage);`,
@@ -108,13 +115,18 @@ describe("browser bundle", () => {
     console.log(
       `@summationai/axe-surface/auto (with the surface core): ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(120 * 1024);
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(43 * 1024);
+    expect(out.bytes, `${out.bytes} bytes`).toBeLessThan(124 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(44 * 1024);
   });
 
   // The bound grew from 44 to 47 kB when the provider's WebMCP adapter gained the auto surface's
   // read/wait loop and registration diagnostics. The DOM reader was already in this bundle; the
-  // increase is the two schemas, tool handlers, and diagnostic state.
+  // increase is the two schemas, tool handlers, and diagnostic state. It grew to 50 kB with the
+  // adapter's domain granularity and observe paging (about 2 kB gzipped; see the bound above), and
+  // to 51 kB with the auto surface's domains in the adapter (navigate) and the derivation's
+  // item-peer rule, which keeps a tenant or a table from reading as an unknown high-risk change,
+  // and to 52 kB with the filter-strip rule and the reader's item rows (a listing rendered as
+  // buttons is read as content).
   it("SurfaceProvider from @summationai/axe-surface/react carries the derivation and nothing server-side", async () => {
     const out = await bundle(
       `import { SurfaceProvider } from "@summationai/axe-surface/react";
@@ -125,6 +137,6 @@ describe("browser bundle", () => {
     console.log(
       `SurfaceProvider: ${out.bytes} bytes minified, ${out.gzip} gzipped, for the browser`,
     );
-    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(47 * 1024);
+    expect(out.gzip, `${out.gzip} bytes gzipped`).toBeLessThan(52 * 1024);
   });
 });

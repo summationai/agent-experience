@@ -4,6 +4,88 @@
 
 ## Interfaces
 
+<a id="hostapprovalrequest"></a>
+
+### HostApprovalRequest
+
+What the adapter asks a host-injected approver: plain data, nothing the page could not show.
+
+#### Properties
+
+<a id="app"></a>
+
+##### app
+
+```ts
+app: string;
+```
+
+The surface's application name.
+
+<a id="entryid"></a>
+
+##### entryId
+
+```ts
+entryId: string;
+```
+
+<a id="expectedrev"></a>
+
+##### expectedRev
+
+```ts
+expectedRev: number;
+```
+
+The revision the act is bound to.
+
+<a id="mutates"></a>
+
+##### mutates
+
+```ts
+mutates: string;
+```
+
+<a id="name"></a>
+
+##### name
+
+```ts
+name: string;
+```
+
+The entry's accessible name, as the person sees it on the page.
+
+<a id="reversible"></a>
+
+##### reversible
+
+```ts
+reversible: boolean | null;
+```
+
+<a id="risk"></a>
+
+##### risk
+
+```ts
+risk: string;
+```
+
+<a id="tool"></a>
+
+##### tool
+
+```ts
+tool: string;
+```
+
+The tool the agent called.
+
+***
+
 <a id="modelcontextlike"></a>
 
 ### ModelContextLike
@@ -270,6 +352,31 @@ optional content?: boolean;
 
 Register `<prefix>read` and `<prefix>wait` when the surface has page content. Default true.
 
+<a id="domains"></a>
+
+##### domains?
+
+```ts
+optional domains?: DomainActionSpec[];
+```
+
+The domain actions for `granularity: "domain"`, in the order an entry is matched. Default: the
+auto surface's (`autoDomains`, with navigate) on an auto surface, else `domainActions`' own.
+
+<a id="granularity"></a>
+
+##### granularity?
+
+```ts
+optional granularity?: "control" | "domain";
+```
+
+`control` (default): one tool per control, whose description carries its live state. `domain`:
+a fixed set of tools, one per domain action (`<prefix>set-field`, `<prefix>run-control`,
+`<prefix>load-more`, and on an auto surface `<prefix>navigate` first), each taking an `entryId`
+from the observe tool. The set does not change as the page does, and its size does not grow
+with the page: use it for pages with many controls, and wherever tool lists are costly.
+
 <a id="modelcontext"></a>
 
 ##### modelContext?
@@ -290,6 +397,16 @@ optional observe?: boolean;
 ```
 
 Register the observe tool (`<prefix>observe`). Default true.
+
+<a id="observepagesize"></a>
+
+##### observePageSize?
+
+```ts
+optional observePageSize?: number;
+```
+
+Rows the observe tool returns when the call gives no `limit`. Default 100; at most 500.
 
 <a id="onerror"></a>
 
@@ -438,7 +555,7 @@ execute: (input, options?) => Promise<unknown>;
 inputSchema: Record<string, unknown>;
 ```
 
-<a id="name"></a>
+<a id="name-1"></a>
 
 ##### name
 
@@ -471,6 +588,20 @@ Tool annotations the draft defines. All are hints to the agent.
 ```ts
 optional consequentialHint?: boolean;
 ```
+
+Stated both ways by this adapter: `true` for a tool whose act cannot be undone, `false` for
+one whose can, so an agent (and a host bridging to MCP's `destructiveHint`) need not assume
+the worst of a tool that says nothing.
+
+<a id="idempotenthint"></a>
+
+##### idempotentHint?
+
+```ts
+optional idempotentHint?: boolean;
+```
+
+Not in the WebMCP draft; MCP's name. `true` when calling the tool twice does what once does.
 
 <a id="readonlyhint"></a>
 
@@ -533,6 +664,44 @@ optional isError?: boolean;
 ```ts
 structuredContent: Record<string, unknown>;
 ```
+
+## Type Aliases
+
+<a id="hostapprovaldecision"></a>
+
+### HostApprovalDecision
+
+```ts
+type HostApprovalDecision = 
+  | boolean
+  | WebMcpApprovalDecision
+  | {
+  unanswered: {
+     details?: Record<string, unknown>;
+     message: string;
+  };
+};
+```
+
+The host's answer. `unanswered` means the host could not put the question to the person during
+this call (its client cannot show one): nothing runs, no decision is recorded, and the agent is
+told `message`, with `details` such as an approval link, and to call again after the person
+decided.
+
+## Variables
+
+<a id="injected_approver_global"></a>
+
+### INJECTED\_APPROVER\_GLOBAL
+
+```ts
+const INJECTED_APPROVER_GLOBAL: "__AXE_WEBMCP_APPROVER__" = "__AXE_WEBMCP_APPROVER__";
+```
+
+The global a host that runs the page for a person defines before any page code runs:
+`window.__AXE_WEBMCP_APPROVER__`, a non-writable, non-configurable function. A headless page has
+no one to see the application's own approval UI, so when this global is present the adapter asks
+the host instead, and the host asks the person through its own channel.
 
 ## Functions
 

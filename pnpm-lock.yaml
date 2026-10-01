@@ -305,6 +305,9 @@ importers:
       '@summationai/axe-relay':
         specifier: workspace:*
         version: link:../relay
+      '@summationai/axe-surface':
+        specifier: workspace:*
+        version: link:../surface
       playwright-core:
         specifier: ^1.63.0
         version: 1.63.0
@@ -312,9 +315,6 @@ importers:
         specifier: ^8.21.3
         version: 8.21.3
     devDependencies:
-      '@summationai/axe-surface':
-        specifier: workspace:*
-        version: link:../surface
       esbuild:
         specifier: ^0.25.12
         version: 0.25.12

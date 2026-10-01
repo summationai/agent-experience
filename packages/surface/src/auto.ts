@@ -67,7 +67,7 @@ import {
   windowOf,
 } from "./auto-dom";
 import type { Confidence, NameFrom } from "./auto-dom";
-import { classify, compileLexicon } from "./auto-risk";
+import { classify, compileLexicon, withinThroughPopups } from "./auto-risk";
 import type { CompiledLexicon } from "./auto-risk";
 import { checkConfig, routeIncluded, ruleMatches } from "./auto-config";
 import type { AutoHandler, PolicyDecision, SurfaceConfig, SurfaceRule } from "./auto-config";
@@ -137,6 +137,13 @@ export type {
 } from "./auto-content";
 export { CONTENT, READ_LIMITS, WAIT_LIMITS, checkCondition, contentOf } from "./auto-content";
 export { formatRead } from "./auto-read";
+
+/** A field that takes a number: `type="number"`, or `inputmode="numeric"` or `"decimal"`. */
+function numericField(el: Element): boolean {
+  if (el.localName === "input" && (el.getAttribute("type") ?? "").toLowerCase() === "number")
+    return true;
+  return /^(numeric|decimal)$/i.test(el.getAttribute("inputmode") ?? "");
+}
 
 /** The id of the entry that opens a same-origin path. */
 export const NAVIGATE_ENTRY_ID = "page:navigate";
@@ -874,7 +881,8 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
   function unavailableFor(c: Candidate, ctx: ScanContext): string | null {
     const el = c.el;
     if (c.hidden) return "not shown on the page";
-    if (ctx.modal && !containsComposed(ctx.modal, el))
+    // A menu a trigger in the dialog opened is part of the dialog, even rendered in a portal.
+    if (ctx.modal && !withinThroughPopups(ctx.modal, el, containsComposed))
       return `behind the open dialog${ctx.modalName ? ` “${ctx.modalName}”` : ""}; close it first`;
     if (isAriaHidden(el, ctx)) return "hidden from assistive technology on the page";
     if (isInert(el)) return "inert on the page";
@@ -973,7 +981,9 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
                 : {}),
               ...(el.localName === "select" && !(el as HTMLSelectElement).multiple
                 ? { schema: { type: "string", enum: selectChoices(el as HTMLSelectElement) } }
-                : {}),
+                : numericField(el)
+                  ? { schema: { type: "string", pattern: "^-?[0-9]*[.]?[0-9]*$" } }
+                  : {}),
             },
       };
       if (object) entry.object = object;

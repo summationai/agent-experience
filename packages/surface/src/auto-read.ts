@@ -22,6 +22,7 @@ import {
   selectorFor,
   textOf,
 } from "./auto-dom";
+import { isItemBlock } from "./auto-risk";
 import type {
   PageRead,
   ReadField,
@@ -270,6 +271,102 @@ export function collectContent(env: ReadEnv): Collected {
       value = clampText(Array.isArray(v) ? v.join(", ") : v, 1000);
     }
     return { label, value };
+  };
+
+  /**
+   * A control that holds an item's data (a row of a listing rendered as one button) is content
+   * as well as a control: its own text pieces in order, joined, without its nested controls.
+   */
+  const itemRowText = (row: Element): string => {
+    const parts: string[] = [];
+    const visit = (el: Element) => {
+      for (const n of Array.from(el.childNodes)) {
+        if (n.nodeType === 3) {
+          const t = norm((n as Text).data);
+          if (t && /[\p{L}\p{N}]/u.test(t)) parts.push(t);
+          continue;
+        }
+        if (n.nodeType !== 1) continue;
+        const c = n as Element;
+        if (SKIP_TAGS.has(c.localName) || env.skip(c) || isHidden(c, ctx)) continue;
+        if (c.getAttribute("aria-hidden") === "true") continue;
+        const r = roleOf(c);
+        if (CONTROL_ROLES.has(r) || r === "link" || c.localName === "input") continue;
+        visit(c);
+      }
+    };
+    visit(row);
+    return clampText(parts.join(" · "), 500);
+  };
+  /** The list a run of sibling item rows is gathered into, with the container it came from. */
+  let rowList: { parent: Element | null; work: Work; list: ReadList } | null = null;
+  /** Add one row's text to the list its sibling rows share (a wrapper apiece is allowed for). */
+  const addRow = (el: Element, t: string) => {
+    breakLine();
+    const parent = el.parentElement;
+    const group = parent && parent.children.length === 1 ? parent.parentElement : parent;
+    const work = here();
+    if (rowList && rowList.work === work && rowList.parent === group) {
+      if (rowList.list.items.length < ROW_CAP) rowList.list.items.push(t);
+      const total = (rowList.list.total ?? rowList.list.items.length - 1) + 1;
+      rowList.list.total = total;
+      rowList.list.truncated = total > rowList.list.items.length;
+    } else {
+      const list: ReadList = { items: [t], total: 1, truncated: false };
+      work.lists.push(list);
+      rowList = { parent: group, work, list };
+    }
+  };
+  /** A row's text pieces, controls' visible text included (an icon-only button has none). */
+  const rowPieces = (row: Element): string[] => {
+    const parts: string[] = [];
+    const visit = (el: Element) => {
+      for (const n of Array.from(el.childNodes)) {
+        if (n.nodeType === 3) {
+          const t = norm((n as Text).data);
+          if (t && /[\p{L}\p{N}]/u.test(t)) parts.push(t);
+          continue;
+        }
+        if (n.nodeType !== 1) continue;
+        const c = n as Element;
+        if (SKIP_TAGS.has(c.localName) || env.skip(c) || isHidden(c, ctx)) continue;
+        if (c.getAttribute("aria-hidden") === "true") continue;
+        if (["menu", "listbox", "dialog", "tooltip"].includes(roleOf(c))) continue;
+        if (env.sensitive(c)) continue;
+        visit(c);
+      }
+    };
+    visit(row);
+    return parts;
+  };
+  const FLAT_ROW_EXCLUDES =
+    'h1, h2, h3, h4, h5, h6, [role="heading"], table, [role="table"], [role="grid"], ul, ol, dl, input, select, textarea, [contenteditable]';
+  /**
+   * A row of a listing that is not itself a control, such as a table's name cell as the button
+   * beside its columns: a flat block holding a control and at least two pieces of text, among
+   * siblings of the same element and class. Read whole, as one item.
+   */
+  const listingRow = (el: Element, role: string): string => {
+    if (role && role !== "row") return "";
+    if (!["div", "li", "article"].includes(el.localName)) return "";
+    if (el.querySelector(FLAT_ROW_EXCLUDES)) return "";
+    if (!el.querySelector('button, [role="button"], a[href], [role="link"]')) return "";
+    let unit: Element = el;
+    let parent = el.parentElement;
+    if (parent && parent.children.length === 1 && parent !== env.root) {
+      unit = parent;
+      parent = parent.parentElement;
+    }
+    if (!parent) return "";
+    const cls = unit.getAttribute("class") ?? "";
+    const peers = Array.from(parent.children).filter(
+      (c) => c.localName === unit.localName && (c.getAttribute("class") ?? "") === cls,
+    );
+    if (peers.length < 2) return "";
+    const parts = rowPieces(el);
+    if (parts.length < 2) return "";
+    const t = clampText(parts.join(" · "), 500);
+    return t.length <= 500 ? t : "";
   };
 
   const listOf = (el: Element): ReadList | null => {
@@ -526,6 +623,11 @@ export function collectContent(env: ReadEnv): Collected {
       return;
     }
 
+    const row = listingRow(el, role);
+    if (row) {
+      if (keep(row.length)) addRow(el, row);
+      return;
+    }
     if (role === "heading") {
       breakLine();
       const lv = /^h[1-6]$/.test(tag) ? Number(tag[1]) : Number(el.getAttribute("aria-level")) || 2;
@@ -576,7 +678,14 @@ export function collectContent(env: ReadEnv): Collected {
       if (f) here().fields.push(f);
       return;
     }
-    if (CONTROL_ROLES.has(role)) return;
+    if (CONTROL_ROLES.has(role)) {
+      if (!(role === "button" || role === "menuitem" || role === "option") || !isItemBlock(el))
+        return;
+      const t = itemRowText(el);
+      if (!t || !keep(t.length)) return;
+      addRow(el, t);
+      return;
+    }
     if (role === "progressbar" || role === "meter" || tag === "progress" || tag === "meter") {
       breakLine();
       const now =

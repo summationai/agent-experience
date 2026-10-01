@@ -15,7 +15,7 @@ The default desktop-agent path keeps state and execution inside the consuming pa
 - Register the application in the provider's connector registry with its URL, allowed origins, identity mapping, session strategy, and expected Surface id. Run the provider service from `mcp/`, not from the consuming application. Its stable endpoint exposes generic `apps_search`, `app_connect`, `relay_*`, and `surface_*` tools. A single connector is selected automatically; multiple connectors are selected by id after discovery. `--relay-dev` and pairing remain a local attended-tab diagnostic only.
 - What easy mode derives ([S-AUTO-2] to [S-AUTO-6]): `SurfaceProvider` (or `useAutoSurface`, or `autoSurface()` outside React) starts in an effect, reads roles, accessible names, disabled states and their descriptions, values, and the dialogs, landmarks, and headings controls sit in, and registers one entry per control on the module-level `surface`, so declared entries share the table. Keys are `<route>#<containers>/<role>:<name>` (numeric and UUID segments become `:id`); pin one that must never move with `data-surface-id` or a rule's `id`. Native links and non-destructive router buttons inside a navigation landmark are low-risk navigation; put `data-surface-navigation` on the exact custom button that only changes location when the DOM otherwise cannot express that intent. A click is the pointer, mouse, and focus sequence plus `click()`; typing uses the native value setter plus `input` and `change`, so React's `onChange` runs. After an act the surface waits for the page to settle, re-scans, and reports `changed` and `notices`. Every observe row that is not declared carries `tier`: `derived` (from the page), `annotated` (refined by a rule or `data-surface-*`), and declared (absent: `register`, `useSurface`, a config `declare`, or a rule's `handler`). A derived act cannot put `expectedRev` into your server's write, because a click has nowhere to carry it; the surface still refuses a stale act within the tab, and a write that must be checked on the server belongs in the declared tier.
 - Refine with config ([S-CFG-1] to [S-CFG-8]): a `SurfaceConfig` is a plain object reviewed in a diff: `rules: [{ match: { key, id, selector, route, role, name }, name, object, id, role, reason, state, effect, sensitive, editable, hide, approval, group, handler }]`, plus `app`, `routes`, `lexicon`, `policy` (`allow`, `approve`, `deny` per risk level), `groups`, `sensitive` and `exclude` selectors, `declare`, `landmarks`, and `navigate`. Every matching rule applies in order and later fields win. A rule's `handler` runs the application's own function instead of the page's events, which makes that control declared without touching its component. `checkConfig` returns a config's problems as sentences; `handle.configure(next)` swaps it in and re-scans.
-- Measure: `npx @summationai/axe surface coverage <dev-url> [--routes /a,/b] [--auth ...] [--out coverage.md] [--json]` opens the app in headless Chromium through Playwright (installed by the app), calls `window.__surface.coverage()` on each page, and prints one Markdown report: counts by kind, tier, and name confidence, the entries waiting on approval, stale rules (`staleConfig`), and gaps (unnamed and icon-only controls, weak or duplicate names, clickable elements with no role, canvas charts, cross-origin frames, virtualized grids, file inputs, closed shadow roots, unrecognized effects), each with the markup fix and a rule to paste. In the page, `handle.coverage()` and `formatCoverage` give the same. Coverage is not a score; each gap is the next edit.
+- Measure: `npx @summationai/axe surface coverage <dev-url> [--routes /a,/b] [--auth ...] [--state .axe/host-state.json] [--out coverage.md] [--json]` opens the app in headless Chromium through Playwright (installed by the app), signed in with `--auth` (a header or cookies) or `--state` (the session `axe host login` saved), waits until each page's DOM has been quiet for a second after the surface appears (a root-mounted provider appears before the route has loaded), calls `window.__surface.coverage()` on each page, and prints one Markdown report: counts by kind, tier, and name confidence, the entries waiting on approval, stale rules (`staleConfig`), and gaps (unnamed and icon-only controls, weak or duplicate names, clickable elements with no role, canvas charts, cross-origin frames, virtualized grids, file inputs, closed shadow roots, unrecognized effects), each with the markup fix and a rule to paste. In the page, `handle.coverage()` and `formatCoverage` give the same. Coverage is not a score; each gap is the next edit.
 - In the browser-native path, the agent uses the WebMCP tools registered by the page. `surface_observe` returns the live table and revision; an auto surface also registers `surface_read` for bounded/redacted visible content and `surface_wait` for slow page work; one tool per eligible control calls the page's own `surface.act`. High-risk, explicitly confirmed, and approval-gated acts require `requestApproval`; the application records the person's approve or deny decision and opens the one-use derived approval gate only after approval. Without that trusted callback the call returns `approval_channel_missing` and does not act. The browser host must implement `document.modelContext.registerTool` and deliver those tools to the current task: a generic headless/browser-automation session with only click/type primitives is not a WebMCP host and cannot be repaired by prompting. In development, a provider with `expose` publishes `window.__surface.webMcp()` to distinguish unavailable, registering, ready, degraded, registration error, and closed states.
 - In the desktop-agent path, the standalone `mcp/` service exposes `relay_tabs`, `relay_select-tab`, `relay_pair` in development, `relay_stop`, `surface_read`, `surface_observe`, `surface_set-field`, `surface_run-control`, `surface_load-more`, `surface_wait`, and `surface_ledger`; the page remains the state owner and the service transports snapshots, acts, and decisions.
 - `RelayConnection.stop()` is an explicit user revocation, never lifecycle cleanup. React effects, route teardown, and other ordinary unmounts call `disconnect()` so the relay keeps the tab available for a remount; the generated integrations already make this distinction.
@@ -380,17 +380,18 @@ Start at the top and read down. Each page ends with next steps.
 21. [Unattended mode](host.md) — the remote path for an agent outside the browser: the SDK runs the application in a private browser for that person (`@summationai/axe-host`) with no pairing; a brokered session can sign it in silently, or a provider-served view lets the person authenticate that exact session without application backend work; development, production OAuth, security, and limits.
 22. [ChatGPT consumer path](chatgpt-plugin.md) — the installable plugin, hosted MCP service, OAuth and application-session exchange, the phone experience, deployment boundary, and what cannot be made zero-consent.
 23. [WebMCP](webmcp.md) — a Surface offered to the browser's own agent: status of the draft API, feature detection, what is exposed and what never is, the fallback.
-24. [For agent builders](for-agent-builders.md) — `@summationai/axe-client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
-25. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
-26. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
-27. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
-28. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
-29. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
-30. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
-31. [API reference](api/README.md) — generated from the source for every package.
-32. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
-33. [Glossary](glossary.md).
-34. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
+24. [Agent web](agent-web.md) — experimental: a page's Surface for an agent with nothing installed, as pages of links it can follow with web fetch; sign-in, approval, and free text on the site's own pages.
+25. [For agent builders](for-agent-builders.md) — `@summationai/axe-client`, wrapping it as a tool, handling each status, fulfillers, confirming sensitive payloads, phrasing handoffs.
+26. [Testing and conformance](testing-and-conformance.md) — unit testing actions, running conformance locally and in CI, reading the report.
+27. [Security](security.md) — threat model, what the SDK mitigates, what your site must.
+28. [Audit](audit.md) — the AXE Score: categories, weights, every check, the honesty rules.
+29. [Analytics](analytics.md) — the event schema, sinks, and the day-one queries.
+30. [Platforms](platforms.md) — multi-tenant hosts: define once, serve per tenant, publish an index.
+31. [Deploying](deploying.md) — CORS, caching, rate limiting, observability, rolling out one action at a time.
+32. [API reference](api/README.md) — generated from the source for every package.
+33. [FAQ](faq.md) — MCP, OpenAPI, llms.txt, schema.org, Agent Protocol, A2A; will agents use it; what stops a site from lying.
+34. [Glossary](glossary.md).
+35. [The website](site.md) — how the static site in `site/` is built from these pages, and how to run its tests.
 
 Normative documents live in [`spec/`](../spec/AXE-PROTOCOL.md): the protocol, the [kind registry](../spec/KINDS.md), the [event schema](../spec/EVENTS.md), and the [vocabulary](../spec/VOCABULARY.md) that every name in these pages is checked against.
 
@@ -2191,7 +2192,7 @@ A derived act cannot put the revision into your server's write, because a click 
 A subtree marked `data-surface-ignore` is never read: put it on your own agent UI (a chat panel, a debug drawer) so an agent does not drive the tools meant for driving it. The relay's in-page indicator carries it, and the scan skips the indicator whether or not it is marked, so an agent can never press the person's Stop, Approve, or Deny.
 ## Safety defaults
 
-Every derived action gets a risk from its role, words, styling, and surroundings, and the default policy asks the person before anything high risk.
+Every derived action gets a risk from its role, words, styling, and surroundings, and the default policy asks the person before anything high risk. A control named for an item among its peers, such as an organization on a chooser page, a tenant in a switcher, or a table in a catalog's rows, sidebar, or cards, opens that item: low risk, so an agent follows it without asking. That covers a table's row rendered as one button holding its columns, a card, and wrappers such as a drag-and-drop row; a table named `refund_events` or "Revenue share" is an item, not a refund or a share. Two folders may share a name; a name repeated on every row ("Recalculate") is an action on each row and is not an item. A strip of sibling filters whose names carry counts ("Snowflake (7)") or that carry a pressed, selected, or current state reads as filters, low risk. A control whose markup says nothing about its effect, such as a section header that opens and closes without `aria-expanded`, still reads as unknown: add the attribute in the app, or a rule in the configuration, and a destructive verb at the start of a name or a destructive style still reads as high. A menu a dialog's trigger opened is part of that dialog even when the UI library renders it in a portal on `<body>` (Radix does), so a modal tenant switcher's tenants are available and read as the staged choice its Continue button commits.
 
 - **Low:** tabs, options, disclosures, menu triggers, links within the site, router buttons inside a `nav`/`role="navigation"` landmark, controls explicitly marked `data-surface-navigation`, checkboxes and radios inside a form, row selection, and names that start with a view word (open, show, filter, sort, search, close, cancel, next, export). Use the marker on the exact custom button that only changes location, not on an ancestor containing other controls. Destructive wording or styling still wins.
 - **Medium:** submit buttons and names that start with a commit word (save, create, update, add, assign, rename), switches and checkboxes outside a form, links that leave the site.
@@ -8399,6 +8400,7 @@ Treat the adapter as experimental for as long as the API is. It reaches the brow
 ## Offering a surface
 
 <!-- include: examples/webmcp/page.ts#expose -->
+
 ```ts
 import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
 import { surface } from "../surface/board";
@@ -8418,6 +8420,7 @@ export function leaveBoard(): void {
   webmcp.close();
 }
 ```
+
 <!-- /include -->
 
 `exposeWebMcp(surface, options)` returns a handle: `supported` and, when false, `reason`; `tools()`, the names registered now; `ready()`, which resolves when the current registration round has settled; `diagnostic()`, which distinguishes unavailable, registering, ready, degraded, registration error, and closed states; and `close()`, which unregisters everything and stops following the surface. When React's `SurfaceProvider` also has `expose`, the same diagnostic is available at `window.__surface.webMcp()`.
@@ -8435,11 +8438,13 @@ Options:
 - `onError`: called when the browser refuses a registration (another script holds the name, a permissions policy forbids tools).
 
 <!-- include: examples/webmcp/page.ts#options -->
+
 ```ts
 // Leave unavailable controls out instead of describing them, and use a prefix per page so two
 // surfaces on one page do not collide.
 export const quiet = exposeWebMcp(surface, { unavailable: "omit", prefix: "draft_" });
 ```
+
 <!-- /include -->
 
 ## What is registered
@@ -8473,6 +8478,28 @@ Use a fresh agent conversation for a clean acceptance test after installing or u
 - **The ledger.** Acted-on text may be in it under the `keep` policy. `expose` still publishes it for browser-driving agents in the page.
 - **A collection with nothing to load.**
 - **Anything outside the page.** WebMCP tools run in the page with the user's own session, like `expose`. They add no reader the page did not have and are not a way to reach the surface from a server.
+
+## Granularity
+
+By default each control is its own tool, and its description carries the control's live state. That reads well on a small page, but the list grows with the page (27 tools on the reference plan page; a grid of 50 products by 12 months would be over 600), and every change of state re-registers the tools it touched.
+
+`granularity: "domain"` registers a fixed set instead: the observe tool, read and wait on an auto surface, and one tool per domain action, the same names the relay serves.
+
+```ts
+exposeWebMcp(surface, { granularity: "domain" });
+// <SurfaceProvider webMcp={{ granularity: "domain" }}>
+```
+
+| Tool                  | Acts on                                                                                                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `surface_set-field`   | a field: `{ entryId, text }`                                                                                                                                                            |
+| `surface_navigate`    | on an auto surface, first: a link or landmark within the site, or a same-origin path as `text` on the navigate entry. Low risk, so a navigation is not mistaken for a consequential act |
+| `surface_run-control` | an action (a button, a switch): `{ entryId, confirm? }`                                                                                                                                 |
+| `surface_load-more`   | a collection that can load more: `{ entryId }`                                                                                                                                          |
+
+Each takes `expectedRev` too. The agent finds ids with `surface_observe`, which filters (`query`, `kind`, `object`, `available`) and pages (`limit`, `cursor`) and names the tool for each row. A call with an id another tool acts on is refused with that tool's name. Pass your own `domains` (the specs of `domainActions`) to name groups the application would name, such as a `set-demand` for a month's forecast.
+
+On the reference plan page, driven headless through the bridge, the forecast edit and save took 4 tools instead of 27 and sent no tool-list change instead of 10, with the same result on the server.
 
 ## Acting
 
@@ -8509,6 +8536,54 @@ Nothing is registered, `supported` is false, and the page works as before. The o
 
 An application that exposes its browser surface from one module with `expose(window)`, as the reference application under `examples/` is built to, adds the WebMCP adapter on the next line, as in the example above.
 
+## Headless bridge (experimental)
+
+WebMCP tools exist only in a loaded page, for the agent built into that browser: the explainer lists "fully autonomous workflows" without a browser UI as a non-goal. A desktop agent such as Claude Desktop has no browser of its own, so it cannot reach them directly. `axe host --dev --webmcp --stdio` gives it one: it opens the application in headless Chromium with WebMCP enabled, follows the page's tools through the DevTools protocol's WebMCP domain (the events for tools added and removed, and the command that invokes one), and serves them over MCP on stdio.
+
+```sh
+axe host login http://localhost:3000
+claude mcp add plan -- npx @summationai/axe host --dev --webmcp --stdio --app http://localhost:3000 --start /plan
+```
+
+The page needs no relay connection and no host-specific code: `<SurfaceProvider webMcp>`, `exposeWebMcp`, or any `document.modelContext.registerTool` is the whole integration, and the same registration serves Chrome's built-in agent and ChatGPT's in-app browser. A high-risk control still needs the person: the bridge asks them in the agent's MCP client when it can show a form (elicitation), and otherwise opens a single-use approval page in the person's browser and tells the agent to call again after they decide; see [Approval in a headless page](#approval-in-a-headless-page). The bridge refuses navigations off the application's origin, reports a call whose page navigated or reloaded underneath it as outcome unknown, sends `tools/list_changed` as the page's tools change, and returns each answer only once the tools the call changed are registered again. It needs Chromium 150 or newer (the one Playwright installs qualifies).
+
+Tried on 2026-09-29 against the reference application (`examples/plan-review`, which offers its page surface through `exposeWebMcp` in `app/SurfaceHost.tsx`), headless, signed in as bob at Acme, from a scripted MCP client over stdio:
+
+| Step                                             | Bridge                                                | Relay path (review of 2026-09-25)   |
+| ------------------------------------------------ | ----------------------------------------------------- | ----------------------------------- |
+| Start: first `tools/list`, including the browser | 350 ms warm, 1.8 s cold                               | `relay_tabs` 296 ms, once listening |
+| Observe                                          | 2 to 3 ms                                             | 3 to 12 ms                          |
+| Type a forecast                                  | 73 ms, including the wait for the tool list to settle | `surface_set-field` 69 ms           |
+| Save                                             | 22 ms, and the server's plan shows the value          | `surface_run-control` 67 ms         |
+
+### Hints
+
+The DevTools domain reports only a tool's read-only, untrusted-content, and autosubmit hints, so the bridge reads the rest where the page states them: it wraps `registerTool` before any page script runs and records each tool's title and hints from the registration itself. It then gives the agent MCP's hints:
+
+| The page says | The agent gets |
+| --- | --- |
+| `readOnlyHint: true` | `readOnlyHint: true` |
+| `consequentialHint: true` | `destructiveHint: true` |
+| `consequentialHint: false` | `destructiveHint: false` |
+| `idempotentHint` | `idempotentHint` |
+| `title` | `title` |
+
+MCP reads a tool that states nothing as destructive, so the adapter states `consequentialHint` both ways: `surface_navigate` and a reversible control arrive as not destructive, and an agent has no reason to ask the person before following a link. A hint a page does not state is left unstated, never guessed.
+
+### Approval in a headless page
+
+A headless page has no one to see the application's `requestApproval` UI. The bridge therefore installs a host approver before any page script runs (`INJECTED_APPROVER_GLOBAL`, a function page code cannot replace), and `exposeWebMcp` asks it instead of the page's UI ([S-WEB-6](../spec/SURFACE.md#8-webmcp-the-browsers-own-agent)). The bridge asks the person:
+
+1. In the agent's own MCP client, when the client declares form elicitation: "Approve “Delete everything” on the board? It changes state, risk high." The answer is recorded in the page's ledger with who gave it, and the act runs or not within the same tool call.
+2. Otherwise on a single-use approval page on loopback, opened in the person's browser (and written to the bridge's log). The tool call returns `approval_pending` and nothing runs; after the person decides, the agent's next call of the same tool uses that decision, once, for that control at that revision.
+
+The approval link never appears in anything the agent receives. It is a credential for one decision, and an agent that can reach loopback could otherwise open it and press Approve itself. Tool calls on the page run one at a time, so a question always belongs to exactly one call, and the time the person takes does not count against the call's timeout.
+
+What the bridge does not do yet, in the order it matters:
+
+- **Identities and production.** The bridge runs one page for one development identity. The per-identity sessions, `sessionFor`, request rules, human sign-in handoff, and OAuth of `createHost` ([Host](host.md)) would move over by making the bridge an alternative to the relay inside `createHost`.
+- **Stability.** WebMCP is behind `--enable-features=WebMCP` and its DevTools domain is experimental; both can change with Chromium.
+
 ## Bundle
 
 `@summationai/axe-surface/webmcp` remains a separate entry for framework-free use. `SurfaceProvider` imports the small adapter so its `webMcp` prop works without another application dependency; ordinary hooks from `@summationai/axe-surface/react` still tree-shake it when the provider is not used.
@@ -8518,6 +8593,168 @@ An application that exposes its browser surface from one module with `expose(win
 - [Surface](surface.md): registering controls, availability, and the revision.
 - [MCP](mcp.md): the server-side counterpart, with elicitation and the Apps view.
 - [spec/SURFACE.md §8](../spec/SURFACE.md#8-webmcp-the-browsers-own-agent): the rules, [S-WEB-1] to [S-WEB-5].
+
+# docs/agent-web.md
+
+# Agent web (experimental)
+
+The agent web serves an application's Surface to an agent that has nothing installed: no MCP server, no connector, no browser extension. The person starts in their agent ("list my tables in Summation") and stays there. The one thing the agent needs is a tool almost every agent already has: fetching a URL.
+
+It is experimental. It is tested against an agent that follows the documented rules of a model's web fetch, and it has been run from Claude Desktop with nothing installed (see [Run from Claude Desktop](#run-from-claude-desktop)).
+
+## Why links
+
+A model's web fetch sends a GET request, carries no cookies, and, to stop an agent smuggling data out in a URL, fetches only URLs that have already appeared in the conversation: in the person's message or in an earlier fetched page ([web fetch](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool)). It cannot fill in a template or add a query parameter of its own. So the agent web answers every request with a page of text whose links are the only way on:
+
+```
+# Plan Review, as bob, Acme Manufacturing
+
+- **Count:** 0 ...                                   ← the page's content (surface_read)
+
+## What you can do
+
+- Add one: https://agent.example.com/s/2ryJ…/-ndx8YZ
+- Widgets, January 2027 (now "1200"): enter a number https://agent.example.com/s/2ryJ…/7aZrZE, or ask the person to type it https://agent.example.com/s/2ryJ…/bvZDhv
+- Delete everything (asks the person first): https://agent.example.com/s/2ryJ…/KMzQj9
+```
+
+A link is `/s/<session>/<link>`. The link's action and arguments stay on the server, bound to the page's revision, so a link is short, cannot be edited into another action, and acts once: following an act link again says "Already done" and shows the page as it is now. The page itself runs in headless Chromium on the service, one per agent session, through the [WebMCP bridge](webmcp.md#headless-bridge-experimental); the application offers its Surface with `exposeWebMcp` or `<SurfaceProvider webMcp>`, as for a browser's own agent.
+
+## What the agent does, and what goes to the site
+
+| The agent needs to | How |
+| --- | --- |
+| Read the page | Every page starts with its content, then its controls; "More of this page" and "More controls" links page through both |
+| Click, navigate, choose an option | One link per control, and one link per option of a field that has options |
+| Enter a number | A keypad of links: each digit is a link, then "Done, set it to 1555"; or, with `textInUrl`, one link the agent completes with `?text=1555` |
+| Sign in | A deep link to the site's own page, `/agent/signin?agent_session=<id>` |
+| Approve a high-risk action | A deep link to the site's own page, `/agent/approve/<id>`; nothing runs until the person decides there |
+| Type free text | With `textInUrl`, a link the agent completes with `?text=<value>`; otherwise a deep link to the site's own page, `/agent/input/<id>`, where the person types it and the agent learns only that it was set |
+
+The person opens a deep link in their own browser, on the site, signed in with the site's own session. No browser session is mirrored anywhere: the site's server tells the service what the person did, and the agent's "continue" link shows it.
+
+### Connecting a session
+
+1. The agent fetches `https://agent.example.com/start` (the site can name it in its HTML, or the person gives it). The page opens a pending session with a code, `4F7-K2Q`, and gives the sign-in link to pass on.
+2. The person opens `https://app.example.com/agent/signin?agent_session=<id>`, signs in as usual if they are not, sees the same code, and presses Connect. That page says what the agent will be able to do, as whom.
+3. The site mints an application session for the agent's headless page (not the person's own browser cookie) and hands it to the service. The agent's next link reads the page as that person.
+
+## Adding it to a site
+
+The site's side is `agentSiteHandler` from `@summationai/axe-core/agent-site`, a Web `Request` handler for the site's own server (Node, nothing else installed), mounted at `/agent` and `/agent/*`. `GET /agent` is where an agent that found the site starts: it sends it on to the agent web's `/start` (`agentUrl`, the agent web's public origin). In Next.js (the reference application's `lib/agent-site.ts` and `app/agent/[...path]/route.ts`):
+
+```ts
+import { agentSiteHandler } from "@summationai/axe-core/agent-site";
+
+export const agentSite = agentSiteHandler({
+  serviceUrl: process.env.AXE_AGENT_WEB_URL!, // the agent web service
+  secret: process.env.AXE_AGENT_WEB_SECRET!, // shared with it
+  identify: (request) => personFromSession(request), // { principal, tenant?, displayName? } or null
+  session: (_request, who) => ({ cookies: [mintAgentSession(who)] }), // the headless page's session
+  loginUrl: (returnTo) => `/login?next=${encodeURIComponent(returnTo)}`,
+});
+// app/agent/[...path]/route.ts: GET and POST return (await agentSite(request)) ?? 404
+```
+
+### When the agent is given only the site's address
+
+An agent told "use Summation at app.example.com" opens the site itself, lands on the sign-in page, and asks the person to sign in in the agent's browser. `agentEntry(request)` sends it to `/agent` instead. Call it first wherever every page request passes (a root loader, `middleware.ts`):
+
+```ts
+import { agentEntry } from "@summationai/axe-core/agent-site";
+
+const toAgent = agentEntry(request); // a 303 to /agent, or null
+if (toAgent) throw toAgent; // or return it
+```
+
+It answers only a GET for a document, from a user agent in `agentBrowsers` (Claude's in-app browser sends `Claude/<version>`; the providers' per-request fetchers send `Claude-User`, `ChatGPT-User`, `Google-Agent`, `Perplexity-User`) or with a `Signature-Agent` header (a signed agent, such as ChatGPT agent), arriving from outside the site. An agent driving the person's own browser (Claude in Chrome, Copilot in Edge) sends that browser's user agent and is not sent on; it has the site's own pages and session already. A navigation within the site (`Sec-Fetch-Site: same-origin`) is never sent on, so the person can still sign in from a link in the agent's browser, and `?agent=off` opens the site as usual. For an agent it does not recognize, name the entry in the page: a `<link rel="alternate" type="text/markdown" href="/agent">` in `<head>`, and a visually hidden link first in `<body>`, since agents read the accessibility tree rather than `<head>`.
+
+The service is `createAgentWeb` from `@summationai/axe-host`, operated by the Surface provider. For development:
+
+```sh
+export AXE_AGENT_WEB_SECRET=…   # the same value the site has
+axe host --dev --agent-web --app http://localhost:3000 --start /plan --name "Plan Review"
+```
+
+It listens on 4719. A model's web fetch runs on the model provider's servers and cannot reach loopback, so a real agent needs this service and the site on public HTTPS: pass `--public <origin>` with the service's public origin, and `--site <origin>` when the site is not the app URL. [Local development with cloudflared](#local-development-with-cloudflared) does this from a laptop.
+
+### Local development with cloudflared
+
+Claude Desktop needs no tunnel: it opens the links in its own browser, on the person's machine, so the service, the site, and the agent can all be on loopback. An agent whose web fetch runs on its provider's servers (Claude on the web and on mobile, ChatGPT, Perplexity) cannot reach loopback, and needs the agent web and the site on public HTTPS. Cloudflare's quick tunnels give each local port a public `https://<words>.trycloudflare.com` origin, with no account.
+
+1. Install it: `brew install cloudflared` (other platforms: [Cloudflare's downloads](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)).
+2. Open one tunnel per port, each in its own terminal, and note the origin each prints:
+
+   ```sh
+   cloudflared tunnel --url http://localhost:4719   # the agent web
+   cloudflared tunnel --url http://localhost:3000   # the site (5173 for a Vite dev server)
+   ```
+
+3. Let the site's dev server answer its tunnel origin. Development servers refuse a host they do not know:
+   - Next.js: `allowedDevOrigins` in `next.config`, or sign-in and every client-side control silently do nothing (its HMR socket is refused). The reference application reads `NEXT_ALLOWED_DEV_ORIGINS`.
+   - Vite (React Router, Remix, SvelteKit): `server.allowedHosts: [".trycloudflare.com"]`, or every request answers "Blocked request. This host is not allowed."
+   - An application that checks `Origin` on writes needs the tunnel origin among its trusted origins too; the reference application reads `PLAN_REVIEW_TRUSTED_ORIGINS`.
+4. Start the site with the agent web's public origin, so `GET /agent` sends an agent there. `AXE_AGENT_WEB_URL` stays on loopback, since the site's server reaches the service directly:
+
+   ```sh
+   AXE_AGENT_WEB_SECRET=… AXE_AGENT_WEB_URL=http://127.0.0.1:4719 \
+   AXE_AGENT_WEB_PUBLIC_URL=https://<agent-web>.trycloudflare.com \
+   NEXT_ALLOWED_DEV_ORIGINS=<site>.trycloudflare.com \
+   PLAN_REVIEW_TRUSTED_ORIGINS=http://127.0.0.1:3000,https://<site>.trycloudflare.com \
+   pnpm --filter plan-review-example dev
+   ```
+
+5. Start the agent web with both public origins. `--app` stays local, because the service's own headless browser loads the page; `--site` is where the person's sign-in, approval, and text links point:
+
+   ```sh
+   AXE_AGENT_WEB_SECRET=… axe host --dev --agent-web --text-in-url \
+     --app http://localhost:3000 --site https://<site>.trycloudflare.com \
+     --public https://<agent-web>.trycloudflare.com --start /plan --name "Plan Review"
+   ```
+
+6. Check from outside: `curl -sI https://<site>.trycloudflare.com/agent` answers `303` to `https://<agent-web>.trycloudflare.com/start`, and that page lists a sign-in link on the site's tunnel origin. Then give the agent `https://<site>.trycloudflare.com` (or `/agent`).
+
+What to expect:
+
+- **A quick tunnel's origin changes every time it starts.** Restart the site and the agent web with the new origins, and update the dev server's allowed hosts.
+- **Signing in on the tunnel origin is a separate session** from the same app on `localhost`: cookies belong to the origin.
+- **Cloudflare answers some agents itself.** It serves its own managed `robots.txt` and refuses training crawlers (`GPTBot` gets `403`); per-request fetchers (`Claude-User`, `ChatGPT-User`) pass. The agent web's dev log shows each request that reached it, with its user agent, `Sec-Fetch-Site`, `Signature-Agent`, and the client address Cloudflare reports (`from=`), so a request that is missing from the log never left the agent or was stopped at the edge.
+- **Some agents fetch only URLs they already know.** Codex's web tool reads from OpenAI's index and refuses any URL it has not seen, even with `--search`; it never reaches the tunnel, and the agent web's fresh links cannot work through it.
+- **If `cloudflared` stalls on "Failed to initialize DNS local resolver ... i/o timeout"**, typically behind a VPN whose first resolver does not answer direct queries, use the system resolver: `GODEBUG=netdns=cgo cloudflared tunnel --url http://localhost:4719`.
+- **A tunnel makes the dev server public.** Anyone with the origin reaches it, and a session link is a bearer link. Use demo data, and stop the tunnels when the run is over.
+
+## Security
+
+- **The session link is a bearer link.** Anyone holding `/s/<session>/…` acts as the person it was connected to. It lives in the agent's transcript, so it ends after two hours without use (`sessionIdleMs`), and the site can end the application session it minted for the agent at any time.
+- **Connecting needs the person, signed in, on the site.** The sign-in page shows the code the agent showed; the person connects only if it matches. A session connects once.
+- **Approval and text come only from the person on the site.** Each of those pages checks that the signed-in person is the one the session acts for, and each form carries a nonce bound to the request, the person, and the shared secret. The agent's web fetch cannot post a form and carries no cookies.
+- **The site API needs the shared secret.** `/api/sessions/…` and `/api/pending/…` answer only a request with `Authorization: Bearer <secret>`.
+- **Nothing is cached.** Every page is `Cache-Control: no-store, private`: a page is one person's, at one moment.
+- **Page text is data.** Every page says so, as the MCP tools do.
+
+## Run from Claude Desktop
+
+Three runs on 2026-09-30 from Claude Desktop, with nothing installed (no connector, no MCP server), against the reference application, signed in on its own pages as bob at Acme. The server's saved plan showed each value afterwards.
+
+| Task | Route | Agent requests, plan to saved | Time |
+| --- | --- | --- | --- |
+| Widgets, January 2027 to 1555 | keypad (1, 5, 5, 5, Done), Save; through public tunnels | 8 | 25 s |
+| Gaskets, March 2027 to 4321 | `?text=4321`, Save; through public tunnels; asked to type the value itself | 3 | 10 s |
+| Brackets, May 2027 to 2468 | `?text=2468`, Save; on `127.0.0.1` with no tunnel; chose to type it itself | 3 | 7 s |
+
+What the runs settled:
+
+- **Claude Desktop opens the links in its own browser, on the person's machine.** Every request carried the app's user agent and was followed by a favicon request, and the loopback run worked, so it is not a server-side web fetch. A session link from a fetched page was followed; nothing had to be pasted.
+- **It composes URLs.** Given a link that takes `?text=`, it put the value in the URL itself. So in Claude Desktop, typing needs neither the keypad nor the site's page; the service offers that link with `textInUrl` (`--text-in-url`), off by default, because an agent limited to URLs it has seen cannot use it.
+- **It follows act links without stopping to ask**, about three seconds apart, almost all of it the model's time: the service answered in 0 to 145 ms, and 1.6 s for a session's first page while its headless browser started.
+- **No caching was seen**: every link reached the service, and `/start` was requested once per run.
+
+Still to run: Claude on the web and on mobile, where a server-side web fetch may apply the rules the link-only design was built for, and the sign-in, approval, and text pages for a production site. Local development with Claude Desktop needs no tunnel; the service, the site, and the agent can all be on loopback.
+
+## Next steps
+
+- [WebMCP](webmcp.md): the page-side contract the agent web drives, and its headless bridge.
+- [Unattended mode](host.md): the MCP path for agents that have a connector.
 
 # docs/for-agent-builders.md
 
@@ -13261,13 +13498,17 @@ WebMCP is a draft browser API (W3C Web Machine Learning Community Group, draft r
 
 **[S-WEB-1] Feature detection and diagnosis.** `exposeWebMcp(surface, options)` registers nothing unless it finds an object with `registerTool` (by default `document.modelContext`), and then returns a handle with `supported: false` and the reason. Its `diagnostic()` distinguishes unavailable, registering, ready, degraded, registration error, and closed states and names each refused registration without exposing page data. The page, its controls, and `expose` ([S-DOM-2]) behave the same with or without WebMCP. The adapter reaches the browser API in one place, so a change in the draft changes that place only.
 
-**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. An action that is not reversible carries the `consequentialHint` annotation. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
+**[S-WEB-2] What is offered.** One tool reads the surface (`<prefix>observe`, read-only: the observation of [S-OBS-1] as text and as structured content, with the filters and pages of [S-OBS-5]: `query`, `kind`, `object`, `available`, `limit`, and `cursor`). When the surface carries the derived page-content reader of [S-AUTO-14] and [S-AUTO-15], `<prefix>read` returns that bounded, redacted content and `<prefix>wait` waits for one of its bounded conditions; both are read-only and may be disabled together with `content: false`. One tool per entry that can be acted on: an action, a field that is not `sensitive`, a collection with `more`. A sensitive field ([S-PRV-1]) gets no tool, and no tool description or result carries its value. The tool's description is `describeEntry` ([S-DOM-4]) plus what the tool does; its input schema is a JSON Schema object with an optional `expectedRev`, `text` for a field (with the field's schema and `maxLength`), and a required `confirm` for an action whose effect asks for confirmation. Every tool that acts states `consequentialHint`: `true` for an action that is not reversible, `false` otherwise, so an agent need not assume the worst of a tool that says nothing; an idempotent entry also carries `idempotentHint`. Tool names are the prefix (default `surface_`) and the id with every character outside letters, digits, `_`, and `-` replaced by `_`; ids that map to the same name, or to the observe, read, or wait tool's, get an 8-hex-digit hash of the id appended. Names are stable for an id.
 
 **[S-WEB-3] Availability follows the surface.** The adapter follows `subscribe` ([S-OBS-4]) and re-registers a tool when its name, description, schema, or annotations changed, and only then. An unavailable entry is registered with its reason, `requires`, and `handoff` in the description (`unavailable: "describe"`, the default) or left out until it is available (`"omit"`). A freeze makes every entry unavailable with the freeze's reason ([S-FRZ-1]).
 
-**[S-WEB-4] Acts go through the surface and approval is trusted.** A tool call is `surface.act` with the entry's id, the entry's op, the tool's `text` and `confirm`, and `expectedRev` from the call, or, when the call gives none, the surface's revision at the moment of the call. Before a high-risk action, an action that declares `confirm`, or an entry whose handoff reason is `approval_required`, the adapter requires the application's `requestApproval` callback; without one it refuses and runs nothing. The callback is trusted application UI, receives the exact entry, act, and input, and must resolve only from the person's interaction. An approval opens an auto-surface gate for that exact entry and is recorded before the act; a denial runs nothing. The callback MUST NOT be reachable by an agent. The surface's revision guard, availability, confirmation, ledger, and handler otherwise apply unchanged ([S-ACT-2], [S-LED-1]); the ledger's `actor` is the adapter's (`webmcp` unless set). The result is the act's envelope as structured content with a line of text, and `isError` when it is not `ok`.
+**[S-WEB-4] Acts go through the surface and approval is trusted.** A tool call is `surface.act` with the entry's id, the entry's op, the tool's `text` and `confirm`, and `expectedRev` from the call, or, when the call gives none, the surface's revision at the moment of the call. Before a high-risk action, an action that declares `confirm`, or an entry whose handoff reason is `approval_required`, the adapter requires a trusted approver: a host's ([S-WEB-6]) or else the application's `requestApproval` callback; without either it refuses and runs nothing. The callback is trusted application UI, receives the exact entry, act, and input, and must resolve only from the person's interaction. An approval opens an auto-surface gate for that exact entry and is recorded before the act; a denial runs nothing. The callback MUST NOT be reachable by an agent. The surface's revision guard, availability, confirmation, ledger, and handler otherwise apply unchanged ([S-ACT-2], [S-LED-1]); the ledger's `actor` is the adapter's (`webmcp` unless set). The result is the act's envelope as structured content with a line of text, and `isError` when it is not `ok`.
 
 **[S-WEB-5] Browser-local and host-delivered.** Like `expose`, WebMCP exposure adds no reader the page did not have: the browser's agent acts in the page with the user's session. The browser host must both implement `document.modelContext.registerTool` and deliver registered tools to that agent task. A generic browser-automation or headless-computer-use session with only click/type primitives is not thereby a WebMCP host; its UI actions do not pass through `surface.act`. WebMCP is not a way to reach the surface from a server; server-side agents use the AXE bridge (§6) and its authorization (§6.1).
+
+**[S-WEB-6] Host-delivered approval.** A host that runs the page for a person where no one sees it (a headless browser) MAY install an approver before any page script runs: a non-writable, non-configurable function at the global named by `INJECTED_APPROVER_GLOBAL`. The adapter uses it only when the property is so defined, and then in preference to `requestApproval`, whose UI no one would see. It passes plain data (the tool, the entry's id, name, application, risk, what it mutates, whether it is reversible, and the bound revision) and takes a decision, which is recorded before the act as under [S-WEB-4], or an unanswered result: nothing runs, no decision is recorded, and the call returns `unavailable` with reason `approval_pending`, retryable, with the host's message. The host MUST obtain the decision from the person through a channel the agent cannot answer (its MCP client's elicitation, or a page shown to the person), MUST bind a decision made outside the call to that entry at that revision and use it once, and MUST NOT put a link that decides into anything the agent receives.
+
+**[S-WEB-7] Domain granularity.** With `granularity: "domain"`, the adapter registers, beside the observe tool (and read and wait, [S-WEB-2]), one tool per domain action ([S-AXE-10]) instead of one per entry: `<prefix><name>` for each spec, by default `domainActions`' own set, or on an auto surface `autoDomains()`'s entry actions (`navigate` first, so a link or landmark is offered as the low-risk navigation it is). Each takes the `entryId` of an observe row, and `text`, `confirm`, and `expectedRev` as the per-entry tool does. The first spec that covers an entry acts on it, and a spec covers an entry only when the entry's risk is no higher than the spec's and it is reversible or idempotent where the spec says so. A call for an entry that another tool acts on is refused with that tool's name, and one for an unknown or sensitive entry as `not_found`; nothing runs. The observe tool names each row's tool. Descriptions carry no row state, so the set is registered once and does not change with the page. Acts, approval ([S-WEB-4], [S-WEB-6]), the revision guard, and the ledger are those of the per-entry tools.
 
 ## 9. Execution modes
 
@@ -13363,7 +13604,7 @@ The id of a derived entry is its key: `<route>#<containers>/<role>:<name>`, wher
 
 **[S-AUTO-6] Revision and staleness.** The scan follows the root, every open shadow root it read, and every same-origin frame with a `MutationObserver`, and `input`, `change`, `toggle`, `reset`, `popstate`, and `hashchange` events; changes are coalesced (`observe.debounceMs`, default 30 ms). A re-scan moves the revision (`bump`) exactly when an entry was added, removed, or changed in what `observe()` reports (name, state, value, effect, availability); a DOM change that alters no entry leaves it. `observe()` and `act()` on the surface first apply any change the observer has not delivered yet, so an act presenting the revision of a page that has since changed is refused as `conflict` ([S-ACT-2]), and the act queue and its checks apply unchanged ([S-ACT-9]). With `revision: "none"` the surface's revision stays the application's.
 
-**[S-AUTO-7] Risk heuristics.** Every derived action gets an `effect` from its role, words, styling, and surroundings. Changing what is shown (a tab, a tree item, an option, a disclosure, a menu or panel trigger, a checkbox or radio in a form, a row selection, a link within the site) is `low` or `none`, reversible. A link that leaves the site is `medium`. A submit, a save, or another commit word in the verb position is `medium`. A destructive word anywhere in the name (delete, remove, archive, revoke, disconnect, cancel subscription, reset, purge, drop, overwrite, send, publish, pay, purchase, invite, transfer, share, sign out, and the rest of the lexicon), a destructive style (a `danger` or `destructive` class, `data-variant="destructive"`, a red button), a control that opens an `alertdialog`, or the affirmative button of a confirmation dialog is `high`. A switch, or a checkbox or radio outside a form, is `medium`. A control none of this recognizes is `high`, and coverage says so. Word lists are English by default and extend or replace through the configuration's `lexicon`.
+**[S-AUTO-7] Risk heuristics.** Every derived action gets an `effect` from its role, words, styling, and surroundings. Changing what is shown (a tab, a tree item, an option, a disclosure, a menu or panel trigger, a checkbox or radio in a form, a row selection, a link within the site) is `low` or `none`, reversible. A link that leaves the site is `medium`. A submit, a save, or another commit word in the verb position is `medium`. A destructive word anywhere in the name (delete, remove, archive, revoke, disconnect, cancel subscription, reset, purge, drop, overwrite, send, publish, pay, purchase, invite, transfer, share, sign out, and the rest of the lexicon), a destructive style (a `danger` or `destructive` class, `data-variant="destructive"`, a red button), a control that opens an `alertdialog`, or the affirmative button of a confirmation dialog is `high`. A switch, or a checkbox or radio outside a form, is `medium`. A control named for an item among its peers is `low`, reversible, and changes `location`: it sits in an item of a list, table, menu, or grid, or is (or sits in) an item block among sibling blocks of the same shape (a block holding a heading, other controls, or at least two separate pieces of text: a card, a row of columns), allowing for up to three levels of wrappers; it is outside a toolbar; and most of its peers' counterparts have names of their own (an organization, a tenant, a table; two folders may share a name). A name repeated across the items is an action done to each of them and is not an item. An item block with no peers (the only row of a listing, a folder holding one subfolder) is an item too when the first text it holds is an identifier: words joined by `_`, `-`, or `.` (`connector_test`, `report.csv`). A filter strip is `low` and changes `view`: at least three sibling controls of the same element and class, most with names of their own, and most either naming a count ("Snowflake (7)") or carrying `aria-pressed`, `aria-selected`, or `aria-current`. Rules above apply first, so a destructive name or style among items stays `high`; for a control that is itself an item block, whose name is the item's data, a destructive word counts only at the start of the name (`refund_events` is a table, not a refund). Words are whole words, and `_` joins a word. A menu, listbox, or tree that a control opened (named by that control's `aria-controls` or `aria-owns`, or naming a popup trigger in its `aria-labelledby`) belongs to that control's dialog wherever it is rendered, so a portaled menu of a modal is neither behind the modal nor outside its staged choice. A control none of this recognizes is `high`, and coverage says so. Word lists are English by default and extend or replace through the configuration's `lexicon`.
 
 **[S-AUTO-8] Policy.** What an agent may do at each risk level is the configuration's `policy`: `allow`, `approve`, or `deny`; the default allows `none`, `low`, and `medium` and requires approval for `high`. An entry that needs approval is unavailable with the reason "needs the person's approval (…)" and a handoff with `reason: "approval_required"`, no `url`, and a sentence for the agent to say to the person ([S-AV-3]); it is reported in the act's refusal and in the bridge's `availability`. `handle.approve(id, { uses, ttlMs })` records the person's approval of one entry for a number of acts (default one) within a time (default five minutes); it MUST be called only from the person's own interaction in the page, never from anything an agent can reach. `deny` makes the entry unavailable with a reason and no handoff. A rule's `approval: true` or `false` overrides the policy for its matches.
 
@@ -13377,7 +13618,7 @@ The id of a derived entry is its key: `<route>#<containers>/<role>:<name>`, wher
 
 **[S-AUTO-13] What is not derived.** The scan does not see: a framework handler on an element with no role (reported, and promoted by a rule with `selector` and `role`), text drawn on a canvas, a chart without an accessible name or data, a cross-origin frame, rows a virtualized list has not rendered, a closed shadow root, a value an element keeps outside the DOM, and CSS generated content. Coverage reports each it can detect.
 
-**[S-AUTO-14] Reading the page.** `handle.read({ region, query, maxChars, maxRows, cursor })` returns the content the page renders for the person, and nothing it does not: `{ route, path, title, rev, region?, sections, notices, truncated, nextCursor?, redacted, reason?, regions? }`, where each section is `{ heading, level, text, fields, tables, lists, opaque?, truncated? }`. Sections follow the headings (`h1` to `h6`, `role="heading"` with `aria-level`) in document order, content before the first heading forming a section of level 0; a dialog, a named region (`aria-label`, or `aria-labelledby` naming something other than its own heading), a sectioning element, and a card whose first child is styled or classed as a title each scope a section, so content after them returns to the enclosing one. Fields are label and value pairs from `dt`/`dd`, a two-column table of row headers, an element named by `aria-labelledby` or described by `aria-describedby`, two short leaves one of which is marked as a label, a line of the form "Label: value" outside a document's prose, a progress bar or meter, and the page's form controls (a select by its chosen labels, a checkbox as checked or not, the chosen radio of a group). Tables come from native tables and from `grid`, `table`, and `treegrid` roles, with rows split across containers joined by `aria-rowindex` and cells placed by `aria-colindex` (a virtualized grid's rendered rows, with `total` from `aria-rowcount` and `truncated` set). Lists are `ul`, `ol`, and `role="list"` items; a contenteditable editor's text (ProseMirror, Tiptap) is read as the document it shows. The reader reads open shadow roots and same-origin frames. A chart or canvas without an accessible name, a closed shadow root, and a cross-origin frame are reported in `opaque` with their title and never given values; a chart whose accessible name states what it shows is read by that name. Toasts and alerts are reported in `notices`, not in the sections; controls' own text (buttons, tabs, menus) is left to `observe()`.
+**[S-AUTO-14] Reading the page.** `handle.read({ region, query, maxChars, maxRows, cursor })` returns the content the page renders for the person, and nothing it does not: `{ route, path, title, rev, region?, sections, notices, truncated, nextCursor?, redacted, reason?, regions? }`, where each section is `{ heading, level, text, fields, tables, lists, opaque?, truncated? }`. Sections follow the headings (`h1` to `h6`, `role="heading"` with `aria-level`) in document order, content before the first heading forming a section of level 0; a dialog, a named region (`aria-label`, or `aria-labelledby` naming something other than its own heading), a sectioning element, and a card whose first child is styled or classed as a title each scope a section, so content after them returns to the enclosing one. Fields are label and value pairs from `dt`/`dd`, a two-column table of row headers, an element named by `aria-labelledby` or described by `aria-describedby`, two short leaves one of which is marked as a label, a line of the form "Label: value" outside a document's prose, a progress bar or meter, and the page's form controls (a select by its chosen labels, a checkbox as checked or not, the chosen radio of a group). Tables come from native tables and from `grid`, `table`, and `treegrid` roles, with rows split across containers joined by `aria-rowindex` and cells placed by `aria-colindex` (a virtualized grid's rendered rows, with `total` from `aria-rowcount` and `truncated` set). Lists are `ul`, `ol`, and `role="list"` items; a contenteditable editor's text (ProseMirror, Tiptap) is read as the document it shows. The reader reads open shadow roots and same-origin frames. A chart or canvas without an accessible name, a closed shadow root, and a cross-origin frame are reported in `opaque` with their title and never given values; a chart whose accessible name states what it shows is read by that name. Toasts and alerts are reported in `notices`, not in the sections; controls' own text (buttons, tabs, menus) is left to `observe()`, except a control that is an item block ([S-AUTO-7]: it holds a heading, other controls, or at least two separate pieces of text), such as a listing whose rows are rendered as buttons: its own text pieces, joined with " · " and without its nested controls, are an item of a list gathered from its sibling rows. A row of a listing that is not itself a control (a table's name cell as the button beside its columns) is read the same way, whole: a flat block (no heading, table, list, or form field) that holds a control and at least two pieces of text, among siblings of the same element and class, is one item of its pieces, controls' visible text included and icon-only controls contributing nothing. An element whose `display` is `contents` has no box of its own and is hidden only when its parent is.
 
 Redaction and scope: a sensitive field ([S-AUTO-9], including a field a rule marks) is reported by its label with `value: ""` and `sensitive: true`; an element matching the configuration's `sensitive` selectors is withheld whole; both count in `redacted`. A `data-surface-ignore` subtree, the relay's indicator, and elements matching `exclude` or `read.exclude` are never read, and whitespace is collapsed. `region` names an entry id (a collection or landmark entry's element, else the container of the control), a key of the configuration's `read.regions` (a CSS selector the application reviewed; an agent cannot pass a selector itself), a landmark, named region, or dialog, or a heading (its section and the sections nested under it); an unknown region reads nothing and lists the regions the page has. `query` keeps a section whose heading contains it whole, else its matching paragraphs, fields, rows, and items. Bounds: at most `maxRows` rows per table and items per list (default 50, at most 500) and at most `maxChars` characters of the Markdown rendering per result (default 12000, from 200 to 50000); what does not fit is continued by `nextCursor`, which names a section and an offset in its text, so a long section is split rather than dropped. A read visits at most 40000 elements and keeps at most a million characters and 2000 rows per table, and says `truncated` when the page is larger. `formatRead` renders a read as Markdown. A read applies DOM changes the observer had not delivered, as `observe()` does ([S-AUTO-6]), and otherwise never moves the revision, never runs a handler, and writes nothing to the ledger. What it returns is content the page showed the person, not instructions to the agent.
 
@@ -14347,6 +14588,13 @@ Public TypeScript identifiers that the docs refer to. Each must exist with this 
 | api      | authFor                | `authFor`                | `@summationai/axe-surface/axe`                          | Bridge option: the auth mode of one entry's action, overriding `auth`.                                                                                                                    |
 | api      | redactEvent            | `redactEvent`            | `@summationai/axe-surface/axe`                          | Bridge option: rewrite the details of each `surface.act` event before it is emitted.                                                                                                      |
 | api      | idleMs                 | `idleMs`                 | `@summationai/axe-surface/axe`, `@summationai/axe-host` | `scopedSurfaces` option: evict a surface unused for this long (default 30 minutes). `createHost` option: close a hosted session after this long without a tool call (default 15 minutes). |
+| api      | createAgentWeb         | `createAgentWeb`         | `@summationai/axe-host`                                 | Experimental: the agent web, a page's Surface as pages of links for an agent with only web fetch (docs/agent-web.md).                                                                     |
+| api      | agentSiteHandler       | `agentSiteHandler`       | `@summationai/axe-core/agent-site`                      | The site's agent pages (connect a session, approve, type a value) as a Web Request handler.                                                                                               |
+| api      | agentUrl               | `agentUrl`               | `agentSiteHandler` option                               | The agent web's public origin, where `GET /agent` on the site sends an agent to start.                                                                                                    |
+| api      | agentEntry             | `agentEntry`             | `@summationai/axe-core/agent-site`                      | Sends an agent's browser arriving at the site from outside on to `/agent`; leaves people and navigation within the site alone.                                                            |
+| api      | agentBrowsers          | `agentBrowsers`          | `@summationai/axe-core/agent-site`                      | The user agents `agentEntry` recognizes: Claude Desktop's browser pane and the providers' per-request fetchers (Claude-User, ChatGPT-User, Google-Agent, Perplexity-User).                |
+| api      | sessionIdleMs          | `sessionIdleMs`          | `createAgentWeb` option                                 | How long an agent web session lives without use; its links end with it.                                                                                                                   |
+| api      | textInUrl              | `textInUrl`              | `createAgentWeb` option                                 | Experimental: offer each typeable field a link the agent completes with ?text=<value>, for agents that compose URLs.                                                                      |
 | api      | onEvict                | `onEvict`                | `@summationai/axe-surface/axe`                          | `scopedSurfaces` option: called with each evicted surface.                                                                                                                                |
 | api      | keyFor                 | `keyFor`                 | `@summationai/axe-surface/axe`                          | The scope key `scopedSurfaces` computes for a caller: tenant and principal.                                                                                                               |
 | api      | sqliteIdempotencyStore | `SqliteIdempotencyStore` | `@summationai/axe-core/node`                            | Durable `IdempotencyStore` over `node:sqlite` (Node 22.5 or newer); claims are single SQL statements.                                                                                     |
@@ -14418,17 +14666,18 @@ Public identifiers for serving `@summationai/axe-mcp` over HTTP to many callers 
 
 Public identifiers of the WebMCP adapter and of the elicitation mapping (review 2026-09-24, item 14). `registerTool`, `modelContext`, and `consequentialHint` are the WebMCP draft's names (Community Group draft of 2026-09-17); `requestedSchema` is MCP's (specification 2025-11-25).
 
-| Category | Key                  | Name                   | Where                             | Meaning                                                                                                                |
-| -------- | -------------------- | ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| api      | exposeWebMcp         | `exposeWebMcp`         | `@summationai/axe-surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                 |
-| api      | modelContext         | `modelContext`         | `@summationai/axe-surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                           |
-| api      | registerTool         | `registerTool`         | WebMCP                            | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                        |
-| api      | consequentialHint    | `consequentialHint`    | WebMCP                            | Tool annotation for an effect that cannot be undone; set on a control that is not reversible.                          |
-| api      | requestedSchema      | `requestedSchema`      | MCP elicitation                   | The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema.         |
-| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@summationai/axe-mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind. |
-| api      | toFormSchema         | `toFormSchema`         | `@summationai/axe-mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                           |
-| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                            | Tool annotation: the tool changes nothing; set on the observe tool.                                                    |
-| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                            | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.               |
+| Category | Key                  | Name                   | Where                             | Meaning                                                                                                                              |
+| -------- | -------------------- | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| api      | exposeWebMcp         | `exposeWebMcp`         | `@summationai/axe-surface/webmcp` | Register a surface's controls and an observe tool as WebMCP tools, feature-detected; returns a handle.                               |
+| api      | modelContext         | `modelContext`         | `@summationai/axe-surface/webmcp` | The WebMCP object (`document.modelContext`); an `exposeWebMcp` option to pass one or `null`.                                         |
+| api      | registerTool         | `registerTool`         | WebMCP                            | The draft's method that registers one tool; unregistered by aborting the signal passed with it.                                      |
+| api      | consequentialHint    | `consequentialHint`    | WebMCP                            | Tool annotation for an effect that cannot be undone: `true` on a control that is not reversible, `false` on every other acting tool. |
+| api      | idempotentHint       | `idempotentHint`       | WebMCP                            | Tool annotation (MCP's name, not the draft's): calling the tool twice does what once does; set on idempotent controls and domains.   |
+| api      | requestedSchema      | `requestedSchema`      | MCP elicitation                   | The flat JSON Schema of a form-mode elicitation; built by `@summationai/axe-mcp` from a kind's payload schema.                       |
+| api      | isSensitiveAccept    | `isSensitiveAccept`    | `@summationai/axe-mcp`            | Whether an accepted kind may never be collected in a form: flagged sensitive, a payment, identity, or credential kind.               |
+| api      | toFormSchema         | `toFormSchema`         | `@summationai/axe-mcp`            | The MCP form-mode schema for a kind's payload schema, or null when it has no flat rendering.                                         |
+| api      | readOnlyHint         | `readOnlyHint`         | WebMCP                            | Tool annotation: the tool changes nothing; set on the observe tool.                                                                  |
+| api      | untrustedContentHint | `untrustedContentHint` | WebMCP                            | Tool annotation: the result carries text the agent should treat as untrusted; set on every surface tool.                             |
 
 ## Surface granularity
 

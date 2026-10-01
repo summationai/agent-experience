@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Command-line tool for AXE and Surface: init, validate, inspect, preview, conformance, audit, mcp, generate, relay, host, surface init, surface coverage.",
   "license": "Apache-2.0",
   "type": "module",

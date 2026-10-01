@@ -50,6 +50,14 @@ Commands and options:
   --stdio           Serve MCP on stdio (for an agent that starts the host itself).
   --port <n>        HTTP port for /mcp and the watch page. Default ${DEFAULT_HOST_PORT} (with --stdio: any free port).
   --name <n>        The MCP server's name in the printed agent configuration. Default "app".
+  --agent-web       Experimental: serve the app to agents with nothing installed, as pages of links
+                    (docs/agent-web.md). The site mounts agentSiteHandler at /agent; set
+                    AXE_AGENT_WEB_SECRET to the secret it shares. With --site <origin> (default
+                    the app) and --public <origin> (default this service's own), --port (4719).
+                    --text-in-url also offers links that take a typed value as ?text=.
+  --webmcp          Experimental, with --stdio: serve the page's own WebMCP tools (SurfaceProvider
+                    webMcp, exposeWebMcp, or document.modelContext.registerTool) instead of the
+                    relay's. The page needs no relay connection. Chromium 150 or newer.
   --headed          Show the browser windows (debugging).
   --dev-key <key>   Development bearer key for /mcp. Default: random per run.
 
@@ -98,6 +106,11 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
       options: {
         dev: { type: "boolean" },
         stdio: { type: "boolean" },
+        webmcp: { type: "boolean" },
+        "agent-web": { type: "boolean" },
+        "text-in-url": { type: "boolean" },
+        site: { type: "string" },
+        public: { type: "string" },
         app: { type: "string" },
         start: { type: "string" },
         state: { type: "string" },
@@ -156,6 +169,37 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
   }
   const start = values["start"] as string | undefined;
   const hasState = existsSync(statePath);
+  if (values["agent-web"] === true) {
+    return serveAgentWeb({
+      appUrl,
+      start,
+      site: (values["site"] as string | undefined) ?? new URL(appUrl).origin,
+      publicUrl: values["public"] as string | undefined,
+      port: values["port"] === undefined ? 4719 : Number(values["port"]),
+      name: values["name"] as string | undefined,
+      textInUrl: values["text-in-url"] === true,
+      headless: values["headed"] !== true,
+      stdout: say,
+      stderr,
+      until: io.until,
+    });
+  }
+  if (values["webmcp"] === true) {
+    if (!stdio) {
+      stderr("axe host: --webmcp serves MCP on stdio only for now; add --stdio.");
+      return 1;
+    }
+    return serveWebMcp({
+      appUrl,
+      start,
+      statePath: hasState ? statePath : null,
+      headless: values["headed"] !== true,
+      name: (values["name"] as string | undefined) ?? "app",
+      self: io.self ?? defaultSelf(),
+      stderr,
+      until: io.until,
+    });
+  }
   let host: ReturnType<typeof createHost>;
   try {
     host = createHost({
@@ -240,6 +284,142 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
   process.off("SIGINT", onSignal);
   process.off("SIGTERM", onSignal);
   await host.close();
+  return 0;
+}
+
+/** `axe host --dev --agent-web`: the app as pages of links for agents with only web fetch. */
+async function serveAgentWeb(o: {
+  appUrl: string;
+  start: string | undefined;
+  site: string;
+  publicUrl: string | undefined;
+  port: number;
+  name: string | undefined;
+  textInUrl: boolean;
+  headless: boolean;
+  stdout: (l: string) => void;
+  stderr: (l: string) => void;
+  until: Promise<void> | undefined;
+}): Promise<number> {
+  const { createAgentWeb } = await import("./agent-web");
+  const { randomBytes } = await import("node:crypto");
+  let secret = process.env["AXE_AGENT_WEB_SECRET"] ?? "";
+  const generated = !secret;
+  if (generated) secret = randomBytes(32).toString("base64url");
+  if (secret.length < 32) {
+    o.stderr("axe host: AXE_AGENT_WEB_SECRET must be at least 32 characters.");
+    return 1;
+  }
+  const publicUrl = o.publicUrl ?? `http://127.0.0.1:${o.port}`;
+  const web = createAgentWeb({
+    publicUrl,
+    siteUrl: o.site,
+    appUrl: o.appUrl,
+    ...(o.start ? { startPath: o.start } : {}),
+    siteSecret: secret,
+    appName: o.name ?? new URL(o.appUrl).hostname,
+    textInUrl: o.textInUrl,
+    browser: { headless: o.headless },
+    onRequest: (e) =>
+      o.stdout(
+        `[agent-web] ${new Date().toISOString()} ${e.method} ${e.route}${e.kind ? ` (${e.kind})` : ""} ${e.status} ${e.ms}ms ${e.userAgent}${e.signals ? ` [${e.signals}]` : ""}`,
+      ),
+  });
+  let address: { url: string; port: number };
+  try {
+    address = await web.listen({ host: "127.0.0.1", port: o.port });
+  } catch (e) {
+    o.stderr(`axe host: ${e instanceof Error ? e.message : String(e)}`);
+    return 1;
+  }
+  o.stdout(`axe host: agent web for ${o.appUrl} on ${address.url} (experimental, development)`);
+  o.stdout(`  agents start at: ${publicUrl}/start`);
+  o.stdout(
+    `  the site's agent pages: ${o.site}/agent/...  (agentSiteHandler, serviceUrl ${address.url})`,
+  );
+  if (generated)
+    o.stdout(`  AXE_AGENT_WEB_SECRET=${secret}   (generated; give the site the same value)`);
+  if (!o.publicUrl)
+    o.stdout(
+      "  An agent's web fetch runs on its provider's servers and cannot reach loopback: expose this port on public HTTPS and pass --public <that origin>.",
+    );
+  let stopped: () => void = () => undefined;
+  const done = new Promise<void>((resolve) => (stopped = resolve));
+  const onSignal = () => stopped();
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  await Promise.race([done, ...(o.until ? [o.until] : [])]);
+  process.off("SIGINT", onSignal);
+  process.off("SIGTERM", onSignal);
+  await web.close();
+  return 0;
+}
+
+/** `axe host --dev --webmcp --stdio`: the page's WebMCP tools over stdio, from a headless page. */
+async function serveWebMcp(o: {
+  appUrl: string;
+  start: string | undefined;
+  statePath: string | null;
+  headless: boolean;
+  name: string;
+  self: { command: string; args: string[] };
+  stderr: (l: string) => void;
+  until: Promise<void> | undefined;
+}): Promise<number> {
+  const { createWebMcpBridge, openInBrowser, webMcpBridgeServer } = await import("./webmcp-bridge");
+  const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+  let bridge: ReturnType<typeof createWebMcpBridge>;
+  try {
+    bridge = createWebMcpBridge({
+      appUrl: o.appUrl,
+      ...(o.start ? { startPath: o.start } : {}),
+      ...(o.statePath ? { storageState: o.statePath } : {}),
+      browser: { headless: o.headless },
+      // The person may not see a browser window open (another desktop, a remote session), so the
+      // link is in this process's log too; it never goes to the agent.
+      showApprovalPage: (url, q) => {
+        o.stderr(`axe host: approval needed for "${q.name}": ${url}`);
+        return openInBrowser(url);
+      },
+    });
+  } catch (e) {
+    o.stderr(`axe host: ${e instanceof Error ? e.message : String(e)}`);
+    return 1;
+  }
+  const args = [
+    ...o.self.args,
+    "--dev",
+    "--webmcp",
+    "--stdio",
+    "--app",
+    o.appUrl,
+    ...(o.start ? ["--start", o.start] : []),
+    ...(o.statePath ? ["--state", o.statePath] : []),
+  ];
+  const quote = (s: string) => (/^[A-Za-z0-9_./:@=+-]+$/.test(s) ? s : JSON.stringify(s));
+  o.stderr(`axe host: serving ${o.appUrl}'s WebMCP tools on stdio (experimental, development)`);
+  o.stderr(
+    o.statePath
+      ? `Signed in with the session saved in ${o.statePath}.`
+      : `No saved sign-in: the app opens signed out. Run \`axe host login ${o.appUrl}\` once to sign in.`,
+  );
+  o.stderr(`  claude mcp add ${o.name} -- ${[o.self.command, ...args].map(quote).join(" ")}`);
+  const server = webMcpBridgeServer(bridge, { name: o.name });
+  let stopped: () => void = () => undefined;
+  const done = new Promise<void>((resolve) => (stopped = resolve));
+  const unsubscribe = server.onclose;
+  server.onclose = () => {
+    unsubscribe?.();
+    stopped();
+  };
+  await server.connect(new StdioServerTransport());
+  const onSignal = () => stopped();
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  await Promise.race([done, ...(o.until ? [o.until] : [])]);
+  process.off("SIGINT", onSignal);
+  process.off("SIGTERM", onSignal);
+  await bridge.close();
   return 0;
 }
 

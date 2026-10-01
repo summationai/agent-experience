@@ -22,5 +22,9 @@
   {
     "token": "surfaceId",
     "reason": "the provider connector's expected Surface profile id: a provider-registry field, not an AXE wire name"
+  },
+  {
+    "token": "allowedDevOrigins",
+    "reason": "Next.js config option a site sets for a tunnel origin in local development (docs/agent-web.md), not an AXE wire name"
   }
 ]

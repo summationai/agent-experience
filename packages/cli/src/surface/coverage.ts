@@ -4,7 +4,7 @@
  * config that would close them. Playwright is loaded lazily from the app (or the CLI) so the CLI
  * does not depend on it.
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -29,7 +29,10 @@ export interface BrowserContext {
   newPage(): Promise<BrowserPage>;
 }
 export interface Browser {
-  newContext(options?: { extraHTTPHeaders?: Record<string, string> }): Promise<BrowserContext>;
+  newContext(options?: {
+    extraHTTPHeaders?: Record<string, string>;
+    storageState?: string;
+  }): Promise<BrowserContext>;
   close(): Promise<void>;
 }
 export interface BrowserLauncher {
@@ -191,6 +194,17 @@ export interface CoverageOptions {
   maxPages?: number;
   /** How long to wait for `window.__surface` on each page (default 10 s). */
   waitMs?: number;
+  /**
+   * A saved browser session (Playwright storage state), such as the file `axe host login` writes:
+   * its cookies and local storage are loaded before the first page.
+   */
+  state?: string;
+  /**
+   * After the surface appears, how long the page must go without a DOM change before it is read
+   * (default 1000 ms, within `waitMs`). A provider mounted at the app's root appears before the
+   * route has loaded its data; reading then reports a spinner.
+   */
+  quietMs?: number;
   /** Injected for tests; default loads Playwright. */
   launcher?: BrowserLauncher;
   /** Where to look for Playwright and `@summationai/axe-surface/auto` (default: cwd, then the CLI). */
@@ -386,6 +400,25 @@ function combine(url: string, pages: PageCoverage[]): string {
   return out.join("\n");
 }
 
+/** Runs in the page: resolves once the DOM has not changed for `quietMs`, or at `maxMs`. */
+function settle({ quietMs, maxMs }: { quietMs: number; maxMs: number }): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let timer = setTimeout(done, quietMs);
+    const stop = setTimeout(done, maxMs);
+    const mo = new MutationObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(done, quietMs);
+    });
+    mo.observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+    function done() {
+      mo.disconnect();
+      clearTimeout(timer);
+      clearTimeout(stop);
+      resolve();
+    }
+  });
+}
+
 export async function runCoverage(url: string, o: CoverageOptions = {}): Promise<CoverageRun> {
   const cliDir = dirname(fileURLToPath(import.meta.url));
   const bases = o.resolveFrom ?? [process.cwd(), cliDir];
@@ -397,9 +430,10 @@ export async function runCoverage(url: string, o: CoverageOptions = {}): Promise
   const browser = await launcher.launch({ headless: true });
   const pages: PageCoverage[] = [];
   try {
-    const context = await browser.newContext(
-      Object.keys(headers).length ? { extraHTTPHeaders: headers } : {},
-    );
+    const context = await browser.newContext({
+      ...(Object.keys(headers).length ? { extraHTTPHeaders: headers } : {}),
+      ...(o.state ? { storageState: o.state } : {}),
+    });
     if (cookies.length) await context.addCookies(cookies);
     const queue = o.routes?.length ? o.routes.map((r) => new URL(r, url).toString()) : [url];
     const crawl = !o.routes?.length;
@@ -409,6 +443,7 @@ export async function runCoverage(url: string, o: CoverageOptions = {}): Promise
       const target = queue.shift()!;
       const page = await context.newPage();
       const result: PageCoverage = { url: target, ok: false };
+      const deadline = Date.now() + waitMs;
       try {
         await page.goto(target, { waitUntil: "load", timeout: 30_000 });
         await page
@@ -417,6 +452,12 @@ export async function runCoverage(url: string, o: CoverageOptions = {}): Promise
             undefined,
             { timeout: waitMs },
           )
+          .catch(() => undefined);
+        await page
+          .evaluate(settle, {
+            quietMs: o.quietMs ?? 1000,
+            maxMs: Math.max(0, deadline - Date.now()),
+          })
           .catch(() => undefined);
         const p = await page.evaluate(probe, PAGE_GLOBAL);
         if (p.href !== target) result.finalUrl = p.href;
@@ -464,6 +505,7 @@ export async function runCoverage(url: string, o: CoverageOptions = {}): Promise
 export async function surfaceCoverage(ctx: CommandContext): Promise<number> {
   const { values, positionals } = parse(ctx.args, {
     auth: { type: "string", multiple: true },
+    state: { type: "string" },
     routes: { type: "string" },
     json: { type: "boolean" },
     out: { type: "string" },
@@ -474,6 +516,16 @@ export async function surfaceCoverage(ctx: CommandContext): Promise<number> {
   const url = requireUrl(positionals[0], `${WIRE.cli.surfaceCoverage} <url>`);
   const o: CoverageOptions = {};
   if (values.auth) o.auth = values.auth.map(String);
+  if (values.state !== undefined) {
+    const file = resolve(String(values.state));
+    if (!existsSync(file)) {
+      ctx.stderr(
+        `--state ${file}: no such file. Save one with \`npx @summationai/axe host login ${url}\`, which writes .axe/host-state.json.`,
+      );
+      return 1;
+    }
+    o.state = file;
+  }
   if (values.routes)
     o.routes = String(values.routes)
       .split(",")

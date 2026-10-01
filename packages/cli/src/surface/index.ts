@@ -20,7 +20,7 @@ export const SURFACE_HELP = `Usage:
                     [--flag-hook '<hook call>' --flag-import <module>] [--browser-only]
                     [--relay <url>|--relay-dev]
                     [--dry-run] [--yes] [--install] [--vendor <dir>]
-  ${WIRE.cli.surfaceCoverage} <url> [--auth <header|cookies>]... [--routes /a,/b] [--max-pages <n>]
+  ${WIRE.cli.surfaceCoverage} <url> [--auth <header|cookies>]... [--state <file>] [--routes /a,/b] [--max-pages <n>]
                     [--wait <ms>] [--playwright-from <dir>] [--json] [--out <report.md>]
   ${WIRE.cli.surface} prompt       print the integration prompt (templates/integrate-surface.md)`;
 

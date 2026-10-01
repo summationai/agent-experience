@@ -118,6 +118,93 @@ describe("read: sections, fields, tables, text [S-AUTO-14]", () => {
     );
   });
 
+  it("reads a list whose rows are buttons holding the item's data (the data page's FileListTable)", () => {
+    const row = (name: string, type: string, when: string) => `<div role="button" tabindex="0">
+      <div><svg aria-hidden="true"></svg><span>${name}</span></div>
+      <div><div>${type}</div><div>${when}</div></div>
+      <div><button aria-label="Open data catalog"></button><button aria-label="Actions">⋯</button></div></div>`;
+    document.body.innerHTML = `<header><h1>Tables</h1><button>Create</button></header>
+      <section aria-label="Tables"><div>
+        ${row("orders", "Data table", "2 hours ago")}
+        ${row("Shopify connection", "Folder", "yesterday")}
+      </div><button>Save</button></section>`;
+    const h = autoSurface();
+    handles.push(h);
+    const r = h.read();
+    const text = formatRead(r);
+    const list = r.sections.flatMap((s) => s.lists ?? []).find((l) => l.items.length === 2);
+    expect(list?.items).toEqual([
+      "orders · Data table · 2 hours ago",
+      "Shopify connection · Folder · yesterday",
+    ]);
+    // A row's own buttons, and a plain control, are observe's, not content.
+    expect(text).not.toContain("Actions");
+    expect(text).not.toContain("Save");
+  });
+
+  it("reads a listing row whole when only its name cell is a button (the live FileListTable)", () => {
+    const row = (
+      name: string,
+      type: string,
+      source: string,
+      when: string,
+    ) => `<div class="row grid">
+      <div role="button" tabindex="0" class="name"><div class="icon"><svg></svg></div>
+        <div><span>${name}</span><span>${type}</span></div></div>
+      <div class="metadata"><div>${source}</div><div>${when}</div></div>
+      <div class="actions"><button aria-label="Open data catalog"><svg></svg></button>
+      <button aria-label="Actions" aria-haspopup="menu"><svg></svg></button></div></div>`;
+    document.body.innerHTML = `<section aria-label="Tables"><h2>Tables</h2><div>
+      ${row("orders", "Data table", "Summation", "2 hours ago")}
+      ${row("anaplan_poc", "Folder", "Summation", "yesterday")}
+      ${row("sheet_1", "Data table", "Google Sheets", "last week")}</div></section>`;
+    const h = autoSurface();
+    handles.push(h);
+    const r = h.read();
+    const items = r.sections.flatMap((s) => s.lists ?? []).flatMap((l) => l.items);
+    expect(items).toEqual([
+      "orders · Data table · Summation · 2 hours ago",
+      "anaplan_poc · Folder · Summation · yesterday",
+      "sheet_1 · Data table · Google Sheets · last week",
+    ]);
+    // Nothing of a row is read twice, or apart from its row.
+    expect(r.sections.flatMap((s) => s.text.split("\n")).filter((t) => t === "Summation")).toEqual(
+      [],
+    );
+  });
+
+  it("reads through a display: contents wrapper in a real browser's layout mode", () => {
+    // Chromium's checkVisibility(): false for display: none or contents, visibility: hidden, and
+    // anything under a display: none ancestor. jsdom has none, so this stands in for it.
+    const proto = Element.prototype as Element & { checkVisibility?: (o?: object) => boolean };
+    const had = proto.checkVisibility;
+    const visible = (el: Element): boolean => {
+      const own = getComputedStyle(el);
+      if (own.display === "contents" || own.visibility === "hidden") return false;
+      for (let n: Element | null = el; n; n = n.parentElement)
+        if (getComputedStyle(n).display === "none") return false;
+      return true;
+    };
+    proto.checkVisibility = function (this: Element) {
+      return visible(this);
+    };
+    try {
+      document.body.innerHTML = `<div style="display: contents"><div>
+        <header><h1>Tables</h1></header>
+        <section aria-label="Tables"><h2>Summation</h2><p>118 tables</p>
+          <p style="display: none">Not shown</p></section></div></div>`;
+      const h = autoSurface({ layout: true });
+      handles.push(h);
+      const text = formatRead(h.read());
+      expect(text).toContain("118 tables");
+      expect(text).toContain("Summation");
+      expect(text).not.toContain("Not shown");
+    } finally {
+      if (had) proto.checkVisibility = had;
+      else delete (proto as { checkVisibility?: unknown }).checkVisibility;
+    }
+  });
+
   it("a chart with an accessible name is read by that name", () => {
     document.body.innerHTML = `<h2>Revenue</h2><svg role="img" aria-label="Revenue rose 12% in Q3">${"<path d='M0 0'/>".repeat(20)}</svg>`;
     const h = autoSurface();

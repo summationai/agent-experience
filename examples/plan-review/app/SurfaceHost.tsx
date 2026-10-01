@@ -1,9 +1,20 @@
 "use client";
-// Publishes the page's browser-local surface at window.__surface for agents that run in the page.
+// Publishes the page's browser-local surface at window.__surface for agents that run in the page,
+// and offers it through WebMCP where the browser has it (a headless bridge included:
+// `axe host --dev --webmcp --stdio`). Without WebMCP, exposeWebMcp registers nothing.
 import { useEffect } from "react";
-import { exposePageSurface } from "../lib/browser-surface";
+import { exposeWebMcp } from "@summationai/axe-surface/webmcp";
+import { exposePageSurface, pageSurface } from "../lib/browser-surface";
 
 export function SurfaceHost() {
-  useEffect(() => exposePageSurface(window), []);
+  useEffect(() => {
+    const unexpose = exposePageSurface(window);
+    // Domain tools: a fixed set that takes entry ids, however many cells the plan has.
+    const webmcp = exposeWebMcp(pageSurface, { actor: "webmcp agent", granularity: "domain" });
+    return () => {
+      webmcp.close();
+      unexpose();
+    };
+  }, []);
   return null;
 }

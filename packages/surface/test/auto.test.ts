@@ -302,6 +302,32 @@ describe("acting by the same door [S-AUTO-4]", () => {
     if (r.status === "ok") expect(r.output.notices).toEqual(["January saved"]);
   });
 
+  it("an inline script a navigation adds is never a notice: its source (window.ENV, keys) stays out", async () => {
+    const h = start(`<main><button id="go">Open reports</button></main>`);
+    document.getElementById("go")!.addEventListener("click", () => {
+      setTimeout(() => {
+        // What a router adds to <body> on a client navigation: its environment, as a script.
+        const env = document.createElement("script");
+        env.textContent = 'window.ENV = {"AG_GRID_LICENSE_KEY":"secret-license-123"}';
+        document.body.appendChild(env);
+        const style = document.createElement("style");
+        style.textContent = ".x { color: red }";
+        document.body.appendChild(style);
+        const wrap = document.createElement("div");
+        wrap.innerHTML = '<script>var TOKEN = "t0k3n"</script><p>Reports opened</p>';
+        document.body.appendChild(wrap);
+      }, 1);
+    });
+    const r = await act(h.surface, byName(h.surface, "Open reports").id);
+    expect(r.status).toBe("ok");
+    if (r.status === "ok") {
+      expect(JSON.stringify(r.output)).not.toContain("secret-license-123");
+      expect(JSON.stringify(r.output)).not.toContain("t0k3n");
+      expect(JSON.stringify(r.output)).not.toContain("color: red");
+      expect(r.output.notices).toEqual(["Reports opened"]);
+    }
+  });
+
   it("an act whose control left the page is a conflict, not a click on something else", async () => {
     const h = start(`<main><button id="x">Refresh</button></main>`);
     const id = byName(h.surface, "Refresh").id;
