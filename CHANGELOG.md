@@ -10,6 +10,9 @@ Per-package entries are in each package's CHANGELOG.md. Protocol and contract ch
 - [S-WEB-7]: the WebMCP adapter's domain granularity, a fixed tool set taking entry ids; [S-WEB-2]: the observe tool filters and pages, and every acting tool states `consequentialHint` both ways.
 - [S-AUTO-7]: controls named for items among their peers (tenants, tables), and filter strips, are low risk; a popup a dialog's trigger opened belongs to that dialog wherever it is rendered; `_` joins a word.
 - [S-AUTO-14]: a listing rendered as buttons, or with a button per row, is read as content, one item per row; `display: contents` is not hidden.
+- The agent web (experimental, `docs/agent-web.md`): agent pages are Markdown with opaque, single-use, revision-bound links `/s/<session>/<link>`; the site's agent pages are `/agent`, `/agent/signin?agent_session=<id>`, `/agent/approve/<id>`, and `/agent/input/<id>`, and the site reports what the person did over `/api/sessions/…` and `/api/pending/…` with `Authorization: Bearer <secret>`. Every agent page is `Cache-Control: no-store, private`.
+- `agentEntry` answers a GET for a document from a recognized agent (`agentBrowsers`, or any request with `Signature-Agent`) arriving from outside the site (`Sec-Fetch-Site` not `same-origin`/`same-site`) with a 303 to `/agent`; `?agent=off` opts out.
+- [S-AUTO-7]: an item block with no peers whose leading text is an identifier opens that item (low risk, navigation).
 - `@summationai/axe-relay`'s peer dependency on `@summationai/axe-mcp` is a caret range (`^1.1.0`), so a minor release of the group no longer reads as breaking it.
 
 ## 1.0.0

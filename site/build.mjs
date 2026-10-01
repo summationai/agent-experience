@@ -504,6 +504,7 @@ const EXTERNAL_ALLOW = [
   "https://github.com/modelcontextprotocol/",
   // The agent web (docs/agent-web.md) is built on a model's web fetch rules.
   "https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-fetch-tool",
+  "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/",
 ];
 
 async function renderIndex({ highlighter, fixtures, rendered, sourceSet }) {

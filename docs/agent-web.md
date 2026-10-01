@@ -69,7 +69,7 @@ const toAgent = agentEntry(request); // a 303 to /agent, or null
 if (toAgent) throw toAgent; // or return it
 ```
 
-It answers only a GET for a document, from a user agent in `agentBrowsers` (Claude's in-app browser sends `Claude/<version>`; the providers' per-request fetchers send `Claude-User`, `ChatGPT-User`, `Perplexity-User`), arriving from outside the site. A navigation within the site (`Sec-Fetch-Site: same-origin`) is never sent on, so the person can still sign in from a link in the agent's browser, and `?agent=off` opens the site as usual. For an agent it does not recognize, name the entry in the page: a `<link rel="alternate" type="text/markdown" href="/agent">` in `<head>`, and a visually hidden link first in `<body>`, since agents read the accessibility tree rather than `<head>`.
+It answers only a GET for a document, from a user agent in `agentBrowsers` (Claude's in-app browser sends `Claude/<version>`; the providers' per-request fetchers send `Claude-User`, `ChatGPT-User`, `Google-Agent`, `Perplexity-User`) or with a `Signature-Agent` header (a signed agent, such as ChatGPT agent), arriving from outside the site. An agent driving the person's own browser (Claude in Chrome, Copilot in Edge) sends that browser's user agent and is not sent on; it has the site's own pages and session already. A navigation within the site (`Sec-Fetch-Site: same-origin`) is never sent on, so the person can still sign in from a link in the agent's browser, and `?agent=off` opens the site as usual. For an agent it does not recognize, name the entry in the page: a `<link rel="alternate" type="text/markdown" href="/agent">` in `<head>`, and a visually hidden link first in `<body>`, since agents read the accessibility tree rather than `<head>`.
 
 The service is `createAgentWeb` from `@summationai/axe-host`, operated by the Surface provider. For development:
 
@@ -78,7 +78,52 @@ export AXE_AGENT_WEB_SECRET=…   # the same value the site has
 axe host --dev --agent-web --app http://localhost:3000 --start /plan --name "Plan Review"
 ```
 
-It listens on 4719. A model's web fetch runs on the model provider's servers and cannot reach loopback, so a real agent needs this service and the site on public HTTPS: pass `--public <origin>` with the service's public origin, and `--site <origin>` when the site is not the app URL.
+It listens on 4719. A model's web fetch runs on the model provider's servers and cannot reach loopback, so a real agent needs this service and the site on public HTTPS: pass `--public <origin>` with the service's public origin, and `--site <origin>` when the site is not the app URL. [Local development with cloudflared](#local-development-with-cloudflared) does this from a laptop.
+
+### Local development with cloudflared
+
+Claude Desktop needs no tunnel: it opens the links in its own browser, on the person's machine, so the service, the site, and the agent can all be on loopback. An agent whose web fetch runs on its provider's servers (Claude on the web and on mobile, ChatGPT, Perplexity) cannot reach loopback, and needs the agent web and the site on public HTTPS. Cloudflare's quick tunnels give each local port a public `https://<words>.trycloudflare.com` origin, with no account.
+
+1. Install it: `brew install cloudflared` (other platforms: [Cloudflare's downloads](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)).
+2. Open one tunnel per port, each in its own terminal, and note the origin each prints:
+
+   ```sh
+   cloudflared tunnel --url http://localhost:4719   # the agent web
+   cloudflared tunnel --url http://localhost:3000   # the site (5173 for a Vite dev server)
+   ```
+
+3. Let the site's dev server answer its tunnel origin. Development servers refuse a host they do not know:
+   - Next.js: `allowedDevOrigins` in `next.config`, or sign-in and every client-side control silently do nothing (its HMR socket is refused). The reference application reads `NEXT_ALLOWED_DEV_ORIGINS`.
+   - Vite (React Router, Remix, SvelteKit): `server.allowedHosts: [".trycloudflare.com"]`, or every request answers "Blocked request. This host is not allowed."
+   - An application that checks `Origin` on writes needs the tunnel origin among its trusted origins too; the reference application reads `PLAN_REVIEW_TRUSTED_ORIGINS`.
+4. Start the site with the agent web's public origin, so `GET /agent` sends an agent there. `AXE_AGENT_WEB_URL` stays on loopback, since the site's server reaches the service directly:
+
+   ```sh
+   AXE_AGENT_WEB_SECRET=… AXE_AGENT_WEB_URL=http://127.0.0.1:4719 \
+   AXE_AGENT_WEB_PUBLIC_URL=https://<agent-web>.trycloudflare.com \
+   NEXT_ALLOWED_DEV_ORIGINS=<site>.trycloudflare.com \
+   PLAN_REVIEW_TRUSTED_ORIGINS=http://127.0.0.1:3000,https://<site>.trycloudflare.com \
+   pnpm --filter plan-review-example dev
+   ```
+
+5. Start the agent web with both public origins. `--app` stays local, because the service's own headless browser loads the page; `--site` is where the person's sign-in, approval, and text links point:
+
+   ```sh
+   AXE_AGENT_WEB_SECRET=… axe host --dev --agent-web --text-in-url \
+     --app http://localhost:3000 --site https://<site>.trycloudflare.com \
+     --public https://<agent-web>.trycloudflare.com --start /plan --name "Plan Review"
+   ```
+
+6. Check from outside: `curl -sI https://<site>.trycloudflare.com/agent` answers `303` to `https://<agent-web>.trycloudflare.com/start`, and that page lists a sign-in link on the site's tunnel origin. Then give the agent `https://<site>.trycloudflare.com` (or `/agent`).
+
+What to expect:
+
+- **A quick tunnel's origin changes every time it starts.** Restart the site and the agent web with the new origins, and update the dev server's allowed hosts.
+- **Signing in on the tunnel origin is a separate session** from the same app on `localhost`: cookies belong to the origin.
+- **Cloudflare answers some agents itself.** It serves its own managed `robots.txt` and refuses training crawlers (`GPTBot` gets `403`); per-request fetchers (`Claude-User`, `ChatGPT-User`) pass. The agent web's dev log shows each request that reached it, with its user agent, `Sec-Fetch-Site`, `Signature-Agent`, and the client address Cloudflare reports (`from=`), so a request that is missing from the log never left the agent or was stopped at the edge.
+- **Some agents fetch only URLs they already know.** Codex's web tool reads from OpenAI's index and refuses any URL it has not seen, even with `--search`; it never reaches the tunnel, and the agent web's fresh links cannot work through it.
+- **If `cloudflared` stalls on "Failed to initialize DNS local resolver ... i/o timeout"**, typically behind a VPN whose first resolver does not answer direct queries, use the system resolver: `GODEBUG=netdns=cgo cloudflared tunnel --url http://localhost:4719`.
+- **A tunnel makes the dev server public.** Anyone with the origin reaches it, and a session link is a bearer link. Use demo data, and stop the tunnels when the run is over.
 
 ## Security
 
