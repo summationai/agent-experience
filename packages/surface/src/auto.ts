@@ -106,6 +106,8 @@ export type {
   SurfacePolicy,
   SurfaceRule,
 } from "./auto-config";
+// The profile types a surface.config writes, beside SurfaceConfig, so it imports from one module.
+export type { SurfaceProfile, SurfaceProfileSource } from "./index";
 export { checkConfig, globMatch } from "./auto-config";
 export type { RiskLexicon, RiskVerdict } from "./auto-risk";
 export { DEFAULT_LEXICON } from "./auto-risk";

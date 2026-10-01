@@ -757,6 +757,28 @@ describe("axe surface init --agent-web", () => {
     expect(planInit({ dir, agentWeb: true }).changes).toEqual([]);
   });
 
+  it("next steps report the profile and agent-site.server as done once they are wired", async () => {
+    const dir = copy("react-router");
+    const first = await cli(["surface", "init", "--agent-web", "--yes", "--dir", dir]);
+    expect(first.out).toContain("Wire profile.authentication.state");
+    expect(first.out).toContain("Agent web: fill in identify and session");
+    // The integrator wires both.
+    const config = join(dir, "app/surface.config.ts");
+    writeFileSync(
+      config,
+      readFileSync(config, "utf8").replace(
+        /\/\/ Wire this to the app's existing auth source[^\n]*\n/,
+        "",
+      ),
+    );
+    const site = join(dir, "app/agent-site.server.ts");
+    writeFileSync(site, readFileSync(site, "utf8").replaceAll("TODO(agent-web)", "Done"));
+    const again = await cli(["surface", "init", "--agent-web", "--dry-run", "--dir", dir]);
+    expect(again.out).not.toContain("Wire profile.authentication.state");
+    expect(again.out).toContain("reads the app's own sign-in");
+    expect(again.out).toContain("identify and session in agent-site.server read");
+  });
+
   it("React Router in SPA mode (ssr: false): a manual step, since there is no server", () => {
     const dir = copy("react-router");
     writeFileSync(join(dir, "react-router.config.ts"), "export default { ssr: false };\n");

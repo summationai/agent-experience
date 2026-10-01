@@ -95,6 +95,8 @@ profile: () => ({
 The profile function is called outside React, so it cannot use a hook: read the auth client's synchronous accessor (Stytch `client.session.getSync()`, a store's `getState()`, the module the hook itself reads), and answer `unknown` on the server, where there is no session to read:
 
 ```ts
+import type { SurfaceConfig, SurfaceProfile } from "@summationai/axe-surface/auto";
+
 export function getSurfaceProfile(): SurfaceProfile {
   const base = { id: "example-app", name: "Example App" };
   if (typeof window === "undefined") return { ...base, authentication: { state: "unknown" } };

@@ -794,6 +794,14 @@ function nextSteps(
     relative(d.dir, join(d.outDir, `surface.config.${d.typescript ? "ts" : "js"}`)),
   );
   const steps: { text: string; more?: string[] }[] = [];
+  // Steps the integrator has finished since init wrote the files are reported as done.
+  const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);
+  const configText = read(join(d.outDir, `surface.config.${d.typescript ? "ts" : "js"}`));
+  // The generated config marks the profile it leaves for the integrator to wire.
+  const profileWired =
+    configText !== undefined && !configText.includes("Wire this to the app's existing auth source");
+  const siteText = read(join(d.outDir, `agent-site.server.${d.typescript ? "ts" : "js"}`));
+  const siteDone = siteText !== undefined && !siteText.includes("TODO(agent-web)");
   const required = [PACKAGES.surface, ...(remote ? [PACKAGES.relay] : [])];
   const scope = scopeConfig(d.dir);
   if (!installed && !declares(d.dir, required) && scope)
@@ -830,7 +838,7 @@ function nextSteps(
     ...(remote
       ? [
           {
-            text: `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward). The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
+            text: `${profileWired ? `The profile in ${config} reads the app's own sign-in.` : `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward).`} The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
             more: [
               `${npxCommand(WIRE.cli.host)} login ${devUrl}`,
               `${npxCommand(WIRE.cli.host)} --dev --stdio --app ${devUrl}`,
@@ -861,7 +869,9 @@ function nextSteps(
   if (o.agentWeb)
     steps.push(
       {
-        text: "Agent web: fill in identify and session in agent-site.server from this application's own sign-in (the prompt says how).",
+        text: siteDone
+          ? "Agent web: identify and session in agent-site.server read this application's own sign-in."
+          : "Agent web: fill in identify and session in agent-site.server from this application's own sign-in (the prompt says how).",
         more: env?.file
           ? [
               env.added.length && !env.written
