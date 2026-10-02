@@ -159,7 +159,7 @@ WebMCP tools exist only in a loaded page, for the agent built into that browser:
 
 ```sh
 axe host login http://localhost:3000
-claude mcp add plan -- npx @summationai/axe host --dev --webmcp --stdio --app http://localhost:3000 --start /plan
+claude mcp add plan -- npx @summationai/axe@latest host --dev --webmcp --stdio --app http://localhost:3000 --start /plan
 ```
 
 The page needs no relay connection and no host-specific code: `<SurfaceProvider webMcp>`, `exposeWebMcp`, or any `document.modelContext.registerTool` is the whole integration, and the same registration serves Chrome's built-in agent and ChatGPT's in-app browser. A high-risk control still needs the person: the bridge asks them in the agent's MCP client when it can show a form (elicitation), and otherwise opens a single-use approval page in the person's browser and tells the agent to call again after they decide; see [Approval in a headless page](#approval-in-a-headless-page). The bridge refuses navigations off the application's origin, reports a call whose page navigated or reloaded underneath it as outcome unknown, sends `tools/list_changed` as the page's tools change, and returns each answer only once the tools the call changed are registered again. It needs Chromium 150 or newer (the one Playwright installs qualifies).

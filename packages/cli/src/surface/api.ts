@@ -69,3 +69,11 @@ export const REGISTRY_NPMRC = [
 
 /** What `expose` publishes on the page, and what coverage reads. */
 export const PAGE_GLOBAL = "__surface";
+
+/**
+ * A CLI command as printed for a person or an agent to run: always \`@latest\`, since npx reuses a
+ * cached copy of an unversioned package and would run an older CLI after a release.
+ */
+export function npxCommand(command: string): string {
+  return `npx @summationai/axe@latest${command.replace(/^axe\b/, "")}`;
+}

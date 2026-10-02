@@ -7,19 +7,19 @@ For an existing installation, rerun the same generic command after updating the 
 From the web-app directory, give a coding agent the canonical prompt:
 
 ```sh
-npx @summationai/axe surface prompt
+npx @summationai/axe@latest surface prompt
 ```
 
 Or preview/apply directly:
 
 ```sh
-npx @summationai/axe surface init \
+npx @summationai/axe@latest surface init \
   --app-id summation \
   --app-name Summation \
   --mount <application-shell-that-covers-login-and-tenant-selection> \
   --dry-run
 
-npx @summationai/axe surface init \
+npx @summationai/axe@latest surface init \
   --app-id summation \
   --app-name Summation \
   --mount <application-shell-that-covers-login-and-tenant-selection> \

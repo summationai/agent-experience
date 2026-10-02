@@ -2,13 +2,30 @@
 
 **Agentic eXperience Engineering — because your site should smell good to agents too.**
 
-A TypeScript SDK for exposing an application's existing capabilities to people and to agents through the same logic. You wrap functions you already have as typed actions, or register the live controls of a running app. Both get explicit permissions (who may call what, as which principal), availability with a reason, one result shape with five statuses (`ok`, `needs_input`, `needs_human`, `pending`, `error`), human approval bound to the exact call, and retries that replay a completed operation's result instead of running it again ([limits](docs/security.md#known-gaps)).
-
-Agents reach that logic through interfaces they already use: the installable [Agent Experience ChatGPT plugin](plugins/agent-experience/README.md) backed by the company-operated service under [`mcp/`](mcp/README.md), WebMCP tools in compatible browsers (`@summationai/axe-surface/webmcp`), or the page's own controls. AXE (`axe/0.1`) is the HTTP representation underneath. It is useful on its own, but you do not need agents to adopt it: publishing a manifest does not make an arbitrary agent find or use your site.
+**Agent Experience Surface** lets a person use your web app from their AI agent (Claude, ChatGPT, a browser's own agent) without leaving the conversation, and without installing anything in the agent. It reads the controls your app already renders, with their names, availability, and risk, so there is no API to write. Signing in and approving a destructive action happen on your own pages, in the person's own browser.
 
 [![CI](https://img.shields.io/badge/ci-github_actions-blue)](.github/workflows/ci.yml) [![Protocol](https://img.shields.io/badge/protocol-axe%2F0.1-informational)](spec/AXE-PROTOCOL.md) [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE) [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
 > **Status: v0.** The protocol is `axe/0.1` and may change before 1.0. Every change is recorded in [CHANGELOG.md](CHANGELOG.md) and reasoned about in [DECISIONS.md](DECISIONS.md).
+
+## Add it to your app
+
+From the application's directory (React Router, Next.js, Vite with React, React, or plain HTML):
+
+```sh
+npx @summationai/axe@latest surface init --agent-web --dry-run    # see what it will change
+npx @summationai/axe@latest surface init --agent-web --yes --install
+```
+
+**Using a coding agent?** Ask it to add this package. The integration prompt it should follow is printed by `npx @summationai/axe@latest surface prompt`, and ships in the package as [`templates/integrate-surface.md`](packages/cli/templates/integrate-surface.md). If the agent may not run `npx`, it asks you to run the second command above in the application's directory, then finishes the steps the prompt lists: who is signed in, the session an agent's page runs with, and the sign-in page.
+
+The packages are in the summationai organization's GitHub Packages registry: map the scope and add a token first ([Install from GitHub Packages](docs/deploying.md#install-from-github-packages)). A package manager that holds back new releases (yarn's `npmMinimalAgeGate`) needs the scope pre-approved: `npmPreapprovedPackages: ["@summationai/*"]` in `.yarnrc.yml`.
+
+## Hand-written actions
+
+The SDK underneath exposes an application's existing capabilities to people and to agents through the same logic. For logic that is not on a page (an API, a background job), you wrap functions you already have as typed actions; Surface registers the live controls of a running app. Both get explicit permissions (who may call what, as which principal), availability with a reason, one result shape with five statuses (`ok`, `needs_input`, `needs_human`, `pending`, `error`), human approval bound to the exact call, and retries that replay a completed operation's result instead of running it again ([limits](docs/security.md#known-gaps)).
+
+Agents reach that logic through interfaces they already use: the installable [Agent Experience ChatGPT plugin](plugins/agent-experience/README.md) backed by the company-operated service under [`mcp/`](mcp/README.md), WebMCP tools in compatible browsers (`@summationai/axe-surface/webmcp`), or the page's own controls. AXE (`axe/0.1`) is the HTTP representation underneath. It is useful on its own, but you do not need agents to adopt it: publishing a manifest does not make an arbitrary agent find or use your site.
 
 <!-- include: examples/readme/axe.ts#shown -->
 ```ts
@@ -41,7 +58,7 @@ export const handler = axe.fetchHandler(); // (Request) => Promise<Response>
 ```
 <!-- /include -->
 
-Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx @summationai/axe mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
+Mount `handler` in Express, Next, Hono, Remix, Workers, Bun, or Deno (one line each, see the adapters). An MCP client connects through `npx @summationai/axe@latest mcp https://sunriseyoga.example`, and an AXE client can read `/.well-known/axe.json` and call `POST /axe/actions/classes.search` directly.
 
 For a consumer using ChatGPT on mobile or desktop, the production path is the public plugin plus a provider-operated private browser. The person installs **Agent Experience** once; startup stays silent, and a relevant request starts an identity-isolated application session whose Surface is used inside the agent conversation. There is no pairing code, customer MCP server, or developer tooling on the user's device. The only exceptional visible page is a secure provider view of that exact browser when the application itself requires human login. A trusted connector registry supplies each application's URL, origins, identity mapping, and optional session adapter; the running Surface supplies its authentication, controls, and live context. See [the application/provider boundary](docs/architecture.md) and [ChatGPT consumer path](docs/chatgpt-plugin.md).
 
@@ -51,7 +68,7 @@ The packages are private to the summationai organization, in its GitHub Packages
 
 ```sh
 npm install @summationai/axe-surface @summationai/axe-relay
-npx @summationai/axe surface init --app-id example-app --app-name "Example App" --yes
+npx @summationai/axe@latest surface init --app-id example-app --app-name "Example App" --yes
 # In the Agent Experience checkout, not the consuming app:
 AXE_CONNECTOR_ID=example-app AXE_CONNECTOR_SURFACE_ID=example-app \
   AXE_HOST_APP_URL=http://localhost:5173/login pnpm mcp:unattended-dev

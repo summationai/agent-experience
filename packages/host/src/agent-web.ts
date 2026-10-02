@@ -659,6 +659,14 @@ export function createAgentWeb(options: AgentWebOptions): AgentWeb {
     if (parts[0] === "api") return siteApi(req, parts.slice(1));
     if (req.method !== "GET" && req.method !== "HEAD")
       return page("Agents reach this service with GET requests only.", 405);
+    // A site passing these pages through proves it is the one this service serves. Another
+    // site's secret means a misconfigured AXE_AGENT_WEB_URL: refuse rather than show its agent
+    // this site's pages and sign-in links.
+    if (req.headers.has("authorization") && !siteAuthorized(req))
+      return page(
+        "This agent web serves a different site. The site's AXE_AGENT_WEB_URL names another application's agent web, or its AXE_AGENT_WEB_SECRET does not match this one.",
+        403,
+      );
     if (url.pathname === "/robots.txt")
       return new Response("User-agent: *\nAllow: /\n", {
         headers: { "Content-Type": "text/plain" },

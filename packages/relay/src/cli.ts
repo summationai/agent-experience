@@ -140,7 +140,7 @@ export async function runRelayCli(argv: string[], io: RelayCliIo = {}): Promise<
         `     claude mcp add --transport http surface ${address.mcpUrl} --header "Authorization: Bearer ${relay.devAgentKey}"`,
       );
       say("   Or let Claude Code start the relay itself (stop this one first):");
-      say(`     claude mcp add surface -- npx @summationai/axe relay --dev --stdio`);
+      say(`     claude mcp add surface -- npx @summationai/axe@latest relay --dev --stdio`);
     }
     say("");
     say(

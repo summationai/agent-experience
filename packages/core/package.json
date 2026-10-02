@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-core",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AXE protocol types, schemas, well-known kinds, and framework-free server runtime.",
   "license": "Apache-2.0",
   "type": "module",
@@ -117,6 +117,16 @@
       "require": {
         "types": "./dist/agent-site.d.cts",
         "default": "./dist/agent-site.cjs"
+      }
+    },
+    "./agent-entry": {
+      "import": {
+        "types": "./dist/agent-entry.d.ts",
+        "default": "./dist/agent-entry.js"
+      },
+      "require": {
+        "types": "./dist/agent-entry.d.cts",
+        "default": "./dist/agent-entry.cjs"
       }
     }
   },

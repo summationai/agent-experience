@@ -2,6 +2,16 @@
 
 All packages version together. Entries are generated from changesets on release; this file also records protocol-level changes by hand.
 
+## 1.2.0
+
+Per-package entries are in each package's CHANGELOG.md. Protocol and contract changes:
+
+- The agent web's pages are answered from the site's own origin (`docs/agent-web.md`). Without `agentUrl`, `agentSiteHandler` passes `GET`/`HEAD` for `/agent`, `/agent/start`, and `/agent/s/…` through to `serviceUrl` and returns the service's answer; the service's site API is never passed through. The service writes its links for `<site>/agent` by default. `agentUrl`, when set, keeps the 303 to `<agentUrl>/start`.
+- The pass-through sends `Authorization: Bearer <secret>`; the agent web answers a request carrying another site's secret with `403` ("This agent web serves a different site"). A request with no secret is served as before.
+- `agentSiteHandler` with an empty secret has no pages: it returns `null` for every request, so the site answers as it would without the agent web.
+- `@summationai/axe-core/agent-entry`: `agentEntry`, `agentBrowsers`, and `forwardCookies`, with no Node imports; `@summationai/axe-core/agent-site` re-exports them. `agentEntry` also sends on a request carrying `Signature-Agent`, and `agentBrowsers` adds `Google-Agent`.
+- [S-AUTO-13]: a table row made focusable on purpose (`tabindex` 0 or more, in a table, grid, or treegrid) is derived as an action. [S-AUTO-7]: it is `low`, reversible, and changes `location` (a destructive word at its start, danger styling, or a confirmation still make it `high`); and an item block with no peers whose leading text is an identifier opens that item.
+
 ## 1.1.0
 
 Per-package entries are in each package's CHANGELOG.md. Protocol and contract changes:

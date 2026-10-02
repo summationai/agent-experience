@@ -48,6 +48,7 @@ import {
   focusRegion,
   isAriaHidden,
   isCustomWidget,
+  isOperableRow,
   isDisabled,
   isHidden,
   isInert,
@@ -105,6 +106,8 @@ export type {
   SurfacePolicy,
   SurfaceRule,
 } from "./auto-config";
+// The profile types a surface.config writes, beside SurfaceConfig, so it imports from one module.
+export type { SurfaceProfile, SurfaceProfileSource } from "./index";
 export { checkConfig, globMatch } from "./auto-config";
 export type { RiskLexicon, RiskVerdict } from "./auto-risk";
 export { DEFAULT_LEXICON } from "./auto-risk";
@@ -559,6 +562,7 @@ export function autoSurface(options: AutoSurfaceOptions = {}): AutoSurfaceHandle
 
   function kindOf(el: Element, role: string): Candidate["kind"] | null {
     if (ACTION_ROLES.has(role)) return "action";
+    if (role === "row" && isOperableRow(el)) return "action";
     if (role === "listbox-select") return "field";
     if (FIELD_ROLES.has(role)) {
       const tag = el.localName;

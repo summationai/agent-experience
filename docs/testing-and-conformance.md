@@ -184,7 +184,7 @@ Narrow on `status` before touching members. `Result` is a discriminated union, s
 `axe conformance` runs the protocol suite against a live URL and prints one line per check:
 
 ```sh
-npx @summationai/axe conformance http://localhost:3000
+npx @summationai/axe@latest conformance http://localhost:3000
 ````
 
 ```
@@ -224,7 +224,7 @@ Flags:
 A typical staging run for Oakridge Rentals, whose application flow needs a signed-in renter and a deposit:
 
 ```sh
-npx @summationai/axe conformance https://staging.oakridge-rentals.example \
+npx @summationai/axe@latest conformance https://staging.oakridge-rentals.example \
   --auth "$AXE_TEST_TOKEN" \
   --ladder applications.submit --ladder-input '{"unitId":"u_204"}'
 ```
@@ -262,10 +262,10 @@ jobs:
           done
 
       - name: Conformance
-        run: npx @summationai/axe conformance http://localhost:3000
+        run: npx @summationai/axe@latest conformance http://localhost:3000
 
       - name: Audit
-        run: npx @summationai/axe audit http://localhost:3000 --min-score 80 --html axe-audit.html
+        run: npx @summationai/axe@latest audit http://localhost:3000 --min-score 80 --html axe-audit.html
 
       - uses: actions/upload-artifact@v4
         if: always()

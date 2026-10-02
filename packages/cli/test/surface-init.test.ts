@@ -6,13 +6,34 @@ import { join } from "node:path";
 import * as prettier from "prettier";
 import { run } from "../src/index";
 import { detect } from "../src/surface/detect";
-import { installCommand, planInit, writeOverrides } from "../src/surface/init";
+import { devScriptPort } from "../src/surface/init";
+import {
+  ensureAgentWebEnv,
+  findVendor,
+  freeAgentWebPort,
+  portInUse,
+  scopeConfig,
+  installCommand,
+  planInit,
+  writeOverrides,
+} from "../src/surface/init";
 import { DEV_RELAY_URL } from "../src/surface/api";
 
 const fixtures = join(__dirname, "fixtures");
 const repo = join(__dirname, "../../..");
 
 /** A fixture copied to a temporary directory, so applying never touches the repository. */
+function applyPlanFor(plan: { changes: { path: string; after: string }[] }): void {
+  for (const c of plan.changes) {
+    mkdirSync(join(c.path, ".."), { recursive: true });
+    writeFileSync(c.path, c.after);
+  }
+}
+
+const CLI_VERSION = (
+  JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf8")) as { version: string }
+).version;
+
 function copy(name: string): string {
   const dir = mkdtempSync(join(tmpdir(), `axe-surface-${name}-`));
   cpSync(join(fixtures, name), dir, { recursive: true });
@@ -395,13 +416,13 @@ describe("axe surface init: flags and the relay", () => {
     expect(r.out).toContain(
       "The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server",
     );
-    const login = r.out.indexOf("npx @summationai/axe host login http://localhost:3000");
+    const login = r.out.indexOf("npx @summationai/axe@latest host login http://localhost:3000");
     const add = r.out.indexOf(
-      "npx @summationai/axe host --dev --stdio --app http://localhost:3000",
+      "npx @summationai/axe@latest host --dev --stdio --app http://localhost:3000",
     );
     expect(login, r.out).toBeGreaterThan(0);
     expect(add).toBeGreaterThan(login);
-    expect(r.out.indexOf("npx @summationai/axe surface coverage")).toBeGreaterThan(add);
+    expect(r.out.indexOf("npx @summationai/axe@latest surface coverage")).toBeGreaterThan(add);
     expect(r.out).toContain("The person's own tab connects to the company-side service");
     // An app that already depends on both packages is not told to install them.
     const has = copy("vite-react");
@@ -461,16 +482,16 @@ describe("axe surface init: install commands", () => {
     expect(tar.argv).toEqual([
       "npm",
       "install",
-      "@summationai/axe-core@file:vendor/summationai-axe-core-1.0.0.tgz",
-      "@summationai/axe-surface@file:vendor/summationai-axe-surface-1.0.0.tgz",
-      "@summationai/axe-relay@file:vendor/summationai-axe-relay-1.0.0.tgz",
+      `@summationai/axe-core@file:vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
+      `@summationai/axe-surface@file:vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
+      `@summationai/axe-relay@file:vendor/summationai-axe-relay-${CLI_VERSION}.tgz`,
     ]);
     expect(tar.overrides).toEqual({
       file: "package.json",
       key: "overrides",
       value: {
-        "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz",
-        "@summationai/axe-surface": "file:vendor/summationai-axe-surface-1.0.0.tgz",
+        "@summationai/axe-core": `file:vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
+        "@summationai/axe-surface": `file:vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
       },
     });
     expect(installCommand(detect(copy("next")), false).argv).toEqual([
@@ -488,31 +509,31 @@ describe("axe surface init: install commands", () => {
     expect(y.argv).toEqual([
       "yarn",
       "add",
-      "@summationai/axe-core@file:../../vendor/summationai-axe-core-1.0.0.tgz",
-      "@summationai/axe-surface@file:../../vendor/summationai-axe-surface-1.0.0.tgz",
+      `@summationai/axe-core@file:../../vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
+      `@summationai/axe-surface@file:../../vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
     ]);
     expect(y.overrides).toEqual({
       file: "../../package.json",
       key: "resolutions",
-      value: { "@summationai/axe-core": "file:./vendor/summationai-axe-core-1.0.0.tgz" },
+      value: { "@summationai/axe-core": `file:./vendor/summationai-axe-core-${CLI_VERSION}.tgz` },
     });
     // The web app's own precedent: tarballs beside the app, resolutions at the root.
     const beside = installCommand(web, false, "vendor");
     expect(beside.argv).toContain(
-      "@summationai/axe-surface@file:./vendor/summationai-axe-surface-1.0.0.tgz",
+      `@summationai/axe-surface@file:./vendor/summationai-axe-surface-${CLI_VERSION}.tgz`,
     );
     expect(beside.overrides!.value).toEqual({
-      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-core": `file:./apps/web/vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(true);
     expect(JSON.parse(readFileSync(join(ws, "package.json"), "utf8")).resolutions).toEqual({
-      "@summationai/axe-core": "file:./apps/web/vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-core": `file:./apps/web/vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
     });
     expect(writeOverrides(join(ws, "apps/web"), beside.overrides!)).toBe(false);
     const pnpmApp = copy("next");
     writeOverrides(pnpmApp, installCommand(detect(pnpmApp), false, "vendor").overrides!);
     expect(JSON.parse(readFileSync(join(pnpmApp, "package.json"), "utf8")).pnpm.overrides).toEqual({
-      "@summationai/axe-core": "file:vendor/summationai-axe-core-1.0.0.tgz",
+      "@summationai/axe-core": `file:vendor/summationai-axe-core-${CLI_VERSION}.tgz`,
     });
     // A vendor directory with packed tarballs is read for their real names.
     mkdirSync(join(ws, "apps/web/vendor"));
@@ -631,6 +652,22 @@ describe("axe surface: help and the prompt pack", () => {
   });
 });
 
+describe("devScriptPort", () => {
+  it("reads the port the app's own dev script names", () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-port-"));
+    const write = (dev: string) =>
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { dev } }));
+    write("react-router dev --port 5174");
+    expect(devScriptPort(dir)).toBe("5174");
+    write("next dev -p 3001");
+    expect(devScriptPort(dir)).toBe("3001");
+    write("vite --port=4000 --host");
+    expect(devScriptPort(dir)).toBe("4000");
+    write("react-router dev");
+    expect(devScriptPort(dir)).toBeUndefined();
+  });
+});
+
 describe("axe surface init --agent-web", () => {
   it("Next.js: domain tools, agent-site.server, and the optional catch-all /agent route", () => {
     const dir = copy("next");
@@ -681,9 +718,191 @@ describe("axe surface init --agent-web", () => {
     expect(plan.manual.join("\n")).toContain("export async function loader");
   });
 
+  it("React Router with a route config that lists its routes: the route, its file, and the root loader", () => {
+    // The admin app's shape: app/routes.ts exports an array of route() and layout() entries.
+    const dir = copy("react-router");
+    writeFileSync(
+      join(dir, "app/routes.ts"),
+      [
+        'import type { RouteConfig } from "@react-router/dev/routes";',
+        'import { index, layout, route } from "@react-router/dev/routes";',
+        "",
+        "export default [",
+        '  route("logout", "routes/logout.tsx"),',
+        '  layout("routes/_layout.tsx", [index("routes/home.tsx")]),',
+        "] satisfies RouteConfig;",
+        "",
+      ].join("\n"),
+    );
+    const plan = planInit({ dir, agentWeb: true });
+    const by = Object.fromEntries(plan.changes.map((c) => [c.display, c]));
+    expect(by["app/routes/agent.$.tsx"]!.after).toContain('from "../agent-site.server"');
+    expect(by["app/routes.ts"]!.after).toContain('route("agent/*", "routes/agent.$.tsx"),');
+    // The root gets both edits: the Surface wrapper and a loader that sends agents on.
+    const root = by["app/root.tsx"]!.after;
+    expect(root).toContain("<AgentSurface>");
+    expect(root).toContain('import { agentEntry } from "@summationai/axe-core/agent-entry";');
+    expect(root).toContain(
+      "const toAgent = process.env.AXE_AGENT_WEB_SECRET ? agentEntry(request) : null;",
+    );
+    expect(plan.manual).toEqual([]);
+    // The agent links are rendered by AgentSurface, so the root's <head> and <body> are untouched.
+    const surface = plan.changes.find((c) => c.display.endsWith("surface.tsx"))!.after;
+    expect(surface).toContain(
+      '<link rel="alternate" type="text/markdown" href="/agent" title="For agents" />',
+    );
+    expect(surface).toContain('<a href="/agent" tabIndex={-1} style={visuallyHidden}>');
+    // A second run changes nothing.
+    applyPlanFor(plan);
+    expect(planInit({ dir, agentWeb: true }).changes).toEqual([]);
+  });
+
+  it("next steps report the profile and agent-site.server as done once they are wired", async () => {
+    const dir = copy("react-router");
+    const first = await cli(["surface", "init", "--agent-web", "--yes", "--dir", dir]);
+    expect(first.out).toContain("Wire profile.authentication.state");
+    expect(first.out).toContain("Agent web: fill in identify and session");
+    // The integrator wires both.
+    const config = join(dir, "app/surface.config.ts");
+    writeFileSync(
+      config,
+      readFileSync(config, "utf8").replace(
+        /\/\/ Wire this to the app's existing auth source[^\n]*\n/,
+        "",
+      ),
+    );
+    const site = join(dir, "app/agent-site.server.ts");
+    writeFileSync(site, readFileSync(site, "utf8").replaceAll("TODO(agent-web)", "Done"));
+    const again = await cli(["surface", "init", "--agent-web", "--dry-run", "--dir", dir]);
+    expect(again.out).not.toContain("Wire profile.authentication.state");
+    expect(again.out).toContain("reads the app's own sign-in");
+    expect(again.out).toContain("identify and session in agent-site.server read");
+  });
+
+  it("React Router in SPA mode (ssr: false): a manual step, since there is no server", () => {
+    const dir = copy("react-router");
+    writeFileSync(join(dir, "react-router.config.ts"), "export default { ssr: false };\n");
+    const plan = planInit({ dir, agentWeb: true });
+    expect(plan.manual.join("\n")).toContain("ssr: false");
+    expect(plan.changes.find((c) => c.display === "app/root.tsx")!.after).not.toContain(
+      "agentEntry",
+    );
+  });
+
+  it("Next.js: proxy.ts from Next.js 16, middleware.ts before, and an existing one is left to the app", () => {
+    const sixteen = planInit({ dir: copy("next"), agentWeb: true });
+    const proxy = sixteen.changes.find((c) => c.display === "proxy.ts");
+    expect(proxy?.after, sixteen.changes.map((c) => c.display).join(", ")).toContain(
+      "export function proxy(",
+    );
+    const fifteenDir = copy("next");
+    const pkg = JSON.parse(readFileSync(join(fifteenDir, "package.json"), "utf8"));
+    pkg.dependencies.next = "15.5.0";
+    writeFileSync(join(fifteenDir, "package.json"), JSON.stringify(pkg));
+    const fifteen = planInit({ dir: fifteenDir, agentWeb: true });
+    expect(fifteen.changes.some((c) => c.display === "middleware.ts")).toBe(true);
+    const ownDir = copy("next");
+    writeFileSync(join(ownDir, "middleware.ts"), "export function middleware() {}\n");
+    const own = planInit({ dir: ownDir, agentWeb: true });
+    expect(own.changes.some((c) => /^(proxy|middleware)\.ts$/.test(c.display))).toBe(false);
+    expect(own.manual.join("\n")).toContain("middleware.ts, return agentEntry(request)");
+  });
+
+  it("writes the agent web's env to a gitignored .env, newline-safe, and never to a tracked one", async () => {
+    const dir = copy("react-router");
+    execFileSync("git", ["init", "-q"], { cwd: dir });
+    writeFileSync(join(dir, ".gitignore"), ".env\n");
+    writeFileSync(join(dir, ".env"), "# local\nAPP_KEY=abc"); // no final newline
+    const free = async () => false;
+    const r = await ensureAgentWebEnv(dir, true, free);
+    expect(r).toEqual({
+      file: ".env",
+      added: ["AXE_AGENT_WEB_SECRET", "AXE_AGENT_WEB_URL"],
+      written: true,
+      port: 4719,
+    });
+    const text = readFileSync(join(dir, ".env"), "utf8");
+    expect(text).toMatch(/^APP_KEY=abc$/m);
+    expect(text).toMatch(/^AXE_AGENT_WEB_SECRET=[A-Za-z0-9_-]{48}$/m);
+    expect(text).toMatch(/^AXE_AGENT_WEB_URL=http:\/\/127\.0\.0\.1:4719$/m);
+    expect((await ensureAgentWebEnv(dir, true, free)).added).toEqual([]);
+    const tracked = copy("react-router");
+    execFileSync("git", ["init", "-q"], { cwd: tracked });
+    writeFileSync(join(tracked, ".env"), "APP_KEY=abc\n");
+    const t = await ensureAgentWebEnv(tracked, true, free);
+    expect(t.file).toBeNull();
+    expect(t.reason).toContain("not ignored by git");
+    expect(readFileSync(join(tracked, ".env"), "utf8")).toBe("APP_KEY=abc\n");
+  });
+
   it("installs @summationai/axe-core for the site's agent pages", () => {
     const d = detect(copy("next"));
     expect(installCommand(d, true, undefined, true).argv).toContain("@summationai/axe-core");
     expect(installCommand(d, true).argv).not.toContain("@summationai/axe-core");
+  });
+});
+
+describe("freeAgentWebPort", () => {
+  it("skips ports other apps in the repository claim, and ports something listens on", async () => {
+    // A monorepo with two apps: the first already has an agent web on 4719.
+    const root = mkdtempSync(join(tmpdir(), "axe-ports-"));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    writeFileSync(join(root, ".gitignore"), ".env\n");
+    mkdirSync(join(root, "apps/web"), { recursive: true });
+    mkdirSync(join(root, "apps/admin"), { recursive: true });
+    writeFileSync(join(root, "apps/web/.env"), "AXE_AGENT_WEB_URL=http://127.0.0.1:4719\n");
+    expect(await freeAgentWebPort(join(root, "apps/admin"), async () => false)).toBe(4720);
+    // 4720 is taken by something running: the next one.
+    expect(await freeAgentWebPort(join(root, "apps/admin"), async (p) => p === 4720)).toBe(4721);
+    // An app's own setting does not count against it.
+    expect(await freeAgentWebPort(join(root, "apps/web"), async () => false)).toBe(4719);
+  });
+});
+
+describe("portInUse", () => {
+  it("sees a port something listens on as taken, and a closed one as free", async () => {
+    const { createServer } = await import("node:net");
+    const server = createServer();
+    await new Promise<void>((r) => server.listen({ host: "127.0.0.1", port: 0 }, () => r()));
+    const port = (server.address() as { port: number }).port;
+    expect(await portInUse(port)).toBe(true);
+    await new Promise<void>((r) => server.close(() => r()));
+    expect(await portInUse(port)).toBe(false);
+  });
+});
+
+describe("scopeConfig", () => {
+  it("finds the @summationai scope mapped in .npmrc or .yarnrc.yml, here or above", () => {
+    const root = mkdtempSync(join(tmpdir(), "axe-scope-"));
+    const app = join(root, "js/apps/admin");
+    mkdirSync(app, { recursive: true });
+    expect(scopeConfig(app)).toBeUndefined();
+    writeFileSync(
+      join(root, ".yarnrc.yml"),
+      'npmScopes:\n  buf:\n    npmRegistryServer: "https://buf.build"\n  summationai:\n    npmRegistryServer: "https://npm.pkg.github.com"\n',
+    );
+    expect(scopeConfig(app)).toBe(join(root, ".yarnrc.yml"));
+    writeFileSync(join(app, ".npmrc"), "@summationai:registry=https://npm.pkg.github.com\n");
+    expect(scopeConfig(app)).toBe(join(app, ".npmrc"));
+  });
+
+  it("does not take another scope for ours", () => {
+    const root = mkdtempSync(join(tmpdir(), "axe-scope-"));
+    writeFileSync(
+      join(root, ".yarnrc.yml"),
+      'npmScopes:\n  buf:\n    npmRegistryServer: "x"\n\nsummationai: true\n',
+    );
+    expect(scopeConfig(root)).toBeUndefined();
+  });
+});
+
+describe("findVendor", () => {
+  it("finds the packed SDK in vendor/agent-experience or vendor", () => {
+    const dir = mkdtempSync(join(tmpdir(), "axe-vendor-"));
+    expect(findVendor(dir)).toBeUndefined();
+    mkdirSync(join(dir, "vendor/agent-experience"), { recursive: true });
+    expect(findVendor(dir)).toBeUndefined();
+    writeFileSync(join(dir, "vendor/agent-experience/summationai-axe-core-1.1.0.tgz"), "");
+    expect(findVendor(dir)).toBe("vendor/agent-experience");
   });
 });

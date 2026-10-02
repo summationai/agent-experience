@@ -57,7 +57,7 @@ export function defaultFlagName(framework: Framework): string | undefined {
 }
 
 /** Re-render a template written with double quotes, semicolons, and two-space indentation. */
-function styled(source: string, style: Style): string {
+export function styled(source: string, style: Style): string {
   let out = source;
   if (style.quote === "'")
     out = out
@@ -250,7 +250,13 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     "// so a server render renders the children only.",
     "//",
     ...comment(g.says),
-    ...(ts ? [`import type { ReactNode } from "react";`] : []),
+    ...(ts
+      ? [
+          o.agentWeb
+            ? `import type { CSSProperties, ReactNode } from "react";`
+            : `import type { ReactNode } from "react";`,
+        ]
+      : []),
     `import { ${NAMES.provider} } from "${MODULES.react}";`,
     ...r.imports,
     ...g.imports,
@@ -258,15 +264,42 @@ export function reactSurfaceFile(o: TemplateOptions): string {
     "",
     ...g.module,
     ...r.module,
+    ...(o.agentWeb
+      ? [
+          "",
+          "// Read by assistive technology and agents, not shown.",
+          `const visuallyHidden${ts ? ": CSSProperties" : ""} = {`,
+          '  position: "absolute",',
+          "  width: 1,",
+          "  height: 1,",
+          '  overflow: "hidden",',
+          '  clip: "rect(0 0 0 0)",',
+          '  whiteSpace: "nowrap",',
+          "};",
+        ]
+      : []),
     "",
     ts
       ? `export function ${WRAPPER}({ children }: { children: ReactNode }) {`
       : `export function ${WRAPPER}({ children }) {`,
     ...g.body.map((l) => `  ${l}`),
     "  return (",
-    ...open,
-    "      {children}",
-    `    </${NAMES.provider}>`,
+    ...(o.agentWeb
+      ? [
+          "    <>",
+          "      {/* Where an agent with nothing installed starts (the /agent route). React 19 renders the",
+          "          link in <head>; the visually hidden link is for an agent that reads the page, since",
+          "          agents read the accessibility tree rather than <head>. */}",
+          `      <link rel="alternate" type="text/markdown" href="/agent" title="For agents" />`,
+          '      <a href="/agent" tabIndex={-1} style={visuallyHidden}>',
+          "        AI agent acting for a person? Start at /agent",
+          "      </a>",
+          ...open.map((l) => `  ${l}`),
+          "        {children}",
+          `      </${NAMES.provider}>`,
+          "    </>",
+        ]
+      : [...open, "      {children}", `    </${NAMES.provider}>`]),
     "  );",
     "}",
     "",
@@ -400,17 +433,17 @@ export function agentSiteFile(o: { typescript: boolean; style: Style }): string 
     "// An agent with nothing installed reaches this application through the agent web service,",
     "// following links. What it cannot do goes to these pages, on this site, signed in with this",
     "// site's own session: /agent/signin (connect the agent to the person), /agent/approve/<id> (a",
-    "// high-risk action), /agent/input/<id> (a value the person types). /agent sends an agent that",
-    "// found the site on to the agent web's /start. docs/agent-web.md has the whole flow.",
+    "// high-risk action), /agent/input/<id> (a value the person types). The agent web's own pages",
+    "// (/agent, where an agent starts, and /agent/s/...) are answered from this site too, passed",
+    "// through to the service, so an agent never leaves this origin. docs/agent-web.md has the flow.",
     "//",
     "// AXE_AGENT_WEB_SECRET is shared with the agent web service; AXE_AGENT_WEB_URL is where this",
-    "// server reaches it, and AXE_AGENT_WEB_PUBLIC_URL where agents do (default: the same).",
+    "// server reaches it (on loopback in development).",
     `import { agentSiteHandler } from "${AGENT_SITE_MODULE}";`,
     ...(ts ? [`import type { AgentSiteIdentity } from "${AGENT_SITE_MODULE}";`] : []),
     "",
     "export const agentSite = agentSiteHandler({",
     '  serviceUrl: process.env.AXE_AGENT_WEB_URL ?? "http://127.0.0.1:4719",',
-    "  agentUrl: process.env.AXE_AGENT_WEB_PUBLIC_URL ?? process.env.AXE_AGENT_WEB_URL,",
     '  secret: process.env.AXE_AGENT_WEB_SECRET ?? "",',
     "  // The signed-in person for this request, from this application's own server-side session:",
     "  // a stable principal (the same one every time), and the tenant or workspace if there is one.",
@@ -428,12 +461,18 @@ export function agentSiteFile(o: { typescript: boolean; style: Style }): string 
     ts
       ? "  session: async (request: Request, who: AgentSiteIdentity) => {"
       : "  session: async (request, who) => {",
-    "    // TODO(agent-web): return { cookies: [...] } or { storageState } for `who`.",
+    "    // TODO(agent-web): in production, mint a session for `who` with this application's own",
+    "    // session code and return { cookies: [...] } or { storageState }. In development, pass on",
+    "    // the person's own session cookies by name (the ones the server-side check reads), with",
+    `    // forwardCookies from "${AGENT_SITE_MODULE}":`,
+    '    //   if (process.env.NODE_ENV !== "production")',
+    '    //     return { cookies: forwardCookies(request, ["<session cookie>", "<session JWT cookie>"]) };',
     "    void request;",
     "    void who;",
     '    throw new Error("agent-web: session() is not implemented yet (agent-site.server)");',
     "  },",
-    "  // This application's sign-in page, returning to `returnTo` afterwards.",
+    "  // This application's sign-in page, returning to `returnTo` afterwards. If the sign-in page",
+    "  // ignores any return parameter, add one (the integration prompt shows how).",
     "  loginUrl: (returnTo) => `/login?redirectTo=${encodeURIComponent(returnTo)}`,",
     "});",
     "",

@@ -7,7 +7,17 @@
  * known safe migrations to files it generated, preserving application-specific edits.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { createConnection, createServer } from "node:net";
+import { fileURLToPath } from "node:url";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as WIRE from "@summationai/axe-core/vocabulary";
@@ -16,6 +26,13 @@ import { parse } from "../commands/shared";
 import { DEV_RELAY_URL, PACKAGES, REGISTRY_NPMRC } from "./api";
 import { detect, FRAMEWORKS } from "./detect";
 import type { Detection, Framework, PackageManager } from "./detect";
+import {
+  AGENT_ENTRY_MODULE,
+  addAgentEntryToRootLoader,
+  addConfigRoute,
+  nextAgentEntryFile,
+} from "./agent-web-edits";
+import type { Edit } from "./agent-web-edits";
 import { unifiedDiff } from "./diff";
 import { detectStyle, find, insertImport, matchParen, wrapRange } from "./edit";
 import type { Style } from "./edit";
@@ -28,9 +45,11 @@ import {
   reactRouterAgentRoute,
   plainSurfaceFile,
   reactSurfaceFile,
+  styled,
   WRAPPER,
 } from "./templates";
 import type { FlagSpec, TemplateOptions } from "./templates";
+import { npxCommand } from "./api";
 
 export interface InitOptions {
   dir: string;
@@ -281,8 +300,6 @@ export function planInit(o: InitOptions): InitPlan {
   };
   addFile(surfacePath, surfaceText);
   addFile(configPath, configFile(t));
-  if (o.agentWeb) planAgentWeb(d, style, addFile, manual, show);
-
   const edit = plain
     ? editHtml(d, rootText, surfacePath)
     : editReactMount(d, mountFile, rootText, surfacePath);
@@ -294,6 +311,20 @@ export function planInit(o: InitOptions): InitPlan {
       before: rootText,
       after: edit.after,
     });
+
+  // Edit a file in place, after any change already planned for it (the root's mount edit).
+  const editFile = (path: string, fn: (text: string) => Edit): void => {
+    const planned = changes.find((c) => c.path === path);
+    const text = planned ? planned.after : existsSync(path) ? readFileSync(path, "utf8") : null;
+    if (text === null) return;
+    const r = fn(text);
+    if (typeof r !== "string") manual.push(`--agent-web: in ${show(path)}, ${r.manual}`);
+    else if (r !== text) {
+      if (planned) planned.after = r;
+      else changes.push({ path, display: show(path), before: text, after: r });
+    }
+  };
+  if (o.agentWeb) planAgentWeb(d, style, addFile, editFile, manual, show);
 
   // Root edit first in the diff: it is the one a reviewer reads.
   changes.sort((a, b) => Number(b.before !== undefined) - Number(a.before !== undefined));
@@ -309,6 +340,7 @@ function planAgentWeb(
   d: Detection,
   style: Style,
   addFile: (path: string, content: string) => void,
+  editFile: (path: string, fn: (text: string) => Edit) => void,
   manual: string[],
   show: (p: string) => string,
 ): void {
@@ -329,8 +361,42 @@ function planAgentWeb(
       route,
       nextAgentRoute({ importPath: importFrom(route), typescript: d.typescript, style }),
     );
+    // agentEntry in the entry file every page request passes: proxy.ts from Next.js 16, else
+    // middleware.ts, beside the app directory. An existing one is the application's to edit.
+    const base = dirname(d.outDir);
+    const existing = ["proxy", "middleware"]
+      .flatMap((n) => ["ts", "js", "mjs"].map((e) => join(base, `${n}.${e}`)))
+      .find(existsSync);
+    if (existing) {
+      if (!readFileSync(existing, "utf8").includes("agentEntry("))
+        manual.push(
+          `--agent-web: in ${show(existing)}, return agentEntry(request) from ${AGENT_ENTRY_MODULE} when it is not null, before the rest of it runs (it sends an agent that opens the site from outside on to /agent).`,
+        );
+    } else {
+      const proxy = nextMajor(d.dir) >= 16;
+      addFile(
+        join(base, `${proxy ? "proxy" : "middleware"}.${ext}`),
+        styled(nextAgentEntryFile({ typescript: d.typescript, proxy }), style),
+      );
+    }
     return;
   }
+  // The root loader sends agents on, unless the app has no server (SPA mode).
+  const rrConfig = ["react-router.config.ts", "react-router.config.js"]
+    .map((f) => join(d.dir, f))
+    .find(existsSync);
+  if (rrConfig && /\bssr\s*:\s*false\b/.test(readFileSync(rrConfig, "utf8")))
+    manual.push(
+      "--agent-web: this React Router app has no server (ssr: false), so the agent web's pages and agentEntry need a server of their own (docs/agent-web.md).",
+    );
+  else
+    editFile(d.rootFile, (text) =>
+      addAgentEntryToRootLoader(text, {
+        typescript: d.typescript,
+        quote: style.quote,
+        semi: style.semi,
+      }),
+    );
   // React Router: the route file's name follows the application's route convention.
   const routesConfig = ["routes.ts", "routes.js"].map((f) => join(d.outDir, f)).find(existsSync);
   const config = routesConfig ? readFileSync(routesConfig, "utf8") : "";
@@ -344,6 +410,18 @@ function planAgentWeb(
     addFile(
       route,
       reactRouterAgentRoute({ importPath: importFrom(route), typescript: d.typescript, style }),
+    );
+    return;
+  }
+  // A route config that lists its routes (`export default [ ... ]`): add the route and its file.
+  if (routesConfig && /export\s+default\s+\[/.test(config)) {
+    const file = join(d.outDir, "routes", `agent.$.${routeExt}`);
+    addFile(
+      file,
+      reactRouterAgentRoute({ importPath: importFrom(file), typescript: d.typescript, style }),
+    );
+    editFile(routesConfig, (text) =>
+      addConfigRoute(text, posix(relative(d.outDir, file)), style.quote),
     );
     return;
   }
@@ -373,13 +451,44 @@ function addCommand(pm: PackageManager): string {
 }
 
 /** Tarball file names in a vendor directory, by package (from `scripts/pack-for-consumer.sh`). */
+/** This CLI's version: the packages it installs are released with it, at the same version. */
+const OWN_VERSION: string = (() => {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    for (const up of ["..", join("..", "..")]) {
+      const f = join(here, up, "package.json");
+      if (existsSync(f)) {
+        const p = JSON.parse(readFileSync(f, "utf8")) as { name?: string; version?: string };
+        if (p.name === "@summationai/axe" && p.version) return p.version;
+      }
+    }
+  } catch {
+    // Fall through.
+  }
+  return "<version>";
+})();
+
+/**
+ * The vendor directory to install from when `--vendor` is not given: `vendor/agent-experience` or
+ * `vendor` in the app directory, when it holds the packed SDK (`scripts/pack-for-consumer.sh`).
+ */
+export function findVendor(dir: string): string | undefined {
+  return ["vendor/agent-experience", "vendor"].find((v) => {
+    const abs = join(dir, v);
+    return (
+      existsSync(abs) &&
+      readdirSync(abs).some((n) => /^summationai-axe-(core|surface)-.+\.tgz$/.test(n))
+    );
+  });
+}
+
 function tarballs(vendorAbs: string | undefined): Record<string, string> {
   const out: Record<string, string> = {};
   const names = vendorAbs && existsSync(vendorAbs) ? readdirSync(vendorAbs) : [];
   for (const pkg of ["core", "surface", "relay"]) {
     out[pkg] =
       names.find((n) => n.startsWith(`summationai-axe-${pkg}-`) && n.endsWith(".tgz")) ??
-      `summationai-axe-${pkg}-1.0.0.tgz`;
+      `summationai-axe-${pkg}-${OWN_VERSION}.tgz`;
   }
   return out;
 }
@@ -475,13 +584,208 @@ function declares(dir: string, names: string[]): boolean {
   }
 }
 
-function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[] {
+export interface AgentWebEnv {
+  /** The env file, relative to the app directory, or null when there is none init may write. */
+  file: string | null;
+  /** The variables added, or that would be on a dry run (names only). */
+  added: string[];
+  /** Whether they were written (false on a dry run). */
+  written?: boolean;
+  /** Why nothing was written, when it was not. */
+  reason?: string;
+  /** The agent web port for this app: the first one free here, unless the file already sets one. */
+  port?: number;
+}
+
+/**
+ * Give the app's server the agent web's settings: append AXE_AGENT_WEB_SECRET (generated) and
+ * AXE_AGENT_WEB_URL to the first of `.env` and `.env.local` that exists and that git ignores,
+ * when they are missing. A file git does not ignore is never written: the secret must not be
+ * committed. Nothing is printed but the names.
+ */
+/**
+ * Whether something listens on 127.0.0.1:`port`. Binding the port answers that without a network
+ * connection, which a sandbox may refuse (and a refused connection must not read as a free port):
+ * EADDRINUSE means taken. When a listener cannot be opened at all, a connection decides, and only
+ * ECONNREFUSED counts as free.
+ */
+export function portInUse(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.once("error", (e: NodeJS.ErrnoException) => {
+      if (e.code === "EADDRINUSE") return resolve(true);
+      const socket = createConnection({ host: "127.0.0.1", port });
+      const done = (v: boolean) => {
+        socket.destroy();
+        resolve(v);
+      };
+      socket.setTimeout(300, () => done(true));
+      socket.once("connect", () => done(true));
+      socket.once("error", (err: NodeJS.ErrnoException) => done(err.code !== "ECONNREFUSED"));
+    });
+    server.listen({ host: "127.0.0.1", port, exclusive: true }, () =>
+      server.close(() => resolve(false)),
+    );
+  });
+}
+
+/**
+ * The agent web ports other applications in this repository already claim: AXE_AGENT_WEB_URL in
+ * their ignored `.env` and `.env.local` files.
+ */
+function claimedPorts(dir: string): Set<number> {
+  const out = new Set<number>();
+  const root = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: dir, encoding: "utf8" });
+  if (root.status !== 0) return out;
+  const top = root.stdout.trim();
+  const files = spawnSync(
+    "git",
+    ["ls-files", "-o", "-i", "--exclude-standard", "--", ":(glob)**/.env", ":(glob)**/.env.local"],
+    { cwd: top, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
+  );
+  if (files.status !== 0) return out;
+  const own = new Set([join(dir, ".env"), join(dir, ".env.local")].map((f) => realpathSafe(f)));
+  for (const rel of files.stdout.split("\n").filter(Boolean)) {
+    const file = join(top, rel);
+    if (own.has(realpathSafe(file))) continue;
+    try {
+      const m = /^\s*AXE_AGENT_WEB_URL=\S*:(\d+)/m.exec(readFileSync(file, "utf8"));
+      if (m) out.add(Number(m[1]));
+    } catch {
+      // Unreadable: it claims nothing.
+    }
+  }
+  return out;
+}
+
+function realpathSafe(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
+/** The first agent web port from 4719 that no other app here claims and nothing listens on. */
+export async function freeAgentWebPort(
+  dir: string,
+  inUse: (port: number) => Promise<boolean> = portInUse,
+): Promise<number> {
+  const claimed = claimedPorts(dir);
+  for (let port = 4719; port < 4740; port++)
+    if (!claimed.has(port) && !(await inUse(port))) return port;
+  return 4719;
+}
+
+export async function ensureAgentWebEnv(
+  dir: string,
+  write: boolean,
+  inUse?: (port: number) => Promise<boolean>,
+): Promise<AgentWebEnv> {
+  const ignored = (file: string) =>
+    spawnSync("git", ["check-ignore", "-q", file], { cwd: dir }).status === 0;
+  const candidates = [".env", ".env.local"].filter((f) => existsSync(join(dir, f)));
+  if (candidates.length === 0)
+    return {
+      file: null,
+      added: [],
+      reason: "no .env or .env.local in the app directory",
+      port: await freeAgentWebPort(dir, inUse),
+    };
+  const file = candidates.find(ignored);
+  if (!file)
+    return {
+      file: null,
+      added: [],
+      reason: `${candidates.join(" and ")} ${candidates.length > 1 ? "are" : "is"} not ignored by git, and the secret must not be committed`,
+      port: await freeAgentWebPort(dir, inUse),
+    };
+  const path = join(dir, file);
+  const text = readFileSync(path, "utf8");
+  const has = (k: string) => new RegExp(`^\\s*${k}=`, "m").test(text);
+  const lines: string[] = [];
+  if (!has("AXE_AGENT_WEB_SECRET"))
+    lines.push(`AXE_AGENT_WEB_SECRET=${randomBytes(36).toString("base64url")}`);
+  const port = has("AXE_AGENT_WEB_URL") ? undefined : await freeAgentWebPort(dir, inUse);
+  if (port !== undefined) lines.push(`AXE_AGENT_WEB_URL=http://127.0.0.1:${port}`);
+  if (lines.length && write) {
+    // A file without a final newline would join the first line onto its last.
+    const sep = text.length && !text.endsWith("\n") ? "\n" : "";
+    writeFileSync(
+      path,
+      `${text}${sep}# The agent web (axe surface init --agent-web)\n${lines.join("\n")}\n`,
+    );
+  }
+  return {
+    file,
+    added: lines.map((l) => l.slice(0, l.indexOf("="))),
+    written: lines.length > 0 && write,
+    ...(port !== undefined ? { port } : {}),
+  };
+}
+
+/**
+ * The file that already maps the @summationai scope to a registry (an `.npmrc` with
+ * `@summationai:registry`, or `npmScopes.summationai` in `.yarnrc.yml`), in the app's directory or
+ * any directory above it; undefined when none does.
+ */
+export function scopeConfig(dir: string): string | undefined {
+  for (let d = dir; ; d = dirname(d)) {
+    const npmrc = join(d, ".npmrc");
+    if (existsSync(npmrc) && /^\s*@summationai:registry\s*=/m.test(readFileSync(npmrc, "utf8")))
+      return npmrc;
+    const yarnrc = join(d, ".yarnrc.yml");
+    if (
+      existsSync(yarnrc) &&
+      /^npmScopes:\s*\n(?:[ \t]+.*\n)*?[ \t]+["']?summationai["']?:/m.test(
+        readFileSync(yarnrc, "utf8"),
+      )
+    )
+      return yarnrc;
+    if (dirname(d) === d) return undefined;
+  }
+}
+
+/** The major version of Next.js the app depends on (0 when it cannot tell). */
+function nextMajor(dir: string): number {
+  try {
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const v = pkg.dependencies?.["next"] ?? pkg.devDependencies?.["next"] ?? "";
+    return Number(/(\d+)/.exec(v)?.[1] ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+/** The port the app's own `dev` script names (`--port 5174`, `-p 3001`), if any. */
+export function devScriptPort(dir: string): string | undefined {
+  try {
+    const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+    return /(?:--port[= ]|-p )(\d{2,5})\b/.exec(pkg.scripts?.["dev"] ?? "")?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+function nextSteps(
+  plan: InitPlan,
+  o: InitOptions,
+  installed: boolean,
+  env?: AgentWebEnv,
+): string[] {
   const d = plan.detection;
   const remote = o.remote !== false;
   const registry = installCommand(d, remote, undefined, o.agentWeb === true);
   const tar = installCommand(d, remote, o.vendor ?? "vendor", o.agentWeb === true);
-  const devUrl =
-    d.framework === "next"
+  const port = devScriptPort(d.dir);
+  const devUrl = port
+    ? `http://localhost:${port}`
+    : d.framework === "next"
       ? "http://localhost:3000"
       : d.framework === "react-router" || d.framework === "vite-react"
         ? "http://localhost:5173"
@@ -490,8 +794,25 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     relative(d.dir, join(d.outDir, `surface.config.${d.typescript ? "ts" : "js"}`)),
   );
   const steps: { text: string; more?: string[] }[] = [];
+  // Steps the integrator has finished since init wrote the files are reported as done.
+  const read = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : undefined);
+  const configText = read(join(d.outDir, `surface.config.${d.typescript ? "ts" : "js"}`));
+  // The generated config marks the profile it leaves for the integrator to wire.
+  const profileWired =
+    configText !== undefined && !configText.includes("Wire this to the app's existing auth source");
+  const siteText = read(join(d.outDir, `agent-site.server.${d.typescript ? "ts" : "js"}`));
+  const siteDone = siteText !== undefined && !siteText.includes("TODO(agent-web)");
   const required = [PACKAGES.surface, ...(remote ? [PACKAGES.relay] : [])];
-  if (!installed && !declares(d.dir, required))
+  const scope = scopeConfig(d.dir);
+  if (!installed && !declares(d.dir, required) && scope)
+    steps.push({
+      text: "Install (nothing was added to package.json; --install runs it):",
+      more: [
+        registry.argv.map(quoteArg).join(" "),
+        `The @summationai scope is already mapped to a registry in ${posix(relative(d.dir, scope)) || scope}.`,
+      ],
+    });
+  else if (!installed && !declares(d.dir, required))
     steps.push({
       text: "Install (nothing was added to package.json; --install runs it):",
       more: [
@@ -517,10 +838,10 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
     ...(remote
       ? [
           {
-            text: `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward). The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
+            text: `${profileWired ? `The profile in ${config} reads the app's own sign-in.` : `Wire profile.authentication.state in ${config} to the app's existing auth/session source (unknown while resolving, signed-out on login, signed-in afterward).`} The provider supplies the private browser and secure sign-in handoff; this application needs no auth route, token endpoint, session broker, or MCP server. For an optional pre-authenticated local fixture:`,
             more: [
-              `npx @summationai/${WIRE.cli.host} login ${devUrl}`,
-              `npx @summationai/${WIRE.cli.host} --dev --stdio --app ${devUrl}`,
+              `${npxCommand(WIRE.cli.host)} login ${devUrl}`,
+              `${npxCommand(WIRE.cli.host)} --dev --stdio --app ${devUrl}`,
             ],
           },
         ]
@@ -530,10 +851,10 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
           },
         ]),
     {
-      text: `See what an agent sees: npx @summationai/${WIRE.cli.surfaceCoverage} ${devUrl} [--routes /a,/b]`,
+      text: `See what an agent sees: ${npxCommand(WIRE.cli.surfaceCoverage)} ${devUrl} [--routes /a,/b]`,
     },
     {
-      text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: npx @summationai/${WIRE.cli.surface} prompt`,
+      text: `Write config for the top gaps in ${config}. The prompt that walks an agent through it: ${npxCommand(WIRE.cli.surface)} prompt`,
     },
     {
       text: !remote
@@ -548,17 +869,26 @@ function nextSteps(plan: InitPlan, o: InitOptions, installed: boolean): string[]
   if (o.agentWeb)
     steps.push(
       {
-        text: "Agent web: fill in identify and session in agent-site.server from this application's own sign-in (the prompt says how), then set, for the application's server:",
-        more: [
-          "AXE_AGENT_WEB_SECRET=<32+ random characters, shared with the agent web service>",
-          "AXE_AGENT_WEB_URL=http://127.0.0.1:4719",
-        ],
+        text: siteDone
+          ? "Agent web: identify and session in agent-site.server read this application's own sign-in."
+          : "Agent web: fill in identify and session in agent-site.server from this application's own sign-in (the prompt says how).",
+        more: env?.file
+          ? [
+              env.added.length && !env.written
+                ? `${env.file} gets ${env.added.join(" and ")} for the application's server when init applies.`
+                : `${env.file} has AXE_AGENT_WEB_SECRET and AXE_AGENT_WEB_URL for the application's server${env.added.length ? " (added now)" : ""}.`,
+            ]
+          : [
+              `Set, for the application's server${env?.reason ? ` (not written: ${env.reason})` : ""}:`,
+              "AXE_AGENT_WEB_SECRET=<32+ random characters, shared with the agent web service>",
+              `AXE_AGENT_WEB_URL=http://127.0.0.1:${env?.port ?? 4719}`,
+            ],
       },
       {
-        text: "Run the agent web beside the application, with the same secret, and give an agent (Claude Desktop, nothing installed) its start page:",
+        text: "Run the agent web beside the application, and give an agent (Claude Desktop, nothing installed) the application's address:",
         more: [
-          `AXE_AGENT_WEB_SECRET=<same> npx @summationai/${WIRE.cli.host} --dev --agent-web --text-in-url --app ${devUrl} --site ${devUrl}`,
-          `Agents start at http://127.0.0.1:4719/start, or at ${devUrl}/agent, which sends them there.`,
+          `${npxCommand(WIRE.cli.host)} --dev --agent-web --text-in-url --env-file ${env?.file ?? "<env file>"} --app ${devUrl} --site ${devUrl}`,
+          `It reads the shared secret (and its port, from AXE_AGENT_WEB_URL) from that file. Agents start at ${devUrl}/agent: this application answers the agent web's pages itself, so an agent never leaves its origin.`,
         ],
       },
     );
@@ -657,7 +987,11 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
 
   let installed = false;
   if (values.install && !values["dry-run"]) {
-    const cmd = installCommand(d, o.remote !== false, o.vendor, o.agentWeb === true);
+    // Packed tarballs beside the app win over the registry, which needs scope configuration.
+    const vendor = o.vendor ?? findVendor(d.dir);
+    if (vendor && !o.vendor)
+      ctx.stdout(`Installing the packed SDK in ${vendor} (pass --vendor to choose another).`);
+    const cmd = installCommand(d, o.remote !== false, vendor, o.agentWeb === true);
     ctx.stdout(`Running: ${cmd.argv.map(quoteArg).join(" ")}  (in ${cmd.cwd})`);
     if (cmd.overrides && writeOverrides(d.dir, cmd.overrides))
       ctx.stdout(
@@ -673,10 +1007,22 @@ export async function surfaceInit(ctx: CommandContext): Promise<number> {
     installed = true;
   }
 
+  let env: AgentWebEnv | undefined;
+  if (o.agentWeb) {
+    env = await ensureAgentWebEnv(
+      d.dir,
+      !values["dry-run"] && (applied || plan.changes.length === 0),
+    );
+    if (env.file && env.added.length)
+      ctx.stdout(
+        `${values["dry-run"] ? "Would add" : "Added"} ${env.added.join(" and ")} to ${env.file} (values not shown${env.port ? `; the agent web runs on port ${env.port}, the first one free here` : ""}).`,
+      );
+  }
+
   if (applied || plan.changes.length === 0 || values["dry-run"]) {
     ctx.stdout("");
     ctx.stdout("Next steps:");
-    for (const line of nextSteps(plan, o, installed)) ctx.stdout(line);
+    for (const line of nextSteps(plan, o, installed, env)) ctx.stdout(line);
   }
   return 0;
 }

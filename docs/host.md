@@ -63,7 +63,7 @@ The host needs a Chromium that Playwright can start. The repository's Playwright
 2. Sign in once, in a visible browser the host opens for you:
 
    ```sh
-   npx @summationai/axe host login http://localhost:5173
+   npx @summationai/axe@latest host login http://localhost:5173
    ```
 
    Sign in as you normally would, then press Enter in the terminal (or close the window). The signed-in session (cookies and `localStorage`, a Playwright storage state) is saved to `.axe/host-state.json`, readable only by you. It is your session: keep it out of version control (add `.axe/` to `.gitignore`) and log in again when it expires. `--state <file>` saves it elsewhere.
@@ -71,13 +71,13 @@ The host needs a Chromium that Playwright can start. The repository's Playwright
 3. Connect the agent. Let Claude Code start the host itself:
 
    ```sh
-   claude mcp add summation -- npx @summationai/axe host --dev --stdio --app http://localhost:5173
+   claude mcp add summation -- npx @summationai/axe@latest host --dev --stdio --app http://localhost:5173
    ```
 
    Or start it in a terminal, which prints the exact commands and configuration for your machine, with absolute paths to Node, the CLI, and the saved session:
 
    ```sh
-   npx @summationai/axe host --dev --app http://localhost:5173 --name summation
+   npx @summationai/axe@latest host --dev --app http://localhost:5173 --name summation
    ```
 
    ```text

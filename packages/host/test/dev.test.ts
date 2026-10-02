@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { createHost } from "../src/index";
-import { runHostCli } from "../src/cli";
+import { readEnvFile, runHostCli } from "../src/cli";
 import { chromiumMissing, httpAgent, observe, row, startFixture, until, wrap } from "./helpers";
 import type { Fixture } from "./helpers";
 
@@ -202,5 +202,27 @@ describe("axe host (command line)", () => {
     const r = await agent.call("relay_tabs");
     expect(r.result.status).toBe("error");
     expect(r.text).toContain("is not JSON");
+  });
+});
+
+describe("axe host --env-file", () => {
+  it("reads the site's env file: comments, export prefixes, and quotes", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "axe-env-"));
+    const file = join(dir, ".env");
+    await writeFile(
+      file,
+      [
+        "# local",
+        "APP_KEY=abc",
+        `export AXE_AGENT_WEB_SECRET="${"s".repeat(48)}"`,
+        "AXE_AGENT_WEB_URL=http://127.0.0.1:4720",
+        "",
+      ].join("\n"),
+    );
+    expect(readEnvFile(file)).toEqual({
+      APP_KEY: "abc",
+      AXE_AGENT_WEB_SECRET: "s".repeat(48),
+      AXE_AGENT_WEB_URL: "http://127.0.0.1:4720",
+    });
   });
 });

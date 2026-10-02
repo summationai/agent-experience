@@ -160,6 +160,53 @@ describe("auto surface: choosing an item", () => {
     }
   });
 
+  it("admin Users table: a focusable row opens the user, and acting on it clicks the row", async () => {
+    // The live markup (admin-app lib/Table.tsx): a grid whose rows are focusable <tr>s with a click
+    // handler and a selection checkbox, and no role of their own. The detail page is reached only
+    // through the row.
+    const row = (name: string, email: string) => `<tr tabindex="0" data-row-focusable>
+      <td><input type="checkbox" aria-label="Select ${name}"></td>
+      <td>${name}</td><td>${email}</td><td>SummationDotCom</td><td>USER</td></tr>`;
+    document.body.innerHTML = `<main><h1>Users</h1><table role="grid"><thead><tr><th></th><th>Name</th>
+      <th>Email</th><th>Tenant</th><th>Account type</th></tr></thead><tbody>
+      ${row("Matthew Herz", "matthew@summation.com")}${row("Ada Lovelace", "ada@summation.com")}
+      </tbody></table></main>`;
+    const opened: string[] = [];
+    document
+      .querySelectorAll("tbody tr")
+      .forEach((tr) =>
+        tr.addEventListener("click", () => opened.push(tr.children[1]!.textContent!)),
+      );
+    const h = autoSurface({ observe: { settle: { quietMs: 5, timeoutMs: 100 }, debounceMs: 0 } });
+    handles.push(h);
+    const view = h.surface.observe();
+    const rows = view.entries.filter((e) => e.kind === "action" && /summation\.com/.test(e.name));
+    expect(rows.map((e) => e.name)).toHaveLength(2);
+    for (const e of rows)
+      expect(e.effect, e.name).toMatchObject({
+        risk: "low",
+        mutates: "location",
+        reversible: true,
+      });
+    // The table is still read as content, a row per user.
+    const read = h.read();
+    const table = read.sections.flatMap((sec) => sec.tables)[0]!;
+    expect(table.rows).toHaveLength(2);
+    expect(JSON.stringify(table.rows)).toContain("matthew@summation.com");
+    // The selection checkboxes stay controls of their own.
+    expect(view.entries.some((e) => e.name === "Select Matthew Herz")).toBe(true);
+    const mine = rows.find((e) => e.name.includes("Matthew Herz"))!;
+    const r = await h.surface.act({ op: "CLICK", target: mine.id, expectedRev: view.rev });
+    expect(r.status).toBe("ok");
+    expect(opened).toEqual(["Matthew Herz"]);
+  });
+
+  it("a row that is not focusable is still content, not a control", () => {
+    const r = risks(`<main><table><tbody><tr><td>orders</td><td>1.2M rows</td></tr>
+      <tr><td>refunds</td><td>3 rows</td></tr></tbody></table></main>`);
+    expect(Object.keys(r).filter((n) => /rows/.test(n))).toHaveLength(0);
+  });
+
   it("a folder holding a single subfolder: the lone row still opens an item", () => {
     // FileListTable with one row: no peers to compare, but the row is an item's shape and its
     // name is an identifier.

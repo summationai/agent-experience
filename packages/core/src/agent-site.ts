@@ -7,9 +7,12 @@
  *   const agent = agentSiteHandler({ serviceUrl, secret, identify, session, loginUrl });
  *   // in a route handler: return (await agent(request)) ?? next();
  *
- * - `/agent`: where an agent that found the site starts; sent on to the agent web's `/start`.
+ * - `/agent`: where an agent that found the site starts. By default the agent web's pages
+ *   (`/agent`, `/agent/start`, `/agent/s/...`) are answered from this site, passed through to the
+ *   service, so an agent stays on the site's origin; with `agentUrl`, a 303 to its `/start`.
  * - `agentEntry(request)`: in the site's page handler, sends an agent's browser arriving from
- *   outside on to `/agent`.
+ *   outside on to `/agent` (also from `@summationai/axe-core/agent-entry`, which has no Node imports,
+ *   for an Edge middleware).
  * - `/agent/signin?agent_session=<id>`: connect this agent session to the signed-in person (the
  *   page shows the code the agent showed; the person confirms it matches).
  * - `/agent/approve/<id>`: the exact high-risk action the agent asked for; Approve or Decline.
@@ -19,6 +22,9 @@
  * to the agent web service over its site API, authenticated with the same secret.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
+
+export { agentBrowsers, agentEntry, forwardCookies } from "./agent-entry";
+export type { AgentEntryOptions } from "./agent-entry";
 
 /** A cookie for the agent's headless page (Playwright's cookie shape). */
 export interface AgentSiteCookie {
@@ -82,8 +88,11 @@ export interface AgentSiteOptions {
   /** The agent web service's origin, as the site's server reaches it. */
   serviceUrl: string;
   /**
-   * The agent web's origin as agents reach it, for `GET /agent`, the address an agent finds on
-   * the site and is sent on from to `/start`. Default: `serviceUrl`.
+   * Omit (the default) to serve the agent web's pages from this site: `/agent` (the start page),
+   * `/agent/start`, and `/agent/s/...` are passed through to `serviceUrl`, so an agent never
+   * leaves the site's origin (run the service with `--public <site>/agent`, its default). Set it
+   * to the agent web's own public origin to send agents there instead, with a 303 from `/agent`
+   * to `<agentUrl>/start`.
    */
   agentUrl?: string;
   /** The secret shared with the service (`siteSecret`). */
@@ -131,12 +140,28 @@ function page(title: string, body: string, status = 200): Response {
   );
 }
 
+/** Request headers passed on to the agent web: what it logs to tell agents apart, and content negotiation. */
+const FORWARDED = [
+  "user-agent",
+  "accept",
+  "accept-language",
+  "sec-fetch-site",
+  "sec-fetch-dest",
+  "signature-agent",
+  "signature",
+  "signature-input",
+  "x-forwarded-for",
+  "cf-connecting-ip",
+];
+/** Response headers passed back: the page's type, its no-store caching, and a redirect. */
+const RETURNED = ["content-type", "cache-control", "location", "vary"];
+
 export function agentSiteHandler(
   o: AgentSiteOptions,
 ): (request: Request) => Promise<Response | null> {
   const base = (o.basePath ?? "/agent").replace(/\/+$/, "");
   const service = o.serviceUrl.replace(/\/+$/, "");
-  const agentUrl = (o.agentUrl ?? o.serviceUrl).replace(/\/+$/, "");
+  const agentUrl = o.agentUrl?.replace(/\/+$/, "");
   const doFetch = o.fetch ?? fetch;
   const api = (path: string, init: RequestInit = {}) =>
     doFetch(`${service}/api${path}`, {
@@ -147,6 +172,34 @@ export function agentSiteHandler(
         ...(init.headers ?? {}),
       },
     });
+  // The agent web's own pages, answered from this origin. The service's site API (`/api/...`)
+  // is not among them: it needs the secret and only this server calls it.
+  const passThrough = async (request: Request, target: string): Promise<Response> => {
+    // The secret proves to the service that this is the site it serves.
+    const headers = new Headers({ Authorization: `Bearer ${o.secret}` });
+    for (const h of FORWARDED) {
+      const v = request.headers.get(h);
+      if (v) headers.set(h, v);
+    }
+    let res: Response;
+    try {
+      res = await doFetch(target, { method: request.method, headers, redirect: "manual" });
+    } catch {
+      return new Response("The agent web is not reachable from this site right now.\n", {
+        status: 502,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+    const out = new Headers();
+    for (const h of RETURNED) {
+      const v = res.headers.get(h);
+      if (v) out.set(h, v);
+    }
+    return new Response(request.method === "HEAD" ? null : res.body, {
+      status: res.status,
+      headers: out,
+    });
+  };
   const nonce = (...parts: string[]) =>
     createHmac("sha256", o.secret).update(parts.join("\n")).digest("base64url");
   const nonceOk = (given: string | null, ...parts: string[]) => {
@@ -157,9 +210,17 @@ export function agentSiteHandler(
   };
 
   return async (request) => {
+    // Not set up (no shared secret): the site has no agent pages, so its routes answer as usual.
+    if (!o.secret) return null;
     const url = new URL(request.url);
-    // `/agent` itself is where an agent that found the site starts: on to the agent web.
-    if ((url.pathname === base || url.pathname === `${base}/`) && request.method === "GET")
+    // `/agent` itself is where an agent that found the site starts.
+    const isEntry = url.pathname === base || url.pathname === `${base}/`;
+    if (!agentUrl && (request.method === "GET" || request.method === "HEAD")) {
+      const rest = url.pathname.slice(base.length);
+      if (isEntry || rest === "/start" || rest.startsWith("/s/"))
+        return passThrough(request, `${service}${isEntry ? "/start" : rest}${url.search}`);
+    }
+    if (agentUrl && isEntry && request.method === "GET")
       return new Response(`Agents start at ${agentUrl}/start\n`, {
         status: 303,
         headers: {
@@ -301,64 +362,4 @@ export function agentSiteHandler(
     }
     return page("Not found", "<h1>Not found</h1>", 404);
   };
-}
-
-/**
- * User agents of agents acting for a person: Claude Desktop's browser pane (`Claude/<ver>`,
- * observed), and the per-request fetchers the providers document: `Claude-User` (Claude's web
- * fetch, Claude Code), `ChatGPT-User`, `Google-Agent` (agents on Google's infrastructure),
- * `Perplexity-User`. Crawlers that index or train are not here. An agent driving the person's own
- * browser (Claude in Chrome, Atlas, Copilot in Edge) sends that browser's user agent and is not
- * recognizable; it has the site's own pages and session, and the page's Surface, anyway.
- */
-export const agentBrowsers: readonly RegExp[] = [
-  /\bClaude\/\d/,
-  /\bClaude-User\b/,
-  /\bChatGPT-User\b/,
-  /\bGoogle-Agent\b/,
-  /\bPerplexity-User\b/,
-];
-
-export interface AgentEntryOptions {
-  /** Where the site's agent pages are mounted. Default `/agent`. */
-  basePath?: string;
-  /** User agents to send on. Default {@link agentBrowsers}. */
-  agents?: readonly RegExp[];
-}
-
-/**
- * For the site's first response to a page request: when an agent's browser arrives at the site
- * from outside (a typed or pasted URL, a link from elsewhere), a 303 to `/agent`, the agent web's
- * entry, instead of the page a person would see. Otherwise null, and the site answers as usual.
- *
- * It never sends on a navigation within the site (`Sec-Fetch-Site: same-origin`), so a person
- * signing in from a link in the agent's browser, or using the site there, keeps the site. Nor a
- * request under `basePath`, a non-GET, a request for anything but a document, or a request with
- * `?agent=off`.
- */
-export function agentEntry(request: Request, o: AgentEntryOptions = {}): Response | null {
-  if (request.method !== "GET") return null;
-  const ua = request.headers.get("user-agent") ?? "";
-  // A signed agent (Web Bot Auth: ChatGPT agent sends `Signature-Agent: "https://chatgpt.com"`).
-  // The signature is not verified here: a forged one only gets the agent pages, which ask the
-  // person to sign in like any other visit.
-  const signed = request.headers.has("signature-agent");
-  if (!signed && !(o.agents ?? agentBrowsers).some((re) => re.test(ua))) return null;
-  const site = request.headers.get("sec-fetch-site");
-  if (site === "same-origin" || site === "same-site") return null;
-  const dest = request.headers.get("sec-fetch-dest");
-  if (dest && dest !== "document") return null;
-  const url = new URL(request.url);
-  const base = (o.basePath ?? "/agent").replace(/\/+$/, "");
-  if (url.pathname === base || url.pathname.startsWith(`${base}/`)) return null;
-  if (url.searchParams.get("agent") === "off") return null;
-  return new Response(`This site's interface for agents is ${base}\n`, {
-    status: 303,
-    headers: {
-      Location: base,
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-store",
-      Vary: "User-Agent, Sec-Fetch-Site",
-    },
-  });
 }

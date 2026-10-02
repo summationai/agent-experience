@@ -10,7 +10,7 @@
  * the application's own `sessionFor` (docs/host.md).
  */
 import { parseArgs } from "node:util";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { createInterface } from "node:readline";
@@ -52,9 +52,12 @@ Commands and options:
   --name <n>        The MCP server's name in the printed agent configuration. Default "app".
   --agent-web       Experimental: serve the app to agents with nothing installed, as pages of links
                     (docs/agent-web.md). The site mounts agentSiteHandler at /agent; set
-                    AXE_AGENT_WEB_SECRET to the secret it shares. With --site <origin> (default
-                    the app) and --public <origin> (default this service's own), --port (4719).
+                    AXE_AGENT_WEB_SECRET to the secret it shares, and it answers the agent pages
+                    from its own origin. With --site <origin> (default the app), --public <url>
+                    (where agents reach these pages; default <site>/agent), --port (4719).
                     --text-in-url also offers links that take a typed value as ?text=.
+                    --env-file <path> reads AXE_AGENT_WEB_SECRET, and the port from
+                    AXE_AGENT_WEB_URL, from the site's env file.
   --webmcp          Experimental, with --stdio: serve the page's own WebMCP tools (SurfaceProvider
                     webMcp, exposeWebMcp, or document.modelContext.registerTool) instead of the
                     relay's. The page needs no relay connection. Chromium 150 or newer.
@@ -109,6 +112,7 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
         webmcp: { type: "boolean" },
         "agent-web": { type: "boolean" },
         "text-in-url": { type: "boolean" },
+        "env-file": { type: "string" },
         site: { type: "string" },
         public: { type: "string" },
         app: { type: "string" },
@@ -170,12 +174,31 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
   const start = values["start"] as string | undefined;
   const hasState = existsSync(statePath);
   if (values["agent-web"] === true) {
+    // The site's own env file: the secret it shares, and the port it reaches this service on.
+    let fileEnv: Record<string, string> = {};
+    const envFile = values["env-file"] as string | undefined;
+    if (envFile) {
+      try {
+        fileEnv = readEnvFile(envFile);
+      } catch {
+        stderr(`axe host: --env-file ${envFile}: cannot read it.`);
+        return 1;
+      }
+    }
+    const serviceUrl = fileEnv["AXE_AGENT_WEB_URL"];
+    const filePort = serviceUrl ? Number(/:(\d+)(?:\/|$)/.exec(serviceUrl)?.[1] ?? NaN) : NaN;
     return serveAgentWeb({
+      secret: process.env["AXE_AGENT_WEB_SECRET"] || fileEnv["AXE_AGENT_WEB_SECRET"] || "",
       appUrl,
       start,
       site: (values["site"] as string | undefined) ?? new URL(appUrl).origin,
       publicUrl: values["public"] as string | undefined,
-      port: values["port"] === undefined ? 4719 : Number(values["port"]),
+      port:
+        values["port"] !== undefined
+          ? Number(values["port"])
+          : Number.isFinite(filePort)
+            ? filePort
+            : 4719,
       name: values["name"] as string | undefined,
       textInUrl: values["text-in-url"] === true,
       headless: values["headed"] !== true,
@@ -288,7 +311,22 @@ export async function runHostCli(argv: string[], io: HostCliIo = {}): Promise<nu
 }
 
 /** `axe host --dev --agent-web`: the app as pages of links for agents with only web fetch. */
+/** KEY=VALUE lines of an env file (comments, blanks, and `export ` prefixes allowed; quotes removed). */
+export function readEnvFile(path: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+    if (!m) continue;
+    let v = m[2]!.trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      v = v.slice(1, -1);
+    out[m[1]!] = v;
+  }
+  return out;
+}
+
 async function serveAgentWeb(o: {
+  secret: string;
   appUrl: string;
   start: string | undefined;
   site: string;
@@ -303,14 +341,16 @@ async function serveAgentWeb(o: {
 }): Promise<number> {
   const { createAgentWeb } = await import("./agent-web");
   const { randomBytes } = await import("node:crypto");
-  let secret = process.env["AXE_AGENT_WEB_SECRET"] ?? "";
+  let secret = o.secret;
   const generated = !secret;
   if (generated) secret = randomBytes(32).toString("base64url");
   if (secret.length < 32) {
     o.stderr("axe host: AXE_AGENT_WEB_SECRET must be at least 32 characters.");
     return 1;
   }
-  const publicUrl = o.publicUrl ?? `http://127.0.0.1:${o.port}`;
+  // By default the site answers the agent pages itself (agentSiteHandler without agentUrl), so
+  // every link an agent follows is on the site's own origin.
+  const publicUrl = o.publicUrl ?? `${o.site.replace(/\/+$/, "")}/agent`;
   const web = createAgentWeb({
     publicUrl,
     siteUrl: o.site,
@@ -333,15 +373,15 @@ async function serveAgentWeb(o: {
     return 1;
   }
   o.stdout(`axe host: agent web for ${o.appUrl} on ${address.url} (experimental, development)`);
-  o.stdout(`  agents start at: ${publicUrl}/start`);
+  o.stdout(`  agents start at: ${o.publicUrl ? `${publicUrl}/start` : publicUrl}`);
   o.stdout(
     `  the site's agent pages: ${o.site}/agent/...  (agentSiteHandler, serviceUrl ${address.url})`,
   );
   if (generated)
     o.stdout(`  AXE_AGENT_WEB_SECRET=${secret}   (generated; give the site the same value)`);
-  if (!o.publicUrl)
+  if (/^https?:\/\/(localhost|127\.|\[::1\])/.test(publicUrl))
     o.stdout(
-      "  An agent's web fetch runs on its provider's servers and cannot reach loopback: expose this port on public HTTPS and pass --public <that origin>.",
+      "  Loopback suits Claude Desktop. An agent whose web fetch runs on its provider's servers needs the site on public HTTPS (docs/agent-web.md, cloudflared); this service stays on loopback.",
     );
   let stopped: () => void = () => undefined;
   const done = new Promise<void>((resolve) => (stopped = resolve));

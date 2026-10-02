@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-host",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Unattended mode: the SDK runs a headless browser session of the application for the person the agent authenticated as, and the agent drives the app's real UI through its Surface over MCP, with no pairing and no tab of the person's own.",
   "license": "Apache-2.0",
   "type": "module",

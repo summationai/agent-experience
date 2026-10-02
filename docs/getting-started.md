@@ -17,7 +17,7 @@ The packages come from the summationai GitHub Packages registry: an `.npmrc` bes
 ### 2. Run `axe surface init`
 
 ```sh
-npx @summationai/axe surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-run
+npx @summationai/axe@latest surface init --app-id acme-analytics --app-name "Acme Analytics" --dry-run
 ```
 
 `axe surface init` detects the framework, the package manager (npm, pnpm, Yarn classic and Berry workspaces, bun), and the root component, and prints the diff it would make. For a React Router 7 app it is two lines in `app/root.tsx` plus two new files:
@@ -41,7 +41,7 @@ It is also the upgrade entry point: rerunning it applies narrowly defined safe m
 `app/surface.tsx` holds the `<AgentSurface>` component: a `SurfaceProvider` from `@summationai/axe-surface/react` with WebMCP enabled and an injected provider connection through `@summationai/axe-relay/client`. It is enabled by default; add an explicit `--flag` only when product rollout requires one. The generated structured profile publishes the stable application id and name plus live authentication/context facts. `app/surface.config.ts` is an empty overlay with commented examples. Nothing else in the app changes, and a second run changes nothing. Apply it:
 
 ```sh
-npx @summationai/axe surface init --app-id acme-analytics --app-name "Acme Analytics" --yes
+npx @summationai/axe@latest surface init --app-id acme-analytics --app-name "Acme Analytics" --yes
 ```
 
 Options that matter on a real app:
@@ -76,8 +76,8 @@ When an authenticated agent has no application session, the provider uses the se
 Run the coverage report and write config for the top gaps, or hand a coding agent the integration prompt:
 
 ```sh
-npx @summationai/axe surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
-npx @summationai/axe surface prompt > integrate-surface.md
+npx @summationai/axe@latest surface coverage http://localhost:5173 --routes /,/plans --out coverage.md
+npx @summationai/axe@latest surface prompt > integrate-surface.md
 ```
 
 The report opens the app in headless Chromium through Playwright (install it with `npm install -D playwright && npx playwright install chromium` if it is not already there), calls `window.__surface.coverage()` on each page, and lists what the page could not say with the rule to paste for each. [Surface](surface.md) covers the model, and [Deploying](deploying.md) the rollout.
@@ -87,9 +87,9 @@ The report opens the app in headless Chromium through Playwright (install it wit
 To exercise the lower-level host directly instead of the provider registry:
 
 ```sh
-npx @summationai/axe surface init --yes --install
-npx @summationai/axe host login http://localhost:5173
-claude mcp add myapp -- npx @summationai/axe host --dev --stdio --app http://localhost:5173
+npx @summationai/axe@latest surface init --yes --install
+npx @summationai/axe@latest host login http://localhost:5173
+claude mcp add myapp -- npx @summationai/axe@latest host --dev --stdio --app http://localhost:5173
 ```
 
 The host runs the app in a private browser and presents the surface over MCP. A brokered session may start it signed in; otherwise a `signed-out` Surface produces a secure view of that same browser for the person to authenticate without sending credentials through chat. The authoritative surface and every agent act remain in the page. This is useful for SDK development; production uses the provider registry and stable MCP endpoint described above. See [Unattended mode](host.md).
@@ -308,7 +308,7 @@ See [fetch integration](integrations/fetch.md) for each framework's exact mount.
 ### 4. Look at it the way an agent does
 
 ```sh
-npx @summationai/axe inspect http://localhost:3000
+npx @summationai/axe@latest inspect http://localhost:3000
 ````
 
 ```
@@ -365,7 +365,7 @@ Every response is a result envelope with a `status`. The five statuses and when 
 `axe validate` loads your file, validates the manifest against the schema, and lints the agent-read text:
 
 ```sh
-npx @summationai/axe validate ./axe.ts
+npx @summationai/axe@latest validate ./axe.ts
 ```
 
 ```
@@ -380,7 +380,7 @@ npx @summationai/axe validate ./axe.ts
 `axe conformance` runs the protocol suite against the live server. This is how you know you are done:
 
 ```sh
-npx @summationai/axe conformance http://localhost:3000
+npx @summationai/axe@latest conformance http://localhost:3000
 ```
 
 ```
@@ -407,7 +407,7 @@ The skipped checks exercise mutating actions and the escalation ladder; they run
 `axe audit` gives you the AXE Score and a fix list, in the style of Lighthouse:
 
 ```sh
-npx @summationai/axe audit http://localhost:3000
+npx @summationai/axe@latest audit http://localhost:3000
 ```
 
 ```

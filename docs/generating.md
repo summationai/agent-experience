@@ -173,7 +173,7 @@ Anything else, a recursive `$ref`, an allOf mixing types, a schema with no type,
 `axe generate` runs the same source from the command line, prints the actions and the warnings, and writes files for review:
 
 ```sh
-npx @summationai/axe generate openapi.json --base-url https://api.northwind.example/v1 --out axe.json --code axe.ts
+npx @summationai/axe@latest generate openapi.json --base-url https://api.northwind.example/v1 --out axe.json --code axe.ts
 ```
 
 `--out` writes a static manifest JSON with the generated actions and the document's title and description, so a reviewer can read what agents would see without running anything. `--code` writes an `axe.ts` that calls `fromOpenAPI` with an overrides block holding one TODO per operation that was left out, and comments marking the members you still have to decide (the server's own `baseUrl`, the login URL for `user` mode). Run `axe validate axe.ts` when the TODOs are gone. `--json` prints everything as one JSON object for tooling.
