@@ -1,5 +1,20 @@
 # @summationai/axe-surface
 
+## 1.2.0
+
+### Minor Changes
+
+- 3701f7a: Easy mode offers a table row made focusable on purpose (`tabindex` 0 or more, in a table or grid) as an action that opens its item, low risk. The admin app's Users and Tenants tables open a user or tenant only through a row click, so an agent could see the list but never reach a detail page or its Edit button.
+
+### Patch Changes
+
+- 8832355: `SurfaceProfile` and `SurfaceProfileSource` are exported from `@summationai/axe-surface/auto`, where a generated `surface.config` already imports `SurfaceConfig`. `axe surface init`'s next steps report the profile and `agent-site.server` as done once the integrator has wired them, instead of repeating the instructions.
+- Updated dependencies [2c81422]
+- Updated dependencies [c611fa2]
+- Updated dependencies [50254a7]
+- Updated dependencies [b80d034]
+  - @summationai/axe-core@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes

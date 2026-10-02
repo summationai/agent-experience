@@ -1,6 +1,6 @@
 {
   "name": "@summationai/axe-core",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AXE protocol types, schemas, well-known kinds, and framework-free server runtime.",
   "license": "Apache-2.0",
   "type": "module",
