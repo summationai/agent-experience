@@ -126,6 +126,7 @@ Refine the highest-value gaps in `surface.config`:
 - Give unnamed controls an outcome-oriented `name`.
 - Give unavailable controls the same `reason` the application uses.
 - Classify destructive or consequential actions with their real risk and require approval when a person must decide.
+- Keep the default policy: low and medium risk run, high risk waits for the person. Ordinary edits (a name, a setting, a field and its Save) are what the person asked the agent to do, and making them wait sends the person out of their agent for no reason. Put caution where it belongs instead: give each destructive or irreversible control (delete, deactivate, provision, invite, revoke, anything that sends or charges) `effect: { risk: "high" }` or `approval: true` by name or selector. Do not raise the policy for a whole risk level, and do not require approval for every button in a dialog.
 - Do not gate navigation. Surface already reads these as opening an item, low risk: links within the site, tabs and tree items, a row or card named for an item among its peers, a single row whose name is an identifier, and a table row the app made focusable (`tabindex="0"`). Add a rule only for an item control coverage lists as unrecognized (unrecognized controls default to high risk and wait for the person): `effect: { mutates: "location", risk: "low" }`.
 - Mark private fields `sensitive`; add `editable: true` only when an agent may set them.
 - Hide developer tools, embedded assistants, and controls that are not part of the application task surface.
